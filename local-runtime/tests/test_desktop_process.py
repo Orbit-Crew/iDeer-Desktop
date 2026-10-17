@@ -163,6 +163,27 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
                 await socket.send(task("mcp-97", payload).model_dump_json(by_alias=True))
                 assert (await receive(socket)).payload["error_code"] == "TASK_REPLAYED"
                 assert count.read_text() == "T97-mcp-marker\n"
+                uncertain_payload = {"operation": capability, "arguments": {"value": "T97-unconfirmed-marker"}}
+                await socket.send(task("uncertain-97", uncertain_payload).model_dump_json(by_alias=True))
+                expected_ledger = "T97-mcp-marker\nT97-unconfirmed-marker\n"
+
+                async def await_side_effect():
+                    while count.read_text() != expected_ledger:
+                        await asyncio.sleep(0.02)
+
+                await asyncio.wait_for(await_side_effect(), 10)
+                assert not any(entry["taskId"] == "uncertain-97" and entry["state"] == "completed"
+                               for snapshot in states for entry in snapshot["tasks"])
+                process.kill()
+                await asyncio.wait_for(process.wait(), 10)
+                await monitor
+                states.clear()
+                socket = await start()
+                await socket.send(task("uncertain-97", uncertain_payload).model_dump_json(by_alias=True))
+                uncertain_result = await receive(socket)
+                assert uncertain_result.type == MessageType.ERROR
+                assert uncertain_result.payload["error_code"] == "TASK_REPLAYED"
+                assert count.read_text() == expected_ledger
                 process.stdin.write(b'{"type":"shutdown"}\n')
                 await process.stdin.drain()
                 assert await asyncio.wait_for(process.wait(), 15) == 0
@@ -174,6 +195,7 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
                         "interpreter": str(interpreter), "interpreter_sha256": hashlib.sha256(interpreter.read_bytes()).hexdigest(),
                         "outcomes": outcomes, "states": states, "mcp_ledger": count.read_text(),
                         "crash_descendants": "none", "recovery_exit_code": 0,
+                        "unconfirmed_side_effect": "one admission, one side effect, replay rejected after crash",
                     }, indent=2), encoding="utf-8")
         finally:
             release.set()

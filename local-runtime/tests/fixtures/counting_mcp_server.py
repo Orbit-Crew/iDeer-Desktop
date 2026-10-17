@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 Path(os.environ["MCP_PID"]).write_text(str(os.getpid()))
@@ -20,6 +21,10 @@ for line in sys.stdin:
         value = message["params"]["arguments"]["value"]
         with Path(os.environ["MCP_COUNT"]).open("a", encoding="utf-8") as ledger:
             ledger.write(value + "\n")
+        if value == "T97-unconfirmed-marker":
+            # Crash-window fixture: the side effect exists, but no tool result
+            # or execution receipt can return during the test's kill window.
+            time.sleep(30)
         result = {"content": [{"type": "text", "text": value}], "isError": False}
     else:
         result = {}
