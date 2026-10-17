@@ -1,0 +1,27 @@
+import { readFileSync } from 'node:fs'
+import { build } from 'esbuild'
+import { describe, expect, it } from 'vitest'
+
+describe('bootstrap capability boundary', () => {
+  it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
+    const result = await build({
+      entryPoints: ['src/main/index.ts', 'src/preload/index.ts', 'src/renderer/src/main.tsx'],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((item) => item.path))
+    expect(imports.filter((path) => /child_process|node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
+    expect(Object.keys(pkg.dependencies).sort()).toEqual([
+      '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
+    ])
+    const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
+    expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
+      .toEqual(['desktop:quit', 'desktop:status'])
+    expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
+  })
+})

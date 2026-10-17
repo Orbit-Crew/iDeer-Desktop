@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 页面底色：极浅的蓝灰，比纯白柔和 */
+  --bg-page: #F4F6FA;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  /* 内容区/侧边栏底色：默认不透明；设置自定义背景时由 AppLayout 改写为 rgba 半透明 */
+  --content-bg: #F4F6FA;
+  --sidebar-bg: #FFFFFF;
+  /* 窗格底色：默认白；背景激活时设为 transparent，仅靠 --content-bg 一层半透明遮罩，避免多层叠加 */
+  --pane-bg: #FFFFFF;
+  /* 边框：分层次的浅灰蓝 */
+  --border-light: #EEF0F5;
+  --border-default: #E4E8F0;
+  /* 文字 */
+  --text-primary: #1F2329;
+  --text-secondary: #4E5566;
+  --text-tertiary: #8A93A6;
+  /* 柔和阴影（低饱和蓝灰，避免脏灰） */
+  --shadow-card: 0 1px 2px rgba(30, 50, 90, 0.04), 0 1px 6px rgba(30, 50, 90, 0.05);
+  --shadow-card-hover: 0 4px 12px rgba(30, 50, 90, 0.08), 0 2px 4px rgba(30, 50, 90, 0.06);
+  --shadow-popover: 0 6px 24px rgba(30, 50, 90, 0.12), 0 2px 8px rgba(30, 50, 90, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(30, 111, 204, 0.12);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', 'HarmonyOS Sans SC', '思源黑体', 'PingFang SC', 'Microsoft YaHei', '微软雅黑', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5DAE3;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B8C0CE;
+}
+
+/* 通用卡片：白底 + 细边框 + 柔和阴影 */
+.linz-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.linz-card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-default);
+  transform: translateY(-1px);
+}
+
+/* 通用过渡 */
+.linz-transition {
+  transition: all 0.18s ease;
+}
+
