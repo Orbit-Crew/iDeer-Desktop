@@ -30,6 +30,20 @@ Windows 安装脚本仅供设置了 RUNNER_TEMP 的一次性 CI 账号使用；�
 AppData 的 linz 和 Desktop 目录中创建唯一命名的数据固定件，验证后仅删除这些固定件。
 不使用 APPDATA 环境覆盖假装隔离 Windows Known Folder，不改写任何已有资料。
 
+已有安装的本机验收可使用 `scripts/windows-local-acceptance.ps1`，必须明确传入
+`-Installer` 和匹配当前用户卸载登记的 `-InstallDirectory`；脚本会关闭应用、原位安装、
+卸载并重装，保留数据固定件并恢复原有运行状态。可见快捷方式启动须另行交互验证。
+带空格安装路径使用 `/D="完整目录"`，避免 NSIS StdUtils 参数解析将路径截断。
+本机实例及限制见 [2026-10-17 Windows 验收](windows-acceptance-2026-10-17.md)。
+
+补充验收入口为 `scripts/windows-acceptance-baseline.ps1`，在 Node 22 环境中下载固定提交
+清单内来源文件并核对全部指纹，重装锁定依赖、执行类型/全量/安全回归、归档依赖图和有效
+打包配置、运行默认 `npm.cmd run dist:win`，逐命令记录退出码和耗时。
+该脚本不核验上游授权；授权结论仍单独记录。`-EvidenceDirectory` 可指定新的证据目录。
+真实 Windows desktop smoke 现另存各次退出前后的 PID、父 PID 和可执行路径；
+设置 `DESKTOP_EVIDENCE_DIR` 可指定其证据位置。本机生命周期脚本也支持 `-EvidenceDirectory`，
+保存安装/卸载/重装各时点的固定件路径与 SHA-256。
+
 PR 工作流对全部代码 PR 运行静态/合同及 Windows 打包/安装 smoke，无路径过滤。
 产物带候选提交、依赖锁、构建配置、截图和安装包 SHA-256；它们是候选包，
 没有因 CI 成功获得发布许可。main 分支保护需由仓库维护者配置这两个必需检查。
@@ -38,10 +52,12 @@ PR 工作流对全部代码 PR 运行静态/合同及 Windows 打包/安装 smok
 新增认证、授权、通信、执行或回执时，必须接续父规格的真实 Server/Runtime 跨仓
 检查及 Runtime 原覆盖。当前无审批/执行接口，不能把尚不存在的 Runtime 集成用例记为通过。
 
-## 必需真实 Win7 专项
+## 后置真实 Win7 专项（#131）
 
-本票涉及进程启动、沙箱、兼容补丁和打包，合并前需要真实 Win7 专项。
-每次发布还须针对最终安装包复验，历史 linz 或现代 Windows 记录不能替代。
+按更新后的 issue #96，当前在现代 Windows 验证进程启动、沙箱、兼容补丁和打包。
+真实 Win7 专项统一登记到 [收尾工单 #131](https://github.com/Orbit-Crew/iDeer/issues/131)，
+不作为 #96 合并、关闭或后续工单领取的前置；其他适用场景仍须在 #96 完成。
+Win7 完整兼容交付及 linz 退役须等待收尾验收，现代 Windows 记录不能替代。
 由 Neowyh 指定验收人，对下面每项记录 passed / failed / unexecuted / incomplete。
 
 | 编号 | 场景与可观察结果 |
@@ -57,9 +73,11 @@ PR 工作流对全部代码 PR 运行静态/合同及 Windows 打包/安装 smok
 
 ## 候选证据
 
-本次执行结果记录于 docs/validation-results.md。人工记录须补充候选提交、
+逐场景报告交付在 [docs/acceptance/issue-96/report.md](acceptance/issue-96/report.md)，
+按 T96-01 至 T96-05 分别记录自动与人工结果；历史执行结果保留在 docs/validation-results.md。
+人工记录须补充候选提交、
 Desktop/Server/Runtime/组件版本、包 hash、依赖 lock hash、环境、配置、场景、命令、
 耗时、最终摘要和验收人。Server/Runtime 未接入时写“未接入”，不伪造兼容版本组合。
 
-来源许可证文本未核验、必需项 failed/unexecuted/incomplete，均不放行。
-当前仓库无可用真实 Win7 环境，因此此项必须保持 unexecuted，等待实际证据。
+来源许可证文本未核验、当期必需项 failed/unexecuted/incomplete，均不放行。
+当前无真实 Win7 环境，其专项保持 unexecuted，由 #131 承接，不计为 #96 当前阻塞项。

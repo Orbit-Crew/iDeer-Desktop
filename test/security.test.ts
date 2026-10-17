@@ -19,7 +19,7 @@ describe('bootstrap capability boundary', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
     ])
-    const preload = result.outputFiles.find((file) => file.path.endsWith('preload/index.js'))!.text
+    const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
       .toEqual(['desktop:quit', 'desktop:status'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)

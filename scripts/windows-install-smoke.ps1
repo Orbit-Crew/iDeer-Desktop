@@ -15,7 +15,7 @@ $desktopFixture = Join-Path $desktopDir $fixtureName
 Set-Content $legacyFixture 'old-linz-data'
 Set-Content $desktopFixture 'desktop-user-data'
 try {
-  $install = Start-Process -FilePath $installer -ArgumentList '/S', "/D=$installDir" -Wait -PassThru
+  $install = Start-Process -FilePath $installer -ArgumentList "/S /D=`"$installDir`"" -WindowStyle Hidden -Wait -PassThru
   if ($install.ExitCode -ne 0) { throw "Installation failed: $($install.ExitCode)" }
   if (-not (Test-Path $env:DESKTOP_EXECUTABLE)) { throw 'Installed executable missing' }
   node scripts/desktop-smoke.cjs
@@ -23,7 +23,7 @@ try {
 } finally {
   $uninstaller = Join-Path $installDir 'Uninstall iDeer Desktop.exe'
   if (-not (Test-Path $uninstaller)) { throw 'Uninstaller missing' }
-  $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait -PassThru
+  $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
   if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }
   $deadline = (Get-Date).AddSeconds(30)
   while ((Test-Path $env:DESKTOP_EXECUTABLE) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 250 }

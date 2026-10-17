@@ -3,9 +3,33 @@ const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync,
 const { randomUUID } = require('node:crypto')
 const { tmpdir } = require('node:os')
 const { join } = require('node:path')
+const { spawn, execFileSync } = require('node:child_process')
 const { _electron: electron } = require('playwright-core')
 
 async function main() {
+  const started = Date.now()
+  const evidenceDir = process.env.DESKTOP_EVIDENCE_DIR || 'artifacts'
+  mkdirSync(evidenceDir, { recursive: true })
+  const processEvidence = []
+  const expectedExecutable = process.env.DESKTOP_EXECUTABLE || require('electron')
+  async function recordProcesses(stage, expected) {
+    if (process.platform !== 'win32') return
+    const quotedPath = expectedExecutable.replace(/'/g, "''")
+    const query = `$items = @(Get-CimInstance Win32_Process -Filter "Name='${expectedExecutable.split(/[\\/]/).pop().replace(/'/g, "''")}'" | Where-Object { $_.ExecutablePath -eq '${quotedPath}' } | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath); ConvertTo-Json -InputObject $items -Compress`
+    const deadline = Date.now() + 20000
+    let processes
+    do {
+      processes = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', query], {
+        encoding: 'utf8', windowsHide: true, timeout: 15000
+      }).replace(/^\uFEFF/, '').trim())
+      if (expected !== 'exited' || processes.length === 0) break
+      await new Promise((resolve) => setTimeout(resolve, 200))
+    } while (Date.now() < deadline)
+    processEvidence.push({ stage, expected, timestamp: new Date().toISOString(), elapsedMs: Date.now() - started, processes })
+    writeFileSync(join(evidenceDir, 'desktop-processes.json'), JSON.stringify(processEvidence, null, 2))
+    if (expected === 'exited') assert.equal(processes.length, 0, `Residual processes after ${stage}`)
+    else assert.ok(processes.length > 0, `No running processes at ${stage}`)
+  }
   const profile = mkdtempSync(join(tmpdir(), 'ideer-desktop-smoke-'))
   // Windows known-folder resolution does not follow an APPDATA override.
   // Use only a new, uniquely named fixture, never an existing history/config file.
@@ -30,6 +54,7 @@ async function main() {
     const page = await app.firstWindow()
     page.setDefaultTimeout(15000)
     await page.getByRole('heading', { name: '未连接 Server' }).waitFor()
+    await recordProcesses('initial-launch', 'running')
     assert.match(await page.locator('body').innerText(), /当前无法登录、聊天或执行本地任务/)
     assert.equal(await page.title(), 'iDeer Desktop')
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['getStatus', 'quit'])
@@ -61,6 +86,7 @@ async function main() {
         electron: process.versions.electron,
         node: process.versions.node,
         data: app.getPath('userData'),
+        sessionData: app.getPath('sessionData'),
         software: app.commandLine.hasSwitch('disable-gpu'),
         sandbox: preferences.sandbox,
         isolation: preferences.contextIsolation,
@@ -73,6 +99,7 @@ async function main() {
     assert.equal(runtime.electron, '22.3.27')
     assert.match(runtime.node, /^16\./)
     assert.equal(runtime.data, join(appData, 'iDeer Desktop'))
+    assert.equal(runtime.sessionData, join(appData, 'iDeer Desktop', 'Session'))
     assert.equal(runtime.software, true)
     assert.equal(runtime.sandbox, true)
     assert.equal(runtime.isolation, true)
@@ -80,6 +107,36 @@ async function main() {
     assert.equal(runtime.webview, false)
     assert.equal(runtime.cloneWorks, true)
     assert.equal(runtime.decoded, '你')
+
+    // A second installed instance must activate the existing window and exit.
+    if (process.env.DESKTOP_EXECUTABLE) {
+      await app.evaluate(({ app, BrowserWindow }) => {
+        globalThis.__desktopSecondInstance = false
+        app.once('second-instance', () => { globalThis.__desktopSecondInstance = true })
+        BrowserWindow.getAllWindows()[0].minimize()
+      })
+      const second = spawn(process.env.DESKTOP_EXECUTABLE, [], { env, windowsHide: true, stdio: 'ignore' })
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Second instance did not exit')), 15000)
+        second.once('error', (error) => { clearTimeout(timeout); reject(error) })
+        second.once('exit', (code) => {
+          clearTimeout(timeout)
+          code === 0 ? resolve() : reject(new Error(`Second instance exit code: ${code}`))
+        })
+      })
+      const activated = await app.evaluate(({ BrowserWindow }) => ({
+        received: globalThis.__desktopSecondInstance,
+        windowCount: BrowserWindow.getAllWindows().length,
+        minimized: BrowserWindow.getAllWindows()[0].isMinimized()
+      }))
+      assert.deepEqual(activated, { received: true, windowCount: 1, minimized: false })
+    }
+
+    for (const [width, height] of [[960, 600], [1440, 900], [1280, 800]]) {
+      await app.evaluate(({ BrowserWindow }, bounds) => BrowserWindow.getAllWindows()[0].setSize(...bounds), [width, height])
+      await page.getByRole('heading', { name: '未连接 Server' }).waitFor({ state: 'visible' })
+      assert.equal(await page.locator('textarea, input[type="password"], input[type="submit"]').count(), 0)
+    }
 
     // Invoke the real preload bridge from a different webContents.
     const rejection = await app.evaluate(async ({ app, BrowserWindow }) => {
@@ -115,22 +172,29 @@ async function main() {
     })
     assert.equal(networkBlocked, true)
     mkdirSync('artifacts', { recursive: true })
-    await page.screenshot({ path: 'artifacts/desktop-startup.png' })
+    await page.screenshot({ path: join(evidenceDir, 'desktop-startup.png') })
+    await recordProcesses('before-ui-quit', 'running')
     const exited = app.waitForEvent('close')
     await page.getByRole('button', { name: '退出应用' }).click()
     await exited
     app = null
+    await recordProcesses('after-ui-quit', 'exited')
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
 
     // Closing the native window must exit, without a background tray process.
     app = await electron.launch(options)
     await (await app.firstWindow()).getByRole('heading', { name: '未连接 Server' }).waitFor()
+    await recordProcesses('restart-before-native-close', 'running')
     const closed = app.waitForEvent('close')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
     await closed
     app = null
+    await recordProcesses('after-native-close', 'exited')
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
-    console.log(JSON.stringify({ result: 'passed', platform: process.platform, runtime }, null, 2))
+    console.log(JSON.stringify({ result: 'passed', platform: process.platform, elapsedMs: Date.now() - started, runtime,
+      checks: ['unconnected-ui', 'session-directory', 'sandbox', 'ipc-rejection', 'navigation-popup-csp',
+        'sidebar', 'resize', ...(process.env.DESKTOP_EXECUTABLE ? ['second-instance'] : []), 'ui-quit', 'native-close']
+    }, null, 2))
   } finally {
     if (app) await app.close()
     rmSync(oldData, { force: true })

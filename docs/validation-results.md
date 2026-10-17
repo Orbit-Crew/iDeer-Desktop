@@ -1,5 +1,20 @@
 # Issue #96 执行证据
 
+当前标准以 [逐场景验收报告](acceptance/issue-96/report.md) 为准。
+issue #96 更新后，真实 Win7 统一后置到 #131，不再作为本票合并/关闭的前置；
+本文件下方历史记录中的旧放行规则不作为当前标准。
+
+最新补验：T96-02/03/04 已通过，补充日志/构建图/有效配置/退出快照位于
+`artifacts/issue-96-windows/supplement/`，已重新打包并在原安装目录验收。
+新包 SHA-256 为 `ed79d8200198dbb320827c6182727f53f0154f21fc3d9ff70454b89eec253806`。
+T96-01 来源清单内 16 文件通过完整指纹比对，但用户要求不核验上游授权，整体 incomplete；
+用户确认本机没有 linz，T96-05 的真实旧应用部分保持 unexecuted，固定件子步骤已通过。
+
+补充：2026-10-17 已在真实 Windows 11 本机完成候选的原位安装、启动、退出、卸载和重装验证。
+详见 [Windows 本机验收](windows-acceptance-2026-10-17.md)，包含包 hash、原安装路径、失败及修正记录。
+下文为先前 Linux 执行的历史记录；其中 Windows unexecuted 已有上述后续证据，Win7 仍未执行。
+整体验收及发布放行仍为 incomplete。
+
 2026-10-17，在 Linux x64 / WSL2 5.15.167.4、Node 22.23.2、npm 10.9.8 上执行。
 来源为 linz f88141bb3d3450a572fcc52e0f9b48a1e60d3b13；Desktop 0.1.0。
 Server / Runtime / 工程组件均未接入，未声明兼容组合。

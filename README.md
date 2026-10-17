@@ -21,5 +21,7 @@ No old installation, data, credentials or workspace is imported or deleted.
 
 See [porting and ownership](docs/porting.md), [validation and Win7 gates](docs/validation.md),
 [execution evidence](docs/validation-results.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
-Real Windows/Win7 acceptance and the missing upstream license text must be resolved
-before release. A CI package is a candidate, not an approved release.
+Modern Windows acceptance follows [the scenario report](docs/acceptance/issue-96/report.md).
+Real Win7 validation is deferred to [issue #131](https://github.com/Orbit-Crew/iDeer/issues/131)
+and does not block issue #96; it remains required for complete Win7 compatibility and linz retirement.
+The upstream license verification remains unresolved. A CI package is a candidate, not an approved release.
