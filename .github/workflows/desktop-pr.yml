@@ -15,6 +15,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install './local-runtime[test]'
+      - run: python scripts/verify-runtime-source.py
+      - run: python -m ruff check local-runtime --select E9,F63,F7,F82
+      - run: python -m pytest local-runtime/tests -q
+        env:
+          PYTHONPATH: local-runtime
       - run: npm ci
       - run: npm run verify:provenance
       - run: npm run typecheck
@@ -34,6 +43,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install './local-runtime[test]'
+      - run: python scripts/prepare-runtime.py
+      - run: python scripts/verify-runtime-source.py
+      - run: python -m ruff check local-runtime --select E9,F63,F7,F82
+      - run: python -m pytest local-runtime/tests -q
+        env:
+          PYTHONPATH: local-runtime
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:security

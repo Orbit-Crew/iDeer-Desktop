@@ -53,16 +53,36 @@ async function main() {
     app = await electron.launch(options)
     const page = await app.firstWindow()
     page.setDefaultTimeout(15000)
-    await page.getByRole('heading', { name: '未连接 Server' }).waitFor()
+    await page.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor()
     await recordProcesses('initial-launch', 'running')
-    assert.match(await page.locator('body').innerText(), /当前无法登录、聊天或执行本地任务/)
+    assert.match(await page.locator('body').innerText(), /登录与聊天入口尚未接入/)
     assert.equal(await page.title(), 'iDeer Desktop')
-    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['getStatus', 'quit'])
+    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['getStatus', 'quit', 'startRuntime', 'stopRuntime'])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
-    assert.deepEqual(await page.evaluate(() => window.ideer.getStatus()), {
-      version: '0.1.0', server: 'not-configured', runtime: 'not-installed'
-    })
+    const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'
+    await page.waitForFunction(async expected => (await window.ideer.getStatus()).runtime.process === expected, expectedRuntime, { timeout: 15000 })
+    const ownedRuntime = await page.evaluate(() => window.ideer.getStatus())
+    assert.equal(ownedRuntime.version, '0.1.0')
+    assert.equal(ownedRuntime.server, process.platform === 'win32' ? 'not-configured' : 'offline')
+    if (process.platform === 'win32') assert.ok(ownedRuntime.runtime.pid)
+    const runtimeStages = [{ stage: 'started', ...ownedRuntime.runtime }]
+    if (process.platform === 'win32') {
+      await page.getByRole('button', { name: '停止 Runtime' }).click()
+      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'stopped')
+      assert.throws(() => process.kill(ownedRuntime.runtime.pid, 0))
+      runtimeStages.push({ stage: 'stopped', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
+      await page.getByRole('button', { name: '启动 Runtime' }).click()
+      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
+      const recovered = await page.evaluate(() => window.ideer.getStatus())
+      process.kill(recovered.runtime.pid)
+      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'crashed')
+      runtimeStages.push({ stage: 'crashed', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
+      await page.getByRole('button', { name: '启动 Runtime' }).click()
+      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
+      runtimeStages.push({ stage: 'recovered', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
+    }
+    writeFileSync(join(evidenceDir, 'runtime-lifecycle.json'), JSON.stringify(runtimeStages, null, 2))
     const runtime = await app.evaluate(async ({ app, BrowserWindow }) => {
       const preferences = BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences()
       const cyclic = { value: 1 }
@@ -175,21 +195,27 @@ async function main() {
     await page.screenshot({ path: join(evidenceDir, 'desktop-startup.png') })
     await recordProcesses('before-ui-quit', 'running')
     const exited = app.waitForEvent('close')
+    const beforeQuitRuntime = await page.evaluate(() => window.ideer.getStatus())
     await page.getByRole('button', { name: '退出应用' }).click()
     await exited
     app = null
     await recordProcesses('after-ui-quit', 'exited')
+    if (beforeQuitRuntime.runtime.pid) assert.throws(() => process.kill(beforeQuitRuntime.runtime.pid, 0))
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
 
     // Closing the native window must exit, without a background tray process.
     app = await electron.launch(options)
-    await (await app.firstWindow()).getByRole('heading', { name: '未连接 Server' }).waitFor()
+    const reopenedPage = await app.firstWindow()
+    await reopenedPage.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor()
+    if (process.platform === 'win32') await reopenedPage.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
+    const beforeCloseRuntime = await reopenedPage.evaluate(() => window.ideer.getStatus())
     await recordProcesses('restart-before-native-close', 'running')
     const closed = app.waitForEvent('close')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
     await closed
     app = null
     await recordProcesses('after-native-close', 'exited')
+    if (beforeCloseRuntime.runtime.pid) assert.throws(() => process.kill(beforeCloseRuntime.runtime.pid, 0))
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
     console.log(JSON.stringify({ result: 'passed', platform: process.platform, elapsedMs: Date.now() - started, runtime,
       checks: ['unconnected-ui', 'session-directory', 'sandbox', 'ipc-rejection', 'navigation-popup-csp',

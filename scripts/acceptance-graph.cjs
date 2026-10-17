@@ -13,10 +13,11 @@ async function main() {
   })
   writeFileSync(join(directory, 'dependency-graph.json'), JSON.stringify(result.metafile, null, 2))
   const dependencies = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((item) => item.path))
-  assert.deepEqual(dependencies.filter((path) => /child_process|node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path)), [])
+  assert.deepEqual(dependencies.filter((path) => /node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path)), [])
+  assert.deepEqual(Object.entries(result.metafile.inputs).filter(([, input]) => input.imports.some(item => /child_process/.test(item.path))).map(([path]) => path), ['src/main/runtime.ts'])
   const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js')).text
   const ipc = [...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort()
-  assert.deepEqual(ipc, ['desktop:quit', 'desktop:status'])
+  assert.deepEqual(ipc, ['desktop:quit', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status'])
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
   assert.equal(pkg.version, '0.1.0')
   assert.equal(pkg.devDependencies.electron, '22.3.27')

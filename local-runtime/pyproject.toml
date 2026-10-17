@@ -1,0 +1,31 @@
+[project]
+name = "ideer-local-runtime"
+version = "0.1.0"
+requires-python = ">=3.8"
+dependencies = ["cryptography==43.0.3", "websockets==13.1"]
+
+[project.scripts]
+ideer-local-runtime = "core.cli:main"
+ideer-desktop-runtime = "core.desktop:main"
+
+[project.optional-dependencies]
+test = ["pytest==8.3.5", "pytest-asyncio==0.24.0", "pytest-timeout==2.3.1", "pydantic==2.10.6", "ruff==0.11.13"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+timeout = 90
+
+[tool.hatch.build.targets.wheel]
+# The importable package is the flat top-level `core/` directory and the
+# project name (ideer-local-runtime) matches no directory here, so hatchling
+# cannot determine which files to ship without this explicit target: every
+# wheel build and `pip install -e .` fails otherwise. Shipping the top-level
+# `core` name into site-packages is an accepted trade-off; a src-layout
+# rename (ideer_local_runtime/) was ruled out to keep the `core.*` import
+# surface unchanged (issue #27 triage ruling, 2026-10-11).
+packages = ["core"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+

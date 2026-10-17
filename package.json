@@ -16,6 +16,10 @@
     "test:desktop": "node scripts/desktop-smoke.cjs",
     "pack": "npm run build && electron-builder --dir",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "predist:win": "python scripts/prepare-runtime.py",
+    "prepack": "python scripts/prepare-runtime.py",
+    "runtime:prepare": "python scripts/prepare-runtime.py",
+    "test:runtime": "python -m pytest local-runtime/tests -q",
     "verify:provenance": "node scripts/verify-provenance.cjs"
   },
   "dependencies": {

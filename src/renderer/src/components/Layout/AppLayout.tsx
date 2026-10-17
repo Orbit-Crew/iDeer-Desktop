@@ -3,6 +3,7 @@ import { DoubleRightOutlined } from '@ant-design/icons'
 import { Alert, Card, Typography } from 'antd'
 import { useUIStore } from '../../stores/uiStore'
 import Sidebar from './Sidebar'
+import RuntimePanel from '../RuntimePanel'
 
 export default function AppLayout(): JSX.Element {
   const leftPanelOpen = useUIStore((state) => state.leftPanelOpen)
@@ -21,15 +22,16 @@ export default function AppLayout(): JSX.Element {
       <main className="flex-1 overflow-auto p-10">
         <Typography.Title level={3}>平台连接</Typography.Title>
         <Card className="max-w-3xl mt-6 shadow-card">
-          <Typography.Title level={4}>未连接 Server</Typography.Title>
-          <Alert type="warning" showIcon message="当前无法登录、聊天或执行本地任务" />
+          <Typography.Title level={4}>平台登录与聊天暂不可用</Typography.Title>
+          <Alert type="warning" showIcon message="登录与聊天入口尚未接入" />
           <Typography.Paragraph className="mt-5">
-            此版本尚未接入 iDeer Server。平台能力接入前，任务暂不可用。
+            配对后的设备可通过 Runtime 接收 Server 签名任务。尚未配置设备时，任务不可用。
           </Typography.Paragraph>
           <Typography.Paragraph type="secondary">
             原 linz 安装和数据保留在原位置，可继续通过原应用查阅。
           </Typography.Paragraph>
         </Card>
+        <RuntimePanel />
       </main>
     </div>
   )
