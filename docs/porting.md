@@ -40,6 +40,7 @@ resources/provenance/linz-source.json 保存来源文件的 SHA-256。
 
 原来源只声明 MIT，没有根 LICENSE。保留声明于 THIRD_PARTY_NOTICES.md，
 维护者补齐授权核验前不得对外分发。没有伪造已确认的版权或许可证文本。
+Desktop 的 package metadata 暂标 UNLICENSED，来源包原始 MIT 声明原样留存。
 
 ## 兼容补丁台账
 

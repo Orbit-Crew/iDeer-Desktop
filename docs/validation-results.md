@@ -12,7 +12,7 @@ Server / Runtime / 工程组件均未接入，未声明兼容组合。
 | 类型检查 | passed | `npm run typecheck`，主进程/preload/renderer 全部通过 |
 | 聚焦 UI 回归 | passed | startup.test.tsx，1 个测试；先因缺少 App 模块失败，随后实现通过 |
 | 聚焦兼容及安全回归 | passed | compat.test.ts 和 security.test.ts，3 个测试通过 |
-| 全量测试 | incomplete | 等待审查后的最终执行 |
+| 全量测试 | passed | 审查修正后 `npm test`，3 个文件、4 个测试全部通过，3.19 秒 |
 | 生产构建 | passed | `npm run build`，main/preload/renderer 均成功 |
 | 真实 Electron 开发候选 | passed | `xvfb-run -a npm run test:desktop`，Electron 22.3.27 / Node 16.17.1，隔离目录、沙箱、IPC 拒绝、CSP、侧栏和两种退出通过 |
 | asar 打包 | passed | `npm run pack` 生成 Linux 检查候选，包含来源和 notices，未作为受支持平台发行 |
@@ -22,10 +22,12 @@ Server / Runtime / 工程组件均未接入，未声明兼容组合。
 | 真实跨仓 | unexecuted | 本票无认证/授权/通信/执行/回执接线；发布前及相应能力变更时仍须执行 |
 | 上游许可证文本核验 | incomplete | 仅有原 MIT 声明，来源无根 LICENSE，维护者核验后才能分发 |
 
-依赖锁 SHA-256 为 `bea29c6d05c40d059205f1e3629a366c611876a64ce3606607c076c6b4f95881`。
+依赖锁 SHA-256 为 `1aaf12b960ebb685d358cae926b64fe829a1bf1b917bac5d17109a761d9fb8f6`。
 Linux 检查候选 app.asar SHA-256 为
-`39f66ac88f61404f86effb6388c9435aa4fb2d44df348203ee7d543b245bb9ea`。
+`d8cef606e9fe3e227b27d21e9fd1346415e0b61478f9430a3b0d688b2331f0fe`。
 候选截图为本地 artifacts/desktop-startup.png；CI 上传截图、构建配置和 Windows 包 hash。
+`npm ci --prefer-offline` 已重新安装成功；最终类型检查、来源校验与打包均通过。
+两项独立代码审查及修正记录见 [code-review.md](code-review.md)。
 
 安装时 npm audit 报告 28 项告警，10 moderate、15 high、3 critical。
 直接涉及 Electron、electron-builder、electron-vite、esbuild、PostCSS、Tailwind、Vite 和 Vitest。

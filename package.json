@@ -4,7 +4,7 @@
   "description": "iDeer Desktop Windows entry",
   "main": "./out/main/index.js",
   "author": "Orbit-Crew",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",

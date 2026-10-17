@@ -9,6 +9,8 @@ package-lock.json are preserved in resources/provenance. The source tree has no
 root LICENSE file. No copyright year or missing license text has been invented.
 The maintainer must obtain and verify the upstream license grant and notices
 before distribution. This is an unresolved release blocker.
+The Desktop package is marked UNLICENSED while this verification is pending;
+this does not replace or remove the upstream MIT declaration.
 
 Copied and adapted source files, source hashes, compatibility changes and deferred
 assets are listed in docs/porting.md and resources/provenance/linz-source.json.
