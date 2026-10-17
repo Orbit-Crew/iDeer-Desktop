@@ -21,5 +21,8 @@ No old installation, data, credentials or workspace is imported or deleted.
 
 See [porting and ownership](docs/porting.md), [validation and Win7 gates](docs/validation.md),
 [execution evidence](docs/validation-results.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
-Real Windows/Win7 acceptance and the missing upstream license text must be resolved
-before release. A CI package is a candidate, not an approved release.
+Early tickets and stage candidates require applicable modern Windows evidence.
+Real Win7 acceptance is deferred to [closing ticket #131](https://github.com/Orbit-Crew/iDeer/issues/131),
+as specified by [parent #95](https://github.com/Orbit-Crew/iDeer/issues/95).
+Win7 remains unverified until that gate passes. Upstream license verification is
+still required before distribution. A CI package is a candidate, not an approved release.

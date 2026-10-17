@@ -1,5 +1,10 @@
 # Issue #96 code review
 
+This is the historical implementation review. The user subsequently moved early
+Win7 gates to [closing ticket #131](https://github.com/Orbit-Crew/iDeer/issues/131)
+under [parent #95](https://github.com/Orbit-Crew/iDeer/issues/95). Early acceptance
+now uses applicable modern Windows evidence; Win7 remains unexecuted until final acceptance.
+
 Fixed point confirmed by the user: 09b65ca4c23af5cac80979f81ba8ed8b774648ab.
 Reviewed implementation: 417b23e, `git diff 09b65ca...HEAD`.
 Two independent agents reviewed Standards and Spec in parallel. The spec reviewer

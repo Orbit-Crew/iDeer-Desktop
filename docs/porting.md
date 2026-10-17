@@ -13,6 +13,11 @@ Orbit-Crew/iDeer-Desktop 维护主进程、preload、React UI、构建与安装�
 Python Runtime。Orbit-Crew/iDeer 维护 Server、共享协议和阶段协调；工具仓维护者负责
 工程组件与许可证。本票只建立未连接的桌面基线，不宣称父规格 AC01/AC15 全部完成。
 
+2026-10-17 用户确认前期仅在现代 Windows 验证，Win7 专项集中到最后的
+[收尾 #131](https://github.com/Orbit-Crew/iDeer/issues/131)，权威时序见
+[父规格 #95](https://github.com/Orbit-Crew/iDeer/issues/95)。本记录中的 Win7 兼容目标和验证要求保留，
+执行时间后置；Win7 未执行不再阻塞前期票的合并、关闭及后续工单领取。
+
 版本 0.1.0，包名 ideer-desktop，appId com.orbitcrew.ideer.desktop，显示名 iDeer Desktop，
 可执行文件 ideer-desktop.exe。NSIS 使用独立 appId 派生的安装身份，用户选择安装目录，
 默认按当前用户安装，不复用 linz 的安装记录或快捷方式。
@@ -81,5 +86,5 @@ structuredClone 的 v8 补丁只保证可序列化数据，不声明 transfer �
 工作区及原用户数据目录查阅。请保持原安装和目录；Desktop 的安装、启动和卸载没有
 旧资料清理步骤。不得把旧模型密钥、批准记忆或单机身份带入新账号。
 
-替代能力含图谱/Wiki 验收、逐用户迁移确认或明确不再使用、旧数据保留告知、
+替代能力含图谱/Wiki 验收、#131 最终包真实 Win7 核心及全部声明能力专项通过、逐用户迁移确认或明确不再使用、旧数据保留告知、
 阻断问题清零及维护者确认全部满足后才能停止有限维护并归档。建仓和一期可用均不满足退役条件。
