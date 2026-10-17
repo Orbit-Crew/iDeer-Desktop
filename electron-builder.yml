@@ -1,0 +1,30 @@
+appId: com.orbitcrew.ideer.desktop
+productName: iDeer Desktop
+electronVersion: 22.3.27
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**/*
+  - package.json
+asar: true
+extraResources:
+  - from: resources/provenance
+    to: provenance
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+win:
+  executableName: ideer-desktop
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  artifactName: ideer-desktop-${version}-windows-${arch}-setup.${ext}
+  shortcutName: iDeer Desktop
+  uninstallDisplayName: iDeer Desktop
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false

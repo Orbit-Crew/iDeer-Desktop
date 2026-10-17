@@ -1,0 +1,60 @@
+name: Desktop PR baseline
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-and-contract:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:provenance
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: xvfb-run -a npm run test:desktop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-smoke
+          path: artifacts/
+  windows-package:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:security
+      - run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: ./scripts/windows-install-smoke.ps1
+        shell: pwsh
+      - name: Record candidate hashes
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/*setup.exe | Get-FileHash -Algorithm SHA256 | Format-List | Out-File artifacts/SHA256.txt
+          git rev-parse HEAD | Out-File artifacts/candidate.txt
+          node --version | Out-File artifacts/build-node.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-candidate-not-release-approved
+          path: |
+            dist/*setup.exe
+            dist/*.blockmap
+            dist/builder-effective-config.yaml
+            artifacts/
+            package-lock.json

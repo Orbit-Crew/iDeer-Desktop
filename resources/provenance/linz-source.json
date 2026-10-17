@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/Neowyh/linz",
+  "commit": "f88141bb3d3450a572fcc52e0f9b48a1e60d3b13",
+  "declaredLicense": "MIT",
+  "rootLicenseFile": null,
+  "files": {
+    "package.json": "4705d1bb0c58033b70e4e66a32c637e8e57ced220560dad15d9354d3299e6e7c",
+    "package-lock.json": "e3e948bf231158a8773d766456c2a959442c742c7766c0eb59e00e3a7d4f6101",
+    "electron-builder.yml": "a189b2a54cf8b6cf3f1bbaa1b5a1c2288fee207a12ca968c65c7ae2d32908843",
+    "electron.vite.config.ts": "8f31d19ff4ffbaf8175790d220c888a65299d245987f6cb8bd6b7acb92e2d331",
+    "postcss.config.js": "b9357981319940ed660b848c7a15ea479915885b7cbe60d6951b5d5cef5b509d",
+    "tailwind.config.js": "9abf789ea2005760f9dbe8291ebe13bff7f47cb180a88911e35e456972a5d0e6",
+    "src/main/index.ts": "9b6be7bfc60d31716b3e3854b4a40b113a57937c851a5d5e68b09719cb904d33",
+    "src/main/window.ts": "b5a53dfd63ba2ce05f28f5f3e05e0deb7537008fdfb895366b7c097cc669a007",
+    "src/renderer/index.html": "804d3fee80cd1131ab88d02f022a4c89456a0737552016636096e219e05d41de",
+    "src/renderer/src/main.tsx": "7014b34be967f4e883f9e15f4980e484eb7ee28625c26199f3a05647047af60a",
+    "src/renderer/src/App.tsx": "99d301a8f439af56f3dbda84fd84a8e6ccf731da4bc13d0b6eba56f746ac78e9",
+    "src/renderer/src/components/Layout/AppLayout.tsx": "562337b7532f6855632f0689bb0c8c77abe30b6b4c102fb50d80d8d56eedcfef",
+    "src/renderer/src/components/Layout/Sidebar.tsx": "87fe672adf46dd2c5f131f4456142526d58567ed4444d952c34611373950581b",
+    "src/renderer/src/components/ErrorBoundary.tsx": "e83108e9ecb76465775eda311debdab9af89d19ee59e93ec95aef8cacfe7d9a2",
+    "src/renderer/src/stores/uiStore.ts": "18bcbd497b6237e8dc8c8b83880185448045bf0d04fba0e66ed4443927f7e3a8",
+    "src/renderer/src/assets/styles/globals.css": "7f062a58be1c5b25aa305ddc89a883695750f7785dac1dcdb54686ad8525f146"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "ideer-desktop",
+  "version": "0.1.0",
+  "description": "iDeer Desktop Windows entry",
+  "main": "./out/main/index.js",
+  "author": "Orbit-Crew",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:security": "vitest run test/security.test.ts",
+    "test:desktop": "node scripts/desktop-smoke.cjs",
+    "pack": "npm run build && electron-builder --dir",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "verify:provenance": "node scripts/verify-provenance.cjs"
+  },
+  "dependencies": {
+    "@ant-design/icons": "5.6.1",
+    "antd": "5.29.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zustand": "4.5.7"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "4.7.0",
+    "autoprefixer": "10.5.4",
+    "electron": "22.3.27",
+    "electron-builder": "24.13.3",
+    "electron-vite": "2.3.0",
+    "postcss": "8.5.19",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "@types/node": "22.10.2",
+    "vitest": "1.6.0",
+    "playwright-core": "1.48.2",
+    "esbuild": "0.21.5"
+  }
+}
