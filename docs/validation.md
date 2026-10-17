@@ -3,6 +3,12 @@
 本票交付受控启动基线。Server、登录、聊天、设备任务及工具执行均未接入。
 不得以此基线声称一期文件闭环、Runtime 切换或 AC01/AC15 全量验收完成。
 
+2026-10-17 用户调整验收时序，权威规则见
+[父规格 #95](https://github.com/Orbit-Crew/iDeer/issues/95)。
+#96 至 #130 的前期开发、PR 合并、工单关闭和阶段候选验收采用现代 Windows 的适用证据。
+真实 Win7 验证统一转交[最终收尾 #131](https://github.com/Orbit-Crew/iDeer/issues/131)，
+不再作为前期工单的前置；其余安全、跨仓、真实软件及证据要求继续执行。
+
 ## 本地与 PR 命令
 
 使用 Node 22 构建主机。`npm ci` 安装精确 lock，Electron 应用自身仍是 Node 16。
@@ -47,17 +53,19 @@ AppData 的 linz 和 Desktop 目录中创建唯一命名的数据固定件，验
 PR 工作流对全部代码 PR 运行静态/合同及 Windows 打包/安装 smoke，无路径过滤。
 产物带候选提交、依赖锁、构建配置、截图和安装包 SHA-256；它们是候选包，
 没有因 CI 成功获得发布许可。main 分支保护需由仓库维护者配置这两个必需检查。
-发布只走 PR/main/tag，不建立长期 develop；本票不改远端保护或发布未经批准的标签。
+发布仍走 PR/main/tag。2026-10-17 按用户指示创建 develop 并合入本功能分支，
+用于分支集成；本次不改远端保护、不创建发布标签，也不改变验收结论。
 
 新增认证、授权、通信、执行或回执时，必须接续父规格的真实 Server/Runtime 跨仓
 检查及 Runtime 原覆盖。当前无审批/执行接口，不能把尚不存在的 Runtime 集成用例记为通过。
 
-## 后置真实 Win7 专项（#131）
+## 转交最终收尾的真实 Win7 专项
 
-按更新后的 issue #96，当前在现代 Windows 验证进程启动、沙箱、兼容补丁和打包。
-真实 Win7 专项统一登记到 [收尾工单 #131](https://github.com/Orbit-Crew/iDeer/issues/131)，
-不作为 #96 合并、关闭或后续工单领取的前置；其他适用场景仍须在 #96 完成。
-Win7 完整兼容交付及 linz 退役须等待收尾验收，现代 Windows 记录不能替代。
+本票涉及进程启动、沙箱、兼容补丁和打包，前期在现代 Windows 验证。
+下列 Win7 项保持 unexecuted，负责人为维护者 Neowyh，统一转交 #131，
+不阻塞本票的合并、关闭或后续工单领取。Electron 22、Node 兼容、沙箱和软渲染约束继续保留。
+前期候选只声明现代 Windows 验证范围，不能把阶段通过写成 Win7 已验证。
+收尾必须对最终安装包复验，历史 linz 或现代 Windows 记录不能替代。
 由 Neowyh 指定验收人，对下面每项记录 passed / failed / unexecuted / incomplete。
 
 | 编号 | 场景与可观察结果 |
@@ -71,6 +79,10 @@ Win7 完整兼容交付及 linz 退役须等待收尾验收，现代 Windows 记
 | W7-07 | 界面退出、窗口关闭、再次启动及第二实例激活，无残留应用/子进程 |
 | W7-08 | 卸载/重装保留 Desktop 数据和全部旧 linz 固定件；旧 linz 仍可单独打开查阅 |
 
+#131 还需汇总后续 Runtime、身份、授权、文件、回执、更新恢复及全部声明的知识、技能和工程能力专项，
+修复并复验兼容缺口。必需项失败、未执行或不完整时不得关闭收尾票、宣称 Win7 完整兼容交付或归档 linz。
+收尾通过后，面向 Win7 的正式发布仍逐次验证最终包，高风险平台变更恢复合并前专项。
+
 ## 候选证据
 
 逐场景报告交付在 [docs/acceptance/issue-96/report.md](acceptance/issue-96/report.md)，
@@ -79,5 +91,5 @@ Win7 完整兼容交付及 linz 退役须等待收尾验收，现代 Windows 记
 Desktop/Server/Runtime/组件版本、包 hash、依赖 lock hash、环境、配置、场景、命令、
 耗时、最终摘要和验收人。Server/Runtime 未接入时写“未接入”，不伪造兼容版本组合。
 
-来源许可证文本未核验、当期必需项 failed/unexecuted/incomplete，均不放行。
-当前无真实 Win7 环境，其专项保持 unexecuted，由 #131 承接，不计为 #96 当前阻塞项。
+来源许可证文本未核验或本阶段适用必需项 failed/unexecuted/incomplete 时不放行。
+当前仓库无可用真实 Win7 环境，Win7 项保持 unexecuted 并转交 #131，不计作当前阶段阻塞。

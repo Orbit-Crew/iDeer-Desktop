@@ -1,6 +1,7 @@
 # Issue #96 执行证据
 
 当前标准以 [逐场景验收报告](acceptance/issue-96/report.md) 为准。
+验收时序依据[父规格 #95](https://github.com/Orbit-Crew/iDeer/issues/95)。
 issue #96 更新后，真实 Win7 统一后置到 #131，不再作为本票合并/关闭的前置；
 本文件下方历史记录中的旧放行规则不作为当前标准。
 
@@ -33,7 +34,7 @@ Server / Runtime / 工程组件均未接入，未声明兼容组合。
 | asar 打包 | passed | `npm run pack` 生成 Linux 检查候选，包含来源和 notices，未作为受支持平台发行 |
 | asar 候选启动 | passed | `DESKTOP_EXECUTABLE="$PWD/dist/linux-unpacked/ideer-desktop" xvfb-run -a npm run test:desktop`，含真实 Node 16 循环克隆和跨 chunk UTF-8 文本流 |
 | Windows NSIS 构建、安装、退出、卸载 | unexecuted | 已配置 PR 工作流；当前无 Windows 执行环境，未远端运行 CI |
-| 真实 Win7 变更专项及最终安装包验收 | unexecuted | 未提供真实 Win7，W7-01 至 W7-08 全部待执行，现代 Windows 和 Linux 不能替代 |
+| 真实 Win7 变更专项及最终安装包验收 | unexecuted | W7-01 至 W7-08 转交 #131，负责人 Neowyh；涉及 Electron 22/Node 16、沙箱、软渲染、进程生命周期及 NSIS。现代 Windows 和 Linux 不能替代，此项不阻塞当前阶段 |
 | 真实跨仓 | unexecuted | 本票无认证/授权/通信/执行/回执接线；发布前及相应能力变更时仍须执行 |
 | 上游许可证文本核验 | incomplete | 仅有原 MIT 声明，来源无根 LICENSE，维护者核验后才能分发 |
 
@@ -50,5 +51,6 @@ Linux 检查候选 app.asar SHA-256 为
 开发服务器限回环地址，生产候选禁外部连接；这些约束不等于已消除依赖漏洞。
 维护者须逐项评估兼容修补方案和发布风险，当前无依赖安全放行结论。
 
-放行状态为 incomplete。必需 Windows/Win7 证据、许可证核验和依赖风险处置未完成，
-本次代码提交不能作为合并或发布放行依据。
+当前记录的放行状态仍为 incomplete。现代 Windows 证据、许可证核验和依赖风险处置未完成，
+本次时序调整不自动补齐这些证据。Win7 验证单独转交 #131，不再作为前期阶段阻塞；
+收尾验收通过前不能宣称 Win7 完整兼容交付或归档 linz。

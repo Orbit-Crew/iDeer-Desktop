@@ -23,5 +23,7 @@ See [porting and ownership](docs/porting.md), [validation and Win7 gates](docs/v
 [execution evidence](docs/validation-results.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
 Modern Windows acceptance follows [the scenario report](docs/acceptance/issue-96/report.md).
 Real Win7 validation is deferred to [issue #131](https://github.com/Orbit-Crew/iDeer/issues/131)
-and does not block issue #96; it remains required for complete Win7 compatibility and linz retirement.
-The upstream license verification remains unresolved. A CI package is a candidate, not an approved release.
+as specified by [parent #95](https://github.com/Orbit-Crew/iDeer/issues/95), and does not block issue #96.
+It remains required for complete Win7 compatibility and linz retirement.
+Upstream license verification remains unresolved and is required before distribution.
+A CI package is a candidate, not an approved release.
