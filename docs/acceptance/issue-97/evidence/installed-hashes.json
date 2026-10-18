@@ -1,0 +1,18 @@
+[
+  {
+    "Path": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\dist\\ideer-desktop-0.1.0-windows-x64-setup.exe",
+    "Hash": "120836BE315CA49D7433DC149ABE4535A892767B1ACFF1D02E8E27B91113CB61"
+  },
+  {
+    "Path": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+    "Hash": "417DCEA6C92BBD1390DE26ABF862207522513855B8B47B6F874A485902D2D72B"
+  },
+  {
+    "Path": "D:\\software\\iDeer Desktop\\ideer-desktop\\resources\\runtime\\python.exe",
+    "Hash": "4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A"
+  },
+  {
+    "Path": "D:\\software\\iDeer Desktop\\ideer-desktop\\resources\\app.asar",
+    "Hash": "92E0DC518ED03D3C2508796B284B7214F97CDFC0CC56C77F5A0C4CE631A06E6B"
+  }
+]

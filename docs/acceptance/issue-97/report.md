@@ -1,13 +1,29 @@
 # Issue #97 acceptance
 
-Execution date: 2026-10-17, Asia/Shanghai. Executor: Codex. This is a candidate
-record, not an issue closure or release approval. Desktop starts from a41817d;
-the implementation commit and installer hash are bound by artifacts/issue-97/.
+Execution dates: 2026-10-17 to 2026-10-18, Asia/Shanghai. Executor: Codex.
+Final installed-candidate verification completed 2026-10-18 08:30:41 +08:00.
+This is a candidate record, not an issue closure or release approval.
+Desktop starts from a41817d. The shipped candidate is
+`1f527e69bd8df3d8e924dcc88b0979ba1fe7684b`; subsequent acceptance-document commits
+do not alter shipped code. The build environment records the then-untracked review
+notes explicitly; no application source was dirty during the final build.
 Runtime and unchanged Server signing protocol are pinned to
 ccb251e07e5f5934b851e4c3df00224718f28123 in Orbit-Crew/iDeer. #96 was rechecked
 closed/completed before work. No Server source was modified.
 
-Current status: incomplete until installed-candidate checks and code review finish.
+Current status: passed for the applicable modern Windows scenarios T97-01 through
+T97-05. Real Win7 remains unexecuted under #131. No issue state or release was changed.
+
+Installer: `dist/ideer-desktop-0.1.0-windows-x64-setup.exe`, SHA-256
+`120836be315ca49d7433dc149abe4535a892767b1acff1d02e8e27b91113cb61`.
+Installed app.asar SHA-256:
+`92e0dc518ed03d3c2508796b284b7214f97cdfc0cc56c77f5a0c4ce631a06e6b`.
+Installed Python SHA-256:
+`4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a`.
+Desktop package-lock SHA-256:
+`38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a`.
+Runtime distribution.lock SHA-256:
+`c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d`.
 
 ## Environment and commands
 
@@ -18,14 +34,14 @@ cryptography 43.0.3, websockets 13.1, cffi 1.17.1, pycparser 2.22 archives and
 SHA-256. package-lock.json retains the Desktop dependency lock.
 
 Automatic lane: `scripts/verify-issue-97.ps1 -PythonExecutable .venv/Scripts/python.exe`.
-It records actual arguments, start time, duration, exit code and logs in
-artifacts/issue-97/commands.json. Applicable Runtime static gate is
+Final invocation used `-EvidenceDirectory artifacts/issue-97/delivery`.
+It records actual arguments, start time, duration, exit code and logs. Applicable Runtime static gate is
 `python -m ruff check local-runtime --select E9,F63,F7,F82`; unchanged sources are
 checked by `python scripts/verify-runtime-source.py`. Typecheck, npm test and
 default `npm.cmd run dist:win` are included. Builder uses the existing fixed
 winCodeSign/NSIS tool cache copied from the #96 build, without config overrides.
 
-Latest full regression: 227 passed, 6 platform-specific skips, and one upstream
+Latest full regression: 227 passed, 6 platform-specific skips in 19.41 seconds, and one upstream
 websockets deprecation warning. Desktop: 4 files, 5 tests passed. These include
 real embedded-interpreter/OS-credential/MCP contracts, not a mock interpreter.
 
@@ -33,17 +49,34 @@ real embedded-interpreter/OS-credential/MCP contracts, not a mock interpreter.
 
 | Scenario | Automated result | Installed/UI result | Evidence and expected values |
 | --- | --- | --- | --- |
-| T97-01 | passed | unexecuted | test/runtime.test.ts uses a spaced profile path and bundled Python; test_desktop_process.py uses no Server imports. Installed UI and package process snapshots pending |
-| T97-02 | passed | n/a | Server-protocol signed echo returns T97-echo-marker; managed MCP returns T97-mcp-marker, receipt/task/run match mcp-97/run-97; isolated Credential Manager identity |
-| T97-03 | passed | n/a | SIGNATURE_INVALID, MESSAGE_EXPIRED, TASK_REPLAYED and LOCAL_POLICY_DENIED; counting fixture ledger remains exactly one T97-mcp-marker line |
-| T97-04 | passed | unexecuted | Persistent replay admission survives restart and hard crash; Windows job removes MCP descendant. Installed IPC/UI stop/crash/recovery and quit evidence pending |
-| T97-05 | passed | incomplete | Original sources/tests checked by Git blob manifest; full original regression retained; independent wheel builds. Installed interpreter rerun and final mapping review pending |
+| T97-01 | passed | passed, automated real installation/UI | Installed in D:\software\iDeer Desktop\ideer-desktop; Python 3.12.10 and all four locked dependency versions import successfully. Installed files match unpacked candidate hashes. UI starts/stops/restarts the bundled process; UI quit and native close leave no application or owned Runtime process |
+| T97-02 | passed | n/a | Installed Python uses the unchanged Server protocol. Signed echo returns T97-echo-marker; managed MCP returns T97-mcp-marker with mcp-97/run-97 receipt correlation; raw stdio state also correlates tasks. See installed-signed-process.json |
+| T97-03 | passed | n/a | SIGNATURE_INVALID, MESSAGE_EXPIRED, TASK_REPLAYED and LOCAL_POLICY_DENIED. Each rejected variant leaves the ledger unchanged. Completed task marker occurs exactly once. uncertain-97 writes its separate marker once before a deliberate crash and remains rejected after restart |
+| T97-04 | passed | passed, automated real UI | Installed Runtime stop, forced crash, offline state and UI recovery pass. Main-frame IPC rejection, absence of old execution bridge, sandbox and navigation/CSP checks pass. MCP descendant is reaped on Runtime crash; post-crash replay does not repeat side effects |
+| T97-05 | passed | passed, source/package verification | All original tests/fixtures match pinned Git blobs; full regression retained. Independent wheel builds and imports from its installed target with no backend in sys.path. Installed resource interpreter repeats signed/MCP regression. Mapping is in runtime-migration.md; Server originals remain unchanged |
 
 The tests use 5-second protocol receive bounds, 10-second result bounds,
 15-second process/connection bounds and a 5-second crash descendant bound.
 Exact string/hash/state comparisons have no numeric tolerance. Fixed expected
 markers and MCP execution count come from the fixture/test input, never by
 copying the implementation's output into expected values.
+
+Actual installed runner:
+`scripts/windows-runtime-acceptance.ps1 -EvidenceDirectory artifacts/issue-97/installed-delivery`.
+Installation exited 0 in 12.960 seconds; installed signed-process command exited 0
+in 3.748 seconds; installed UI smoke exited 0 in 14.550 seconds. This is automated
+UI execution by Codex, not a maintainer's manual sign-off. No human-confirmed step
+is claimed. Window sizes are 960x600, 1440x900 and 1280x800. Secondary launch activates
+the existing window. The final lifecycle record shows running, stopped/offline,
+crashed/offline and recovered/running/not-configured.
+
+The final full commands and exact elapsed values are committed in
+[build-commands.json](evidence/build-commands.json). Installation commands,
+hashes, interpreter versions, signed outcomes, process states and screenshot are
+in [evidence/](evidence/). JUnit copies only redact the host name; original raw
+artifacts remain under artifacts/issue-97/. The two test credentials left by an
+earlier interrupted run were removed; credential-cleanup.json confirms zero
+remaining entries in this test namespace. No credential values are archived.
 
 The unchanged Server protocol module in tests/server_protocol.py signs broker
 requests and verifies device response signatures. This is a real cross-repository
@@ -63,6 +96,24 @@ test_python_executor_cancellation_cleans_up_child_processes, with 226 passed and
 written while taskkill was starting. Closing the existing Windows Job Object
 immediately on cancel/timeout fixed it; all 22 original Python tests and the next
 full run passed. The migration records this source deviation; tests were not weakened.
+
+The first installed UI attempt failed because async waitForFunction predicates
+did not wait for the resolved IPC state. The harness now polls and awaits getStatus
+with a 15-second bound and checks the real Windows exit state. A retained #96
+heading assertion was also corrected. Both failed attempts remain in the local
+artifacts/issue-97/installed-final and installed-recheck directories; they are not
+used as passing evidence. The corrected final candidate installation was rerun.
+The Standards review also corrected an installation-directory substring guard;
+the exact parent-directory rejection evidence is retained.
+
+## Review
+
+[Two-axis code review](code-review.md) used the user-confirmed a41817d baseline.
+Standards: one P2 acceptance-script defect corrected and re-reviewed, no unresolved
+hard findings, one optional P3 ABI-duplication maintenance judgment. Spec: no
+implementation defect or scope expansion; the initially missing unconfirmed-result
+crash window was added and re-reviewed. The final package and UI conditions were
+then executed successfully. Review does not claim a deployed Server or GitHub CI run.
 
 Windows skips: two symlink creation tests lack symlink privilege; POSIX process-group
 reaping and private-key permission-bit tests do not apply; two no-OS-secret-backend

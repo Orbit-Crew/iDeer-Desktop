@@ -1,0 +1,94 @@
+[
+  {
+    "arguments": [
+      "scripts/verify-runtime-source.py"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "elapsedMs": 233,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:17.3565381+08:00",
+    "name": "runtime-source"
+  },
+  {
+    "arguments": [
+      "-m",
+      "ruff",
+      "check",
+      "local-runtime",
+      "--select",
+      "E9,F63,F7,F82"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "elapsedMs": 363,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:17.6140260+08:00",
+    "name": "runtime-static"
+  },
+  {
+    "arguments": [
+      "scripts/prepare-runtime.py"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "elapsedMs": 1653,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:17.9811373+08:00",
+    "name": "runtime-prepare"
+  },
+  {
+    "arguments": [
+      "run",
+      "typecheck"
+    ],
+    "executable": "npm.cmd",
+    "elapsedMs": 5026,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:19.6409300+08:00",
+    "name": "typecheck"
+  },
+  {
+    "arguments": [
+      "-m",
+      "pytest",
+      "local-runtime/tests",
+      "-q",
+      "--junitxml=artifacts/issue-97/delivery/runtime-tests.xml"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "elapsedMs": 20273,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:24.6738601+08:00",
+    "name": "runtime-tests"
+  },
+  {
+    "arguments": [
+      "test"
+    ],
+    "executable": "npm.cmd",
+    "elapsedMs": 10182,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:44.9513475+08:00",
+    "name": "desktop-tests"
+  },
+  {
+    "arguments": [
+      "scripts/acceptance-graph.cjs",
+      "artifacts/issue-97/delivery"
+    ],
+    "executable": "node",
+    "elapsedMs": 853,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:55.1381213+08:00",
+    "name": "graph"
+  },
+  {
+    "arguments": [
+      "run",
+      "dist:win"
+    ],
+    "executable": "npm.cmd",
+    "elapsedMs": 53877,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T08:28:55.9950834+08:00",
+    "name": "dist-win"
+  }
+]
