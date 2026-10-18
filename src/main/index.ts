@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createMainWindow } from './window'
 import type { DesktopStatus } from '../shared/desktop'
+import { RuntimeProcess } from './runtime'
 
 // Set before ready and before any session, store or window is created.
 app.setName('iDeer Desktop')
@@ -19,6 +20,17 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   let mainWindow: BrowserWindow | null = null
+  const runtime = new RuntimeProcess(
+    app.isPackaged ? join(process.resourcesPath, 'runtime') : join(app.getAppPath(), '.runtime'),
+    join(userData, 'Runtime')
+  )
+  let quitting = false
+  app.on('before-quit', (event) => {
+    if (quitting) return
+    event.preventDefault()
+    quitting = true
+    void runtime.stop().finally(() => app.quit())
+  })
 
   app.on('second-instance', () => {
     if (mainWindow?.isMinimized()) mainWindow.restore()
@@ -33,6 +45,7 @@ if (!app.requestSingleInstanceLock()) {
       { label: '编辑', submenu: [{ role: 'copy' }, { role: 'selectAll' }] }
     ]))
     mainWindow = createMainWindow()
+    void runtime.start()
 
     const requireMainFrame = (event: Electron.IpcMainInvokeEvent): void => {
       if (!mainWindow || event.sender !== mainWindow.webContents ||
@@ -43,7 +56,16 @@ if (!app.requestSingleInstanceLock()) {
 
     ipcMain.handle('desktop:status', (event): DesktopStatus => {
       requireMainFrame(event)
-      return { version: app.getVersion(), server: 'not-configured', runtime: 'not-installed' }
+      const status = runtime.status()
+      return { version: app.getVersion(), server: status.connection, runtime: status }
+    })
+    ipcMain.handle('desktop:runtime:start', (event) => {
+      requireMainFrame(event)
+      return runtime.start()
+    })
+    ipcMain.handle('desktop:runtime:stop', (event) => {
+      requireMainFrame(event)
+      return runtime.stop()
     })
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)

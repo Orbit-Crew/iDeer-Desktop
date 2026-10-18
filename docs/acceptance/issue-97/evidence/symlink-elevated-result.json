@@ -1,0 +1,9 @@
+{
+  "finishedAt": "2026-10-18T08:47:46.794531+08:00",
+  "startedAt": "2026-10-18T08:47:45.7198432+08:00",
+  "elapsedMs": 1068,
+  "exitCode": 0,
+  "scope": "Only the two existing symbolic-link security tests; no system settings changed",
+  "administrator": true,
+  "testedSourceCommit": "a61533e790e41b97db27aa7060dd88fa6b9aff36"
+}

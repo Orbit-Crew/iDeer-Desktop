@@ -14,14 +14,16 @@ describe('bootstrap capability boundary', () => {
       metafile: true
     })
     const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((item) => item.path))
-    expect(imports.filter((path) => /child_process|node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    expect(imports.filter((path) => /node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    const launchers = Object.entries(result.metafile.inputs).filter(([, input]) => input.imports.some((item) => /child_process/.test(item.path))).map(([path]) => path)
+    expect(launchers).toEqual(['src/main/runtime.ts'])
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:quit', 'desktop:status'])
+      .toEqual(['desktop:quit', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
   })
 })

@@ -1,0 +1,7 @@
+{
+  "expected": "rejected before install",
+  "message": "The requested directory must exactly match the existing Desktop installation",
+  "input": "D:\\software",
+  "result": "passed",
+  "time": "2026-10-18T08:25:39.9993189+08:00"
+}

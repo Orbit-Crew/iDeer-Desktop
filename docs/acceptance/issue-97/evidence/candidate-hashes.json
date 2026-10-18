@@ -1,0 +1,18 @@
+[
+  {
+    "Path": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\dist\\ideer-desktop-0.1.0-windows-x64-setup.exe",
+    "Hash": "120836BE315CA49D7433DC149ABE4535A892767B1ACFF1D02E8E27B91113CB61"
+  },
+  {
+    "Path": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\dist\\win-unpacked\\resources\\app.asar",
+    "Hash": "92E0DC518ED03D3C2508796B284B7214F97CDFC0CC56C77F5A0C4CE631A06E6B"
+  },
+  {
+    "Path": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\package-lock.json",
+    "Hash": "38E20141BB06E8814177597D6164BE854831E480783D38B4D41C2D1133CE857A"
+  },
+  {
+    "Path": "C:\\Users\\Neo\\.codex\\worktrees\\47c8\\iDeer-Desktop\\local-runtime\\distribution.lock.json",
+    "Hash": "C29657A8392B272B9BD7AA608DC0A3D7103D47A47196A664819203CB9D803D2D"
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "stage": "started",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 18984
+  },
+  {
+    "stage": "stopped",
+    "process": "stopped",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "crashed",
+    "process": "crashed",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "recovered",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 28388
+  }
+]

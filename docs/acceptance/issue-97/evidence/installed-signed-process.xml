@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="3.274" timestamp="2026-10-18T08:30:22.179523+08:00" hostname="windows-acceptance-host"><testcase classname="tests.test_desktop_process" name="test_packaged_signed_echo_mcp_rejections_restart_and_crash" time="3.008" /></testsuite></testsuites>

@@ -9,6 +9,9 @@ files:
   - package.json
 asar: true
 extraResources:
+  - from: .runtime
+    to: runtime
+    filter: ['**/*', '!**/__pycache__/**', '!**/*.pyc']
   - from: resources/provenance
     to: provenance
   - from: THIRD_PARTY_NOTICES.md
