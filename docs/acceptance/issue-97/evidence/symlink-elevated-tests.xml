@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="0.236" timestamp="2026-10-18T08:47:46.437865+08:00" hostname="windows-acceptance-host"><testcase classname="tests.test_files" name="test_symlink_escape_is_rejected" time="0.012" /><testcase classname="tests.test_files" name="test_symlink_inside_allowed_root_is_rejected" time="0.006" /></testsuite></testsuites>

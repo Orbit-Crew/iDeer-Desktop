@@ -45,6 +45,12 @@ Latest full regression: 227 passed, 6 platform-specific skips in 19.41 seconds, 
 websockets deprecation warning. Desktop: 4 files, 5 tests passed. These include
 real embedded-interpreter/OS-credential/MCP contracts, not a mock interpreter.
 
+Supplement on 2026-10-18 08:47:46 +08:00: the two symlink tests previously skipped
+were rerun with an elevated test process and both passed, with zero skips.
+Thus the retained full-run record is still 227 passed / 6 skipped, while the
+combined evidence covers 229 passed tests and leaves only four non-Windows tests
+unexecuted on this host. No application code, package or system setting changed.
+
 ## Scenario record
 
 | Scenario | Automated result | Installed/UI result | Evidence and expected values |
@@ -116,9 +122,18 @@ implementation defect or scope expansion; the initially missing unconfirmed-resu
 crash window was added and re-reviewed. The final package and UI conditions were
 then executed successfully. Review does not claim a deployed Server or GitHub CI run.
 
-Windows skips: two symlink creation tests lack symlink privilege; POSIX process-group
-reaping and private-key permission-bit tests do not apply; two no-OS-secret-backend
-tests apply only to non-Windows. The original real Windows junction test passes,
+The original two symlink skips were reproduced as WinError 1314,
+ERROR_PRIVILEGE_NOT_HELD, under a non-administrator process with Developer Mode
+not configured. A one-time UAC-elevated PowerShell test process then executed:
+`python -m pytest local-runtime/tests/test_files.py -q -rs -k "symlink_escape_is_rejected or symlink_inside_allowed_root_is_rejected"`.
+Result: 2 passed, 20 deselected in 0.28 seconds; runner exit 0, administrator=true,
+elapsed 1.068 seconds. No Developer Mode, policy or permanent privilege change was
+made. Evidence is in symlink-elevated-result.json, symlink-elevated-tests.xml and
+symlink-elevated-tests.log. Both security assertions executed successfully.
+
+Remaining Windows skips: POSIX process-group reaping and private-key permission-bit
+tests do not apply; two no-OS-secret-backend tests apply only to non-Windows.
+The original real Windows junction test passes,
 as do the new Windows Job Object and OS-credential tests. Linux CI retains the
 complementary POSIX/no-backend lane; it has not been executed on this Windows host.
 

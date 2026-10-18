@@ -26,6 +26,9 @@
     "runtime-static.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
     "runtime-tests.log": "ad3bceb5b69d3424d61d6f208f7225e3ec7401e670e14dacd54e94f5ac72a5e0",
     "runtime-tests.xml": "585de06114995b2e354fab0553de4ebecd7b923de796d47fb4466dc25377affb",
+    "symlink-elevated-result.json": "db79f9e9e414546fe623330290a8db30ad97d442946575fbcf015f88ff804e23",
+    "symlink-elevated-tests.log": "8f76e37c280b6f4689b591bcc1fe4d65295beb57236286889cbd70be08fb2b46",
+    "symlink-elevated-tests.xml": "47e03d330c7cd36149f869d201dadf2aa1ffb2081c1c7d07e60a36bd84510a02",
     "test-dependencies.txt": "abdd18b53609401f001bccab46dc623ce07cee8d639149ac33cdfa819d4f0035",
     "typecheck.log": "05fcc4d2e341c0ccd9416d944b21edc8a50899b381f1c84b6eece0d26fd4ff29",
     "wheel-hash.json": "9bb39e1319e7c17dff89ab3c3ab84e85ef259406491c3c611c4e01bf948d896b"
