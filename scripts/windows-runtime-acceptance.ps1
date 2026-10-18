@@ -11,7 +11,12 @@ $pythonPath = (Resolve-Path -LiteralPath $PythonExecutable).Path
 $installPath = (Resolve-Path -LiteralPath $InstallDirectory).Path
 $executable = Join-Path $installPath 'ideer-desktop.exe'
 $registration = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -eq 'iDeer Desktop')
-if ($registration.Count -ne 1 -or $registration[0].UninstallString -notlike "*$installPath*") { throw 'The requested directory must match the existing Desktop installation' }
+if ($registration.Count -ne 1 -or $registration[0].UninstallString -notmatch '^\s*"(?<uninstaller>[^"]+)"(?:\s|$)') { throw 'Expected one quoted Desktop uninstall registration' }
+$registeredUninstaller=(Resolve-Path -LiteralPath $Matches.uninstaller).Path
+$registeredDirectory=[IO.Path]::GetDirectoryName($registeredUninstaller)
+if (-not [string]::Equals($installPath,$registeredDirectory,[StringComparison]::OrdinalIgnoreCase) -or
+    [IO.Path]::GetFileName($registeredUninstaller) -ne 'Uninstall ideer-desktop.exe' -or
+    -not (Test-Path -LiteralPath $executable -PathType Leaf)) { throw 'The requested directory must exactly match the existing Desktop installation' }
 $config = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'iDeer Desktop/Runtime/settings.json'
 if (Test-Path -LiteralPath $config) { throw 'Configured profile present; this unconfigured UI smoke must not overwrite it' }
 $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) $EvidenceDirectory))

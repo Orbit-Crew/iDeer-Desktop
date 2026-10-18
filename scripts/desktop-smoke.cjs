@@ -11,6 +11,23 @@ async function main() {
   const evidenceDir = process.env.DESKTOP_EVIDENCE_DIR || 'artifacts'
   mkdirSync(evidenceDir, { recursive: true })
   const processEvidence = []
+  function assertRuntimeExited(pid) {
+    if (process.platform === 'win32') {
+      execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+        `$p = Get-Process -Id ${Number(pid)} -ErrorAction SilentlyContinue; if ($null -eq $p -or $p.HasExited) { exit 0 }; exit 1`
+      ], { windowsHide: true, timeout: 15000 })
+    } else assert.throws(() => process.kill(pid, 0))
+  }
+  async function waitRuntimeState(page, expected) {
+    const deadline = Date.now() + 15000
+    let snapshot
+    do {
+      snapshot = await page.evaluate(() => window.ideer.getStatus())
+      if (snapshot.runtime.process === expected) return snapshot
+      await new Promise(resolve => setTimeout(resolve, 50))
+    } while (Date.now() < deadline)
+    throw new Error(`Runtime did not reach ${expected}: ${JSON.stringify(snapshot.runtime)}`)
+  }
   const expectedExecutable = process.env.DESKTOP_EXECUTABLE || require('electron')
   async function recordProcesses(stage, expected) {
     if (process.platform !== 'win32') return
@@ -61,26 +78,23 @@ async function main() {
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
     const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'
-    await page.waitForFunction(async expected => (await window.ideer.getStatus()).runtime.process === expected, expectedRuntime, { timeout: 15000 })
-    const ownedRuntime = await page.evaluate(() => window.ideer.getStatus())
+    const ownedRuntime = await waitRuntimeState(page, expectedRuntime)
     assert.equal(ownedRuntime.version, '0.1.0')
     assert.equal(ownedRuntime.server, process.platform === 'win32' ? 'not-configured' : 'offline')
     if (process.platform === 'win32') assert.ok(ownedRuntime.runtime.pid)
     const runtimeStages = [{ stage: 'started', ...ownedRuntime.runtime }]
     if (process.platform === 'win32') {
       await page.getByRole('button', { name: '停止 Runtime' }).click()
-      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'stopped')
-      assert.throws(() => process.kill(ownedRuntime.runtime.pid, 0))
+      await waitRuntimeState(page, 'stopped')
+      assertRuntimeExited(ownedRuntime.runtime.pid)
       runtimeStages.push({ stage: 'stopped', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
       await page.getByRole('button', { name: '启动 Runtime' }).click()
-      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
-      const recovered = await page.evaluate(() => window.ideer.getStatus())
+      const recovered = await waitRuntimeState(page, 'running')
       process.kill(recovered.runtime.pid)
-      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'crashed')
+      await waitRuntimeState(page, 'crashed')
       runtimeStages.push({ stage: 'crashed', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
       await page.getByRole('button', { name: '启动 Runtime' }).click()
-      await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
-      runtimeStages.push({ stage: 'recovered', ...(await page.evaluate(() => window.ideer.getStatus())).runtime })
+      runtimeStages.push({ stage: 'recovered', ...(await waitRuntimeState(page, 'running')).runtime })
     }
     writeFileSync(join(evidenceDir, 'runtime-lifecycle.json'), JSON.stringify(runtimeStages, null, 2))
     const runtime = await app.evaluate(async ({ app, BrowserWindow }) => {
@@ -154,7 +168,7 @@ async function main() {
 
     for (const [width, height] of [[960, 600], [1440, 900], [1280, 800]]) {
       await app.evaluate(({ BrowserWindow }, bounds) => BrowserWindow.getAllWindows()[0].setSize(...bounds), [width, height])
-      await page.getByRole('heading', { name: '未连接 Server' }).waitFor({ state: 'visible' })
+      await page.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor({ state: 'visible' })
       assert.equal(await page.locator('textarea, input[type="password"], input[type="submit"]').count(), 0)
     }
 
@@ -200,14 +214,14 @@ async function main() {
     await exited
     app = null
     await recordProcesses('after-ui-quit', 'exited')
-    if (beforeQuitRuntime.runtime.pid) assert.throws(() => process.kill(beforeQuitRuntime.runtime.pid, 0))
+    if (beforeQuitRuntime.runtime.pid) assertRuntimeExited(beforeQuitRuntime.runtime.pid)
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
 
     // Closing the native window must exit, without a background tray process.
     app = await electron.launch(options)
     const reopenedPage = await app.firstWindow()
     await reopenedPage.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor()
-    if (process.platform === 'win32') await reopenedPage.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
+    if (process.platform === 'win32') await waitRuntimeState(reopenedPage, 'running')
     const beforeCloseRuntime = await reopenedPage.evaluate(() => window.ideer.getStatus())
     await recordProcesses('restart-before-native-close', 'running')
     const closed = app.waitForEvent('close')
@@ -215,7 +229,7 @@ async function main() {
     await closed
     app = null
     await recordProcesses('after-native-close', 'exited')
-    if (beforeCloseRuntime.runtime.pid) assert.throws(() => process.kill(beforeCloseRuntime.runtime.pid, 0))
+    if (beforeCloseRuntime.runtime.pid) assertRuntimeExited(beforeCloseRuntime.runtime.pid)
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
     console.log(JSON.stringify({ result: 'passed', platform: process.platform, elapsedMs: Date.now() - started, runtime,
       checks: ['unconnected-ui', 'session-directory', 'sandbox', 'ipc-rejection', 'navigation-popup-csp',
