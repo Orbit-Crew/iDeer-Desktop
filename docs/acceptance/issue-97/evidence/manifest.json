@@ -1,5 +1,5 @@
 {
-  "text_normalization": "CRLF to LF; binary PNG unchanged",
+  "text_normalization": "CRLF to LF; logs have trailing blank lines removed; binary PNG unchanged",
   "sha256": {
     "acceptance-script-hashes.json": "f2cb69edef002b68daf1a2ff97911693e2b2bfac39880d5c2f4f706ef3361754",
     "build-commands.json": "2eb7ebd47d579ebc0421c38c1d24734cf3e525b4139d6bdc686806d327228945",
@@ -8,7 +8,7 @@
     "credential-cleanup.json": "84ceaa9af87eb06a06df2315e60caa1cf9881793cf8ec7164206bb8e79a0c75a",
     "desktop-processes.json": "17c819df3bd747b698b2c7a4cdeabd24b73b5c7356e7addb43ca1103d3f1f89a",
     "desktop-startup.png": "1af0ab4f0f4b8ffa1ac2479ef4f23b57c145a40fc816df0693667cc152d4cb04",
-    "desktop-tests.log": "6badf2a17b6f6bf56f87de82bc981b2da8177077484b91e541ea7ea2a7416fe2",
+    "desktop-tests.log": "eb0b2ab6ae2f9259fd9eee3a122afaf8e5d9b9cf210a456c074f4d118747e05d",
     "development-signed-process.json": "c34769749515dbc79b62f4261532dee28f3226ea55133f4211c16059e3cc813e",
     "dist-win.log": "b1ad0c9bf2f7a67cbf4e8326f919f8c5dda754c606fdf223921d9ee2f7645bf2",
     "independent-wheel.log": "cc2c89ca7476600b8966e48017bb65ab188ac6971f948ad7153c7c56e87b5db5",
@@ -27,7 +27,7 @@
     "runtime-tests.log": "ad3bceb5b69d3424d61d6f208f7225e3ec7401e670e14dacd54e94f5ac72a5e0",
     "runtime-tests.xml": "585de06114995b2e354fab0553de4ebecd7b923de796d47fb4466dc25377affb",
     "test-dependencies.txt": "abdd18b53609401f001bccab46dc623ce07cee8d639149ac33cdfa819d4f0035",
-    "typecheck.log": "97b3906b3a580ae77164ebb865f7a500f400c382f25e54a4897e1b80cef8aa10",
+    "typecheck.log": "05fcc4d2e341c0ccd9416d944b21edc8a50899b381f1c84b6eece0d26fd4ff29",
     "wheel-hash.json": "9bb39e1319e7c17dff89ab3c3ab84e85ef259406491c3c611c4e01bf948d896b"
   }
 }

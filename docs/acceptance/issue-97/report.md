@@ -73,8 +73,9 @@ crashed/offline and recovered/running/not-configured.
 The final full commands and exact elapsed values are committed in
 [build-commands.json](evidence/build-commands.json). Installation commands,
 hashes, interpreter versions, signed outcomes, process states and screenshot are
-in [evidence/](evidence/). JUnit copies only redact the host name; original raw
-artifacts remain under artifacts/issue-97/. The two test credentials left by an
+in [evidence/](evidence/). JUnit copies redact the host name, and committed logs
+remove trailing blank lines; original raw artifacts remain under artifacts/issue-97/.
+The two test credentials left by an
 earlier interrupted run were removed; credential-cleanup.json confirms zero
 remaining entries in this test namespace. No credential values are archived.
 
