@@ -52,7 +52,8 @@
   "modified": [
     "local-runtime/core/transport.py",
     "local-runtime/pyproject.toml",
-    "local-runtime/core/python.py"
+    "local-runtime/core/python.py",
+    "local-runtime/core/settings.py"
   ],
   "serverProtocolSource": "backend/app/device_control/protocol.py"
 }

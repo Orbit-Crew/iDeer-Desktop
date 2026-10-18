@@ -1,0 +1,437 @@
+{
+  "summary": {
+    "changed_count": 47,
+    "affected_count": 5,
+    "changed_files": 23,
+    "risk_level": "medium"
+  },
+  "changed_symbols": [
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService.__init__#1",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService.start#4",
+      "name": "start",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService._get#1",
+      "name": "_get",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService._check_existing_owner#2",
+      "name": "_check_existing_owner",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService.describe#2",
+      "name": "describe",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService.confirm#2",
+      "name": "confirm",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/desktop_login.py:DesktopLoginService.complete#4",
+      "name": "complete",
+      "type": "Method",
+      "filePath": "backend/app/device_control/desktop_login.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.id",
+      "name": "id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.initiator_digest",
+      "name": "initiator_digest",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.public_key",
+      "name": "public_key",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.name",
+      "name": "name",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.existing_device_id",
+      "name": "existing_device_id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.state",
+      "name": "state",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.owner_id",
+      "name": "owner_id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.token_version",
+      "name": "token_version",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/models.py:DesktopLoginModel.expires_at",
+      "name": "expires_at",
+      "type": "Property",
+      "filePath": "backend/app/device_control/models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/service.py:DeviceControlService.renew_login_session#3",
+      "name": "renew_login_session",
+      "type": "Method",
+      "filePath": "backend/app/device_control/service.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/app.py:_http_exception_payload",
+      "name": "_http_exception_payload",
+      "type": "Function",
+      "filePath": "backend/app/gateway/app.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/device_gate.py:is_device_credential_route",
+      "name": "is_device_credential_route",
+      "type": "Function",
+      "filePath": "backend/app/gateway/device_gate.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginStartRequest.initiator_secret",
+      "name": "initiator_secret",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginStartRequest.public_key",
+      "name": "public_key",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginStartRequest.name",
+      "name": "name",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginStartRequest.existing_device_id",
+      "name": "existing_device_id",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginCompleteRequest.initiator_secret",
+      "name": "initiator_secret",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginCompleteRequest.public_key",
+      "name": "public_key",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginCompleteRequest.device_proof",
+      "name": "device_proof",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/gateway/routers/devices.py:DesktopLoginConfirmRequest.confirm_own_device",
+      "name": "confirm_own_device",
+      "type": "Property",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:desktop_login_start",
+      "name": "desktop_login_start",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:desktop_login_describe",
+      "name": "desktop_login_describe",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:desktop_login_confirm",
+      "name": "desktop_login_confirm",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:desktop_login_complete",
+      "name": "desktop_login_complete",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/tests/contracts/test_global_exception_handlers.py:TestUnhandledExceptions.test_unhandled_exception_returns_generic_envelope#2",
+      "name": "test_unhandled_exception_returns_generic_envelope",
+      "type": "Method",
+      "filePath": "backend/tests/contracts/test_global_exception_handlers.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/tests/contracts/test_global_exception_handlers.py:TestUnhandledExceptions.test_unhandled_exception_does_not_leak_details#1",
+      "name": "test_unhandled_exception_does_not_leak_details",
+      "type": "Method",
+      "filePath": "backend/tests/contracts/test_global_exception_handlers.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/persistence/test_migration_0025_repair_run_change_seq.py:test_0025_is_in_the_unified_chain",
+      "name": "test_0025_is_in_the_unified_chain",
+      "type": "Function",
+      "filePath": "backend/tests/integration/persistence/test_migration_0025_repair_run_change_seq.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L11:Issue #98 acceptance",
+      "name": "Issue #98 acceptance",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/agents/routes/local-runtime.md:L11:本地运行时与设备执行",
+      "name": "本地运行时与设备执行",
+      "type": "Section",
+      "filePath": "docs/agents/routes/local-runtime.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/local-runtime/BROWSER_LOGIN.md:L11:Browser login and Desktop pairing",
+      "name": "Browser login and Desktop pairing",
+      "type": "Section",
+      "filePath": "docs/local-runtime/BROWSER_LOGIN.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/local-runtime/PATCH_LEDGER.md:L11:Local Runtime patch ledger (M7–M9)",
+      "name": "Local Runtime patch ledger (M7–M9)",
+      "type": "Section",
+      "filePath": "docs/local-runtime/PATCH_LEDGER.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/app/desktop-login/confirmation.tsx:DesktopLoginConfirmation",
+      "name": "DesktopLoginConfirmation",
+      "type": "Function",
+      "filePath": "frontend/src/app/desktop-login/confirmation.tsx",
+      "change_type": "touched"
+    },
+    {
+      "id": "Const:frontend/src/app/desktop-login/page.tsx:dynamic",
+      "name": "dynamic",
+      "type": "Const",
+      "filePath": "frontend/src/app/desktop-login/page.tsx",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/app/desktop-login/page.tsx:DesktopLoginPage",
+      "name": "DesktopLoginPage",
+      "type": "Function",
+      "filePath": "frontend/src/app/desktop-login/page.tsx",
+      "change_type": "touched"
+    },
+    {
+      "id": "Interface:frontend/src/core/devices/api.ts:DesktopLoginApproval",
+      "name": "能体、子智能�",
+      "type": "Section",
+      "filePath": "frontend/src/core/devices/api.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/core/devices/api.ts:getDesktopLoginApproval",
+      "name": "getDesktopLoginApproval",
+      "type": "Function",
+      "filePath": "frontend/src/core/devices/api.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/core/devices/api.ts:confirmDesktopLogin",
+      "name": "confirmDesktopLogin",
+      "type": "Function",
+      "filePath": "frontend/src/core/devices/api.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/core/devices/use-desktop-login.ts:useDesktopLogin",
+      "name": "useDesktopLogin",
+      "type": "Function",
+      "filePath": "frontend/src/core/devices/use-desktop-login.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/core/devices/use-desktop-login.ts:useDesktopLogin.queryFn@9:4",
+      "name": "queryFn",
+      "type": "Function",
+      "filePath": "frontend/src/core/devices/use-desktop-login.ts",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:frontend/src/core/devices/use-desktop-login.ts:useDesktopLogin.mutationFn@15:4",
+      "name": "mutationFn",
+      "type": "Function",
+      "filePath": "frontend/src/core/devices/use-desktop-login.ts",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_60_desktop_login_comple",
+      "name": "Desktop_login_complete → Hash_secret",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "complete",
+          "step": 2
+        },
+        {
+          "symbol": "desktop_login_complete",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_117_desktop_login_comple",
+      "name": "Desktop_login_complete → _as_utc",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "complete",
+          "step": 2
+        },
+        {
+          "symbol": "_get",
+          "step": 3
+        },
+        {
+          "symbol": "desktop_login_complete",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_118_desktop_login_comple",
+      "name": "Desktop_login_complete → Validate_device_transition",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "complete",
+          "step": 2
+        },
+        {
+          "symbol": "renew_login_session",
+          "step": 3
+        },
+        {
+          "symbol": "desktop_login_complete",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_119_desktop_login_comple",
+      "name": "Desktop_login_complete → _get_device",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "complete",
+          "step": 2
+        },
+        {
+          "symbol": "renew_login_session",
+          "step": 3
+        },
+        {
+          "symbol": "desktop_login_complete",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_190_desktop_login_comple",
+      "name": "Desktop_login_complete → _check_existing_owner",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "complete",
+          "step": 2
+        },
+        {
+          "symbol": "_check_existing_owner",
+          "step": 3
+        },
+        {
+          "symbol": "desktop_login_complete",
+          "step": 1
+        }
+      ]
+    }
+  ]
+}

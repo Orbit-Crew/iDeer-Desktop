@@ -1,0 +1,20 @@
+[
+  {
+    "elapsedMs": 14776,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T13:53:04.6660272+08:00",
+    "name": "install"
+  },
+  {
+    "elapsedMs": 4767,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T13:53:20.5823490+08:00",
+    "name": "installed-signed-process"
+  },
+  {
+    "elapsedMs": 20726,
+    "exitCode": 0,
+    "startedAt": "2026-10-18T13:53:25.3556716+08:00",
+    "name": "installed-desktop-smoke"
+  }
+]

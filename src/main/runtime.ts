@@ -1,17 +1,44 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { RuntimeStatus, RuntimeTask } from '../shared/desktop'
+import type { LoginStatus, RuntimeStatus, RuntimeTask } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
   private child: ChildProcessWithoutNullStreams | null = null
   private snapshot: RuntimeStatus = { process: 'stopped', connection: 'offline', tasks: [] }
   private stopping: Promise<void> | null = null
+  private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
   constructor(private readonly directory: string, private readonly profile: string) {}
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async beginLogin(server: string, deviceName: string): Promise<string> {
+    let origin: URL
+    try {
+      if (typeof server !== 'string' || server.length > 2048) throw new Error()
+      origin = new URL(server)
+      if (origin.username || origin.password || origin.search || origin.hash || origin.pathname !== '/' ||
+          !['https:', 'http:'].includes(origin.protocol) ||
+          (origin.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname))) throw new Error()
+    } catch { throw new Error('LOGIN_ORIGIN_INVALID') }
+    if (typeof deviceName !== 'string' || !deviceName.trim() || deviceName.length > 255) throw new Error('LOGIN_DEVICE_NAME_INVALID')
+    if (this.loginRequest || this.snapshot.login?.state === 'awaiting-confirmation') throw new Error('LOGIN_IN_PROGRESS')
+    await this.start()
+    if (this.loginRequest || this.status().login?.state === 'awaiting-confirmation') throw new Error('LOGIN_IN_PROGRESS')
+    if (!this.child || this.stopping) throw new Error('RUNTIME_UNAVAILABLE')
+    return new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.loginRequest = null
+        reject(new Error('LOGIN_START_TIMEOUT'))
+      }, 15000)
+      this.loginRequest = { origin: origin.origin,
+        resolve: (url) => { clearTimeout(timer); this.loginRequest = null; resolve(url) },
+        reject: (error) => { clearTimeout(timer); this.loginRequest = null; reject(error) } }
+      this.child!.stdin.write(JSON.stringify({ type: 'login', serverUrl: origin.origin, deviceName: deviceName.trim() }) + '\n')
+    })
   }
 
   async start(): Promise<void> {
@@ -55,8 +82,23 @@ export class RuntimeProcess {
             if (['taskId', 'runId', 'capability', 'state'].some((key) => typeof task[key as keyof RuntimeTask] !== 'string' || task[key as keyof RuntimeTask].length > 256)) throw new Error('Invalid task status')
             return { taskId: task.taskId, runId: task.runId, capability: task.capability, state: task.state }
           })
+          let login: LoginStatus | undefined
+          if (value.login) {
+            if (!['unauthenticated', 'awaiting-confirmation', 'authenticated', 'expired', 'error'].includes(value.login.state) ||
+                ['account', 'device', 'error'].some((key) => typeof value.login[key] !== 'string' || value.login[key].length > 256)) throw new Error('Invalid login status')
+            login = { state: value.login.state, account: value.login.account, device: value.login.device, error: value.login.error }
+            if (typeof value.login.verification === 'string' && /^[0-9a-f]{12}$/.test(value.login.verification)) login.verification = value.login.verification
+            if (login.state === 'error') this.loginRequest?.reject(new Error(login.error || 'LOGIN_FAILED'))
+          }
+          if (value.browserUrl) {
+            const url = new URL(value.browserUrl)
+            if (!this.loginRequest || url.origin !== this.loginRequest.origin || url.pathname !== '/desktop-login' ||
+                url.username || url.password || url.hash || [...url.searchParams.keys()].join() !== 'login_id' ||
+                !/^[A-Za-z0-9-]{1,64}$/.test(url.searchParams.get('login_id') || '')) throw new Error('Invalid browser URL')
+            this.loginRequest.resolve(url.href)
+          }
           lastStatus = Date.now()
-          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid }
+          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login }
         } catch { child.kill() }
       }
     })
@@ -67,6 +109,7 @@ export class RuntimeProcess {
       this.snapshot = { process: 'crashed', connection: 'offline', tasks: [] }
     })
     child.on('close', () => {
+      this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

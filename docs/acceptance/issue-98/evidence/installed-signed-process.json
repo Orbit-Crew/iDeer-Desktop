@@ -1,0 +1,365 @@
+{
+  "interpreter": "D:\\software\\iDeer Desktop\\ideer-desktop\\resources\\runtime\\python.exe",
+  "interpreter_sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+  "outcomes": [
+    {
+      "task_id": "echo-97",
+      "type": "task_result",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "68ad24402363a7e115aa0ca38eed44720c01ca916d8a1501f6f58f9081225a43",
+      "payload": {
+        "result": "T97-echo-marker",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "echo-97",
+          "capability": "echo",
+          "policy_decision": "allow",
+          "status": "completed",
+          "payload_hash": "e4897b254829e5a4f0fa6c5f6391b1e1e6d451ec0362c22a8e17988d442a173b",
+          "request_hash": "e4897b254829e5a4f0fa6c5f6391b1e1e6d451ec0362c22a8e17988d442a173b",
+          "result_hash": "e4897b254829e5a4f0fa6c5f6391b1e1e6d451ec0362c22a8e17988d442a173b",
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "mcp-97",
+      "type": "task_result",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "4a8bf1b7490c93b799a060d1dbe2cdf104e5f50ca3ddb0ed9f28f07d8af1bdf3",
+      "payload": {
+        "result": {
+          "status": "completed",
+          "content": [
+            {
+              "type": "text",
+              "text": "T97-mcp-marker"
+            }
+          ],
+          "is_error": false,
+          "structured_content": null
+        },
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "mcp-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "allow",
+          "status": "completed",
+          "payload_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "request_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "result_hash": "23d0c93c5b6a6372d047f4ad7e3a4c68af25b137b0c6175bb100f61e904dd415",
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "bad-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "e3bb525f24dfcfd8ef1f6ed73323dd6f6e56276833e2c5562a9b7c5079e0036c",
+      "payload": {
+        "error_code": "SIGNATURE_INVALID",
+        "message": "SIGNATURE_INVALID",
+        "receipt": {
+          "run_id": "",
+          "task_id": "bad-97",
+          "capability": "",
+          "policy_decision": "deny",
+          "status": "denied",
+          "payload_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "request_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "expired-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "ae2603b4cc95c5b79cb947ed1ceffc65d1b0ad044491694a200144830c2e5846",
+      "payload": {
+        "error_code": "MESSAGE_EXPIRED",
+        "message": "MESSAGE_EXPIRED",
+        "receipt": {
+          "run_id": "",
+          "task_id": "expired-97",
+          "capability": "",
+          "policy_decision": "deny",
+          "status": "denied",
+          "payload_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "request_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "mcp-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "0804d948c807896a5d2de7ac1a224417877e97653a6e45be07da33e342110a32",
+      "payload": {
+        "error_code": "TASK_REPLAYED",
+        "message": "task already admitted",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "mcp-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "allow",
+          "status": "denied",
+          "payload_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "request_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "deny-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "9011ff7983a2a58adfab593127deacd1f383b21c638f0bf2cee52ee95d6228aa",
+      "payload": {
+        "error_code": "LOCAL_POLICY_DENIED",
+        "message": "deny",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "deny-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "deny",
+          "status": "denied",
+          "payload_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "request_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "mcp-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "0804d948c807896a5d2de7ac1a224417877e97653a6e45be07da33e342110a32",
+      "payload": {
+        "error_code": "TASK_REPLAYED",
+        "message": "task already admitted",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "mcp-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "allow",
+          "status": "denied",
+          "payload_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "request_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "mcp-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "0804d948c807896a5d2de7ac1a224417877e97653a6e45be07da33e342110a32",
+      "payload": {
+        "error_code": "TASK_REPLAYED",
+        "message": "task already admitted",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "mcp-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "allow",
+          "status": "denied",
+          "payload_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "request_hash": "e6aea1b9c76b8cc684689b31a7eb5ad5faca2f6b9a83774bae63db2389b48dcf",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    },
+    {
+      "task_id": "uncertain-97",
+      "type": "error",
+      "signature": "verified with isolated device public key",
+      "payload_hash": "1eadb294272af207e87f9938aaa64dbb477458e79308b3e02f6f2369661385c3",
+      "payload": {
+        "error_code": "TASK_REPLAYED",
+        "message": "task already admitted",
+        "receipt": {
+          "run_id": "run-97",
+          "task_id": "uncertain-97",
+          "capability": "local.mcp.fixture.echo",
+          "policy_decision": "allow",
+          "status": "denied",
+          "payload_hash": "19df44bff1c43bc702358bc736dcb2904ad73b548783b48bfbf8ee850f10d0de",
+          "request_hash": "19df44bff1c43bc702358bc736dcb2904ad73b548783b48bfbf8ee850f10d0de",
+          "result_hash": null,
+          "policy_version": "1",
+          "consent_decision": null,
+          "stdout_hash": null,
+          "stderr_hash": null,
+          "artifact_refs": [],
+          "runtime_version": null,
+          "exit_code": null,
+          "started_at": null,
+          "finished_at": null
+        }
+      }
+    }
+  ],
+  "states": [
+    {
+      "v": 1,
+      "connection": "connecting",
+      "tasks": [
+        {
+          "taskId": "uncertain-97",
+          "runId": "run-97",
+          "state": "accepted",
+          "capability": "local.mcp.fixture.echo"
+        },
+        {
+          "taskId": "mcp-97",
+          "runId": "run-97",
+          "state": "rejected",
+          "capability": ""
+        },
+        {
+          "taskId": "mcp-97",
+          "runId": "run-97",
+          "state": "rejected",
+          "capability": ""
+        },
+        {
+          "taskId": "deny-97",
+          "runId": "run-97",
+          "state": "denied",
+          "capability": "local.mcp.fixture.echo"
+        },
+        {
+          "taskId": "deny-97",
+          "runId": "run-97",
+          "state": "accepted",
+          "capability": "local.mcp.fixture.echo"
+        },
+        {
+          "taskId": "mcp-97",
+          "runId": "run-97",
+          "state": "rejected",
+          "capability": ""
+        },
+        {
+          "taskId": "expired-97",
+          "runId": "",
+          "state": "rejected",
+          "capability": ""
+        },
+        {
+          "taskId": "bad-97",
+          "runId": "",
+          "state": "rejected",
+          "capability": ""
+        },
+        {
+          "taskId": "mcp-97",
+          "runId": "run-97",
+          "state": "completed",
+          "capability": "local.mcp.fixture.echo"
+        },
+        {
+          "taskId": "mcp-97",
+          "runId": "run-97",
+          "state": "accepted",
+          "capability": "local.mcp.fixture.echo"
+        },
+        {
+          "taskId": "echo-97",
+          "runId": "run-97",
+          "state": "completed",
+          "capability": "echo"
+        },
+        {
+          "taskId": "echo-97",
+          "runId": "run-97",
+          "state": "accepted",
+          "capability": "echo"
+        }
+      ],
+      "login": {
+        "state": "authenticated",
+        "account": "fixture@example.com",
+        "device": "",
+        "error": ""
+      }
+    }
+  ],
+  "mcp_ledger": "T97-mcp-marker\nT97-unconfirmed-marker\n",
+  "crash_descendants": "none",
+  "recovery_exit_code": 0,
+  "unconfirmed_side_effect": "one admission, one side effect, replay rejected after crash"
+}

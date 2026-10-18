@@ -22,8 +22,8 @@ export default function AppLayout(): JSX.Element {
       <main className="flex-1 overflow-auto p-10">
         <Typography.Title level={3}>平台连接</Typography.Title>
         <Card className="max-w-3xl mt-6 shadow-card">
-          <Typography.Title level={4}>平台登录与聊天暂不可用</Typography.Title>
-          <Alert type="warning" showIcon message="登录与聊天入口尚未接入" />
+          <Typography.Title level={4}>平台登录与设备连接</Typography.Title>
+          <Alert type="info" showIcon message="可在系统浏览器登录并绑定设备，聊天入口尚未接入" />
           <Typography.Paragraph className="mt-5">
             配对后的设备可通过 Runtime 接收 Server 签名任务。尚未配置设备时，任务不可用。
           </Typography.Paragraph>

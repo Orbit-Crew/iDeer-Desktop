@@ -1,5 +1,10 @@
 # Runtime migration for issue #97
 
+Issue #98 extends this accepted baseline with browser login and a restricted
+login command. Its current behavior and validation are in
+[issue #98 acceptance](acceptance/issue-98/report.md); the sections below retain
+the original #97 migration record.
+
 Desktop baseline: `a41817d`. Runtime and Server protocol source:
 [Orbit-Crew/iDeer ccb251e](https://github.com/Orbit-Crew/iDeer/tree/ccb251e07e5f5934b851e4c3df00224718f28123).
 The prerequisite [#96](https://github.com/Orbit-Crew/iDeer/issues/96) was rechecked
@@ -73,6 +78,21 @@ and installed UI start/stop/crash/recovery, quit and native window close.
 | core/transport.py | Verify HELLO before connected; persistent task admission before dispatch; signed rejection receipts; denied echo returns no value |
 | core/python.py | Cancel/timeout closes the already assigned Windows Job Object immediately. The original regression reproduced a descendant side effect while taskkill was starting; all 22 original Python tests pass after the fix |
 | pyproject.toml | Pin production versions, retain explicit core wheel package fix, add Desktop entry and test extras/config |
+| core/settings.py, issue #98 | Add separate business identity and OS credential references plus business expiry; preserve plaintext-free serialization |
+
+Issue #98 adds `core/browser_login.py` and extends Desktop-only `core/desktop.py`.
+Runtime holds the initiating secret and device private key, polls a five-minute
+one-use completion, and persists separate business/device credentials only in
+the OS store. Browser URL contains only the temporary login ID. The new
+`desktop:login:begin` IPC accepts a canonical platform origin and device name;
+main opens only a matching-origin `/desktop-login?login_id=...` URL and returns
+no URL or credential to renderer. Existing task IPC remains absent. Profiles
+require a valid business session before connecting; expiry stops their controller.
+Existing device-only Desktop profiles remain offline until the same owner
+confirms a business login and the stored device key proves possession. Reauthentication
+keeps the device ID, replaces its session and invalidates old sessions.
+`test_browser_login.py` adds public HTTP/stdio
+checks; all migrated original test bytes remain unchanged.
 
 All original tests remain unchanged. Windows skips and their platform reasons are
 recorded in acceptance. CPython 3.12 is a modern Windows candidate. Win7 interpreter,

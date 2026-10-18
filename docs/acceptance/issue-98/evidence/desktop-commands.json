@@ -1,0 +1,95 @@
+[
+  {
+    "startedAt": "2026-10-18T13:41:38.1696753+08:00",
+    "arguments": [
+      "scripts/verify-runtime-source.py"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "name": "runtime-source",
+    "exitCode": 0,
+    "elapsedMs": 272
+  },
+  {
+    "startedAt": "2026-10-18T13:41:38.4841546+08:00",
+    "arguments": [
+      "-m",
+      "ruff",
+      "check",
+      "local-runtime",
+      "--select",
+      "E9,F63,F7,F82"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "name": "runtime-static",
+    "exitCode": 0,
+    "elapsedMs": 402
+  },
+  {
+    "startedAt": "2026-10-18T13:41:38.8933457+08:00",
+    "arguments": [
+      "scripts/prepare-runtime.py"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "name": "runtime-prepare",
+    "exitCode": 0,
+    "elapsedMs": 2650
+  },
+  {
+    "startedAt": "2026-10-18T13:41:41.5498972+08:00",
+    "arguments": [
+      "run",
+      "typecheck"
+    ],
+    "executable": "npm.cmd",
+    "name": "typecheck",
+    "exitCode": 0,
+    "elapsedMs": 10994
+  },
+  {
+    "startedAt": "2026-10-18T13:41:52.5521775+08:00",
+    "arguments": [
+      "-m",
+      "pytest",
+      "local-runtime/tests",
+      "-q",
+      "--basetemp=C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\final/pytest",
+      "--junitxml=C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\final/runtime-tests.xml"
+    ],
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "name": "runtime-tests",
+    "exitCode": 0,
+    "elapsedMs": 49935
+  },
+  {
+    "startedAt": "2026-10-18T13:42:42.495203+08:00",
+    "arguments": [
+      "test"
+    ],
+    "executable": "npm.cmd",
+    "name": "desktop-tests",
+    "exitCode": 0,
+    "elapsedMs": 17275
+  },
+  {
+    "startedAt": "2026-10-18T13:42:59.7770152+08:00",
+    "arguments": [
+      "run",
+      "dist:win"
+    ],
+    "executable": "npm.cmd",
+    "name": "dist-win",
+    "exitCode": 9009,
+    "elapsedMs": 3197
+  },
+  {
+    "elapsedMs": 189959,
+    "executable": "npm.cmd",
+    "exitCode": 0,
+    "arguments": [
+      "run",
+      "dist:win"
+    ],
+    "startedAt": "2026-10-18T13:44:20.6607061+08:00",
+    "name": "dist-win-verified-environment"
+  }
+]

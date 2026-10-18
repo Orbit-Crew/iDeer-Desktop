@@ -15,6 +15,8 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
 from websockets.asyncio.server import serve
+from websockets.http11 import Response
+from websockets.datastructures import Headers
 
 from core.secrets import WindowsCredentialStore
 from core.settings import RuntimeSettings
@@ -32,9 +34,10 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
         device_key, broker_key = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
         identity = "test-97-" + uuid.uuid4().hex
         store = WindowsCredentialStore()
-        refs = [identity + "-session", identity + "-key"]
+        refs = [identity + "-session", identity + "-key", identity + "-business"]
         store.set(refs[0], "isolated-" + identity)
         store.set(refs[1], base64.b64encode(device_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())).decode())
+        store.set(refs[2], "business-" + identity)
         queue = asyncio.Queue()
         release = asyncio.Event()
         process = None
@@ -45,6 +48,12 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
         async def broker(socket):
             await queue.put(socket)
             await socket.wait_closed()
+
+        async def authenticated_account(connection, request):
+            if request.path == "/api/v1/auth/me":
+                assert request.headers.get("Cookie") == "access_token=business-" + identity
+                body = json.dumps({"id": identity, "email": "fixture@example.com"}).encode()
+                return Response(200, "OK", Headers({"Content-Type": "application/json", "Content-Length": str(len(body))}), body)
 
         async def snapshot_reader(child):
             async for line in child.stdout:
@@ -68,7 +77,7 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
                     return response
 
         try:
-            async with serve(broker, "127.0.0.1", 0) as server:
+            async with serve(broker, "127.0.0.1", 0, process_request=authenticated_account) as server:
                 count = profile / "count.txt"
                 mcp_pid = profile / "mcp.pid"
                 mcp = profile / "mcp.json"
@@ -76,7 +85,8 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
                     "command": [str(interpreter), str(Path(__file__).parent / "fixtures/counting_mcp_server.py")],
                     "env": {"MCP_COUNT": str(count), "MCP_PID": str(mcp_pid)}}]}))
                 capability = "local.mcp.fixture.echo"
-                settings = RuntimeSettings(server_url=f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}",
+                settings = RuntimeSettings(server_url=f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}",
+                    user_id=identity, user_name="fixture@example.com", business_token_ref=refs[2], business_expires_at="2099-01-01T00:00:00+00:00",
                     device_id=identity, session_id="session-97", server_public_key=public_key_text(broker_key.public_key()),
                     session_token_ref=refs[0], device_key_ref=refs[1], mcp_config_path=str(mcp),
                     rules={capability: "always_allow"})

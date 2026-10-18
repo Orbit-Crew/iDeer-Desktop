@@ -1,0 +1,11 @@
+log_level: info
+models: []
+tool_groups: []
+tools: []
+sandbox:
+  use: deerflow.sandbox.local:LocalSandboxProvider
+scheduler:
+  enabled: false
+database:
+  backend: sqlite
+  sqlite_dir: C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/dev-log/live-98/sqlite

@@ -1,0 +1,25 @@
+{
+  "log": "server/dev-log/frontend-typecheck-isolated.log",
+  "verifiedUnchangedFrontendSources": [
+    {
+      "path": "src/app/desktop-login/page.tsx",
+      "sha256": "C881A23CD9890D52C53614CCAD5FAB7D78CB8439CCFA44A26CA35887F2ED86EC"
+    },
+    {
+      "path": "src/app/desktop-login/confirmation.tsx",
+      "sha256": "168810025BEB7974433BA695449914B4E3952BCDEF7245269CF53B43952B47E3"
+    },
+    {
+      "path": "src/core/devices/api.ts",
+      "sha256": "56F8BCE4D6794AC456EFAEB97E90AA0A650954C09E16A9DB4BFC0699A3E995F5"
+    },
+    {
+      "path": "src/core/devices/use-desktop-login.ts",
+      "sha256": "BA7BAE004344E6C2C075A379610F5DAE5D13474BA2595F2BFF11BFB6C727798C"
+    }
+  ],
+  "command": "node_modules/typescript/bin/tsc --noEmit",
+  "exitCode": 0,
+  "reason": "Release the task-only duplicate dependency tree after successful typecheck",
+  "environment": "isolated Windows validation checkout with physical dependency installation"
+}
