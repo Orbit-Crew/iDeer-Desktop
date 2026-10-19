@@ -1,0 +1,22 @@
+[
+  {
+    "shortcut": "D:\\desktop\\iDeer Desktop.lnk",
+    "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+    "processId": 70236,
+    "title": "iDeer Desktop",
+    "result": "passed",
+    "exitCode": 0,
+    "elapsedMs": 1313,
+    "timestamp": "2026-10-19T09:33:07.6992774+00:00"
+  },
+  {
+    "shortcut": "C:\\Users\\Neo\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\iDeer Desktop.lnk",
+    "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+    "processId": 22796,
+    "title": "iDeer Desktop",
+    "result": "passed",
+    "exitCode": 0,
+    "elapsedMs": 1365,
+    "timestamp": "2026-10-19T09:33:09.0747706+00:00"
+  }
+]

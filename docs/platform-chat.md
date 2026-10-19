@@ -27,6 +27,9 @@ new sends until the user restores state. Reconnect reloads Server history and
 the existing Run, without replaying the previous POST.
 
 History combines paginated Server message records with checkpoint state. A
+human message's `X` and DynamicContext's `X__user` share the same display
+identity, matching Server/Web. The latest original Server ID is retained;
+different Turns with identical content remain separate. A
 Web Thread's Agent slug resolves through its authorized canonical alias, or
 through the previous Run's resource snapshot. Structured human-input responses
 retain the platform request ID, source and option/text payload. A later visible
@@ -49,5 +52,5 @@ automatic submission retry. Large responses return an explicit size error.
 
 Use the [issue #99 fixture instructions](../scripts/acceptance/issue-99/README.md)
 for reproducible protocol checks and the real Gateway/Desktop probe. The
-[acceptance report](acceptance/issue-99/report.md) distinguishes these results
-from required real-provider and installed-app acceptance.
+[acceptance report](acceptance/issue-99/report.md) records protocol checks,
+real-provider scenarios and installed-app acceptance separately.

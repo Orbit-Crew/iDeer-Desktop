@@ -1,0 +1,55 @@
+{
+  "desktopProductCommit": "f7f6264ed19978caca883db543c3ea57562acd81",
+  "serverCommit": "95260f452670df62e365f10035d095838ec3a495",
+  "model": "agnes-3.0-flash",
+  "realProvider": true,
+  "runtime": "Windows bundled Python 3.12.10",
+  "serverEnvironment": {
+    "python": "3.12.3",
+    "os": "Linux 5.15.167.4-microsoft-standard-WSL2 x86_64 GNU/Linux",
+    "sourceCheckout": "6a13947f737e97a499dbd7c597f011f7eb50a02d",
+    "candidateDependencyLocksEqual": true,
+    "backendUvLockSha256": "5484082ec314c5933225ef852a5c7708bd60c02870472e81a11a8dea0d4d54af"
+  },
+  "sourceConfigSha256": "66ac6431c923ab2d4216287d473a1c53b99008ca4efbd059c131c5033dafdb14",
+  "effectiveConfigSha256": "37e19e9ff9c996063d169910463c19b11ff5c19c9330ce95d15f0bd255fb00ba",
+  "extensionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "installedAsarSha256": "36e9ba8a01e0901e0b4be157920c0145a128d90d06ae98dc078c56afc0563e4b",
+  "finishedAtUtc": "2026-10-19T09:32:52.131230+00:00",
+  "startedAtUtc": "2026-10-19T09:31:52.070230+00:00",
+  "timeSource": "Result-file last write time, with the recorded monotonic elapsed duration",
+  "executor": "Codex automatic UI",
+  "manualUiConfirmation": "unexecuted",
+  "installationAuthorization": "User explicitly allowed current Windows account acceptance",
+  "commands": [
+    {
+      "command": "provider_server.py --server-root <candidate checkout> --config-root <user WSL config> --state dev-log/issue-99/installed-reviewed --desktop-state artifacts/issue-99/provider-installed-reviewed --model agnes-3.0-flash",
+      "runner": "WSL Server Python",
+      "exitCode": 0
+    },
+    {
+      "command": ".runtime/python.exe -I scripts/acceptance/issue-99/provider_profiles.py prepare artifacts/issue-99/provider-installed-reviewed",
+      "exitCode": 0
+    },
+    {
+      "command": "node scripts/acceptance/issue-99/desktop.cjs artifacts/issue-99/provider-installed-reviewed",
+      "DESKTOP_EXECUTABLE": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+      "exitCode": 0,
+      "elapsedMs": 60061
+    },
+    {
+      "command": "./scripts/windows-local-acceptance.ps1 -Installer dist/ideer-desktop-0.1.0-windows-x64-setup.exe -InstallDirectory \"D:\\software\\iDeer Desktop\\ideer-desktop\" -EvidenceDirectory artifacts/issue-99/installed-reviewed",
+      "exitCode": 0
+    },
+    {
+      "command": "./scripts/acceptance/issue-99/shortcuts.ps1 -Executable \"D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe\" -EvidenceDirectory artifacts/issue-99/installed-reviewed",
+      "exitCode": 0
+    }
+  ],
+  "fixtureSourceHashes": {
+    "desktop.cjs": "918bc95ed3e7ae09aa2db5fd4d0d02579dde7b61c5712019d84169ff19404555",
+    "provider_profiles.py": "71e2f7717b16e0f68708c3d6bd5dc5db96f543b780e64cf27e9e21aa1e23d81f",
+    "provider_server.py": "3e65e311506d82894e05d25295ad6ad59b6d4c9f51c25dffd2526412d252b5c6",
+    "shortcuts.ps1": "388fa36020842f635fd14fb5c258c5d390628b1b23968bddab83da1ba28656b9"
+  }
+}

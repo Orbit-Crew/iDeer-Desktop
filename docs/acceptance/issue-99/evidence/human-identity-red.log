@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_reopened_thread_merges_injected_user_identity_and_keeps_distinct_turns _
+
+tmp_path = WindowsPath('C:/Users/Neo/.codex/worktrees/df64/iDeer-Desktop/artifacts/issue-99/red-human-identity/test_reopened_thread_merges_in0')
+
+    def test_reopened_thread_merges_injected_user_identity_and_keeps_distinct_turns(tmp_path):
+        # Server DynamicContextMiddleware changes HumanMessage X to X__user.
+        # Its journal and checkpoint are two projections of the same submitted Turn.
+        with platform(rewritten_human=True) as (origin, _):
+            chat, _, _ = make_chat(tmp_path, origin)
+            scope = chat.handle({'action': 'refresh'})['scope']
+            opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+            assert opened['error'] == ''
+>           assert [(m['id'], m['text']) for m in opened['messages'] if m['role'] == 'human'] == [
+                ('h1__user', 'Unique T99 message'), ('h2', 'Unique T99 message')]
+E           AssertionError: assert [('h1', 'Uniq...T99 message')] == [('h1__user',...T99 message')]
+E
+E             At index 0 diff: ('h1', 'Unique T99 message') != ('h1__user', 'Unique T99 message')
+E             Left contains one more item: ('h2', 'Unique T99 message')
+E             Use -v to get more diff
+
+local-runtime\tests\test_platform_chat.py:277: AssertionError
+=========================== short test summary info ===========================
+FAILED local-runtime\tests\test_platform_chat.py::test_reopened_thread_merges_injected_user_identity_and_keeps_distinct_turns
+1 failed, 13 deselected in 1.55s

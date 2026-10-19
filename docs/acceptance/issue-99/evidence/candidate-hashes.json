@@ -1,15 +1,15 @@
 [
   {
     "path": "local-runtime/core/platform_chat.py",
-    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+    "sha256": "2d59d4e20ce1b52ad8a63a6836bf24644e47bcb4d950e4971b096779ca331c21"
   },
   {
     "path": ".runtime/core/platform_chat.py",
-    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+    "sha256": "2d59d4e20ce1b52ad8a63a6836bf24644e47bcb4d950e4971b096779ca331c21"
   },
   {
     "path": "dist/win-unpacked/resources/runtime/core/platform_chat.py",
-    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+    "sha256": "2d59d4e20ce1b52ad8a63a6836bf24644e47bcb4d950e4971b096779ca331c21"
   },
   {
     "path": "package-lock.json",
@@ -25,7 +25,7 @@
   },
   {
     "path": "dist/ideer-desktop-0.1.0-windows-x64-setup.exe",
-    "sha256": "2a4cc3168607828079707f3d3cf956656e4ef8f44d67e59cfd376057d5285de3"
+    "sha256": "057943d1dfebc951bd5658cca1c8db5bbc3fc33198fcf80fa8ed2eaa2b6b8842"
   },
   {
     "path": "dist/win-unpacked/resources/app.asar",

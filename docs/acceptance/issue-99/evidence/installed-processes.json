@@ -1,0 +1,112 @@
+[
+  {
+    "stage": "initial-launch",
+    "expected": "running",
+    "timestamp": "2026-10-19T09:30:50.713Z",
+    "elapsedMs": 1985,
+    "processes": [
+      {
+        "ProcessId": 68776,
+        "ParentProcessId": 66364,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 42292,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 53252,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 73044,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "before-ui-quit",
+    "expected": "running",
+    "timestamp": "2026-10-19T09:30:54.624Z",
+    "elapsedMs": 5894,
+    "processes": [
+      {
+        "ProcessId": 68776,
+        "ParentProcessId": 66364,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 42292,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 53252,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 73044,
+        "ParentProcessId": 68776,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "after-ui-quit",
+    "expected": "exited",
+    "timestamp": "2026-10-19T09:30:55.727Z",
+    "elapsedMs": 6997,
+    "processes": []
+  },
+  {
+    "stage": "restart-before-native-close",
+    "expected": "running",
+    "timestamp": "2026-10-19T09:30:57.779Z",
+    "elapsedMs": 9049,
+    "processes": [
+      {
+        "ProcessId": 72700,
+        "ParentProcessId": 73796,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 74164,
+        "ParentProcessId": 72700,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 74116,
+        "ParentProcessId": 72700,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 74332,
+        "ParentProcessId": 72700,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "after-native-close",
+    "expected": "exited",
+    "timestamp": "2026-10-19T09:30:58.939Z",
+    "elapsedMs": 10209,
+    "processes": []
+  }
+]

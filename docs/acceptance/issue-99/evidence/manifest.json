@@ -2,8 +2,13 @@
   "serverSource": "95260f452670df62e365f10035d095838ec3a495",
   "files": [
     {
-      "file": "candidate-hashes.json",
+      "file": "candidate-before-alias-fix.json",
       "sha256": "f7c58634ec3e4c2153033d96a88ee2a64f4f927088d251543f70670c64aa8961",
+      "bytes": 1430
+    },
+    {
+      "file": "candidate-hashes.json",
+      "sha256": "c2b748e5324ba8af87434752480faef67be330a9dcca25a9f95f07f449dd8ab5",
       "bytes": 1430
     },
     {
@@ -32,6 +37,11 @@
       "bytes": 1460
     },
     {
+      "file": "dist-win-reviewed.log",
+      "sha256": "67cf41bc26ca299b61f7b62983d1d68076a664717bd1a3041f9749ace0f7356c",
+      "bytes": 1460
+    },
+    {
       "file": "environment.json",
       "sha256": "2749da949ce3b2c637b1f93ff452235fe64622acdf2bf4cae55e92e07340e6a3",
       "bytes": 457
@@ -52,6 +62,56 @@
       "bytes": 4542
     },
     {
+      "file": "human-identity-green.log",
+      "sha256": "f2fc5becfa56c32f26e05672f62168a070200c1a83aba9ba983ea93b6a0d5ff1",
+      "bytes": 100
+    },
+    {
+      "file": "human-identity-red.log",
+      "sha256": "dbccd65cc67ff356acec3336b13406e03acd609ae4cd8d735c4315aa2619e1c6",
+      "bytes": 1748
+    },
+    {
+      "file": "installed-data-retention.json",
+      "sha256": "20d39e54e94bb78e066c5ab3006b4f61a433d01eeaf41fcd61e56307d4fbfb94",
+      "bytes": 2048
+    },
+    {
+      "file": "installed-lifecycle.json",
+      "sha256": "f17ff90021db268d096a9de71acdc2992bc5b807da7c65247d87c7196b4e994e",
+      "bytes": 1554
+    },
+    {
+      "file": "installed-processes.json",
+      "sha256": "b525c2e2b2e42b55060221e56669ab70d787899149c2bb037860a54f4088b1de",
+      "bytes": 3277
+    },
+    {
+      "file": "installed-runtime-lifecycle.json",
+      "sha256": "fe6750242151c5d65dc3ccb0d286e5a86ce370fa2b9ba68da8b1893739c59b75",
+      "bytes": 701
+    },
+    {
+      "file": "installed-shortcuts.json",
+      "sha256": "55b98a86039771d51c9142d9b377b50afb27da6c53af6bb0ada4641562e20ae7",
+      "bytes": 696
+    },
+    {
+      "file": "installed-smoke-command.json",
+      "sha256": "078b6d912a7d1885ef3c5a38df81bc2f3f7ae35a28c458dd888cc4ec8de1f82e",
+      "bytes": 170
+    },
+    {
+      "file": "installed-smoke.log",
+      "sha256": "4e6a5e9b65450c29407463d6afce1584ed73e5f535f173f1c29d59c97b5cc5b3",
+      "bytes": 661
+    },
+    {
+      "file": "installed-startup.png",
+      "sha256": "0773cd1947bc432121beb4e0e0109afd66a33e43f472d459cc8beab397740769",
+      "bytes": 52881
+    },
+    {
       "file": "packaged-smoke-final-result.json",
       "sha256": "4d08e491ece2896ef9e7f9240094752e7ea0e00b126a8d3abd246a6c92b216d1",
       "bytes": 51
@@ -65,6 +125,61 @@
       "file": "provenance-final.log",
       "sha256": "3073908fe3b5787669c708109ef2b8b125ffbb36e254020b481422152cbaf58f",
       "bytes": 146
+    },
+    {
+      "file": "provenance-reviewed.log",
+      "sha256": "3073908fe3b5787669c708109ef2b8b125ffbb36e254020b481422152cbaf58f",
+      "bytes": 146
+    },
+    {
+      "file": "provider-chat.png",
+      "sha256": "969e6e717f41fbbeed431ad6796c91f3d53037c7f40f7e9b435c6dc2f3fdc405",
+      "bytes": 45187
+    },
+    {
+      "file": "provider-cleanup.json",
+      "sha256": "6dd933cc1a4001bcb86b7bbb6ec26f5eaa6cf8211413c24a6b9ba53f2eafa5f5",
+      "bytes": 585
+    },
+    {
+      "file": "provider-delegation-progress.png",
+      "sha256": "96b1189af82b2bd4b36b573b4c3b9ce5f052372167eb86deaa90395d89818859",
+      "bytes": 175882
+    },
+    {
+      "file": "provider-delegation.png",
+      "sha256": "460ba9f858bb8e4f67ae63a7b4ef0b5bfa2925623f968d330b802f3d97f647a9",
+      "bytes": 46684
+    },
+    {
+      "file": "provider-dev-result.json",
+      "sha256": "ac2fc6feadbf8115e8e163b71e07f7b2000a7766037654ab730c7a2c273b3e21",
+      "bytes": 214295
+    },
+    {
+      "file": "provider-environment.json",
+      "sha256": "1c68f672e2544ee66266c9c5c2f5ccb0ecaac97bca3dc490232ee85bb8ae66af",
+      "bytes": 2977
+    },
+    {
+      "file": "provider-evidence-audit.json",
+      "sha256": "89bc78e0626c4c59da78182cd079d52940f104747baadef75d15b9d05ff43653",
+      "bytes": 196
+    },
+    {
+      "file": "provider-installed-result.json",
+      "sha256": "b2eb823fa27c6deae8588d5e6a8750a2f3c056b8cae6f1f3a40e3eeddcba6a34",
+      "bytes": 169167
+    },
+    {
+      "file": "provider-negative-api.json",
+      "sha256": "fe540f6eca440e9e269fa265b7077163d658b8d84e2bb27ba3f9e901b885dc0e",
+      "bytes": 414
+    },
+    {
+      "file": "provider-run-evidence.json",
+      "sha256": "a63699372f9d886226ab4d2c66114345a7f55d49fa2f5e587ba5757bc3e554b0",
+      "bytes": 13836
     },
     {
       "file": "runtime-final-result.json",
@@ -85,6 +200,16 @@
       "file": "runtime-lifecycle.json",
       "sha256": "2e961eed6144fa2adb8c40f9d00969f383e6e190dd5e4f274ddfdf91aaa08dd5",
       "bytes": 701
+    },
+    {
+      "file": "runtime-reviewed.log",
+      "sha256": "a8bee532e6c071f1377014a2323f0b1cfea6d2309d853966415e3c8c953c9f2d",
+      "bytes": 983
+    },
+    {
+      "file": "runtime-reviewed.xml",
+      "sha256": "b24defe57df5937b8d8a7b236001a62b0907b1e812e373633df64bf44690687c",
+      "bytes": 33385
     },
     {
       "file": "server-frontend-regression.log",
@@ -112,10 +237,19 @@
       "bytes": 731
     },
     {
+      "file": "test-reviewed.log",
+      "sha256": "3ae135002c9fb419dec408d9c4df8e5378a47a64e54390b67ba2972dcaccfa03",
+      "bytes": 735
+    },
+    {
       "file": "typecheck-final.log",
       "sha256": "05fcc4d2e341c0ccd9416d944b21edc8a50899b381f1c84b6eece0d26fd4ff29",
       "bytes": 107
+    },
+    {
+      "file": "typecheck-reviewed.log",
+      "sha256": "05fcc4d2e341c0ccd9416d944b21edc8a50899b381f1c84b6eece0d26fd4ff29",
+      "bytes": 107
     }
-  ],
-  "desktopProductSource": "1cf14436efbe5f21c8a8a42a1746489ccb58794c"
+  ]
 }
