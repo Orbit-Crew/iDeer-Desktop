@@ -15,7 +15,7 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 
 @contextmanager
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
-             optional_skill=False, lifecycle='active', version=3, missing_dependency=False):
+             optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False):
     records = []
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
                     lifecycle_status=lifecycle, latest_version=version)
@@ -66,6 +66,9 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
             elif self.path == '/api/threads/thread-A/state':
                 data = {'values': {'messages': [{'id': 'h1', 'type': 'human', 'content': 'Unique T99 message'},
                                                {'id': 'a1', 'type': 'ai', 'content': 'Restored answer'}]}}
+                if rewritten_human:
+                    data['values']['messages'][0]['id'] = 'h1__user'
+                    data['values']['messages'].append({'id': 'h2', 'type': 'human', 'content': 'Unique T99 message'})
                 if human_request:
                     data['values']['messages'].append({'id': 'clarify-tool', 'type': 'tool', 'content': 'Please clarify',
                                                        'artifact': {'human_input': human_request}})
@@ -73,6 +76,8 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                         data['values']['messages'].append({'id': 'legacy-answer', 'type': 'human', 'content': 'Target one'})
             elif self.path.startswith('/api/threads/thread-A/messages/page'):
                 data = {'data': [], 'has_more': False}
+                if rewritten_human:
+                    data['data'] = [{'content': {'id': 'h1', 'type': 'human', 'content': 'Unique T99 message'}}]
             elif self.path == '/api/threads/thread-A/runs':
                 if body is None:
                     data = []
@@ -259,6 +264,18 @@ def test_available_optional_skill_in_agent_closure_can_be_selected(tmp_path):
         scope = chat.handle({'action': 'refresh'})['scope']
         created = chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT, 'skillId': SKILL})
         assert created['error'] == ''
+
+
+def test_reopened_thread_merges_injected_user_identity_and_keeps_distinct_turns(tmp_path):
+    # Server DynamicContextMiddleware changes HumanMessage X to X__user.
+    # Its journal and checkpoint are two projections of the same submitted Turn.
+    with platform(rewritten_human=True) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        assert opened['error'] == ''
+        assert [(m['id'], m['text']) for m in opened['messages'] if m['role'] == 'human'] == [
+            ('h1__user', 'Unique T99 message'), ('h2', 'Unique T99 message')]
 
 
 def test_unreachable_server_is_an_explicit_error_and_never_creates_a_local_run(tmp_path):

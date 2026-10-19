@@ -71,7 +71,11 @@ class DesktopChat:
         return dict(id=run['run_id'], status=run['status'], selection=run.get('metadata', {}).get('selection_snapshot', {}))
 
     def _messages(self, messages, *, delta=False):
-        by_id = {m['id']: m for m in self._state['messages']}
+        def identity(key, kind):
+            # Match Server/Web identity across DynamicContext's human rewrite.
+            return (key.removesuffix('__user') or key) if kind == 'human' else key
+
+        by_id = {identity(m['id'], m['role']): m for m in self._state['messages']}
         for raw in messages:
             if not isinstance(raw, dict):
                 continue
@@ -88,10 +92,11 @@ class DesktopChat:
             kwargs = raw.get('additional_kwargs') or {}
             if kwargs.get('hide_from_ui') and not kwargs.get('human_input_response'):
                 continue
-            if delta and key in by_id:
-                text = by_id[key]['text'] + text
+            message_identity = identity(key, kind)
+            if delta and message_identity in by_id:
+                text = by_id[message_identity]['text'] + text
             request = (raw.get('artifact') or {}).get('human_input') if isinstance(raw.get('artifact'), dict) else None
-            by_id[key] = dict(id=key, role=kind, text=text, name=raw.get('name', ''),
+            by_id[message_identity] = dict(id=key, role=kind, text=text, name=raw.get('name', ''),
                              request=request, response=kwargs.get('human_input_response'))
         self._state['messages'] = list(by_id.values())
         requests, answered = {}, set()
