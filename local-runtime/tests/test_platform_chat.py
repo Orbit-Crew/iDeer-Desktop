@@ -2,6 +2,7 @@
 import json
 import threading
 import time
+import pytest
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -13,10 +14,11 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 
 
 @contextmanager
-def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False, optional_skill=False):
+def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
+             optional_skill=False, lifecycle='active', version=3, missing_dependency=False):
     records = []
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
-                    lifecycle_status='active', latest_version=3)
+                    lifecycle_status=lifecycle, latest_version=version)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -42,6 +44,12 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                 data = {'resource': resource, 'version': {'version': 3}, 'dependencies': []}
                 if optional_skill:
                     data['dependencies'] = [{'resource_id': SKILL, 'required': False}]
+                if missing_dependency:
+                    data['dependencies'] = [{'resource_id': '99999999-9999-4999-8999-999999999999', 'required': True}]
+                if lifecycle != 'active':
+                    status, data = 404, {}
+                elif version == 0:
+                    status, data = 409, {}
             elif self.path == f'/api/resources/{SKILL}/published':
                 data = {'resource': dict(resource, id=SKILL, type='skill'), 'version': {'version': 1}, 'dependencies': []}
             elif self.path == '/api/threads/search':
@@ -260,3 +268,15 @@ def test_unreachable_server_is_an_explicit_error_and_never_creates_a_local_run(t
     unavailable = chat.handle({'action': 'create', 'scope': state['scope'], 'agentId': AGENT})
     assert unavailable['error'] == 'CHAT_SERVER_UNAVAILABLE'
     assert unavailable['run'] is None
+
+
+@pytest.mark.parametrize('options,expected', [({'version': 0}, 'CHAT_CONFLICT'),
+    ({'lifecycle': 'suspended'}, 'CHAT_NOT_FOUND'), ({'missing_dependency': True}, 'CHAT_NOT_FOUND')])
+def test_unavailable_resources_are_disabled_and_forced_activation_fails(tmp_path, options, expected):
+    with platform(**options) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        state = chat.handle({'action': 'refresh'})
+        assert state['resources'][0]['available'] is False
+        forced = chat.handle({'action': 'create', 'scope': state['scope'], 'agentId': AGENT})
+        assert forced['error'] == expected
+        assert not any(path == '/api/threads' for path, _, _ in records)

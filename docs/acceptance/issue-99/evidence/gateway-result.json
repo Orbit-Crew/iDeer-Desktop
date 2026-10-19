@@ -1,0 +1,75 @@
+{
+  "result": "passed",
+  "model": "deterministic Server-side fixture, no real provider",
+  "elapsedMs": 16930,
+  "stages": [
+    {
+      "scenario": "T99-02",
+      "threadId": "04f07cb7-80f8-4cc4-aee1-adf7101cacae",
+      "runId": "06d75fe4-1809-4c4a-a397-37915bccf3b1",
+      "eventIds": [
+        "1792386016549-0",
+        "1792386016594-1",
+        "1792386016599-2",
+        "1792386016603-3",
+        "1792386016610-4",
+        "1792386016610-5",
+        "1792386017629-6",
+        "1792386017633-7",
+        "1792386017638-8",
+        ""
+      ],
+      "selection": {
+        "agent": {
+          "resource_id": "615af4cb-8897-4ad8-936b-7ef1f17af9d3",
+          "display_name": "T99 private expert",
+          "slug": "t99-expert",
+          "version": 1,
+          "content_hash": "79d74e9ee5650a62bddadad4162da706acdc0c2ef87f74515c03b8c0a4d9f4c6"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "615af4cb-8897-4ad8-936b-7ef1f17af9d3",
+            "version": 1,
+            "content_hash": "79d74e9ee5650a62bddadad4162da706acdc0c2ef87f74515c03b8c0a4d9f4c6",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      }
+    },
+    {
+      "scenario": "T99-02-human-input",
+      "requestId": "clarification:t99-clarify",
+      "result": "passed"
+    },
+    {
+      "scenario": "T99-03",
+      "threadId": "04f07cb7-80f8-4cc4-aee1-adf7101cacae",
+      "restoredMessages": [
+        "6bcb510c-43bb-4aa3-a888-c46ba43009d5__user",
+        "lc_run--01a15288-2572-7010-80f6-b1fa55fb8c15-0",
+        "6796b445-5297-45e2-a636-da772f3d2b41",
+        "lc_run--01a15288-2bbc-7a30-9d59-161f59c1104d-0",
+        "clarification:t99-clarify",
+        "ba2ff7d1-74b3-46f5-baed-b3d69164cad5",
+        "lc_run--01a15288-3466-7230-aaf5-f5bdac905342-0"
+      ],
+      "result": "passed"
+    },
+    {
+      "scenario": "T99-03-transport",
+      "runId": "ef449620-244e-4750-9906-e4aca7f56563",
+      "offlineError": "CHAT_SERVER_UNAVAILABLE",
+      "autoResubmit": false,
+      "result": "passed"
+    },
+    {
+      "scenario": "T99-04",
+      "privateAgentId": "615af4cb-8897-4ad8-936b-7ef1f17af9d3",
+      "identityIsolation": true,
+      "result": "passed"
+    }
+  ]
+}

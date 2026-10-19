@@ -73,7 +73,11 @@ async function main() {
   await startProxy()
   const a = await launch('A')
   assert(a.resources.some(r => r.id === manifest.agentId && r.available))
-  const created = await page.evaluate(command => window.ideer.chat(command), { action: 'create', scope: a.scope, agentId: manifest.agentId })
+  await page.locator('.ant-select[aria-label="选择 Agent"]').click()
+  await page.locator('.ant-select-item-option').filter({ hasText: 'T99 private expert' }).click()
+  await page.getByRole('button', { name: '新建平台聊天', exact: true }).click()
+  await wait(async () => !!(await snapshot()).thread, 'create Thread through UI')
+  const created = await snapshot()
   assert.equal(created.error, '', 'thread create failed: ' + created.error)
   const threadId = created.thread.id
   const turnId = randomUUID()
@@ -142,4 +146,18 @@ async function main() {
 main().catch(error => {
   fs.writeFileSync(path.join(state, 'result.json'), JSON.stringify({ result: 'failed', message: error.message, elapsedMs: Date.now() - started, stages }, null, 2))
   process.exitCode = 1
-}).finally(async () => { await quit(); await stopProxy(); fs.writeFileSync(path.join(state, 'stop'), '') })
+}).finally(async () => {
+  try {
+    await quit()
+  } catch (error) {
+    process.exitCode = 1
+    const file = path.join(state, 'result.json')
+    const result = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { stages }
+    fs.writeFileSync(file, JSON.stringify({ ...result, result: 'failed', cleanupError: error.message }, null, 2))
+    // This handle belongs only to the Electron instance launched by this fixture.
+    app?.process()?.kill()
+  } finally {
+    try { await stopProxy() }
+    finally { fs.writeFileSync(path.join(state, 'stop'), '') }
+  }
+})

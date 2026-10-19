@@ -1,0 +1,14 @@
+{
+  "os": "Microsoft Windows 11 专业版",
+  "time": "2026-10-19T12:57:14.5972733+08:00",
+  "architecture": "64 位",
+  "version": "10.0.26300",
+  "serverSource": "95260f452670df62e365f10035d095838ec3a495",
+  "node": "v22.23.3",
+  "python": "Python 3.12.10",
+  "electron": "22.3.27",
+  "desktopSource": "1cf14436efbe5f21c8a8a42a1746489ccb58794c",
+  "runtimeDistribution": "3.12.10",
+  "metadataCollectorNode": "v24.19.0",
+  "testPython": "Python 3.12.8"
+}

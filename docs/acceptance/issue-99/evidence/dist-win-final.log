@@ -1,0 +1,39 @@
+
+> ideer-desktop@0.1.0 predist:win
+> python scripts/prepare-runtime.py
+
+Prepared Python 3.12.10 in C:\Users\Neo\.codex\worktrees\df64\iDeer-Desktop\.runtime
+
+> ideer-desktop@0.1.0 dist:win
+> npm run build && electron-builder --win nsis --x64
+
+
+> ideer-desktop@0.1.0 build
+> electron-vite build
+
+vite v5.4.21 building SSR bundle for production...
+transforming...
+✓ 3 modules transformed.
+rendering chunks...
+out/main/index.js  15.38 kB
+✓ built in 502ms
+vite v5.4.21 building SSR bundle for production...
+transforming...
+✓ 1 modules transformed.
+rendering chunks...
+out/preload/index.js  0.61 kB
+✓ built in 10ms
+vite v5.4.21 building for production...
+transforming...
+✓ 3050 modules transformed.
+rendering chunks...
+../../out/renderer/index.html                     0.68 kB
+../../out/renderer/assets/index-CVUQcDtb.css     16.53 kB
+../../out/renderer/assets/index-C1lgbmrl.js   1,562.84 kB
+✓ built in 5.54s
+  • electron-builder  version=24.13.3 os=10.0.26300
+  • loaded configuration  file=C:\Users\Neo\.codex\worktrees\df64\iDeer-Desktop\electron-builder.yml
+  • packaging       platform=win32 arch=x64 electron=22.3.27 appOutDir=dist\win-unpacked
+  • default Electron icon is used  reason=application icon is not set
+  • building        target=nsis file=dist\ideer-desktop-0.1.0-windows-x64-setup.exe archs=x64 oneClick=false perMachine=false
+  • building block map  blockMapFile=dist\ideer-desktop-0.1.0-windows-x64-setup.exe.blockmap

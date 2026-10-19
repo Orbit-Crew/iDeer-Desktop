@@ -1,0 +1,5 @@
+
+> ideer-desktop@0.1.0 verify:provenance
+> node scripts/verify-provenance.cjs
+
+Verified linz provenance: f88141bb3d3450a572fcc52e0f9b48a1e60d3b13

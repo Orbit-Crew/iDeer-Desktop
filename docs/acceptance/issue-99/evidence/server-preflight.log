@@ -1,0 +1,11 @@
+[test-preflight] OK Python >= 3.12: 3.12.8
+[test-preflight] OK uv: C:\Users\Neo\.local\bin\uv.EXE
+[test-preflight] OK backend/uv.lock
+[test-preflight] FAIL pytest: missing from uv dev group
+[test-preflight] FAIL pytest_asyncio: missing from uv dev group
+[test-preflight] FAIL pytest_split: missing from uv dev group
+[test-preflight] OK writable C:\Users\Neo\.codex\worktrees\df64\iDeer-Desktop\artifacts\issue-99\server\logs
+[test-preflight] OK writable C:\Users\Neo\.codex\worktrees\df64\iDeer-Desktop\artifacts\issue-99\server\.deer-flow
+[test-preflight] OK writable C:\Users\Neo\AppData\Local\Temp
+[test-preflight] OK local socket bind
+[test-preflight] lane=backend-standard status=fail

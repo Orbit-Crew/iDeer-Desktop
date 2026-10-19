@@ -1,0 +1,112 @@
+[
+  {
+    "stage": "initial-launch",
+    "expected": "running",
+    "timestamp": "2026-10-19T04:56:51.855Z",
+    "elapsedMs": 1698,
+    "processes": [
+      {
+        "ProcessId": 67044,
+        "ParentProcessId": 51896,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 56416,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 50896,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 61132,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "before-ui-quit",
+    "expected": "running",
+    "timestamp": "2026-10-19T04:56:54.914Z",
+    "elapsedMs": 4755,
+    "processes": [
+      {
+        "ProcessId": 67044,
+        "ParentProcessId": 51896,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 56416,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 50896,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 61132,
+        "ParentProcessId": 67044,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "after-ui-quit",
+    "expected": "exited",
+    "timestamp": "2026-10-19T04:56:55.887Z",
+    "elapsedMs": 5728,
+    "processes": []
+  },
+  {
+    "stage": "restart-before-native-close",
+    "expected": "running",
+    "timestamp": "2026-10-19T04:56:57.645Z",
+    "elapsedMs": 7486,
+    "processes": [
+      {
+        "ProcessId": 64024,
+        "ParentProcessId": 58104,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 66232,
+        "ParentProcessId": 64024,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 62752,
+        "ParentProcessId": 64024,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      },
+      {
+        "ProcessId": 63640,
+        "ParentProcessId": 64024,
+        "Name": "ideer-desktop.exe",
+        "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\dist\\win-unpacked\\ideer-desktop.exe"
+      }
+    ]
+  },
+  {
+    "stage": "after-native-close",
+    "expected": "exited",
+    "timestamp": "2026-10-19T04:56:58.405Z",
+    "elapsedMs": 8246,
+    "processes": []
+  }
+]
