@@ -1,0 +1,61 @@
+{
+  "scenario": "T98-01",
+  "mode": "human default-browser acceptance with automatic Desktop observation",
+  "result": "passed",
+  "confirmedBy": "Human user in this Codex conversation",
+  "confirmationLiteral": "chrome＋全部通过",
+  "confirmedAtUtc": "2026-10-19T01:22:32.575733+00:00",
+  "browser": "Chrome",
+  "browserSource": "Explicit human confirmation",
+  "browserAutomation": false,
+  "origin": "http://127.0.0.1:21980",
+  "account": "user98a@test.com",
+  "deviceName": "T98-manual-2026-10-19-bbbaf54d",
+  "deviceId": "01a46547-f63e-4de8-9024-302bb2d7ea95",
+  "desktopProductSource": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+  "serverProductSource": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+  "observedGitHeads": {
+    "desktop": "29369737bee2542767e1860053692956212d2968",
+    "server": "f875fe1fbd7eb1fe34a5ca8a1427a0f569d4ecf5"
+  },
+  "appAsarSha256": "2f7dbfd009b74024f58b62d1847a89733827b63723cf5ff0653fd12b9b0c8772",
+  "humanAttestedSteps": [
+    "Desktop button opened the system default Chrome",
+    "Existing platform account login in that same browser",
+    "Device name and verification code matched before approval",
+    "Desktop remained unauthenticated before explicit approval",
+    "Explicit own-device approval, then return to Desktop with correct account/device and connected state"
+  ],
+  "machineChecks": {
+    "awaitingBeforeExchange": true,
+    "authenticatedAndConnected": true,
+    "accountAndDeviceMatch": true,
+    "serverOwnerMatches": true,
+    "serverDeviceOnline": true,
+    "separateCredentialReferences": true
+  },
+  "evidenceSha256": {
+    "desktop-awaiting-human-confirmation.png": "7f7259e037a4b30168c69019447aeb75b4bd55817dd2e6032f196c9a0cb8f47d",
+    "desktop-human-login-connected.png": "f096e4b0187e482852e1c3b6381f699748ae182b214c35a76a52fe789d799ff7",
+    "config.yaml": "5c6265d5cb02bafe5ebb116e53142cb871e6ce2fabb5d73e3aa7b9f71242cf44",
+    "nginx.conf": "e8880cf35a990a898a597930ad2da1b3d9b3d5b3c11dce83276968e624d0cf69"
+  },
+  "fixturePreparation": "Dedicated SQLite backup and matching immutable canonical resources copied from the isolated acceptance fixture; authentication enabled; no production data used",
+  "initialPreparationFailure": "Database-only copy could not start because canonical resource versions were missing. Retained gateway-startup-missing-resources.log; copying the matching fixture resources resolved it without product changes.",
+  "cleanup": {
+    "referencesDeleted": 3,
+    "settingsRemoved": true,
+    "installedAppExited": true,
+    "runtimePidsExited": [
+      56988
+    ],
+    "scope": "Only the previously absent profile created for this explicit manual fixture and its three validated OS-store references",
+    "servicePortsClosed": [
+      21980,
+      21981,
+      21982
+    ],
+    "serviceRunnerExitCode": 0
+  },
+  "cleanupArtifactNote": "Post-cleanup record finalization initially encountered the bundled interpreter GBK default; explicit UTF-8 completed the record without repeating credential deletion."
+}

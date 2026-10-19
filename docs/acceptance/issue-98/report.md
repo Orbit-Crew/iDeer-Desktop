@@ -15,11 +15,44 @@ Final Server validation candidate `9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25` add
 test correction to product source 49b635. No production code changed after the
 real Windows acceptance. Final Linux gates ran on this corrected candidate.
 
+## Manual default-browser acceptance
+
+T98-01 human acceptance is **passed**. On 2026-10-19 the human user in this
+Codex conversation confirmed `chrome＋全部通过` after following the supplied
+steps on the final installed Desktop. The system-default Chrome handled the
+actual account login and own-device confirmation; no browser automation was
+used in this run. The operator confirmed matching device/verification code,
+an unauthenticated Desktop before approval, explicit approval, and return to
+Desktop with the correct account/device and a connected state.
+
+| Execution mode | Result | Executor | Evidence |
+| --- | --- | --- | --- |
+| Original installed automatic acceptance | passed | Codex | Companion Desktop evidence `login-result.json` |
+| Actual default Chrome login and device confirmation | passed | Human user, explicit confirmation in this conversation | Companion Desktop evidence `manual-default-browser-result.json` |
+| Installed Desktop state and Server ownership checks | passed | Read-only observer and isolated database query | Companion Desktop evidence `manual-default-browser-observations.json` and the manual result |
+
+The manual fixture used the same frozen product sources and installed ASAR
+as the automatic run, with a separate SQLite backup and its matching immutable
+resource directories, normal authentication, and loopback unified entry
+`http://127.0.0.1:21980`. The device was
+`T98-manual-2026-10-19-bbbaf54d` and account `user98a@test.com`.
+Machine observations recorded `awaiting-confirmation` without a connection,
+then `authenticated / connected` with both identity checks true. A read-only
+Server query verified that device's correct owner and online state before exit.
+
+After confirmation, the installed app and Runtime exited. Only the new fixture's
+three validated OS credential references and generated settings were removed;
+all three fixture service ports closed. The manual result retains configuration
+hashes and the two Desktop status screenshots. The initial database-only fixture
+copy failed resource reconciliation; copying its matching canonical resources
+resolved setup without changing product code. A UTF-8 record-finalization retry
+after successful credential cleanup is also disclosed in the result.
+
 ## Scenario record
 
 | Scenario | Final modern Windows result | Evidence |
 | --- | --- | --- |
-| T98-01 | passed | Actual installed Electron UI and restricted IPC invoke the real browser opener. Existing account A signs in through the normal Server login page and explicitly confirms its device fingerprint. Browser confirmation creates no Desktop session. Runtime exchange creates separate business/device credentials and an owned, online device over signed WS. Restart restores OS credentials and the same device. |
+| T98-01 | passed | Automatic and human default-Chrome acceptance both passed. Actual installed Electron UI and restricted IPC invoke the real browser opener. Existing account A signs in through the normal Server login page and explicitly confirms its device fingerprint. Browser confirmation creates no Desktop session. Runtime exchange creates separate business/device credentials and an owned, online device over signed WS. Restart restores OS credentials and the same device. |
 | T98-02 | passed | Actual Gateway returns wrong initiator/key `401 LOGIN_BINDING_INVALID`, wrong owner/confirmation `403 LOGIN_OWNER_MISMATCH`, replay `409 LOGIN_ALREADY_USED`, and expired confirmation/completion `410 LOGIN_EXPIRED`. Real 300-second TTL expires after 301 seconds. Concurrent completion yields exactly one `200`, one `409` and one new device. Unauthenticated WS closes with `4003`. |
 | T98-03 | passed | Installed renderer/stdio/status/browser URL contain no long-lived credentials. Settings contain three separate OS-store references and no plaintext session token. Real Windows Credential Manager storage and restart pass. Real CredWrite blob-size rejection produces `SECURE_STORAGE_FAILED`, zero stored credentials and zero plaintext fallback files. |
 | T98-04 | passed | Runtime reaches actual Gateway/Next through nginx's unified loopback entry. An acceptance socket guard blocks direct Gateway and all other outbound ports. Stopping the verified fixture proxy tree closes the public port and changes Runtime to `connecting`; restarting it restores the signed online connection. Final proxy tree exits and the public port closes. |
@@ -197,9 +230,9 @@ startup and exit on actual Win7. Modern Windows results do not establish Win7
 compatibility.
 
 The real login acceptance uses the existing local-account path. Manual enterprise
-SSO-provider configuration and login are unexecuted. The installed app calls the
-real default-browser opener; automation completes login in a separate Chromium
-instance on the same real route. The socket guard is a transport fault injection,
+SSO-provider configuration and login are unexecuted. The first automatic run called the real default-browser opener and completed
+login in a separate Chromium instance. The subsequent human run completed the
+actual system-default Chrome path, as recorded above. The socket guard is a transport fault injection,
 not an OS firewall rule. External models and tools are disabled in the isolated
 device-authentication fixture.
 

@@ -1,0 +1,59 @@
+{
+  "startedAt": "2026-10-19T01:14:53.320Z",
+  "states": [
+    {
+      "at": "2026-10-19T01:14:56.775Z",
+      "process": "running",
+      "connection": "not-configured",
+      "pid": 56988,
+      "login": {
+        "state": "unauthenticated",
+        "accountMatches": false,
+        "deviceMatches": false,
+        "verification": "",
+        "error": ""
+      }
+    },
+    {
+      "at": "2026-10-19T01:17:10.321Z",
+      "process": "running",
+      "connection": "not-configured",
+      "pid": 56988,
+      "login": {
+        "state": "awaiting-confirmation",
+        "accountMatches": false,
+        "deviceMatches": true,
+        "verification": "3f892d42fca0",
+        "error": ""
+      }
+    },
+    {
+      "at": "2026-10-19T01:19:35.049Z",
+      "process": "running",
+      "connection": "connected",
+      "pid": 56988,
+      "login": {
+        "state": "authenticated",
+        "accountMatches": true,
+        "deviceMatches": true,
+        "verification": "",
+        "error": ""
+      }
+    }
+  ],
+  "appAsarSha256": "2f7dbfd009b74024f58b62d1847a89733827b63723cf5ff0653fd12b9b0c8772",
+  "application": {
+    "packaged": true,
+    "version": "0.1.0",
+    "userData": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop"
+  },
+  "awaitingBeforeExchangeObserved": true,
+  "separateCredentialReferencesObserved": true,
+  "authenticatedConnectionObserved": true,
+  "deviceId": "01a46547-f63e-4de8-9024-302bb2d7ea95",
+  "installedAppExited": true,
+  "finishedAt": "2026-10-19T01:22:33.345Z",
+  "role": "Machine observations only; the separate manual result contains the human attestation",
+  "browserAutomation": false,
+  "rawObservationSha256": "77696f74db3b4212dacd13399618a0fe272d90a975eee1b4c4557e82ca5225cf"
+}
