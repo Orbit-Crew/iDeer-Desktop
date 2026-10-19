@@ -23,7 +23,7 @@ describe('bootstrap capability boundary', () => {
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:login:begin', 'desktop:quit', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status'])
+      .toEqual(['desktop:chat', 'desktop:login:begin', 'desktop:quit', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
   })
 })

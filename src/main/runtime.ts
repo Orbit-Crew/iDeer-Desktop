@@ -1,7 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { LoginStatus, RuntimeStatus, RuntimeTask } from '../shared/desktop'
+import { randomUUID } from 'node:crypto'
+import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -9,10 +10,39 @@ export class RuntimeProcess {
   private snapshot: RuntimeStatus = { process: 'stopped', connection: 'offline', tasks: [] }
   private stopping: Promise<void> | null = null
   private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
+  private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   constructor(private readonly directory: string, private readonly profile: string) {}
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async chat(command: ChatCommand): Promise<ChatSnapshot> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('CHAT_COMMAND_INVALID')
+    const keys: Record<string, string[]> = {
+      state: ['action'], refresh: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
+      open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text'],
+      answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId']
+    }
+    const allowed = keys[command.action]
+    if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
+      throw new Error('CHAT_COMMAND_INVALID')
+    }
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    if (this.chatRequests.size >= 8) throw new Error('CHAT_BUSY')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.chatRequests.delete(id)
+        reject(new Error('CHAT_REQUEST_TIMEOUT'))
+      }, 30000)
+      this.chatRequests.set(id, {
+        resolve: (state) => { clearTimeout(timer); this.chatRequests.delete(id); resolve(state) },
+        reject: (error) => { clearTimeout(timer); this.chatRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'chat', id, command }) + '\n')
+    })
   }
 
   async beginLogin(server: string, deviceName: string): Promise<string> {
@@ -69,13 +99,21 @@ export class RuntimeProcess {
     child.stdout.setEncoding('utf8')
     child.stdout.on('data', (chunk: string) => {
       buffer += chunk
-      if (buffer.length > 65536) { child.kill(); return }
+      if (buffer.length > 4 * 1024 * 1024) { child.kill(); return }
       let boundary: number
       while ((boundary = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, boundary)
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
+          if (value.v === 1 && value.type === 'chat') {
+            const result = value.result
+            if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
+                !['idle', 'streaming', 'disconnected', 'uncertain'].includes(result.stream) ||
+                !['resources', 'threads', 'messages', 'events'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+            this.chatRequests.get(value.id)?.resolve(result)
+            continue
+          }
           const connections = ['not-configured', 'connecting', 'connected', 'paused', 'offline', 'error']
           if (value.v !== 1 || !connections.includes(value.connection) || !Array.isArray(value.tasks)) throw new Error('Invalid status')
           const tasks: RuntimeTask[] = value.tasks.slice(0, 20).map((task: RuntimeTask) => {
@@ -110,6 +148,7 @@ export class RuntimeProcess {
     })
     child.on('close', () => {
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

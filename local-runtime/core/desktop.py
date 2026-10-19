@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
+from .platform_chat import DesktopChat
 from .process_job import own_process_tree
 from .settings import load_settings
 from .secrets import SecretStoreError, create_default_secret_store
@@ -25,13 +26,26 @@ def main() -> int:
     job = own_process_tree()
     stop = threading.Event()
     commands: queue.Queue = queue.Queue(maxsize=1)
+    chat_commands: queue.Queue = queue.Queue(maxsize=8)
+    output_lock = threading.Lock()
+
+    def emit(value):
+        with output_lock:
+            print(json.dumps(value), flush=True)
 
     def read_control() -> None:
         for line in sys.stdin:
             if line.strip() == '{"type":"shutdown"}':
                 break
             try:
-                command = json.loads(line[:8192])
+                if len(line) > 131072:
+                    continue
+                command = json.loads(line)
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
+                        and command['type'] == 'chat' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['command'], dict)):
+                    chat_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {"type", "serverUrl", "deviceName"}
                         and command["type"] == "login" and isinstance(command["serverUrl"], str)
                         and isinstance(command["deviceName"], str)):
@@ -50,6 +64,19 @@ def main() -> int:
             login.fail("SECURE_STORAGE_FAILED")
         except Exception:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
+
+        chat = DesktopChat(args.config, login.secure, login.status)
+
+        def chat_control():
+            while not stop.is_set():
+                try:
+                    command = chat_commands.get(timeout=0.5)
+                except queue.Empty:
+                    continue
+                result = chat.handle(command['command'])
+                emit({'v': 1, 'type': 'chat', 'id': command['id'], 'result': result})
+
+        threading.Thread(target=chat_control, daemon=True).start()
 
         def connect():
             settings = load_settings(args.config)
@@ -110,7 +137,7 @@ def main() -> int:
             status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status()}
             if browser_url:
                 status["browserUrl"] = browser_url
-            print(json.dumps(status), flush=True)
+            emit(status)
             stop.wait(0.5)
         return 0
     except Exception:
