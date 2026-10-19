@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__ test_browser_confirmation_does_not_create_desktop_session_until_exchange ___
+
+login_client = (<httpx.AsyncClient object at 0x000002478E3E90D0>, UserModel(id='409f42ce-9935-4b31-906d-11881c617e0a', username='desk...le='user', department_id=None, disabled=False, created_at=datetime.datetime(2026, 10, 18, 5, 43, 14), last_login=None))
+
+    @pytest.mark.asyncio
+    async def test_browser_confirmation_does_not_create_desktop_session_until_exchange(login_client):
+        client, owner, _, _ = login_client
+        public_key = public_key_text(Ed25519PrivateKey.generate().public_key())
+        start = await client.post(
+            "/api/devices/login/start",
+            json={
+                "initiator_secret": "a" * 43,
+                "public_key": public_key,
+                "name": "Desktop D1",
+            },
+        )
+>       assert start.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\integration\api\test_desktop_login.py:59: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/integration/api/test_desktop_login.py::test_browser_confirmation_does_not_create_desktop_session_until_exchange
+1 failed, 4 deselected in 27.18s

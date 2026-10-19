@@ -1,0 +1,12 @@
+
+Running 3 tests using 1 worker
+
+(node:29264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [chromium] › tests\e2e\smoke\docs.spec.ts:4:3 › @smoke Public documentation › renders the Chinese documentation home and application quick start (4.2s)
+  ok 2 [chromium] › tests\e2e\smoke\docs.spec.ts:17:3 › @smoke Public documentation › renders the English application deployment guide (1.6s)
+  ok 3 [chromium] › tests\e2e\smoke\docs.spec.ts:25:3 › @smoke Public documentation › returns not found for an unknown documentation page (1.4s)
+
+  3 passed (9.3s)

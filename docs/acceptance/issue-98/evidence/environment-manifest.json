@@ -30,6 +30,7 @@
   "locksSha256": {
     "package.json": "6c2208d42237477e1b83b539f0195bf3165f0ec3ca2b9dd319bac1bdcd6e4a24",
     "package-lock.json": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a",
+    "local-runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
     "resources/provenance/runtime-source.json": "bead799967e98ad5a05d06cd71c4d7712985e8159b72a1f8e4edaa6f1829a2ae",
     "artifacts/issue-98/server/backend/uv.lock": "5484082ec314c5933225ef852a5c7708bd60c02870472e81a11a8dea0d4d54af",
     "artifacts/issue-98/server/frontend/package.json": "f68381e462dcf4e76345e85fd8a5e1e07b13af62356f0a07a0df33bd781764db",
@@ -51,5 +52,21 @@
     "result": "unexecuted",
     "owner": "Neowyh",
     "issue": "https://github.com/Orbit-Crew/iDeer/issues/131"
+  },
+  "productSourceCommits": {
+    "desktop": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+    "server": "49b635ac5a59085c7c5c028c09a835db48728c9a"
+  },
+  "executionDates": [
+    "2026-10-18",
+    "2026-10-19"
+  ],
+  "finalServerValidationCandidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "linux": {
+    "python": "3.12.3",
+    "node": "22.23.2",
+    "pnpm": "10.26.2",
+    "uv": "0.11.1",
+    "sourceLayout": "native ext4 task checkout; only the migration test changes after production source49b635"
   }
 }

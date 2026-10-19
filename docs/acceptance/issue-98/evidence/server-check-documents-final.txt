@@ -1,0 +1,1 @@
+document checks passed (candidate=worktree; no findings)

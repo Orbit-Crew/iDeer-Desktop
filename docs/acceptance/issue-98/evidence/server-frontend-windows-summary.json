@@ -1,0 +1,30 @@
+{
+  "result": "failed",
+  "runner": {
+    "vitestExit": 1,
+    "seconds": 1412.4987684,
+    "rstestExit": 0
+  },
+  "rstest": {
+    "passed": 1270,
+    "files": 167,
+    "seconds": 105.614
+  },
+  "vitest": {
+    "passed": 10557,
+    "failed": 1,
+    "passedFiles": 354,
+    "failedFiles": 1,
+    "seconds": 1299.1,
+    "failure": "Existing typography contract rejects text-2xl on the new desktop login page"
+  },
+  "resolution": {
+    "serverProductCommit": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+    "change": "Use the existing type-page-title role",
+    "focusedPassed": 3,
+    "focusedSeconds": 2.05,
+    "finalFullLinuxGate": "passed on validation candidate9d3ee3d; Rstest1270 and Vitest10558 passed; lane432 seconds"
+  },
+  "fullLog": "artifacts\\issue-98\\server\\dev-log\\frontend-windows-final.log",
+  "fullLogSha256": "c23bbd7984098cf3eb79fd1db916360fd67e6c94e225d4d299e92eb60a951477"
+}

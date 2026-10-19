@@ -1,0 +1,20 @@
+................................................................ss...... [ 29%]
+..............................s......................................... [ 59%]
+.s.............................s........................................ [ 88%]
+....s......................                                              [100%]
+============================== warnings summary ===============================
+tests/test_tray_consent.py::test_a_dropped_session_retries_instead_of_killing_the_runtime_thread
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\.venv\Lib\site-packages\websockets\exceptions.py:122: DeprecationWarning: ConnectionClosed.code is deprecated; use Protocol.close_code or ConnectionClosed.rcvd.code
+    warnings.warn(  # deprecated in 13.1
+
+.venv\Lib\site-packages\_pytest\cacheprovider.py:475
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\.venv\Lib\site-packages\_pytest\cacheprovider.py:475: PytestCacheWarning: could not create cache path C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\local-runtime\.pytest_cache\v\cache\nodeids: [WinError 5] 拒绝访问。: 'C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\local-runtime\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv\Lib\site-packages\_pytest\stepwise.py:51
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\.venv\Lib\site-packages\_pytest\stepwise.py:51: PytestCacheWarning: could not create cache path C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\local-runtime\.pytest_cache\v\cache\stepwise: [WinError 5] 拒绝访问。: 'C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\local-runtime\\.pytest_cache\\v\\cache'
+    session.config.cache.set(STEPWISE_CACHE_DIR, [])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\final\runtime-tests.xml -
+237 passed, 6 skipped, 3 warnings in 48.63s

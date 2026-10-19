@@ -1,0 +1,7 @@
+{
+  "origin": "http://127.0.0.1:21983",
+  "mockAuthDisabled": true,
+  "workers": 2,
+  "seconds": 129.5506424,
+  "exitCode": 1
+}

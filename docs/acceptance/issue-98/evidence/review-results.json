@@ -1,0 +1,26 @@
+{
+  "reviewBases": {
+    "desktop": "2fbfa8528a3f77b11cbf68b8e3f338ec08c1db94",
+    "server": "ccb251e07e5f5934b851e4c3df00224718f28123"
+  },
+  "productSources": {
+    "desktop": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+    "server": "49b635ac5a59085c7c5c028c09a835db48728c9a"
+  },
+  "standards": {
+    "finalTestOnlyReview": "49b635..9d3ee3d：保留双 parent、验证唯一新 head 及直接父版本，无断言弱化，未解决 finding 为 0。",
+    "agent": "/root/review_standards",
+    "unresolvedFindings": 0,
+    "result": "Standards 审查通过，未解决 finding 为 0。",
+    "scope": "登录与重新认证、受限 IPC、凭据存储及脱敏、并发交换、设备会话、Gateway 错误合同、迁移、三套 nginx 配置、前端规范及验收脚本。此前发现的问题和 type-page-title 微改均已修复并复核。",
+    "limits": "审查本身无未完成项。最终全量门禁和真实链路验收结果由主代理汇总；真实 Win7 验收按既定安排转交 #131。"
+  },
+  "spec": {
+    "finalTestOnlyReview": "49b635..9d3ee3d：符合 #98 新迁移声明，无范围扩张，未解决 finding 为 0。",
+    "agent": "/root/review_spec",
+    "unresolvedFindings": 0,
+    "result": "Spec 审查未解决 finding：0。",
+    "scope": "浏览器登录、一次性交换、用户与设备归属、业务身份与设备凭证分离、安全存储、统一入口 WebSocket、拒绝状态及验收脚本。旧设备配置绕过业务认证问题已修复；同设备重新认证、生产异常处理器错误码保留及 type-page-title 微调均已复核，无新增 Spec 缺陷。",
+    "limits": "最终 Windows 安装候选与真实跨仓场景已针对 Server 49b635 通过。Linux pr-standard 与受保护路径 Real E2E 完成前不关闭 #98；真实 Win7 依规格后置至 #131。"
+  }
+}

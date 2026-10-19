@@ -1,0 +1,95 @@
+FFF..                                                                    [100%]
+================================== FAILURES ===================================
+__ test_browser_confirmation_does_not_create_desktop_session_until_exchange ___
+
+login_client = (<httpx.AsyncClient object at 0x000002822D992E70>, UserModel(id='86d23ed4-8b63-4fce-9a06-0eacf4b326d2', username='desk...ole='user', department_id=None, disabled=False, created_at=datetime.datetime(2026, 10, 18, 6, 5, 19), last_login=None))
+
+    @pytest.mark.asyncio
+    async def test_browser_confirmation_does_not_create_desktop_session_until_exchange(login_client):
+        client, owner, _, _ = login_client
+        public_key = public_key_text(Ed25519PrivateKey.generate().public_key())
+        start = await client.post(
+            "/api/devices/login/start",
+            json={
+                "initiator_secret": "a" * 43,
+                "public_key": public_key,
+                "name": "Desktop D1",
+            },
+        )
+        assert start.status_code == 200
+        login_id = start.json()["login_id"]
+        exchange = {"initiator_secret": "a" * 43, "public_key": public_key}
+        pending = await client.post(f"/api/devices/login/{login_id}/complete", json=exchange)
+        assert pending.status_code == 202
+        assert "token" not in pending.text
+        confirmed = await client.post(f"/api/devices/login/{login_id}/confirm", json={"confirm_own_device": True})
+        assert confirmed.status_code == 200
+        assert "token" not in confirmed.text
+        completed = await client.post(f"/api/devices/login/{login_id}/complete", json=exchange)
+        assert completed.status_code == 200
+        result = completed.json()
+        assert result["account"]["id"] == owner.id
+        assert result["device"]["owner_id"] == owner.id
+        assert result["business_token"] != result["session_token"]
+        assert result["device"]["status"] == "pending"
+        replay = await client.post(f"/api/devices/login/{login_id}/complete", json=exchange)
+        assert replay.status_code == 409
+>       assert replay.json()["detail"]["code"] == "LOGIN_ALREADY_USED"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: string indices must be integers, not 'str'
+
+tests\integration\api\test_desktop_login.py:79: TypeError
+------------------------------ Captured log call ------------------------------
+WARNING  app.gateway.auth.config:config.py:81 \u26a0 AUTH_JWT_SECRET is not set \u2014 using an auto-generated secret persisted to .jwt_secret. Sessions will survive restarts. For production, add AUTH_JWT_SECRET to your .env file: python -c "import secrets; print(secrets.token_urlsafe(32))"
+________ test_wrong_initiator_device_or_owner_never_creates_a_session _________
+
+login_client = (<httpx.AsyncClient object at 0x000002822DB8BD70>, UserModel(id='5d41ad04-459f-4bb4-9191-e7e9f7d978bc', username='desk...ole='user', department_id=None, disabled=False, created_at=datetime.datetime(2026, 10, 18, 6, 5, 24), last_login=None))
+
+    @pytest.mark.asyncio
+    async def test_wrong_initiator_device_or_owner_never_creates_a_session(login_client):
+        client, _, app, other = login_client
+        login_id, payload = await start_login(client)
+        endpoint = f"/api/devices/login/{login_id}"
+        for invalid in [
+            {**payload, "initiator_secret": "b" * 43},
+            {**payload, "public_key": public_key_text(Ed25519PrivateKey.generate().public_key())},
+        ]:
+            response = await client.post(endpoint + "/complete", json=invalid)
+            assert response.status_code == 401
+>           assert response.json()["detail"]["code"] == "LOGIN_BINDING_INVALID"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: string indices must be integers, not 'str'
+
+tests\integration\api\test_desktop_login.py:101: TypeError
+______________ test_expired_exchange_cannot_confirm_or_complete _______________
+
+login_client = (<httpx.AsyncClient object at 0x000002822DC0D370>, UserModel(id='69a33fd9-3602-4ef6-97a3-c22eb9ddf207', username='desk...ole='user', department_id=None, disabled=False, created_at=datetime.datetime(2026, 10, 18, 6, 5, 26), last_login=None))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002822DA1FA40>
+
+    @pytest.mark.asyncio
+    async def test_expired_exchange_cannot_confirm_or_complete(login_client, monkeypatch):
+        client, _, _, _ = login_client
+        login_id, payload = await start_login(client)
+        future = datetime.now(UTC) + timedelta(seconds=301)
+    
+        class FutureClock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return future
+    
+        monkeypatch.setattr(desktop_login, "datetime", FutureClock)
+        for response in [
+            await client.post(f"/api/devices/login/{login_id}/confirm", json={"confirm_own_device": True}),
+            await client.post(f"/api/devices/login/{login_id}/complete", json=payload),
+        ]:
+            assert response.status_code == 410
+>           assert response.json()["detail"]["code"] == "LOGIN_EXPIRED"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: string indices must be integers, not 'str'
+
+tests\integration\api\test_desktop_login.py:128: TypeError
+=========================== short test summary info ===========================
+FAILED tests/integration/api/test_desktop_login.py::test_browser_confirmation_does_not_create_desktop_session_until_exchange
+FAILED tests/integration/api/test_desktop_login.py::test_wrong_initiator_device_or_owner_never_creates_a_session
+FAILED tests/integration/api/test_desktop_login.py::test_expired_exchange_cannot_confirm_or_complete
+3 failed, 2 passed in 27.48s

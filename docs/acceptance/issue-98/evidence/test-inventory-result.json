@@ -1,0 +1,7 @@
+{
+  "command": "python scripts/test_inventory.py",
+  "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "exitCode": 0,
+  "rawLog": "artifacts\\issue-98\\server\\dev-log\\test-inventory-final.log",
+  "rawLogSha256": "753cee5e55e6d0600337b9bf6acd522912f956b4598ec8879e19e46686122bb5"
+}

@@ -1,0 +1,16 @@
+From /mnt/c/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server
+ * branch              codex/issue-98 -> FETCH_HEAD
+Updating 49b635ac..9d3ee3d9
+Fast-forward
+ backend/tests/unit/persistence/test_unified_chain_adoption.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+{"command": ["/tmp/ideer-issue98-01a14c7b/venv/bin/python", "-m", "pytest", "tests/unit/persistence/test_unified_chain_adoption.py", "-q", "-o", "cache_dir=/tmp/ideer-issue98-01a14c7b/pytest-cache"], "cwd": "/tmp/ideer-issue98-01a14c7b/server/backend"}
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/unit/persistence/test_unified_chain_adoption.py::test_merge_revision_joins_both_heads
+  /tmp/ideer-issue98-01a14c7b/venv/lib/python3.12/site-packages/alembic/config.py:580: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces/commas for version_locations.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 1 warning in 10.59s
+{"commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25", "previous_candidate_commit": "49b635ac5a59085c7c5c028c09a835db48728c9a", "changed_file": "backend/tests/unit/persistence/test_unified_chain_adoption.py", "sha256": "9bba1fc14077d75dd4d566e7a97e0b43ccf87aa3f6c4e6bd099443d3014ada30", "windows_linux_bytes_identical": true, "method": "git fetch local source branch; git merge --ff-only FETCH_HEAD; no checkout/reset", "focused_exit_code": 0, "focused_duration_seconds": 14.78945693699643, "status_preserved_for_live_e2e": ""}

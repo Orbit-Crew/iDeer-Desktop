@@ -1,0 +1,274 @@
+{
+  "result": "passed",
+  "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "productSource": {
+    "desktop": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+    "server": "49b635ac5a59085c7c5c028c09a835db48728c9a"
+  },
+  "parent": {
+    "candidate_commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+    "command": "/tmp/ideer-issue98-01a14c7b/server/scripts/run-test-lane.sh pr-standard",
+    "dependency_config_fingerprint_sha256": "3877140880520aea2a4a54f413011f57caf9cf8918db9cd5ee3a4fc2da7e05b0",
+    "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+    "duration_seconds": 1544,
+    "environment": {
+      "CI": "true",
+      "TEST_PNPM_HOME": "/tmp/ideer-issue98-01a14c7b/pnpm-home",
+      "UV_CACHE_DIR": "/tmp/ideer-issue98-01a14c7b/uv-cache",
+      "credential_presence": {
+        "DEER_FLOW_RUN_LIVE_TESTS": false,
+        "OPENAI_API_KEY": false,
+        "OPENAI_BASE_URL": false
+      },
+      "node": "v22.23.2",
+      "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+      "pnpm": "10.26.2",
+      "python": "3.12.3",
+      "uv": "uv 0.11.1 (x86_64-unknown-linux-gnu)"
+    },
+    "fingerprint_source": "git-diff-and-untracked",
+    "finished_at": "2026-10-18T23:56:36.023425+00:00",
+    "lane": "pr-standard",
+    "outcome": "passed",
+    "started_at": "2026-10-18T23:30:52.693504+00:00",
+    "status": 0
+  },
+  "subLanes": [
+    {
+      "lane": "local-runtime",
+      "status": 0,
+      "seconds": 19,
+      "totals": {
+        "passed": 224,
+        "skipped": 4
+      },
+      "rawMetadata": "artifacts\\issue-98\\server\\dev-log\\linux-validation\\lanes\\local-runtime-20261018T233057Z-830230\\lane-evidence.json",
+      "rawLogSha256": "9556ead2bd9a64d850a509067f3771a70de992d6fa2dc2598be54bd481fcff4f",
+      "metadata": {
+        "candidate_commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+        "command": "/tmp/ideer-issue98-01a14c7b/server/scripts/run-test-lane.sh local-runtime",
+        "dependency_config_fingerprint_sha256": "3877140880520aea2a4a54f413011f57caf9cf8918db9cd5ee3a4fc2da7e05b0",
+        "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "duration_seconds": 19,
+        "environment": {
+          "CI": "true",
+          "TEST_PNPM_HOME": "/tmp/ideer-issue98-01a14c7b/pnpm-home",
+          "UV_CACHE_DIR": "/tmp/ideer-issue98-01a14c7b/uv-cache",
+          "credential_presence": {
+            "DEER_FLOW_RUN_LIVE_TESTS": false,
+            "OPENAI_API_KEY": false,
+            "OPENAI_BASE_URL": false
+          },
+          "node": "v22.23.2",
+          "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "pnpm": "10.26.2",
+          "python": "3.12.3",
+          "uv": "uv 0.11.1 (x86_64-unknown-linux-gnu)"
+        },
+        "fingerprint_source": "git-diff-and-untracked",
+        "finished_at": "2026-10-18T23:31:16.324248+00:00",
+        "lane": "local-runtime",
+        "outcome": "passed",
+        "started_at": "2026-10-18T23:30:58.948789+00:00",
+        "status": 0
+      }
+    },
+    {
+      "lane": "backend-standard",
+      "status": 0,
+      "seconds": 1023,
+      "totals": {
+        "passed": 26842,
+        "skipped": 239
+      },
+      "rawMetadata": "artifacts\\issue-98\\server\\dev-log\\linux-validation\\lanes\\backend-standard-20261018T233116Z-830604\\lane-evidence.json",
+      "rawLogSha256": "a0de4b8d0bfb3ff40deded3925cfa2d37df850684a743d6b442696fde0af518c",
+      "metadata": {
+        "candidate_commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+        "command": "/tmp/ideer-issue98-01a14c7b/server/scripts/run-test-lane.sh backend-standard",
+        "dependency_config_fingerprint_sha256": "3877140880520aea2a4a54f413011f57caf9cf8918db9cd5ee3a4fc2da7e05b0",
+        "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "duration_seconds": 1023,
+        "environment": {
+          "CI": "true",
+          "TEST_PNPM_HOME": "/tmp/ideer-issue98-01a14c7b/pnpm-home",
+          "UV_CACHE_DIR": "/tmp/ideer-issue98-01a14c7b/uv-cache",
+          "credential_presence": {
+            "DEER_FLOW_RUN_LIVE_TESTS": false,
+            "OPENAI_API_KEY": false,
+            "OPENAI_BASE_URL": false
+          },
+          "node": "v22.23.2",
+          "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "pnpm": "10.26.2",
+          "python": "3.12.3",
+          "uv": "uv 0.11.1 (x86_64-unknown-linux-gnu)"
+        },
+        "fingerprint_source": "git-diff-and-untracked",
+        "finished_at": "2026-10-18T23:48:19.242610+00:00",
+        "lane": "backend-standard",
+        "outcome": "passed",
+        "started_at": "2026-10-18T23:31:17.583091+00:00",
+        "status": 0
+      }
+    },
+    {
+      "lane": "frontend-standard",
+      "status": 0,
+      "seconds": 432,
+      "totals": {
+        "rstestPassed": 1270,
+        "vitestPassed": 10558
+      },
+      "rawMetadata": "artifacts\\issue-98\\server\\dev-log\\linux-validation\\lanes\\frontend-standard-20261018T234819Z-872321\\lane-evidence.json",
+      "rawLogSha256": "d916e889cde03101c0f57d4c5aa9045c1bf622db15b72c026dec11b2af69e763",
+      "metadata": {
+        "candidate_commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+        "command": "/tmp/ideer-issue98-01a14c7b/server/scripts/run-test-lane.sh frontend-standard",
+        "dependency_config_fingerprint_sha256": "3877140880520aea2a4a54f413011f57caf9cf8918db9cd5ee3a4fc2da7e05b0",
+        "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "duration_seconds": 432,
+        "environment": {
+          "CI": "true",
+          "TEST_PNPM_HOME": "/tmp/ideer-issue98-01a14c7b/pnpm-home",
+          "UV_CACHE_DIR": "/tmp/ideer-issue98-01a14c7b/uv-cache",
+          "credential_presence": {
+            "DEER_FLOW_RUN_LIVE_TESTS": false,
+            "OPENAI_API_KEY": false,
+            "OPENAI_BASE_URL": false
+          },
+          "node": "v22.23.2",
+          "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "pnpm": "10.26.2",
+          "python": "3.12.3",
+          "uv": "uv 0.11.1 (x86_64-unknown-linux-gnu)"
+        },
+        "fingerprint_source": "git-diff-and-untracked",
+        "finished_at": "2026-10-18T23:55:31.926974+00:00",
+        "lane": "frontend-standard",
+        "outcome": "passed",
+        "started_at": "2026-10-18T23:48:19.810698+00:00",
+        "status": 0
+      }
+    },
+    {
+      "lane": "frontend-smoke",
+      "status": 0,
+      "seconds": 64,
+      "totals": {
+        "passed": 34
+      },
+      "rawMetadata": "artifacts\\issue-98\\server\\dev-log\\linux-validation\\lanes\\frontend-smoke-20261018T235531Z-880754\\lane-evidence.json",
+      "rawLogSha256": "6465609aeb7536d3e928ea94107c0f4f4447e8e9d435d823395a2d7610450db7",
+      "metadata": {
+        "candidate_commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+        "command": "/tmp/ideer-issue98-01a14c7b/server/scripts/run-test-lane.sh frontend-smoke",
+        "dependency_config_fingerprint_sha256": "3877140880520aea2a4a54f413011f57caf9cf8918db9cd5ee3a4fc2da7e05b0",
+        "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "duration_seconds": 64,
+        "environment": {
+          "CI": "true",
+          "TEST_PNPM_HOME": "/tmp/ideer-issue98-01a14c7b/pnpm-home",
+          "UV_CACHE_DIR": "/tmp/ideer-issue98-01a14c7b/uv-cache",
+          "credential_presence": {
+            "DEER_FLOW_RUN_LIVE_TESTS": false,
+            "OPENAI_API_KEY": false,
+            "OPENAI_BASE_URL": false
+          },
+          "node": "v22.23.2",
+          "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "pnpm": "10.26.2",
+          "python": "3.12.3",
+          "uv": "uv 0.11.1 (x86_64-unknown-linux-gnu)"
+        },
+        "fingerprint_source": "git-diff-and-untracked",
+        "finished_at": "2026-10-18T23:56:35.980773+00:00",
+        "lane": "frontend-smoke",
+        "outcome": "passed",
+        "started_at": "2026-10-18T23:55:33.294506+00:00",
+        "status": 0
+      }
+    }
+  ],
+  "realE2E": {
+    "runner": {
+      "command": [
+        "bash",
+        "/tmp/ideer-issue98-01a14c7b/server/backend/scripts/run-real-e2e.sh"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 142.01279494799383,
+      "run_id": "issue98-9d3ee3d-1792366462",
+      "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+      "default_deterministic_suite": true,
+      "REAL_E2E_REAL_MODEL": "0"
+    },
+    "passed": 7,
+    "skipped": 5,
+    "skipReason": "Unconfigured optional RAGFlow/model/provider cases; unchanged default protected CI configuration",
+    "rawLogSha256": "408e9a067a7a09fb6251e54b4d0263626dd1cdccb7a9b8f98c6febf9c69df9a7",
+    "cleanup": {
+      "run_id": "issue98-9d3ee3d-1792366462",
+      "stateRemoved": true,
+      "gatewayPortClosed": true,
+      "frontendPortClosed": true,
+      "additionalScopedCleanupNeeded": true,
+      "reason": "Original cleanup could not remove read-only published fixture resources; restored owner write permission only after service exit, then removed the verified run directory",
+      "officialRunnerUnchanged": true
+    }
+  },
+  "frontendTypecheck": {
+    "command": [
+      "/usr/bin/node",
+      "/tmp/ideer-issue98-01a14c7b/server/frontend/node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+    "exit_code": 0,
+    "duration_seconds": 35.86659583800065,
+    "node": "v22.23.2"
+  },
+  "firstFailedAttempt": {
+    "result": "failed",
+    "candidate": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+    "parent": {
+      "lane": "pr-standard",
+      "seconds": 1714,
+      "status": 1
+    },
+    "subLanes": [
+      {
+        "lane": "local-runtime",
+        "passed": 224,
+        "skipped": 4,
+        "seconds": 11,
+        "status": 0
+      },
+      {
+        "lane": "backend-standard",
+        "passed": 26841,
+        "failed": 1,
+        "skipped": 239,
+        "pytestSeconds": 1003.43,
+        "seconds": 1104,
+        "status": 1
+      },
+      {
+        "lane": "frontend-standard",
+        "rstestPassed": 1270,
+        "vitestPassed": 10558,
+        "seconds": 457,
+        "status": 0
+      },
+      {
+        "lane": "frontend-smoke",
+        "passed": 34,
+        "seconds": 137,
+        "status": 0
+      }
+    ],
+    "failure": "test_merge_revision_joins_both_heads still asserted the old global migration head",
+    "resolutionCommit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+    "logSha256": "b94bc2614d2f6d4675e22277b2fd27359aab14e04d9b486fbd232511b043ac1c"
+  }
+}

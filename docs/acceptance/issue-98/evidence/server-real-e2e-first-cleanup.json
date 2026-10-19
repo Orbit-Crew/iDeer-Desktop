@@ -1,0 +1,7 @@
+{
+  "run_id": "issue98-49b635-1792366020",
+  "gateway_port_closed": true,
+  "only_nested_fixture_state_removed": true,
+  "official_cleanup_refusal_retained": true,
+  "read_only_fixture_directories_made_owner_writable_for_removal": true
+}

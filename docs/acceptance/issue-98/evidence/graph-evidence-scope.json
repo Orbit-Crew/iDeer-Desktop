@@ -1,0 +1,15 @@
+{
+  "repositoryAlias": "ideer-issue98",
+  "base": "ccb251e07e5f5934b851e4c3df00224718f28123",
+  "artifacts": {
+    "server-detect-changes-complete.json": "Complete scope=all output for the one-line typography correction before product commit49b635; one symbol is not a whole-feature count.",
+    "server-detect-changes-compare-final.json": "Earlier complete full-range comparison before the migration test-only correction.",
+    "server-detect-unified-chain-compare-structured.json": "Complete full-range comparison after migration test commit9d3ee3d; 48 mapped symbols, 5 affected processes, 24 files, medium risk. Count includes documentation sections; it does not establish test-function mapping.",
+    "server-detect-changes-all-final.json": "Complete all-scope output for the final report-only commit. Documentation does not require reindexing.",
+    "server-impact-unified-chain-assertion.txt": "The migration test function has no index mapping. Impact is explicitly UNKNOWN. Source inspection identifies pytest as its caller; focused real-Alembic red/green and the complete backend suite validate behavior."
+  },
+  "limitations": [
+    "A graph mapping failure or empty result is not represented as proof of no impact.",
+    "An optional index refresh was cancelled and an earlier FTS repair failed; both are retained as unsuccessful tool attempts."
+  ]
+}

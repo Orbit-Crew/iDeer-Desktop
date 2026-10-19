@@ -1,0 +1,145 @@
+{
+  "desktopSourceCommit": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+  "matchedPythonSources": 23,
+  "normalization": "Windows working-tree CRLF is normalized to LF when comparing committed source; installed bytes match the tested working tree exactly.",
+  "files": {
+    "local-runtime/core/__init__.py": {
+      "testedSourceSha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46",
+      "installedSha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46",
+      "committedBlobSha256": "171df3402f9958074c4f6ba5d2da274cd9c569b25e9ecfd50384067f6f133adc",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/artifacts.py": {
+      "testedSourceSha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b",
+      "installedSha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b",
+      "committedBlobSha256": "e10bc4969b2af8ce93bbfdb448e71ea820f08245faf7ebfb41d307ea99c1894c",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/audit.py": {
+      "testedSourceSha256": "08ae1aeaf041c3ba6cf6c647ad1364ce17b107efa6c27eda7d9ff668adc1f9bd",
+      "installedSha256": "08ae1aeaf041c3ba6cf6c647ad1364ce17b107efa6c27eda7d9ff668adc1f9bd",
+      "committedBlobSha256": "b2c9113c1e536a48df2657afa925c860a64b2bcb92514eccb1a69581b4225fda",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/browser_login.py": {
+      "testedSourceSha256": "a764f45680843fd41e942443b98f03c78964732768ee15fcd72c86dfceaeaccb",
+      "installedSha256": "a764f45680843fd41e942443b98f03c78964732768ee15fcd72c86dfceaeaccb",
+      "committedBlobSha256": "a764f45680843fd41e942443b98f03c78964732768ee15fcd72c86dfceaeaccb",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/capabilities.py": {
+      "testedSourceSha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc",
+      "installedSha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc",
+      "committedBlobSha256": "69ddd5be20f8facd3f00fc0640824de9894afbbd2b0653b726b6e14170b39db1",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/cli.py": {
+      "testedSourceSha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711",
+      "installedSha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711",
+      "committedBlobSha256": "7528672ebfafa1d49a5994343dffb99f4e6d4d5316070819302ab4fa50bdff00",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/compat.py": {
+      "testedSourceSha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c",
+      "installedSha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c",
+      "committedBlobSha256": "516bbe7abd29ea21e2cfdc72950a03b6a7001b22a19c51497886041dd072aba0",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/consent.py": {
+      "testedSourceSha256": "d5f5f3c078ca4a7e461b006c1fc4a1b5dd18311c1da8585a238e6b210475cc32",
+      "installedSha256": "d5f5f3c078ca4a7e461b006c1fc4a1b5dd18311c1da8585a238e6b210475cc32",
+      "committedBlobSha256": "ab90a67fa2248145d7f4aab4e16f8dba77d11f1e1566c2526dd06a2f5c86667b",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/consent_coord.py": {
+      "testedSourceSha256": "49b748bda5e133e25224f81dc67d5b55d850b5150a543ea7c88d79293feae824",
+      "installedSha256": "49b748bda5e133e25224f81dc67d5b55d850b5150a543ea7c88d79293feae824",
+      "committedBlobSha256": "f27e604edc6e1270d4b952764b7f6a4f7bb5628997588d0eb6aaa479d87a1c96",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/desktop.py": {
+      "testedSourceSha256": "7ae7793116fb48ee7a30b4f343feea37ce77b2dabf7915602ecb909fa1dfb3ff",
+      "installedSha256": "7ae7793116fb48ee7a30b4f343feea37ce77b2dabf7915602ecb909fa1dfb3ff",
+      "committedBlobSha256": "f3cfb0ef04d36e3c39ba96d9afa393fadcf8e242d707cdfffac094488a4a799b",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/file_service.py": {
+      "testedSourceSha256": "b79db08d3a65228e56c7e386b6077047c453199d0277d124730aff73680a7747",
+      "installedSha256": "b79db08d3a65228e56c7e386b6077047c453199d0277d124730aff73680a7747",
+      "committedBlobSha256": "e5f608dccd3a72c87baf4e6be4f91958dc6c80c26c3b4b6fa017ae699384e64a",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/files.py": {
+      "testedSourceSha256": "847e2bf915463fe2fef4adff8d95513c65a21c68acc00808101023ad2f4f059b",
+      "installedSha256": "847e2bf915463fe2fef4adff8d95513c65a21c68acc00808101023ad2f4f059b",
+      "committedBlobSha256": "3b69d6a43a7f4ea7dccda491a98bb83bc09e35e1cef3a6265237b767324d669e",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/mcp.py": {
+      "testedSourceSha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a",
+      "installedSha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a",
+      "committedBlobSha256": "8eab09f1cb1b5b339a67ab7acc2103b8ce627fd90bde2378fa86f065242d05ee",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/policy.py": {
+      "testedSourceSha256": "61d0a628f0705f7c54bb391302a39614c4a17ea83efec06f1dd708c8f585c199",
+      "installedSha256": "61d0a628f0705f7c54bb391302a39614c4a17ea83efec06f1dd708c8f585c199",
+      "committedBlobSha256": "2edd3c5f0ff7b75214395046e10aba5ee3ebef3626c25f0e036d31602aac8a4c",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/process_job.py": {
+      "testedSourceSha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea",
+      "installedSha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea",
+      "committedBlobSha256": "9eca428af53d352b2d0e62bbaf0c02b51ab26b3a115f6846b7a77131959fba5a",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/protocol.py": {
+      "testedSourceSha256": "05a0d45d56b2fa2ec72e39c2018cf0b8b09a9ff9b7526736fecc2536e28777f6",
+      "installedSha256": "05a0d45d56b2fa2ec72e39c2018cf0b8b09a9ff9b7526736fecc2536e28777f6",
+      "committedBlobSha256": "27b079b918895318338ad548c18a9f0570f6f5ea58a1ba408e27dc023d6343e7",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/python.py": {
+      "testedSourceSha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1",
+      "installedSha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1",
+      "committedBlobSha256": "089b7a8a5bdf417a855a6b9897c80dce8181be95933e254c5322e049a556c4e4",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/receipts.py": {
+      "testedSourceSha256": "e61d420e023732fc0426422ba7b3ffe8eb60c8bd019f86de3f07e3f29724de7d",
+      "installedSha256": "e61d420e023732fc0426422ba7b3ffe8eb60c8bd019f86de3f07e3f29724de7d",
+      "committedBlobSha256": "8f11c8289966da4920a22f96327f01d90395eb7720535fadc4c5a2b45033ed17",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/secrets.py": {
+      "testedSourceSha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad",
+      "installedSha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad",
+      "committedBlobSha256": "0ed3567ac6d806d2c9e9f62bbcb24efc019da99e7d1cf601bb649570b3a483bd",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/settings.py": {
+      "testedSourceSha256": "06f224b4105970549970823ba622cd0a42ab8876ec8f1ab6a70b8709d6a1b81f",
+      "installedSha256": "06f224b4105970549970823ba622cd0a42ab8876ec8f1ab6a70b8709d6a1b81f",
+      "committedBlobSha256": "87b2445f6c33d2f153fa2e8c54ffb3b7fb847551dbbe4acf56d7bb6797f68911",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/task_guard.py": {
+      "testedSourceSha256": "3468280d3af6d76e9bae4adbbff6583a543a73a37e8db406afbb5c2c71737391",
+      "installedSha256": "3468280d3af6d76e9bae4adbbff6583a543a73a37e8db406afbb5c2c71737391",
+      "committedBlobSha256": "d3f7d620a4ccead6b78929bca722d25dd63cb5b8cfc0839fd77f4ef20cf408d8",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/transport.py": {
+      "testedSourceSha256": "9b8f4f000daadbd5fc7441640121c5216989a3d295218ecc5502c55133b27832",
+      "installedSha256": "9b8f4f000daadbd5fc7441640121c5216989a3d295218ecc5502c55133b27832",
+      "committedBlobSha256": "99ec089e885791bd06c58d08d8e66181d395ebd0c27c13d0c6beef5bf437320d",
+      "gitNormalizedSourceMatchesCommit": true
+    },
+    "local-runtime/core/tray.py": {
+      "testedSourceSha256": "934ea903d0505254ae43333086eb76847bf1c41709dfbc46a78c163542941e3f",
+      "installedSha256": "934ea903d0505254ae43333086eb76847bf1c41709dfbc46a78c163542941e3f",
+      "committedBlobSha256": "cf950cc3f2adcf32f3a1f03356be6cabb35243bb72724278c4a548bd4a5bd681",
+      "gitNormalizedSourceMatchesCommit": true
+    }
+  }
+}

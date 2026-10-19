@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/tmp/ideer-issue98-01a14c7b/server/frontend/node_modules/typescript/bin/tsc",
+    "--noEmit"
+  ],
+  "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "exit_code": 0,
+  "duration_seconds": 35.86659583800065,
+  "node": "v22.23.2"
+}

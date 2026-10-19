@@ -1,0 +1,53 @@
+{
+  "summary": {
+    "changed_count": 6,
+    "affected_count": 0,
+    "changed_files": 1,
+    "risk_level": "low"
+  },
+  "changed_symbols": [
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L11:Issue #98 acceptance",
+      "name": "Issue #98 acceptance",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L23:Scenario record",
+      "name": "Scenario record",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L37:Checks and pending gates",
+      "name": "Checks and pending gates",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L89:Standards",
+      "name": "Standards",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L98:Spec",
+      "name": "Spec",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/acceptance/issue-98/report.md:L110:Platform limits",
+      "name": "Platform limits",
+      "type": "Section",
+      "filePath": "docs/acceptance/issue-98/report.md",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": []
+}

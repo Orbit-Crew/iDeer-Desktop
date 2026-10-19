@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-10-18T11:59:03.889Z",
+  "startedAt": "2026-10-18T12:24:50.975Z",
   "origin": "http://127.0.0.1:21980",
   "scenarios": [
     {
@@ -42,32 +42,32 @@
       "directGatewayIsolation": "socket-boundary-fault-injection-blocks-all-other-ports"
     }
   ],
-  "profile": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\dev-log\\live-98\\runtime-profile-1792324743888",
+  "profile": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\dev-log\\live-98\\runtime-profile-1792326290973",
   "proxyCut": {
-    "masterPid": 53348,
+    "masterPid": 46280,
     "tree": [
       {
-        "ProcessId": 53348,
-        "ParentProcessId": 38848,
+        "ProcessId": 46280,
+        "ParentProcessId": 51164,
         "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe",
         "CommandLine": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe -p C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/.cache/nginx-1.31.7/ -c C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/dev-log/live-98/nginx.conf -g \"daemon off;\"",
-        "CreationDate": "/Date(1792324705074)/",
+        "CreationDate": "/Date(1792325859096)/",
         "acceptanceRole": "nginx-master"
       },
       {
-        "ProcessId": 46596,
-        "ParentProcessId": 53348,
+        "ProcessId": 45304,
+        "ParentProcessId": 46280,
         "ExecutablePath": "C:\\WINDOWS\\system32\\conhost.exe",
         "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4",
-        "CreationDate": "/Date(1792324705221)/",
+        "CreationDate": "/Date(1792325859143)/",
         "acceptanceRole": "owned-system-console-host"
       },
       {
-        "ProcessId": 38892,
-        "ParentProcessId": 53348,
+        "ProcessId": 50740,
+        "ParentProcessId": 46280,
         "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe",
         "CommandLine": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe -p C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/.cache/nginx-1.31.7/ -c C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/dev-log/live-98/nginx.conf -g \"daemon off;\"",
-        "CreationDate": "/Date(1792324705437)/",
+        "CreationDate": "/Date(1792325859277)/",
         "acceptanceRole": "nginx-worker"
       }
     ],
@@ -75,30 +75,30 @@
   },
   "disconnected": "connecting",
   "proxyRestored": {
-    "masterPid": 38292,
+    "masterPid": 54344,
     "tree": [
       {
-        "ProcessId": 38292,
-        "ParentProcessId": 52060,
+        "ProcessId": 54344,
+        "ParentProcessId": 49200,
         "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe",
         "CommandLine": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe -p C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/.cache/nginx-1.31.7/ -c C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/dev-log/live-98/nginx.conf -g \"daemon off;\"",
-        "CreationDate": "/Date(1792324756752)/",
+        "CreationDate": "/Date(1792326298559)/",
         "acceptanceRole": "nginx-master"
       },
       {
-        "ProcessId": 53140,
-        "ParentProcessId": 38292,
+        "ProcessId": 12116,
+        "ParentProcessId": 54344,
         "ExecutablePath": "C:\\WINDOWS\\system32\\conhost.exe",
         "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4",
-        "CreationDate": "/Date(1792324756794)/",
+        "CreationDate": "/Date(1792326298607)/",
         "acceptanceRole": "owned-system-console-host"
       },
       {
-        "ProcessId": 42852,
-        "ParentProcessId": 38292,
+        "ProcessId": 52996,
+        "ParentProcessId": 54344,
         "ExecutablePath": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe",
         "CommandLine": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\.cache\\nginx-1.31.7\\nginx.exe -p C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/.cache/nginx-1.31.7/ -c C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/dev-log/live-98/nginx.conf -g \"daemon off;\"",
-        "CreationDate": "/Date(1792324756863)/",
+        "CreationDate": "/Date(1792326298662)/",
         "acceptanceRole": "nginx-worker"
       }
     ]
@@ -118,9 +118,9 @@
       "login": {
         "state": "awaiting-confirmation",
         "account": "",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": "",
-        "verification": "bfbdbf08ce57"
+        "verification": "6fc750aac33f"
       }
     },
     {
@@ -128,7 +128,7 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     },
@@ -137,7 +137,7 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     },
@@ -146,7 +146,7 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     },
@@ -155,7 +155,7 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     },
@@ -164,7 +164,7 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     },
@@ -173,12 +173,12 @@
       "login": {
         "state": "authenticated",
         "account": "user98a@test.com",
-        "device": "T98-D1-1792324745275",
+        "device": "T98-D1-1792326291438",
         "error": ""
       }
     }
   ],
-  "finishedAt": "2026-10-18T11:59:19.477Z",
+  "finishedAt": "2026-10-18T12:25:01.622Z",
   "cleanup": {
     "proxyTreeExited": true,
     "publicPortClosed": true

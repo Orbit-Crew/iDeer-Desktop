@@ -1,0 +1,1 @@
+{"scenario": "T98-03", "result": "passed", "fault": "real CredWrite blob-size rejection", "error": "SECURE_STORAGE_FAILED", "plaintextFallbackFiles": 0, "storedCredentials": 0}

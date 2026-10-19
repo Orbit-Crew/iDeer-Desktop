@@ -1,8 +1,8 @@
 {
-  "startedAt": "2026-10-18T06:09:18.535Z",
+  "startedAt": "2026-10-18T12:18:55.160Z",
   "origin": "http://127.0.0.1:21980",
   "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
-  "deviceName": "T98-installed-003d7a4a-79a3-448d-a31e-99bd9aa1b574",
+  "deviceName": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
   "result": "passed",
   "stages": [
     {
@@ -12,11 +12,11 @@
         "process": "running",
         "connection": "connected",
         "tasks": [],
-        "pid": 21688,
+        "pid": 51320,
         "login": {
           "state": "authenticated",
           "account": "user98a@test.com",
-          "device": "T98-installed-003d7a4a-79a3-448d-a31e-99bd9aa1b574",
+          "device": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
           "error": ""
         }
       },
@@ -28,7 +28,7 @@
     {
       "stage": "first-exit",
       "result": "passed",
-      "runtimePid": 21688,
+      "runtimePid": 51320,
       "runtimeExited": true
     },
     {
@@ -38,11 +38,11 @@
         "process": "running",
         "connection": "connected",
         "tasks": [],
-        "pid": 27200,
+        "pid": 54852,
         "login": {
           "state": "authenticated",
           "account": "user98a@test.com",
-          "device": "T98-installed-003d7a4a-79a3-448d-a31e-99bd9aa1b574",
+          "device": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
           "error": ""
         }
       },
@@ -60,10 +60,10 @@
     "referencesDeleted": 3,
     "settingsRemoved": true,
     "runtimePidsExited": [
-      21688,
-      27200
+      51320,
+      54852
     ]
   },
-  "finishedAt": "2026-10-18T06:09:42.690Z",
-  "elapsedMs": 24155
+  "finishedAt": "2026-10-18T12:19:15.237Z",
+  "elapsedMs": 20077
 }
