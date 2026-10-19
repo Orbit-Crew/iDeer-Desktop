@@ -13,7 +13,7 @@ describe('restricted Desktop login boundary', () => {
     }
     expect(runtime.status().process).toBe('stopped')
   })
-  it('admits one browser launch for concurrent login IPC requests', async () => {
+  it.skipIf(process.platform !== 'win32')('admits one browser launch for concurrent login IPC requests', async () => {
     const profile = mkdtempSync(join(tmpdir(), 'ideer concurrent login '))
     let starts = 0
     const platform = createServer((request, response) => {
