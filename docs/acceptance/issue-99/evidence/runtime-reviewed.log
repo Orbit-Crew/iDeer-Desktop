@@ -1,0 +1,12 @@
+................................................................ss...... [ 28%]
+..............................s......................................... [ 56%]
+...............s.............................s.......................... [ 84%]
+..................s......................                                [100%]
+============================== warnings summary ===============================
+tests/test_tray_consent.py::test_a_dropped_session_retries_instead_of_killing_the_runtime_thread
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\.venv\Lib\site-packages\websockets\exceptions.py:122: DeprecationWarning: ConnectionClosed.code is deprecated; use Protocol.close_code or ConnectionClosed.rcvd.code
+    warnings.warn(  # deprecated in 13.1
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\Users\Neo\.codex\worktrees\df64\iDeer-Desktop\artifacts\issue-99\runtime-reviewed.xml -
+251 passed, 6 skipped, 1 warning in 49.46s

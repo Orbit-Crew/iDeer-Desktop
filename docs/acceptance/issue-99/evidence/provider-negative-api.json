@@ -1,0 +1,20 @@
+[
+  {
+    "identity": "A",
+    "resourceId": "aeadb882-5fc6-4270-910a-4123417a675a",
+    "case": "unpublishedId",
+    "httpStatus": 409
+  },
+  {
+    "identity": "A",
+    "resourceId": "315ca2a1-844f-4422-add9-cf789aa8a318",
+    "case": "unavailableId",
+    "httpStatus": 404
+  },
+  {
+    "identity": "B",
+    "resourceId": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+    "case": "agentId",
+    "httpStatus": 404
+  }
+]

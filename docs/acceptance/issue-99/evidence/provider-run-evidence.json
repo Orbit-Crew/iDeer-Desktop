@@ -1,0 +1,387 @@
+[
+  {
+    "threadId": "c9c96921-e718-4a26-8086-0876084c0733",
+    "runId": "2e8dbfca-3941-43a2-a4b9-b78e8092a713",
+    "status": "success",
+    "turnId": "b67e1e8d-e79f-40dc-bf93-bfb6f377c2a3",
+    "selection": {
+      "agent": {
+        "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "display_name": "t99-real-expert",
+        "slug": "t99-real-expert",
+        "version": 1,
+        "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66"
+      },
+      "resolved_skill_ids": [
+        "3380aff6-d050-4639-80e3-34468434f24d"
+      ],
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "policy_revision": "1",
+      "preferred_skill": {
+        "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+        "display_name": "t99-real-skill",
+        "slug": "t99-real-skill",
+        "version": 1,
+        "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec"
+      }
+    },
+    "runEvidence": {
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "authorization_context": {
+        "caller_user_id": "b21f2b96-9a8b-4942-92c4-acc808199ed4",
+        "effective_agent_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "policy_revision": "1",
+        "allowed_tools": [],
+        "memory_scope": "b21f2b96-9a8b-4942-92c4-acc808199ed4"
+      },
+      "runtime_assembly_fingerprint": "5200726e4a84360e54932e38149ff14745e78ab848e0272b6816895747bffba8",
+      "trace_id": null,
+      "policy_revision": "1",
+      "tool_receipts": [],
+      "retrieval_receipts": [],
+      "subagent_verification": [],
+      "artifact_receipts": [],
+      "run_id": "2e8dbfca-3941-43a2-a4b9-b78e8092a713",
+      "knowledge_scope": {
+        "logical_selectors": []
+      }
+    },
+    "toolReceipts": []
+  },
+  {
+    "threadId": "c9c96921-e718-4a26-8086-0876084c0733",
+    "runId": "c94ab124-f79e-4a86-b44c-faa9a2579e16",
+    "status": "success",
+    "turnId": "9cae959f-cad3-460f-bf6e-34ddba97d7f5",
+    "selection": {
+      "agent": {
+        "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "display_name": "t99-real-expert",
+        "slug": "t99-real-expert",
+        "version": 1,
+        "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66"
+      },
+      "resolved_skill_ids": [
+        "3380aff6-d050-4639-80e3-34468434f24d"
+      ],
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "policy_revision": "1",
+      "preferred_skill": {
+        "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+        "display_name": "t99-real-skill",
+        "slug": "t99-real-skill",
+        "version": 1,
+        "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec"
+      }
+    },
+    "runEvidence": {
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "authorization_context": {
+        "caller_user_id": "b21f2b96-9a8b-4942-92c4-acc808199ed4",
+        "effective_agent_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "policy_revision": "1",
+        "allowed_tools": [],
+        "memory_scope": "b21f2b96-9a8b-4942-92c4-acc808199ed4"
+      },
+      "runtime_assembly_fingerprint": "5200726e4a84360e54932e38149ff14745e78ab848e0272b6816895747bffba8",
+      "trace_id": null,
+      "policy_revision": "1",
+      "tool_receipts": [],
+      "retrieval_receipts": [],
+      "subagent_verification": [],
+      "artifact_receipts": [],
+      "run_id": "c94ab124-f79e-4a86-b44c-faa9a2579e16",
+      "knowledge_scope": {
+        "logical_selectors": []
+      }
+    },
+    "toolReceipts": []
+  },
+  {
+    "threadId": "c9c96921-e718-4a26-8086-0876084c0733",
+    "runId": "ad946233-2ebe-4d4e-b48f-3f13c21b5b79",
+    "status": "success",
+    "turnId": "d5b0f08a-b71f-4448-b4e9-0d3017a67806",
+    "selection": {
+      "agent": {
+        "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "display_name": "t99-real-expert",
+        "slug": "t99-real-expert",
+        "version": 1,
+        "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66"
+      },
+      "resolved_skill_ids": [
+        "3380aff6-d050-4639-80e3-34468434f24d"
+      ],
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "policy_revision": "1",
+      "preferred_skill": {
+        "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+        "display_name": "t99-real-skill",
+        "slug": "t99-real-skill",
+        "version": 1,
+        "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec"
+      }
+    },
+    "runEvidence": {
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "authorization_context": {
+        "caller_user_id": "b21f2b96-9a8b-4942-92c4-acc808199ed4",
+        "effective_agent_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "policy_revision": "1",
+        "allowed_tools": [],
+        "memory_scope": "b21f2b96-9a8b-4942-92c4-acc808199ed4"
+      },
+      "runtime_assembly_fingerprint": "5200726e4a84360e54932e38149ff14745e78ab848e0272b6816895747bffba8",
+      "trace_id": null,
+      "policy_revision": "1",
+      "tool_receipts": [],
+      "retrieval_receipts": [],
+      "subagent_verification": [],
+      "artifact_receipts": [],
+      "run_id": "ad946233-2ebe-4d4e-b48f-3f13c21b5b79",
+      "knowledge_scope": {
+        "logical_selectors": []
+      }
+    },
+    "toolReceipts": [
+      {
+        "tool_call_id": "call_398d16b5c7ad4f17abff6f00",
+        "tool_name": "ask_clarification",
+        "status": "success",
+        "args_sha256": "04342b28ce3bb00f",
+        "output_sha256": "252a38c8e540cd39",
+        "output_bytes": 53,
+        "created_at": "2026-10-19T09:32:04.047015+00:00"
+      }
+    ]
+  },
+  {
+    "threadId": "c9c96921-e718-4a26-8086-0876084c0733",
+    "runId": "61237776-0f0d-422a-bbd2-b510e76364b6",
+    "status": "success",
+    "turnId": "58a28335-1b3a-4c5e-8e54-487e27e68071",
+    "selection": {
+      "agent": {
+        "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "display_name": "t99-real-expert",
+        "slug": "t99-real-expert",
+        "version": 1,
+        "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66"
+      },
+      "resolved_skill_ids": [
+        "3380aff6-d050-4639-80e3-34468434f24d"
+      ],
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "policy_revision": "1",
+      "preferred_skill": {
+        "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+        "display_name": "t99-real-skill",
+        "slug": "t99-real-skill",
+        "version": 1,
+        "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec"
+      }
+    },
+    "runEvidence": {
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "authorization_context": {
+        "caller_user_id": "b21f2b96-9a8b-4942-92c4-acc808199ed4",
+        "effective_agent_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "policy_revision": "1",
+        "allowed_tools": [],
+        "memory_scope": "b21f2b96-9a8b-4942-92c4-acc808199ed4"
+      },
+      "runtime_assembly_fingerprint": "5200726e4a84360e54932e38149ff14745e78ab848e0272b6816895747bffba8",
+      "trace_id": null,
+      "policy_revision": "1",
+      "tool_receipts": [],
+      "retrieval_receipts": [],
+      "subagent_verification": [],
+      "artifact_receipts": [],
+      "run_id": "61237776-0f0d-422a-bbd2-b510e76364b6",
+      "knowledge_scope": {
+        "logical_selectors": []
+      }
+    },
+    "toolReceipts": []
+  },
+  {
+    "threadId": "edb9d5d7-b381-4af8-83d5-adff8b003ab7",
+    "runId": "0e63ede2-d3b7-498d-b906-c261cf4361b0",
+    "status": "success",
+    "turnId": null,
+    "selection": {
+      "agent": {
+        "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "display_name": "t99-real-expert",
+        "slug": "t99-real-expert",
+        "version": 1,
+        "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66"
+      },
+      "resolved_skill_ids": [
+        "3380aff6-d050-4639-80e3-34468434f24d"
+      ],
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "policy_revision": "1",
+      "preferred_skill": {
+        "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+        "display_name": "t99-real-skill",
+        "slug": "t99-real-skill",
+        "version": 1,
+        "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec"
+      }
+    },
+    "runEvidence": {
+      "resource_snapshots": [
+        {
+          "resource_id": "3380aff6-d050-4639-80e3-34468434f24d",
+          "version": 1,
+          "content_hash": "d71fdf2c28b859e89871dea7b10dba4e7643ff331cc262f25f53cff92cbc24ec",
+          "selection_role": "preferred"
+        },
+        {
+          "resource_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+          "version": 1,
+          "content_hash": "eff4a0df56c1879362405e2928f4378f1bbcddc73f9579ac76c1ed486945fe66",
+          "selection_role": "root"
+        }
+      ],
+      "authorization_context": {
+        "caller_user_id": "b21f2b96-9a8b-4942-92c4-acc808199ed4",
+        "effective_agent_id": "690dd47c-f896-434c-ab63-3ae7f26534b5",
+        "policy_revision": "1",
+        "allowed_tools": [],
+        "memory_scope": "b21f2b96-9a8b-4942-92c4-acc808199ed4"
+      },
+      "runtime_assembly_fingerprint": "5200726e4a84360e54932e38149ff14745e78ab848e0272b6816895747bffba8",
+      "trace_id": null,
+      "policy_revision": "1",
+      "tool_receipts": [],
+      "retrieval_receipts": [],
+      "subagent_verification": [],
+      "artifact_receipts": [],
+      "run_id": "0e63ede2-d3b7-498d-b906-c261cf4361b0",
+      "knowledge_scope": {
+        "logical_selectors": []
+      }
+    },
+    "toolReceipts": []
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "result": "passed",
+  "platform": "win32",
+  "elapsedMs": 8562,
+  "runtime": {
+    "electron": "22.3.27",
+    "node": "16.17.1",
+    "data": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop",
+    "sessionData": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop\\Session",
+    "software": true,
+    "sandbox": true,
+    "isolation": true,
+    "nodeIntegration": false,
+    "webview": false,
+    "cloneWorks": true,
+    "decoded": "你"
+  },
+  "checks": [
+    "unconnected-ui",
+    "session-directory",
+    "sandbox",
+    "ipc-rejection",
+    "navigation-popup-csp",
+    "sidebar",
+    "resize",
+    "second-instance",
+    "ui-quit",
+    "native-close"
+  ]
+}

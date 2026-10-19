@@ -59,6 +59,10 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       return { version: app.getVersion(), server: status.connection, runtime: status }
     })
+    ipcMain.handle('desktop:chat', (event, command) => {
+      requireMainFrame(event)
+      return runtime.chat(command)
+    })
     ipcMain.handle('desktop:runtime:start', (event) => {
       requireMainFrame(event)
       return runtime.start()

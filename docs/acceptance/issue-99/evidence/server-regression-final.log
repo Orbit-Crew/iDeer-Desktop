@@ -1,0 +1,10 @@
+...........................                                              [100%]
+============================== warnings summary ===============================
+tests/integration/api/test_shared_resource_run_e2e.py::test_caller_runs_owner_shared_agent_with_caller_scoped_evidence
+tests/integration/api/test_shared_resource_run_e2e.py::test_caller_runs_owner_shared_agent_with_caller_scoped_evidence
+tests/integration/api/test_shared_resource_run_e2e.py::test_caller_runs_owner_shared_agent_with_caller_scoped_evidence
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.venv\Lib\site-packages\alembic\config.py:580: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces/commas for version_locations.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+27 passed, 3 warnings in 11.70s

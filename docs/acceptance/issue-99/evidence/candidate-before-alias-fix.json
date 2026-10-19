@@ -1,0 +1,42 @@
+[
+  {
+    "path": "local-runtime/core/platform_chat.py",
+    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+  },
+  {
+    "path": ".runtime/core/platform_chat.py",
+    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+  },
+  {
+    "path": "dist/win-unpacked/resources/runtime/core/platform_chat.py",
+    "sha256": "2dc47dbc18ee2548c2af608126de19eb53ac487c066ff673758358a792ccc469"
+  },
+  {
+    "path": "package-lock.json",
+    "sha256": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a"
+  },
+  {
+    "path": "local-runtime/distribution.lock.json",
+    "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  {
+    "path": "electron-builder.yml",
+    "sha256": "efb5986ce9ce1ee3b46ed14c012407f82ee69a1de9dc1f34c8479b2cb7246220"
+  },
+  {
+    "path": "dist/ideer-desktop-0.1.0-windows-x64-setup.exe",
+    "sha256": "2a4cc3168607828079707f3d3cf956656e4ef8f44d67e59cfd376057d5285de3"
+  },
+  {
+    "path": "dist/win-unpacked/resources/app.asar",
+    "sha256": "36e9ba8a01e0901e0b4be157920c0145a128d90d06ae98dc078c56afc0563e4b"
+  },
+  {
+    "path": "artifacts/issue-99/server/backend/uv.lock",
+    "sha256": "5484082ec314c5933225ef852a5c7708bd60c02870472e81a11a8dea0d4d54af"
+  },
+  {
+    "path": "artifacts/issue-99/server/frontend/pnpm-lock.yaml",
+    "sha256": "3ff4163ee66e540357d2f0fed3c03c034ed8bc68c4549ead0d9cf8271a866131"
+  }
+]

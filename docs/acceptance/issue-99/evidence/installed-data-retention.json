@@ -1,0 +1,66 @@
+[
+  {
+    "stage": "before-install",
+    "timestamp": "2026-10-19T09:30:34.4662936+00:00",
+    "fixtures": [
+      {
+        "location": "linz",
+        "sha256": "9e4d60f35cceffbd538e8e23766dfa73b9ed4a9544340bb281103123b9eb6680"
+      },
+      {
+        "location": "iDeer Desktop",
+        "sha256": "6c62a71042d353863bc0619a046520253c36d17b16659f297e14cc34b597eaf6"
+      }
+    ],
+    "legacyFilesChecked": 1,
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-install",
+    "timestamp": "2026-10-19T09:30:48.1592201+00:00",
+    "fixtures": [
+      {
+        "location": "linz",
+        "sha256": "9e4d60f35cceffbd538e8e23766dfa73b9ed4a9544340bb281103123b9eb6680"
+      },
+      {
+        "location": "iDeer Desktop",
+        "sha256": "6c62a71042d353863bc0619a046520253c36d17b16659f297e14cc34b597eaf6"
+      }
+    ],
+    "legacyFilesChecked": 1,
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-uninstall",
+    "timestamp": "2026-10-19T09:31:01.0004511+00:00",
+    "fixtures": [
+      {
+        "location": "linz",
+        "sha256": "9e4d60f35cceffbd538e8e23766dfa73b9ed4a9544340bb281103123b9eb6680"
+      },
+      {
+        "location": "iDeer Desktop",
+        "sha256": "6c62a71042d353863bc0619a046520253c36d17b16659f297e14cc34b597eaf6"
+      }
+    ],
+    "legacyFilesChecked": 1,
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-reinstall",
+    "timestamp": "2026-10-19T09:31:10.1527925+00:00",
+    "fixtures": [
+      {
+        "location": "linz",
+        "sha256": "9e4d60f35cceffbd538e8e23766dfa73b9ed4a9544340bb281103123b9eb6680"
+      },
+      {
+        "location": "iDeer Desktop",
+        "sha256": "6c62a71042d353863bc0619a046520253c36d17b16659f297e14cc34b597eaf6"
+      }
+    ],
+    "legacyFilesChecked": 1,
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  }
+]

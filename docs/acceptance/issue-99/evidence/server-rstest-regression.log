@@ -1,0 +1,85 @@
+
+---
+tool: "@rstest/core@0.10.6"
+timestamp: "2026-10-19T04:45:12.485Z"
+runtime: {"node":"v22.23.3","platform":"win32","cwd":"C:\\Users\\Neo\\.codex\\worktrees\\df64\\iDeer-Desktop\\artifacts\\issue-99\\server\\frontend"}
+---
+
+# Rstest Test Execution Report
+
+## Summary
+
+```json
+{
+  "status": "pass",
+  "counts": {
+    "testFiles": 3,
+    "failedFiles": 0,
+    "tests": 35,
+    "failedTests": 0,
+    "passedTests": 35,
+    "skippedTests": 0,
+    "todoTests": 0
+  },
+  "durationMs": {
+    "total": 5155,
+    "build": 122,
+    "tests": 5033
+  },
+  "snapshot": {
+    "added": 0,
+    "updated": 0,
+    "unmatched": 0,
+    "removed": 0,
+    "unchecked": 0
+  }
+}
+```
+
+## Tests
+
+### Passed
+
+- tests/unit/core/messages/human-input.test.ts :: extractHumanInputRequest reads a valid tool artifact payload
+- tests/unit/core/messages/human-input.test.ts :: extractHumanInputRequest accepts sandbox network single-choice approvals
+- tests/unit/core/messages/human-input.test.ts :: extractHumanInputRequest rejects malformed artifacts
+- tests/unit/core/messages/human-input.test.ts :: extractHumanInputResponse reads valid human message metadata
+- tests/unit/core/messages/human-input.test.ts :: derives answered card state from hidden human input responses
+- tests/unit/core/messages/human-input.test.ts :: detects whether a thread has an open human input request
+- tests/unit/core/messages/human-input.test.ts :: detects new thread errors that should unlock pending human input cards
+- tests/unit/core/messages/human-input.test.ts :: creates option and text responses for a request
+- tests/unit/core/messages/human-input.test.ts :: parses a v2 form request
+- tests/unit/core/messages/human-input.test.ts :: rejects a form request without fields
+- tests/unit/core/messages/human-input.test.ts :: rejects a form request with malformed fields
+- tests/unit/core/messages/human-input.test.ts :: rejects unknown protocol versions
+- tests/unit/core/messages/human-input.test.ts :: builds a readable form summary submitted as a v1 text response
+- tests/unit/core/messages/human-input.test.ts :: form submission value is collision-free via the JSON block
+- tests/unit/core/messages/human-input.test.ts :: rejects select options with empty values or duplicates
+- tests/unit/core/messages/human-input.test.ts :: rejects duplicate field names and enforces the form/version binding
+- tests/unit/core/messages/human-input.test.ts :: rejects form fields with reserved prototype names
+- tests/unit/core/messages/human-input.test.ts :: readHumanInputFormValue ignores inherited prototype properties
+- tests/unit/core/messages/human-input.test.ts :: buildInitialHumanInputFormValues seeds checkbox fields to false
+- tests/unit/core/messages/human-input.test.ts :: summary renders an untouched checkbox as an explicit no
+- tests/unit/core/messages/human-input.test.ts :: a plain reply closes only the latest unanswered request
+- tests/unit/core/messages/human-input.test.ts :: a visible plain human reply bypasses and closes an open request
+- tests/unit/core/messages/human-input.test.ts :: a visible human message before the request does not close it
+- tests/unit/core/messages/human-input.test.ts :: hidden non-response messages do not close an open request
+- tests/unit/core/messages/human-input.test.ts :: derives answered state for a form request answered by text
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > renders request text, options, and the other-answer input
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > renders answered state as disabled with the selected value
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > renders read-only state when no submit handler is available
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > renders markdown in question field (bold, lists)
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > renders a form request with labeled fields and required markers
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > associates form labels with controls and marks required fields
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > findMissingRequiredFields flags empty required values only
+- tests/unit/components/workspace/messages/human-input-card.test.ts :: HumanInputCard > does not submit text with Enter while IME composition is active
+- tests/unit/components/workspace/messages/human-input-card.dom.test.tsx :: HumanInputCard form validation (DOM) > keeps the error node mounted while another field is still invalid
+- tests/unit/components/workspace/messages/human-input-card.dom.test.tsx :: HumanInputCard form validation (DOM) > keeps select fields controlled from placeholder through selection
+
+### Skipped
+
+None.
+
+## Failures
+
+No test failures reported.

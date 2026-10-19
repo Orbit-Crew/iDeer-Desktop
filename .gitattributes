@@ -1,0 +1,2 @@
+# Preserve the exact bytes bound by this acceptance evidence manifest.
+docs/acceptance/issue-99/evidence/* -text

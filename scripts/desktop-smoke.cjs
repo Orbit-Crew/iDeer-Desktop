@@ -72,9 +72,9 @@ async function main() {
     page.setDefaultTimeout(15000)
     await page.getByRole('heading', { name: '平台登录与设备连接' }).waitFor()
     await recordProcesses('initial-launch', 'running')
-    assert.match(await page.locator('body').innerText(), /可在系统浏览器登录并绑定设备，聊天入口尚未接入/)
+    assert.match(await page.locator('body').innerText(), /登录后可选择平台已有 Agent\/Skill/)
     assert.equal(await page.title(), 'iDeer Desktop')
-    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['beginLogin', 'getStatus', 'quit', 'startRuntime', 'stopRuntime'])
+    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['beginLogin', 'chat', 'getStatus', 'quit', 'startRuntime', 'stopRuntime'])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
     const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'

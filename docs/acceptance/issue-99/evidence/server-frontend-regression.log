@@ -1,0 +1,8 @@
+
+ RUN  v5.0.0 C:/Users/Neo/.codex/worktrees/df64/iDeer-Desktop/artifacts/issue-99/server/frontend
+
+
+ Test Files  1 passed (1)
+      Tests  36 passed (36)
+   Start at  12:43:46
+   Duration  2.74s (environment 65%, setup 21%, transform 8%, import 4%, tests 1%, worker 1%)
