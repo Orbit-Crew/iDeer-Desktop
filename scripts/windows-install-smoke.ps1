@@ -21,7 +21,7 @@ try {
   node scripts/desktop-smoke.cjs
   if ($LASTEXITCODE -ne 0) { throw 'Installed Desktop smoke failed' }
 } finally {
-  $uninstaller = Join-Path $installDir 'Uninstall iDeer Desktop.exe'
+  $uninstaller = Join-Path $installDir 'Uninstall ideer-desktop.exe'
   if (-not (Test-Path $uninstaller)) { throw 'Uninstaller missing' }
   $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
   if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }

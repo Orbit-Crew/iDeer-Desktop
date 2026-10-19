@@ -121,6 +121,7 @@ def test_business_session_expiry_is_visible_without_claiming_device_online(tmp_p
 
 
 @pytest.mark.parametrize('business_ref,state', [('missing-business', 'expired'), ('', 'unauthenticated')])
+@pytest.mark.skipif(sys.platform != 'win32', reason='Uses the real Windows Credential Manager')
 def test_unauthenticated_profile_never_starts_executable_device_connection(tmp_path, business_ref, state):
     config = tmp_path / 'settings.json'
     RuntimeSettings(server_url='https://official.example', device_id='D1', device_name='D1',
