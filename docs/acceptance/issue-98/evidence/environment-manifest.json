@@ -1,0 +1,72 @@
+{
+  "executionDate": "2026-10-18",
+  "timezone": "Asia/Shanghai",
+  "executor": "Codex, automated fixture accounts",
+  "reviewBases": {
+    "desktop": "2fbfa8528a3f77b11cbf68b8e3f338ec08c1db94",
+    "server": "ccb251e07e5f5934b851e4c3df00224718f28123"
+  },
+  "modernWindows": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "OSArchitecture": "64 位"
+  },
+  "components": {
+    "buildNode": "22.23.3",
+    "npm": "10.9.9",
+    "resolvedNativePnpm": "10.26.2",
+    "defaultPnpmReportedByOldLane": "11.25.0",
+    "electron": "22.3.27",
+    "electronNode": "16.17.1",
+    "bundledPython": "3.12.10",
+    "testPython": "3.12.8",
+    "cryptography": "43.0.3",
+    "websockets": "13.1",
+    "cffi": "1.17.1",
+    "pycparser": "2.22",
+    "nginx": "1.31.7",
+    "serverPlaywright": "1.59.1"
+  },
+  "locksSha256": {
+    "package.json": "6c2208d42237477e1b83b539f0195bf3165f0ec3ca2b9dd319bac1bdcd6e4a24",
+    "package-lock.json": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a",
+    "local-runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+    "resources/provenance/runtime-source.json": "bead799967e98ad5a05d06cd71c4d7712985e8159b72a1f8e4edaa6f1829a2ae",
+    "artifacts/issue-98/server/backend/uv.lock": "5484082ec314c5933225ef852a5c7708bd60c02870472e81a11a8dea0d4d54af",
+    "artifacts/issue-98/server/frontend/package.json": "f68381e462dcf4e76345e85fd8a5e1e07b13af62356f0a07a0df33bd781764db",
+    "artifacts/issue-98/server/frontend/pnpm-lock.yaml": "3ff4163ee66e540357d2f0fed3c03c034ed8bc68c4549ead0d9cf8271a866131"
+  },
+  "deployment": {
+    "public": "http://127.0.0.1:21980",
+    "gateway": "http://127.0.0.1:21981",
+    "frontend": "http://127.0.0.1:21982",
+    "authenticationBypass": false,
+    "database": "isolated SQLite under server/dev-log/live-98",
+    "externalModelsAndTools": false,
+    "secretInManifest": false
+  },
+  "storageFailureInjection": "real CredWrite blob-size rejection; no OS security policy change",
+  "networkIsolation": "acceptance-only socket guard; only loopback unified-entry address/port allowed; private asyncio socketpair exempt; not an OS firewall rule",
+  "manualSSO": "unexecuted; existing local account login used",
+  "win7": {
+    "result": "unexecuted",
+    "owner": "Neowyh",
+    "issue": "https://github.com/Orbit-Crew/iDeer/issues/131"
+  },
+  "productSourceCommits": {
+    "desktop": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+    "server": "49b635ac5a59085c7c5c028c09a835db48728c9a"
+  },
+  "executionDates": [
+    "2026-10-18",
+    "2026-10-19"
+  ],
+  "finalServerValidationCandidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "linux": {
+    "python": "3.12.3",
+    "node": "22.23.2",
+    "pnpm": "10.26.2",
+    "uv": "0.11.1",
+    "sourceLayout": "native ext4 task checkout; only the migration test changes after production source49b635"
+  }
+}

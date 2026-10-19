@@ -1,0 +1,11 @@
+
+  GitNexus Impact (1.6.12)
+{
+  "error": "Target 'test_merge_revision_joins_both_heads' not found",
+  "target": {
+    "name": "test_merge_revision_joins_both_heads"
+  },
+  "direction": "upstream",
+  "impactedCount": null,
+  "risk": "UNKNOWN"
+}

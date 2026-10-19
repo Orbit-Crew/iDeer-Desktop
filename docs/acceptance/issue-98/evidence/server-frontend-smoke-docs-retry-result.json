@@ -1,0 +1,5 @@
+{
+  "seconds": 11.873397,
+  "exitCode": 0,
+  "reason": "Retry only failed documentation specs after initial cold compilation"
+}

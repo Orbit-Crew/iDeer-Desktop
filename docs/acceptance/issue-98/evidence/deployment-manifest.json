@@ -1,0 +1,13 @@
+{
+  "gateway": "http://127.0.0.1:21981",
+  "frontend": "http://127.0.0.1:21982",
+  "owner_pid": 51164,
+  "public": "http://127.0.0.1:21980",
+  "pids": [
+    22452,
+    53604,
+    46280
+  ],
+  "state": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\dev-log\\live-98",
+  "config": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\dev-log\\live-98\\config.yaml"
+}

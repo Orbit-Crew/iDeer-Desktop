@@ -70,11 +70,11 @@ async function main() {
     app = await electron.launch(options)
     const page = await app.firstWindow()
     page.setDefaultTimeout(15000)
-    await page.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor()
+    await page.getByRole('heading', { name: '平台登录与设备连接' }).waitFor()
     await recordProcesses('initial-launch', 'running')
-    assert.match(await page.locator('body').innerText(), /登录与聊天入口尚未接入/)
+    assert.match(await page.locator('body').innerText(), /可在系统浏览器登录并绑定设备，聊天入口尚未接入/)
     assert.equal(await page.title(), 'iDeer Desktop')
-    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['getStatus', 'quit', 'startRuntime', 'stopRuntime'])
+    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['beginLogin', 'getStatus', 'quit', 'startRuntime', 'stopRuntime'])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
     const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'
@@ -168,7 +168,7 @@ async function main() {
 
     for (const [width, height] of [[960, 600], [1440, 900], [1280, 800]]) {
       await app.evaluate(({ BrowserWindow }, bounds) => BrowserWindow.getAllWindows()[0].setSize(...bounds), [width, height])
-      await page.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor({ state: 'visible' })
+      await page.getByRole('heading', { name: '平台登录与设备连接' }).waitFor({ state: 'visible' })
       assert.equal(await page.locator('textarea, input[type="password"], input[type="submit"]').count(), 0)
     }
 
@@ -220,7 +220,7 @@ async function main() {
     // Closing the native window must exit, without a background tray process.
     app = await electron.launch(options)
     const reopenedPage = await app.firstWindow()
-    await reopenedPage.getByRole('heading', { name: '平台登录与聊天暂不可用' }).waitFor()
+    await reopenedPage.getByRole('heading', { name: '平台登录与设备连接' }).waitFor()
     if (process.platform === 'win32') await waitRuntimeState(reopenedPage, 'running')
     const beforeCloseRuntime = await reopenedPage.evaluate(() => window.ideer.getStatus())
     await recordProcesses('restart-before-native-close', 'running')

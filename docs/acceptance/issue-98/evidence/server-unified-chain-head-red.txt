@@ -1,0 +1,31 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_merge_revision_joins_both_heads _____________________
+
+    def test_merge_revision_joins_both_heads() -> None:
+        script = _script_directory()
+        # The v2.1.0 rejoin merge revision sits on top of the unified chain.
+>       assert script.get_current_head() == "20261001_rejoin_upstream_line"
+E       AssertionError: assert '20261018_desktop_login' == '20261001_rej...upstream_line'
+E         
+E         - 20261001_rejoin_upstream_line
+E         + 20261018_desktop_login
+
+tests\unit\persistence\test_unified_chain_adoption.py:54: AssertionError
+============================== warnings summary ===============================
+tests/unit/persistence/test_unified_chain_adoption.py::test_merge_revision_joins_both_heads
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.venv\Lib\site-packages\alembic\config.py:580: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces/commas for version_locations.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+.venv\Lib\site-packages\_pytest\cacheprovider.py:475
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.venv\Lib\site-packages\_pytest\cacheprovider.py:475: PytestCacheWarning: cache could not write path C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.pytest_cache\v\cache\nodeids: [Errno 13] Permission denied: 'C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\backend\\.pytest_cache\\v\\cache\\nodeids'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv\Lib\site-packages\_pytest\cacheprovider.py:429
+  C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.venv\Lib\site-packages\_pytest\cacheprovider.py:429: PytestCacheWarning: could not create cache path C:\Users\Neo\.codex\worktrees\f2ef\iDeer-Desktop\artifacts\issue-98\server\backend\.pytest_cache\v\cache\lastfailed: [WinError 5] 拒绝访问。: 'C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\backend\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/persistence/test_unified_chain_adoption.py::test_merge_revision_joins_both_heads
+1 failed, 3 warnings in 11.22s

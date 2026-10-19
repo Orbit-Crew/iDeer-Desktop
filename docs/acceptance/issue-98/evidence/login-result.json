@@ -1,0 +1,69 @@
+{
+  "startedAt": "2026-10-18T12:18:55.160Z",
+  "origin": "http://127.0.0.1:21980",
+  "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+  "deviceName": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
+  "result": "passed",
+  "stages": [
+    {
+      "stage": "installed-login",
+      "result": "passed",
+      "runtime": {
+        "process": "running",
+        "connection": "connected",
+        "tasks": [],
+        "pid": 51320,
+        "login": {
+          "state": "authenticated",
+          "account": "user98a@test.com",
+          "device": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
+          "error": ""
+        }
+      },
+      "realShellOpenExternal": true,
+      "ownerMatches": true,
+      "deviceOnline": true,
+      "separateSecureReferences": true
+    },
+    {
+      "stage": "first-exit",
+      "result": "passed",
+      "runtimePid": 51320,
+      "runtimeExited": true
+    },
+    {
+      "stage": "installed-restart",
+      "result": "passed",
+      "runtime": {
+        "process": "running",
+        "connection": "connected",
+        "tasks": [],
+        "pid": 54852,
+        "login": {
+          "state": "authenticated",
+          "account": "user98a@test.com",
+          "device": "T98-installed-4185faf4-3663-4657-a7a3-ecbd6e8c2bbc",
+          "error": ""
+        }
+      },
+      "sameDevice": true
+    }
+  ],
+  "executableSha256": "417dcea6c92bbd1390de26abf862207522513855b8b47b6f874a485902d2d72b",
+  "appAsarSha256": "2f7dbfd009b74024f58b62d1847a89733827b63723cf5ff0653fd12b9b0c8772",
+  "application": {
+    "userData": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop",
+    "version": "0.1.0",
+    "packaged": true
+  },
+  "cleanup": {
+    "referencesDeleted": 3,
+    "settingsRemoved": true,
+    "runtimePidsExited": [
+      51320,
+      54852
+    ]
+  },
+  "finishedAt": "2026-10-18T12:19:15.237Z",
+  "elapsedMs": 20077
+}

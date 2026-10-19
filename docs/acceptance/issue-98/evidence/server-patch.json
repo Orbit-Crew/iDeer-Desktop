@@ -1,0 +1,16 @@
+{
+  "base": "ccb251e07e5f5934b851e4c3df00224718f28123",
+  "serverHeadIncludingReport": "84d4ca565e6cbb7b2a4deedaac0918bb134365f0",
+  "validationCandidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "commits": [
+    "8419f1038ef0976098faa55c824c29a10a0c8f6d feat(devices): add browser-confirmed desktop login",
+    "49b635ac5a59085c7c5c028c09a835db48728c9a fix(ui): use the desktop login typography role",
+    "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25 test(persistence): track the desktop login migration head",
+    "f875fe1fbd7eb1fe34a5ca8a1427a0f569d4ecf5 docs(acceptance): record final issue 98 validation",
+    "84d4ca565e6cbb7b2a4deedaac0918bb134365f0 docs(acceptance): record human Chrome login confirmation"
+  ],
+  "archivePath": "docs/acceptance/issue-98/server-implementation.patch.gz",
+  "gzipSha256": "d4c31dd768b2cac0b4c5f2eec83bad9197f6403b23e78c69da211989ea5b85b7",
+  "formatPatchSha256": "300dd625f6360a0f811b02c5e9ce2689722005a82cdf9de86cc139d7705d14f8",
+  "roundTripVerified": true
+}

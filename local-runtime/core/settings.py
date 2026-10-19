@@ -46,6 +46,9 @@ class RuntimeSettings:
     server_url: str = ""
     device_name: str = ""
     user_name: str = ""
+    user_id: str = ""
+    business_token_ref: str = ""
+    business_expires_at: str = ""
     device_id: str = ""
     #: Server-issued session identity; it must survive reconnects.
     session_id: str = ""

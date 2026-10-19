@@ -1,5 +1,5 @@
 // Node 16 compatibility runs in the build banner before any imports.
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createMainWindow } from './window'
@@ -66,6 +66,11 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)
       return runtime.stop()
+    })
+    ipcMain.handle('desktop:login:begin', async (event, server: string, deviceName: string) => {
+      requireMainFrame(event)
+      const url = await runtime.beginLogin(server, deviceName)
+      await shell.openExternal(url)
     })
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)

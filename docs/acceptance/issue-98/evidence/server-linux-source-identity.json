@@ -1,0 +1,15 @@
+{
+  "commit": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+  "physical_root": "/tmp/ideer-issue98-01a14c7b/server",
+  "layout": "complete native checkout, no backend symlink",
+  "git_status_porcelain": "",
+  "trackedFiles": 5626,
+  "manifestPath": "artifacts\\issue-98\\server\\dev-log\\linux-validation\\source-identity.json",
+  "manifestSha256": "6d47186b9dc94a7324708458b44445f857de750527121583e603db5ca0613d81",
+  "environment": {
+    "python": "3.12.3",
+    "node": "22.23.2",
+    "pnpm": "10.26.2",
+    "uv": "0.11.1"
+  }
+}

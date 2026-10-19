@@ -1,0 +1,18 @@
+{
+  "summary": {
+    "changed_count": 1,
+    "affected_count": 0,
+    "changed_files": 1,
+    "risk_level": "low"
+  },
+  "changed_symbols": [
+    {
+      "id": "Function:frontend/src/app/desktop-login/confirmation.tsx:DesktopLoginConfirmation",
+      "name": "DesktopLoginConfirmation",
+      "type": "Function",
+      "filePath": "frontend/src/app/desktop-login/confirmation.tsx",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": []
+}

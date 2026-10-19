@@ -1,0 +1,19 @@
+
+> ideer-desktop@0.1.0 test
+> vitest run
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.0 C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop
+
+ ✓ test/compat.test.ts  (2 tests) 26ms
+ ✓ test/security.test.ts  (1 test) 345ms
+ ✓ test/login.test.ts  (2 tests) 1149ms
+ ✓ test/runtime.test.ts  (1 test) 2167ms
+ ✓ test/startup.test.tsx  (1 test) 138ms
+
+ Test Files  5 passed (5)
+      Tests  7 passed (7)
+   Start at  13:42:47
+   Duration  11.60s (transform 2.25s, setup 7ms, collect 11.45s, tests 3.83s, environment 1ms, prepare 8.39s)
+

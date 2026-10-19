@@ -1,0 +1,12 @@
+
+ RUN  v5.0.0 C:/Users/Neo/.codex/worktrees/f2ef/iDeer-Desktop/artifacts/issue-98/server/frontend
+
+ ✓ tests/unit/typography-contract.test.ts > production typography contract > defines the production typography roles and responsive scale 4ms
+ ✓ tests/unit/typography-contract.test.ts > production typography contract > does not retain unclassified small or utility text sizes 171ms
+ ✓ tests/unit/typography-contract.test.ts > production typography contract > keeps the landing hero close to its pre-governance scale through roles 1ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:14:32
+   Duration  2.05s (environment 68%, setup 19%, tests 10%, transform 3%)
+

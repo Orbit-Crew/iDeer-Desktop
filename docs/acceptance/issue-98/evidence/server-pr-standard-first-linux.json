@@ -1,0 +1,43 @@
+{
+  "result": "failed",
+  "candidate": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+  "parent": {
+    "lane": "pr-standard",
+    "seconds": 1714,
+    "status": 1
+  },
+  "subLanes": [
+    {
+      "lane": "local-runtime",
+      "passed": 224,
+      "skipped": 4,
+      "seconds": 11,
+      "status": 0
+    },
+    {
+      "lane": "backend-standard",
+      "passed": 26841,
+      "failed": 1,
+      "skipped": 239,
+      "pytestSeconds": 1003.43,
+      "seconds": 1104,
+      "status": 1
+    },
+    {
+      "lane": "frontend-standard",
+      "rstestPassed": 1270,
+      "vitestPassed": 10558,
+      "seconds": 457,
+      "status": 0
+    },
+    {
+      "lane": "frontend-smoke",
+      "passed": 34,
+      "seconds": 137,
+      "status": 0
+    }
+  ],
+  "failure": "test_merge_revision_joins_both_heads still asserted the old global migration head",
+  "resolutionCommit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "logSha256": "b94bc2614d2f6d4675e22277b2fd27359aab14e04d9b486fbd232511b043ac1c"
+}

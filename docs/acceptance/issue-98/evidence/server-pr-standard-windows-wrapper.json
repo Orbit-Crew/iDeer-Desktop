@@ -1,0 +1,46 @@
+{
+  "result": "failed",
+  "candidate": "pre-final-handler/typography revisions; not reused as final pass",
+  "parent": {
+    "lane": "pr-standard",
+    "status": 1,
+    "seconds": 1397
+  },
+  "subLanes": [
+    {
+      "lane": "local-runtime",
+      "status": 0,
+      "seconds": 38,
+      "passed": 222,
+      "skipped": 6
+    },
+    {
+      "lane": "backend-standard",
+      "status": 1,
+      "seconds": 1277,
+      "passed": 24301,
+      "failed": 388,
+      "skipped": 388,
+      "collectionErrors": 62
+    },
+    {
+      "lane": "frontend-standard",
+      "status": 139,
+      "seconds": 26,
+      "testExecution": "not completed; launcher segmentation fault"
+    },
+    {
+      "lane": "frontend-smoke",
+      "status": 139,
+      "seconds": 27,
+      "testExecution": "not completed; launcher segmentation fault"
+    }
+  ],
+  "fullLog": "artifacts\\issue-98\\server\\dev-log\\pr-standard-native.log",
+  "fullLogSha256": "670f4dcbc6e962b441dcf54416f61a4c2d4afcb87cb9e7079387e9e781062a8e",
+  "confirmedEnvironmentDefects": [
+    "Bash PYTHONPATH .:tests is not a Windows path list",
+    "Python execvpe launcher failed even with native pnpm selected",
+    "Additional Linux-specific modules, path semantics and symlink privileges failed; not all failures attributed to the path list"
+  ]
+}

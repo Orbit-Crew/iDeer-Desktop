@@ -1,0 +1,9 @@
+{
+  "run_id": "issue98-9d3ee3d-1792366462",
+  "stateRemoved": true,
+  "gatewayPortClosed": true,
+  "frontendPortClosed": true,
+  "additionalScopedCleanupNeeded": true,
+  "reason": "Original cleanup could not remove read-only published fixture resources; restored owner write permission only after service exit, then removed the verified run directory",
+  "officialRunnerUnchanged": true
+}

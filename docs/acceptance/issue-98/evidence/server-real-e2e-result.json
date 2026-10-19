@@ -1,0 +1,12 @@
+{
+  "command": [
+    "bash",
+    "/tmp/ideer-issue98-01a14c7b/server/backend/scripts/run-real-e2e.sh"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 142.01279494799383,
+  "run_id": "issue98-9d3ee3d-1792366462",
+  "candidate": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "default_deterministic_suite": true,
+  "REAL_E2E_REAL_MODEL": "0"
+}

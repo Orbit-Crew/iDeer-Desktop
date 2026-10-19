@@ -1,0 +1,12 @@
+{
+  "desktopSourceCommit": "307904c28df8cbd9b87674e31cbdb99551fbe887",
+  "archiveSha256": "2f7dbfd009b74024f58b62d1847a89733827b63723cf5ff0653fd12b9b0c8772",
+  "matchedBuildFiles": 5,
+  "files": {
+    "out/main/index.js": "0d843f6704e0c9bb450abd0dc690966e5b1b1c089528c80fe8ccfd50fad9ad04",
+    "out/preload/index.js": "f6f30ad0ddd31a1e4dbab5da84cb1807c7d6689f679afc1a7eb564e50e010762",
+    "out/renderer/assets/index-D8e9qZE7.css": "2284fe80ed039bf4630c7fbb4d9ee8f5c1627d6dd859348bc257ad5d770f91be",
+    "out/renderer/assets/index-DjZl7I_a.js": "07f8648d5d9e3dd694fb8df19182b2f7c3f928905b68eeffa1088229db927ea9",
+    "out/renderer/index.html": "4ee57e9bb3f7af7a6638b72b10d77ccc07c5134efc6735b94d348b6150db9ae6"
+  }
+}

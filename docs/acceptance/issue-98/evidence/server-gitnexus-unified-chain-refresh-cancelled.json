@@ -1,0 +1,8 @@
+{
+  "status": "cancelled",
+  "reason": "Optional full refresh retained UNKNOWN; complete structured scope-all and compare evidence already saved; release CPU for required Real E2E",
+  "verifiedParentPid": 53816,
+  "verifiedChildPid": 56936,
+  "sourceFilesModified": false,
+  "completed": false
+}

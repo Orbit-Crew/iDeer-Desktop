@@ -1,0 +1,2148 @@
+{
+  "result": "failed",
+  "candidate": "final backend source bytes, unchanged by typography-only commit49b635",
+  "runner": {
+    "runner": "Windows native equivalent of backend-standard",
+    "seconds": 1422.7573716,
+    "exitCode": 1,
+    "pythonPath": "C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\backend;C:\\Users\\Neo\\.codex\\worktrees\\f2ef\\iDeer-Desktop\\artifacts\\issue-98\\server\\backend/tests"
+  },
+  "totals": [
+    {
+      "tests": "27065",
+      "failures": "351",
+      "errors": "3",
+      "skipped": "408",
+      "time": "1408.154"
+    }
+  ],
+  "failedCases": [
+    {
+      "class": "",
+      "name": "tests.unit.scripts.test_disclosure_evidence_archive",
+      "kind": "error",
+      "category": null
+    },
+    {
+      "class": "",
+      "name": "tests.unit.scripts.test_disclosure_pilot_costs",
+      "kind": "error",
+      "category": null
+    },
+    {
+      "class": "",
+      "name": "tests.unit.scripts.test_disclosure_reading_runner",
+      "kind": "error",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_behavior.TestReadability",
+      "name": "test_readability_extractor_empty",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_sandbox_tools_security",
+      "name": "test_local_code_evidence_is_readable_but_not_writable",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestValidatePath",
+      "name": "test_allowed_prefix_tmp",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestValidatePath",
+      "name": "test_allowed_prefix_mnt",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestValidatePath",
+      "name": "test_path_is_resolved",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_nonexistent_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_path_is_directory",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_unsupported_extension",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_file_too_large",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_conversion_raises_exception",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_conversion_returns_none",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_converted_file_not_found",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_converted_file_read_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolErrors",
+      "name": "test_empty_conversion_output",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_successful_non_pdf_conversion",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_successful_pdf_with_page_count",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_successful_xlsx_conversion",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_successful_pptx_conversion",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_metadata_header_contains_file_info",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_safe_name_replaces_arrow",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_output_truncation_for_large_content",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolSuccess",
+      "name": "test_cleanup_md_file_on_success",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_pdf_page_range_success",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_pdf_page_range_no_page_count",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_pdf_page_range_fails_falls_back_to_full_doc",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_pdf_page_range_truncation",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_non_pdf_with_page_range_ignores_range",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolPdfPageRange",
+      "name": "test_pdf_no_page_range_uses_full_conversion",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestReadDocumentToolCleanup",
+      "name": "test_unlink_os_error_caught",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.pdf]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.doc]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.docx]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.xlsx]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.xls]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.pptx]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_each_supported_extension[.ppt]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_legacy_doc_converted_via_rich_parser",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestSupportedExtensions",
+      "name": "test_legacy_doc_conversion_failure_includes_libreoffice_hint",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestVirtualPathResolution",
+      "name": "test_no_runtime_keeps_literal_prefix_whitelist",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestCustomMountResolution",
+      "name": "test_nested_mount_longest_prefix_wins",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader_tools.TestCommunityMcpServersSmoke",
+      "name": "test_server_boots_with_expected_tool[app.agentplatform.community.code_interpreter.mcp_server-code_interpreter]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_slack_channel.TestSlackChannelSendFile",
+      "name": "test_send_file_success",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.integration.sandbox.test_provisioner_pvc_volumes.TestBuildVolumes",
+      "name": "test_hostpath_mode_mounts_three_way_skills_layout",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.integration.sandbox.test_provisioner_pvc_volumes.TestBuildVolumes",
+      "name": "test_custom_skills_view_is_user_scoped",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.integration.sandbox.test_provisioner_pvc_volumes.TestBuildVolumes",
+      "name": "test_hostpath_userdata_keeps_thread_scoped_path",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_channel_file_attachments.TestResolveAttachments",
+      "name": "test_resolves_csv_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_local_sandbox_provider_mounts.TestReadOnlyPath",
+      "name": "test_bash_write_to_projected_copy_does_not_mutate_source",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_local_sandbox_provider_mounts.TestMultipleMounts",
+      "name": "test_execute_command_path_replacement",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_sandbox_security.TestCommandTimeout",
+      "name": "test_execute_command_has_timeout",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestValidatePath",
+      "name": "test_allowed_tmp_path",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestValidatePath",
+      "name": "test_allowed_mnt_path",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_file_not_found",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_file_too_large",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_csv_reading",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_excel_reading",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_json_reading",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_json_lines_fallback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_json_chunked_fallback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_json_all_parse_fail",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_unsupported_format",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_generic_exception_during_read",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_decompression_bomb_protection",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_row_truncation",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestReadFile",
+      "name": "test_empty_file_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_summary_analysis",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_describe_analysis",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_correlation_analysis",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_analysis_exception_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_output_truncation",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_output_truncation_binary_search_fits",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_normal_output_not_truncated",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_default_analysis_type_is_summary",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_empty_csv_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer_tools.TestDataAnalyzerTool",
+      "name": "test_unsupported_format_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_decodes_fixture_frames_with_scale_and_paging_window",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_paging_reaches_the_last_frame_and_reports_no_next_window",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scale_multiplies_raw_value_exactly",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_corrupted_stream_annotates_bad_frames_and_counts_without_stopping",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_truncated_tail_frame_is_marked_with_empty_values",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_no_sync_file_reports_zero_frames_and_skipped_bytes_honestly",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_length_field_derived_frames_decode_and_tail_is_truncated",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACF\", \"frame\": {\"size\": 8}, \"fields\": [-JSON]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[[]-\\u9876\\u5c42]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACF\", \"frame\": {\"size\": 8}, \"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"u8\", \"endian\": \"big\"}], \"extra\": 1}-extra]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"u8\", \"endian\": \"big\"}]}-layout.frame]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACFFC1D\", \"frame\": {\"size\": 32}, \"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"float64\", \"endian\": \"big\"}], \"checksum\": {\"algorithm\": \"sum16\", \"offset\": 24, \"endian\": \"big\", \"coverage\": {\"start\": 4, \"end\": 24}}}-fields[0].type]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACFFC1D\", \"frame\": {\"size\": 32}, \"fields\": [{\"name\": \"frame_counter\", \"offset\": 4, \"type\": \"u32\", \"endian\": \"big\"}, {\"name\": \"ch0\", \"offset\": 8, \"type\": \"u16\", \"endian\": \"big\", \"scale\": 0.1}, {\"name\": \"ch1\", \"offset\": 10, \"type\": \"u16\", \"endian\": \"big\", \"scale\": 0.1}], \"checksum\": {\"algorithm\": \"crc32\", \"offset\": 24, \"endian\": \"big\", \"coverage\": {\"start\": 4, \"end\": 24}}}-checksum.algorithm]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACFFC1D\", \"frame\": {\"size\": 32}, \"fields\": [{\"name\": \"a\", \"offset\": 40, \"type\": \"u16\", \"endian\": \"big\"}], \"checksum\": {\"algorithm\": \"sum16\", \"offset\": 24, \"endian\": \"big\", \"coverage\": {\"start\": 4, \"end\": 24}}}-fields[0].offset]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACF\", \"frame\": {\"size\": 0}, \"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"u8\", \"endian\": \"big\"}]}-frame.size]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACF\", \"frame\": {\"size\": 70000}, \"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"u8\", \"endian\": \"big\"}]}-frame.size]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_invalid_layouts_are_rejected_with_position_and_no_frames[{\"sync_word\": \"1ACFFC1D\", \"frame\": {\"size\": 32}, \"fields\": [{\"name\": \"a\", \"offset\": 0, \"type\": \"u8\", \"endian\": \" sideways\"}], \"checksum\": {\"algorithm\": \"sum16\", \"offset\": 24, \"endian\": \"big\", \"coverage\": {\"start\": 4, \"end\": 24}}}-fields[0].endian]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_fields_filter_with_unknown_name_is_invalid_layout",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_fields_filter_returns_only_selected_fields",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_layout_echo_is_exact_input_string_on_success",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_negative_frame_window_is_invalid_paging",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_frame_count_over_cap_truncates_with_visible_flag",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_cap_stops_the_scan_with_visible_flags",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_mode_returns_aggregates_without_any_raw_frames",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_mode_reports_mixed_statuses_and_bad_frame_locations",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_mode_marks_truncated_tail_in_bad_frames",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_bad_frame_list_is_capped_by_a_code_constant_with_more_exist_flags",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_bad_frame_list_under_cap_carries_no_total_flag",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_of_syncless_file_is_an_honest_zero_frame_aggregate",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_cap_reports_honest_total_frames",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_aggregates_reconcile_with_windowed_decodes[frames.dat-\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xa9\\x07R\\n\\xfb\\x0e\\xa4\\x12M\\x15\\xf6\\x19\\x9f\\x04\\xde\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x01\\x00\\x07\\x03\\xb0\\x07Y\\x0b\\x02\\x0e\\xab\\x12T\\x15\\xfd\\x19\\xa6\\x04\\x18\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x02\\x00\\x0e\\x03\\xb7\\x07`\\x0b\\t\\x0e\\xb2\\x12[\\x16\\x04\\x19\\xad\\x03R\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x03\\x00\\x15\\x03\\xbe\\x07g\\x0b\\x10\\x0e\\xb9\\x12b\\x16\\x0b\\x19\\xb4\\x03\\x8b\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x04\\x00\\x1c\\x03\\xc5\\x07n\\x0b\\x17\\x0e\\xc0\\x12i\\x16\\x12\\x19\\xbb\\x03\\xc4\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x05\\x00#\\x03\\xcc\\x07u\\x0b\\x1e\\x0e\\xc7\\x12p\\x16\\x19\\x19\\xc2\\x03\\xfd\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x06\\x00*\\x03\\xd3\\x07|\\x0b%\\x0e\\xce\\x12w\\x16 \\x19\\xc9\\x046\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x07\\x001\\x03\\xda\\x07\\x83\\x0b,\\x0e\\xd5\\x12~\\x16'\\x19\\xd0\\x04o\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x08\\x008\\x03\\xe1\\x07\\x8a\\x0b3\\x0e\\xdc\\x12\\x85\\x16.\\x19\\xd7\\x04\\xa8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\t\\x00?\\x03\\xe8\\x07\\x91\\x0b:\\x0e\\xe3\\x12\\x8c\\x165\\x19\\xde\\x04\\xe1\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\n\\x00F\\x03\\xef\\x07\\x98\\x0bA\\x0e\\xea\\x12\\x93\\x16<\\x19\\xe5\\x05\\x1a\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0b\\x00M\\x03\\xf6\\x07\\x9f\\x0bH\\x0e\\xf1\\x12\\x9a\\x16C\\x19\\xec\\x05S\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0c\\x00T\\x03\\xfd\\x07\\xa6\\x0bO\\x0e\\xf8\\x12\\xa1\\x16J\\x19\\xf3\\x05\\x8c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\r\\x00[\\x04\\x04\\x07\\xad\\x0bV\\x0e\\xff\\x12\\xa8\\x16Q\\x19\\xfa\\x04\\xc6\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0e\\x00b\\x04\\x0b\\x07\\xb4\\x0b]\\x0f\\x06\\x12\\xaf\\x16X\\x1a\\x01\\x03\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0f\\x00i\\x04\\x12\\x07\\xbb\\x0bd\\x0f\\r\\x12\\xb6\\x16_\\x1a\\x08\\x03:\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x10\\x00p\\x04\\x19\\x07\\xc2\\x0bk\\x0f\\x14\\x12\\xbd\\x16f\\x1a\\x0f\\x03s\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x11\\x00w\\x04 \\x07\\xc9\\x0br\\x0f\\x1b\\x12\\xc4\\x16m\\x1a\\x16\\x03\\xac\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x12\\x00~\\x04'\\x07\\xd0\\x0by\\x0f\"\\x12\\xcb\\x16t\\x1a\\x1d\\x03\\xe5\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x13\\x00\\x85\\x04.\\x07\\xd7\\x0b\\x80\\x0f)\\x12\\xd2\\x16{\\x1a$\\x04\\x1e\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x14\\x00\\x8c\\x045\\x07\\xde\\x0b\\x87\\x0f0\\x12\\xd9\\x16\\x82\\x1a+\\x04W\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x15\\x00\\x93\\x04<\\x07\\xe5\\x0b\\x8e\\x0f7\\x12\\xe0\\x16\\x89\\x1a2\\x04\\x90\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x16\\x00\\x9a\\x04C\\x07\\xec\\x0b\\x95\\x0f>\\x12\\xe7\\x16\\x90\\x1a9\\x04\\xc9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x17\\x00\\xa1\\x04J\\x07\\xf3\\x0b\\x9c\\x0fE\\x12\\xee\\x16\\x97\\x1a@\\x05\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x18\\x00\\xa8\\x04Q\\x07\\xfa\\x0b\\xa3\\x0fL\\x12\\xf5\\x16\\x9e\\x1aG\\x05;\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x19\\x00\\xaf\\x04X\\x08\\x01\\x0b\\xaa\\x0fS\\x12\\xfc\\x16\\xa5\\x1aN\\x04u\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1a\\x00\\xb6\\x04_\\x08\\x08\\x0b\\xb1\\x0fZ\\x13\\x03\\x16\\xac\\x1aU\\x03\\xaf\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1b\\x00\\xbd\\x04f\\x08\\x0f\\x0b\\xb8\\x0fa\\x13\\n\\x16\\xb3\\x1a\\\\x03\\xe8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1c\\x00\\xc4\\x04m\\x08\\x16\\x0b\\xbf\\x0fh\\x13\\x11\\x16\\xba\\x1ac\\x04!\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1d\\x00\\xcb\\x04t\\x08\\x1d\\x0b\\xc6\\x0fo\\x13\\x18\\x16\\xc1\\x1aj\\x04Z\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1e\\x00\\xd2\\x04{\\x08$\\x0b\\xcd\\x0fv\\x13\\x1f\\x16\\xc8\\x1aq\\x04\\x93\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1f\\x00\\xd9\\x04\\x82\\x08+\\x0b\\xd4\\x0f}\\x13&\\x16\\xcf\\x1ax\\x04\\xcc\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00 \\x00\\xe0\\x04\\x89\\x082\\x0b\\xdb\\x0f\\x84\\x13-\\x16\\xd6\\x1a\\x7f\\x05\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00!\\x00\\xe7\\x04\\x90\\x089\\x0b\\xe2\\x0f\\x8b\\x134\\x16\\xdd\\x1a\\x86\\x05>\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\"\\x00\\xee\\x04\\x97\\x08@\\x0b\\xe9\\x0f\\x92\\x13;\\x16\\xe4\\x1a\\x8d\\x05w\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00#\\x00\\xf5\\x04\\x9e\\x08G\\x0b\\xf0\\x0f\\x99\\x13B\\x16\\xeb\\x1a\\x94\\x05\\xb0\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00$\\x00\\xfc\\x04\\xa5\\x08N\\x0b\\xf7\\x0f\\xa0\\x13I\\x16\\xf2\\x1a\\x9b\\x05\\xe9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00%\\x01\\x03\\x04\\xac\\x08U\\x0b\\xfe\\x0f\\xa7\\x13P\\x16\\xf9\\x1a\\xa2\\x05#\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00&\\x01\\n\\x04\\xb3\\x08\\\\x0c\\x05\\x0f\\xae\\x13W\\x17\\x00\\x1a\\xa9\\x03^\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00'\\x01\\x11\\x04\\xba\\x08c\\x0c\\x0c\\x0f\\xb5\\x13^\\x17\\x07\\x1a\\xb0\\x03\\x97\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00(\\x01\\x18\\x04\\xc1\\x08j\\x0c\\x13\\x0f\\xbc\\x13e\\x17\\x0e\\x1a\\xb7\\x03\\xd0\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00)\\x01\\x1f\\x04\\xc8\\x08q\\x0c\\x1a\\x0f\\xc3\\x13l\\x17\\x15\\x1a\\xbe\\x04\\t\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00*\\x01&\\x04\\xcf\\x08x\\x0c!\\x0f\\xca\\x13s\\x17\\x1c\\x1a\\xc5\\x04B\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00+\\x01-\\x04\\xd6\\x08\\x7f\\x0c(\\x0f\\xd1\\x13z\\x17#\\x1a\\xcc\\x04{\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00,\\x014\\x04\\xdd\\x08\\x86\\x0c/\\x0f\\xd8\\x13\\x81\\x17*\\x1a\\xd3\\x04\\xb4\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00-\\x01;\\x04\\xe4\\x08\\x8d\\x0c6\\x0f\\xdf\\x13\\x88\\x171\\x1a\\xda\\x04\\xed\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00.\\x01B\\x04\\xeb\\x08\\x94\\x0c=\\x0f\\xe6\\x13\\x8f\\x178\\x1a\\xe1\\x05&\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00/\\x01I\\x04\\xf2\\x08\\x9b\\x0cD\\x0f\\xed\\x13\\x96\\x17?\\x1a\\xe8\\x05_\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x000\\x01P\\x04\\xf9\\x08\\xa2\\x0cK\\x0f\\xf4\\x13\\x9d\\x17F\\x1a\\xef\\x05\\x98\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x001\\x01W\\x05\\x00\\x08\\xa9\\x0cR\\x0f\\xfb\\x13\\xa4\\x17M\\x1a\\xf6\\x04\\xd2\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x002\\x01^\\x05\\x07\\x08\\xb0\\x0cY\\x10\\x02\\x13\\xab\\x17T\\x1a\\xfd\\x04\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x003\\x01e\\x05\\x0e\\x08\\xb7\\x0c`\\x10\\t\\x13\\xb2\\x17[\\x1b\\x04\\x03F\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x004\\x01l\\x05\\x15\\x08\\xbe\\x0cg\\x10\\x10\\x13\\xb9\\x17b\\x1b\\x0b\\x03\\x7f\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x005\\x01s\\x05\\x1c\\x08\\xc5\\x0cn\\x10\\x17\\x13\\xc0\\x17i\\x1b\\x12\\x03\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x006\\x01z\\x05#\\x08\\xcc\\x0cu\\x10\\x1e\\x13\\xc7\\x17p\\x1b\\x19\\x03\\xf1\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x007\\x01\\x81\\x05*\\x08\\xd3\\x0c|\\x10%\\x13\\xce\\x17w\\x1b \\x04*\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x008\\x01\\x88\\x051\\x08\\xda\\x0c\\x83\\x10,\\x13\\xd5\\x17~\\x1b'\\x04c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x009\\x01\\x8f\\x058\\x08\\xe1\\x0c\\x8a\\x103\\x13\\xdc\\x17\\x85\\x1b.\\x04\\x9c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00:\\x01\\x96\\x05?\\x08\\xe8\\x0c\\x91\\x10:\\x13\\xe3\\x17\\x8c\\x1b5\\x04\\xd5\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00;\\x01\\x9d\\x05F\\x08\\xef\\x0c\\x98\\x10A\\x13\\xea\\x17\\x93\\x1b<\\x05\\x0e\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00<\\x01\\xa4\\x05M\\x08\\xf6\\x0c\\x9f\\x10H\\x13\\xf1\\x17\\x9a\\x1bC\\x05G\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00=\\x01\\xab\\x05T\\x08\\xfd\\x0c\\xa6\\x10O\\x13\\xf8\\x17\\xa1\\x1bJ\\x05\\x80\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00>\\x01\\xb2\\x05[\\t\\x04\\x0c\\xad\\x10V\\x13\\xff\\x17\\xa8\\x1bQ\\x04\\xba\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00?\\x01\\xb9\\x05b\\t\\x0b\\x0c\\xb4\\x10]\\x14\\x06\\x17\\xaf\\x1bX\\x03\\xf4\\x00\\x00\\x00\\x00\\x00\\x00-64-counts0]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_aggregates_reconcile_with_windowed_decodes[corrupted.dat-\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xa9\\x07R\\n\\xfb\\x0e\\xa4\\x12M\\x15\\xf6\\x19\\x9f\\x04\\xde\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x01\\x00\\x07\\x03\\xb0\\x07Y\\x0b\\x02\\x0e\\xab\\x12T\\x15\\xfd\\x19\\xa6\\x04\\x18\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x02\\x00\\x0e\\x03\\xb7\\x07`\\x0b\\t\\x0e\\xb2\\x12[\\x16\\x04\\x19\\xad\\x03R\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x03\\x00\\x15\\x03\\xbe\\x07g\\x0b\\x10\\x0e\\xb9\\x12b\\x16\\x0b\\x19\\xb4\\x03\\x8b\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x04\\x00\\x1c\\x03\\xc5\\x07n\\x0b\\x17\\x0e\\xc0\\x12i\\x16\\x12\\x19\\xbb\\x03\\xc4\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x05\\x00#\\x03\\xcc\\x07u\\x0b\\x1e\\x0e\\xc7\\x12p\\x16\\x19\\x19\\xc2\\x03\\xfd\\x00\\x00\\x00\\x00\\x00\\xff\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x06\\x00*\\x03\\xd3\\x07|\\x0b%\\x0e\\xce\\x12w\\x16 \\x19\\xc9\\x046\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x07\\x001\\x03\\xda\\x07\\x83\\x0b,\\x0e\\xd5\\x12~\\x16'\\x19\\xd0\\x04o\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x08\\x008\\x03\\xe1\\x07\\x8a\\x0b3\\x0e\\xdc\\x12\\x85\\x16.\\x19\\xd7\\x04\\xa8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\t\\x00?\\x03\\xe8\\x07\\x91\\x0b:\\x0e\\xe3\\x12\\x8c\\x165\\x19\\xde\\x04\\xe1\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\n\\x00F\\x03\\xef\\x07\\x98\\x0bA\\x0e\\xea\\x12\\x93\\x16<\\x19\\xe5\\x05\\x1a\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0b\\x00M\\x03\\xf6\\x07\\x9f\\x0bH\\x0e\\xf1\\x12\\x9a\\x16C\\x19\\xec\\x05S\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0c\\x00T\\x03\\xfd\\x07\\xa6\\x0bO\\x0e\\xf8\\x12\\xa1\\x16J\\x19\\xf3\\x05\\x8c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\r\\x00[\\x04\\x04\\x07\\xad\\x0bV\\x0e\\xff\\x12\\xa8\\x16Q\\x19\\xfa\\x04\\xc6\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0e\\x00b\\x04\\x0b\\x07\\xb4\\x0b]\\x0f\\x06\\x12\\xaf\\x16X\\x1a\\x01\\x03\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0f\\x00i\\x04\\x12\\x07\\xbb\\x0bd\\x0f\\r\\x12\\xb6\\x16_\\x1a\\x08\\x03:\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x10\\x00p\\x04\\x19\\x07\\xc2\\x0bk\\x0f\\x14\\x12\\xbd\\x16f\\x1a\\x0f\\x03s\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x11\\x00w\\x05 \\x07\\xc9\\x0br\\x0f\\x1b\\x12\\xc4\\x16m\\x1a\\x16\\x03\\xac\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x12\\x00~\\x04'\\x07\\xd0\\x0by\\x0f\"\\x12\\xcb\\x16t\\x1a\\x1d\\x03\\xe5\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x13\\x00\\x85\\x04.\\x07\\xd7\\x0b\\x80\\x0f)\\x12\\xd2\\x16{\\x1a$\\x04\\x1e\\x00\\x00\\x00\\x00\\x00\\x00\\xe5\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x14\\x00\\x8c\\x045\\x07\\xde\\x0b\\x87\\x0f0\\x12\\xd9\\x16\\x82\\x1a+\\x04W\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x15\\x00\\x93\\x04<\\x07\\xe5\\x0b\\x8e\\x0f7\\x12\\xe0\\x16\\x89\\x1a2\\x04\\x90\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x16\\x00\\x9a\\x04C\\x07\\xec\\x0b\\x95\\x0f>\\x12\\xe7\\x16\\x90\\x1a9\\x04\\xc9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x17\\x00\\xa1\\x04J\\x07\\xf3\\x0b\\x9c\\x0fE\\x12\\xee\\x16\\x97\\x1a@\\x05\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x18\\x00\\xa8\\x04Q\\x07\\xfa\\x0b\\xa3\\x0fL\\x12\\xf5\\x16\\x9e\\x1aG\\x05;\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x19\\x00\\xaf\\x04X\\x08\\x01\\x0b\\xaa\\x0fS\\x12\\xfc\\x16\\xa5\\x1aN\\x04u\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1a\\x00\\xb6\\x04_\\x08\\x08\\x0b\\xb1\\x0fZ\\x13\\x03\\x16\\xac\\x1aU\\x03\\xaf\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1b\\x00\\xbd\\x04f\\x08\\x0f\\x0b\\xb8\\x0fa\\x13\\n\\x16\\xb3\\x1a\\\\x03\\xe8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1c\\x00\\xc4\\x04m\\x08\\x16\\x0b\\xbf\\x0fh\\x13\\x11\\x16\\xba\\x1ac\\x04!\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1d\\x00\\xcb\\x04t\\x08\\x1d\\x0b\\xc6\\x0fo\\x13\\x18\\x16\\xc1\\x1aj\\x04Z\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1e\\x00\\xd2\\x04{\\x08$\\x0b\\xcd\\x0fv\\x13\\x1f\\x16\\xc8\\x1aq\\x04\\x93\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1f\\x00\\xd9\\x04\\x82\\x08+\\x0b\\xd4\\x0f}\\x13&\\x16\\xcf\\x1ax\\x04\\xcc\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00 \\x00\\xe0\\x04\\x89\\x082\\x0b\\xdb\\x0f\\x84\\x13-\\x16\\xd6\\x1a\\x7f\\x05\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00!\\x00\\xe7\\x04\\x90\\x089\\x0b\\xe2\\x0f\\x8b\\x134\\x16\\xdd\\x1a\\x86\\x05>\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\"\\x00\\xee\\x04\\x97\\x08@\\x0b\\xe9\\x0f\\x92\\x13;\\x16\\xe4\\x1a\\x8d\\x05w\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00#\\x00\\xf5\\x04\\x9e\\x08G\\x0b\\xf0\\x0f\\x99\\x13B\\x16\\xeb\\x1a\\x94\\x05\\xb0\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00$\\x00\\xfc\\x04\\xa5\\x08N\\x0b\\xf7\\x0f\\xa0\\x13I\\x16\\xf2\\x1a\\x9b\\x05\\xe9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00%\\x01\\x03\\x04\\xac\\x08U\\x0b\\xfe\\x0f\\xa7\\x13P\\x16\\xf9\\x1a\\xa2\\x05#\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00&\\x01\\n\\x04\\xb3\\x08\\\\x0c\\x05\\x0f\\xae\\x13W\\x17\\x00\\x1a\\xa9\\x03^\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00'\\x01\\x11\\x04\\xba\\x08c\\x0c\\x0c\\x0f\\xb5\\x13^\\x17\\x07\\x1a\\xb0\\x03\\x97\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00(\\x01\\x18\\x04\\xc1\\x08j\\x0c\\x13\\x0f\\xbc\\x13e\\x17\\x0e\\x1a\\xb7\\x03\\xd0\\x00\\x00\\x00\\x00\\x00U\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00)\\x01\\x1f\\x04\\xc8\\x08q\\x0c\\x1a\\x0f\\xc3\\x13l\\x17\\x15\\x1a\\xbe\\x04\\t\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00*\\x01&\\x04\\xcf\\x08x\\x0c!\\x0f\\xca\\x13s\\x17\\x1c\\x1a\\xc5\\x04B\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00+\\x01-\\x04\\xd6\\x08\\x7f\\x0c(\\x0f\\xd1\\x13z\\x17#\\x1a\\xcc\\x04{\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00,\\x014\\x04\\xdd\\x08\\x86\\x0c/\\x0f\\xd8\\x13\\x81\\x17*\\x1a\\xd3\\x04\\xb4\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00-\\x01;\\x04\\xe4\\x08\\x8d\\x0c6\\x0f\\xdf\\x13\\x88\\x171\\x1a\\xda\\x04\\xed\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00.\\x01B\\x04\\xeb\\x08\\x94\\x0c=\\x0f\\xe6\\x13\\x8f\\x178\\x1a\\xe1\\x05&\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00/\\x01I\\x04\\xf2\\x08\\x9b\\x0cD\\x0f\\xed\\x13\\x96\\x17?\\x1a\\xe8\\x05_\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x000\\x01P\\x04\\xf9\\x08\\xa2\\x0cK\\x0f\\xf4\\x13\\x9d\\x17F\\x1a\\xef\\x05\\x98\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x001\\x01W\\x05\\x00\\x08\\xa9\\x0cR\\x0f\\xfb\\x13\\xa4\\x17M\\x1a\\xf6\\x04\\xd2\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x002\\x01^\\x05\\x07\\x08\\xb0\\x0cY\\x10\\x02\\x13\\xab\\x17T\\x1a\\xfd\\x04\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x003\\x01e\\x05\\x0e\\x08\\xb7\\x0c`\\x10\\t\\x13\\xb2\\x17[\\x1b\\x04\\x03F\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x004\\x01l\\x05\\x15\\x08\\xbe\\x0cg\\x10\\x10\\x13\\xb9\\x17b\\x1b\\x0b\\x03\\x7f\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x005\\x01s\\x05\\x1c\\x08\\xc5\\x0cn\\x10\\x17\\x13\\xc0\\x17i\\x1b\\x12\\x03\\xb8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x006\\x01z\\x05#\\x08\\xcc\\x0cu\\x10\\x1e\\x13\\xc7\\x17p\\x1b\\x19\\x03\\xf1\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x007\\x01\\x81\\x05*\\x08\\xd3\\x0c|\\x10%\\x13\\xce\\x17w\\x1b \\x04*\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x008\\x01\\x88\\x051\\x08\\xda\\x0c\\x83\\x10,\\x13\\xd5\\x17~\\x1b'\\x04c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x009\\x01\\x8f\\x058\\x08\\xe1\\x0c\\x8a\\x103\\x13\\xdc\\x17\\x85\\x1b.\\x04\\x9c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00:\\x01\\x96\\x05?\\x08\\xe8\\x0c\\x91\\x10:\\x13\\xe3\\x17\\x8c\\x1b5\\x04\\xd5\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00;\\x01\\x9d\\x05F\\x08\\xef\\x0c\\x98\\x10A\\x13\\xea\\x17\\x93\\x1b<\\x05\\x0e\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00<\\x01\\xa4\\x05M\\x08\\xf6\\x0c\\x9f\\x10H\\x13\\xf1\\x17\\x9a\\x1bC\\x05G\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00=\\x01\\xab\\x05T\\x08\\xfd\\x0c\\xa6\\x10O\\x13\\xf8\\x17\\xa1\\x1bJ\\x05\\x80\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00>\\x01\\xb2\\x05[\\t\\x04\\x0c\\xad\\x10V\\x13\\xff\\x17\\xa8\\x1bQ\\x04\\xba\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00?\\x01\\xb9\\x05b\\t\\x0b\\x0c\\xb4\\x10]\\x14\\x06\\x17\\xaf\\x1bX\\x03\\xf4\\x00\\x00\\x00\\x00\\x00\\x00-63-counts1]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_aggregates_reconcile_with_windowed_decodes[cut.dat-\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xa9\\x07R\\n\\xfb\\x0e\\xa4\\x12M\\x15\\xf6\\x19\\x9f\\x04\\xde\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x01\\x00\\x07\\x03\\xb0\\x07Y\\x0b\\x02\\x0e\\xab\\x12T\\x15\\xfd\\x19\\xa6\\x04\\x18\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x02\\x00\\x0e\\x03\\xb7\\x07`\\x0b\\t\\x0e\\xb2\\x12[\\x16\\x04\\x19\\xad\\x03R\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x03\\x00\\x15\\x03\\xbe\\x07g\\x0b\\x10\\x0e\\xb9\\x12b\\x16\\x0b\\x19\\xb4\\x03\\x8b\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x04\\x00\\x1c\\x03\\xc5\\x07n\\x0b\\x17\\x0e\\xc0\\x12i\\x16\\x12\\x19\\xbb\\x03\\xc4\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x05\\x00#\\x03\\xcc\\x07u\\x0b\\x1e\\x0e\\xc7\\x12p\\x16\\x19\\x19\\xc2\\x03\\xfd\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x06\\x00*\\x03\\xd3\\x07|\\x0b%\\x0e\\xce\\x12w\\x16 \\x19\\xc9\\x046\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x07\\x001\\x03\\xda\\x07\\x83\\x0b,\\x0e\\xd5\\x12~\\x16'\\x19\\xd0\\x04o\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x08\\x008\\x03\\xe1\\x07\\x8a\\x0b3\\x0e\\xdc\\x12\\x85\\x16.\\x19\\xd7\\x04\\xa8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\t\\x00?\\x03\\xe8\\x07\\x91\\x0b:\\x0e\\xe3\\x12\\x8c\\x165\\x19\\xde\\x04\\xe1\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\n\\x00F\\x03\\xef\\x07\\x98\\x0bA\\x0e\\xea\\x12\\x93\\x16<\\x19\\xe5\\x05\\x1a\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0b\\x00M\\x03\\xf6\\x07\\x9f\\x0bH\\x0e\\xf1\\x12\\x9a\\x16C\\x19\\xec\\x05S\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0c\\x00T\\x03\\xfd\\x07\\xa6\\x0bO\\x0e\\xf8\\x12\\xa1\\x16J\\x19\\xf3\\x05\\x8c\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\r\\x00[\\x04\\x04\\x07\\xad\\x0bV\\x0e\\xff\\x12\\xa8\\x16Q\\x19\\xfa\\x04\\xc6\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0e\\x00b\\x04\\x0b\\x07\\xb4\\x0b]\\x0f\\x06\\x12\\xaf\\x16X\\x1a\\x01\\x03\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x0f\\x00i\\x04\\x12\\x07\\xbb\\x0bd\\x0f\\r\\x12\\xb6\\x16_\\x1a\\x08\\x03:\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x10\\x00p\\x04\\x19\\x07\\xc2\\x0bk\\x0f\\x14\\x12\\xbd\\x16f\\x1a\\x0f\\x03s\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x11\\x00w\\x04 \\x07\\xc9\\x0br\\x0f\\x1b\\x12\\xc4\\x16m\\x1a\\x16\\x03\\xac\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x12\\x00~\\x04'\\x07\\xd0\\x0by\\x0f\"\\x12\\xcb\\x16t\\x1a\\x1d\\x03\\xe5\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x13\\x00\\x85\\x04.\\x07\\xd7\\x0b\\x80\\x0f)\\x12\\xd2\\x16{\\x1a$\\x04\\x1e\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x14\\x00\\x8c\\x045\\x07\\xde\\x0b\\x87\\x0f0\\x12\\xd9\\x16\\x82\\x1a+\\x04W\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x15\\x00\\x93\\x04<\\x07\\xe5\\x0b\\x8e\\x0f7\\x12\\xe0\\x16\\x89\\x1a2\\x04\\x90\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x16\\x00\\x9a\\x04C\\x07\\xec\\x0b\\x95\\x0f>\\x12\\xe7\\x16\\x90\\x1a9\\x04\\xc9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x17\\x00\\xa1\\x04J\\x07\\xf3\\x0b\\x9c\\x0fE\\x12\\xee\\x16\\x97\\x1a@\\x05\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x18\\x00\\xa8\\x04Q\\x07\\xfa\\x0b\\xa3\\x0fL\\x12\\xf5\\x16\\x9e\\x1aG\\x05;\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x19\\x00\\xaf\\x04X\\x08\\x01\\x0b\\xaa\\x0fS\\x12\\xfc\\x16\\xa5\\x1aN\\x04u\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1a\\x00\\xb6\\x04_\\x08\\x08\\x0b\\xb1\\x0fZ\\x13\\x03\\x16\\xac\\x1aU\\x03\\xaf\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1b\\x00\\xbd\\x04f\\x08\\x0f\\x0b\\xb8\\x0fa\\x13\\n\\x16\\xb3\\x1a\\\\x03\\xe8\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1c\\x00\\xc4\\x04m\\x08\\x16\\x0b\\xbf\\x0fh\\x13\\x11\\x16\\xba\\x1ac\\x04!\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1d\\x00\\xcb\\x04t\\x08\\x1d\\x0b\\xc6\\x0fo\\x13\\x18\\x16\\xc1\\x1aj\\x04Z\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1e\\x00\\xd2\\x04{\\x08$\\x0b\\xcd\\x0fv\\x13\\x1f\\x16\\xc8\\x1aq\\x04\\x93\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\\x1f\\x00\\xd9\\x04\\x82\\x08+\\x0b\\xd4\\x0f}\\x13&\\x16\\xcf\\x1ax\\x04\\xcc\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00 \\x00\\xe0\\x04\\x89\\x082\\x0b\\xdb\\x0f\\x84\\x13-\\x16\\xd6\\x1a\\x7f\\x05\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00!\\x00\\xe7\\x04\\x90\\x089\\x0b\\xe2\\x0f\\x8b\\x134\\x16\\xdd\\x1a\\x86\\x05>\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00\"\\x00\\xee\\x04\\x97\\x08@\\x0b\\xe9\\x0f\\x92\\x13;\\x16\\xe4\\x1a\\x8d\\x05w\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00#\\x00\\xf5\\x04\\x9e\\x08G\\x0b\\xf0\\x0f\\x99\\x13B\\x16\\xeb\\x1a\\x94\\x05\\xb0\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00$\\x00\\xfc\\x04\\xa5\\x08N\\x0b\\xf7\\x0f\\xa0\\x13I\\x16\\xf2\\x1a\\x9b\\x05\\xe9\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00%\\x01\\x03\\x04\\xac\\x08U\\x0b\\xfe\\x0f\\xa7\\x13P\\x16\\xf9\\x1a\\xa2\\x05#\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00&\\x01\\n\\x04\\xb3\\x08\\\\x0c\\x05\\x0f\\xae\\x13W\\x17\\x00\\x1a\\xa9\\x03^\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00'\\x01\\x11\\x04\\xba\\x08c\\x0c\\x0c\\x0f\\xb5\\x13^\\x17\\x07\\x1a\\xb0\\x03\\x97\\x00\\x00\\x00\\x00\\x00\\x00\\x1a\\xcf\\xfc\\x1d\\x00\\x00\\x00(\\x01\\x18\\x04\\xc1\\x08j\\x0c\\x13\\x0f-41-counts2]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_timeout_returns_structured_partial_progress",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_frames_mode_is_not_subject_to_the_scan_deadline",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_explicit_frames_mode_matches_the_default_byte_for_byte",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_ignores_paging_and_filter_arguments_entirely",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_does_not_validate_the_ignored_arguments",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_negative_derived_frame_size_keeps_span_bookkeeping_consistent",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_parse_dat_tool",
+      "name": "test_scan_covers_hundred_megabyte_scale_frame_counts",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_detect_blocking_io_static",
+      "name": "test_json_output_uses_concise_review_record_schema",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.workflows.test_file_roots.TestHostResolver",
+      "name": "test_user_data_mapping",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.workflows.test_file_roots.TestHostResolver",
+      "name": "test_code_evidence_mapping_is_run_private",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.workflows.test_file_roots.TestHostResolver",
+      "name": "test_canonical_sandbox_scope_maps_all_user_data_roots",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.workflows.test_file_roots.TestHostResolver",
+      "name": "test_canonical_sandbox_scope_maps_frozen_skills",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_web_fetch_resolves_relative_links_through_real_extraction[jina_ai]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_web_fetch_resolves_relative_links_through_real_extraction[browserless]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_web_fetch_resolves_relative_links_through_real_extraction[infoquest]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[../next-https://example.com/next]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[/reference-https://example.com/reference]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[?page=2-https://example.com/docs/current?page=2]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[#section-https://example.com/docs/current#section]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_paths_edge_cases.TestJoinHostPath",
+      "name": "test_posix_base",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[//cdn.example.com/file-https://cdn.example.com/file]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[https://other.example.com/file-https://other.example.com/file]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_link_destinations[mailto:help@example.com-mailto:help@example.com]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_resolves_images_and_relative_document_base",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_without_url_preserves_legacy_relative_links",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_uses_first_document_base[https://cdn.example.com/assets/-https://cdn.example.com/assets/next]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_uses_first_document_base[//cdn.example.com/assets/-https://cdn.example.com/assets/next]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_extract_article_uses_first_document_base[ftp://files.example.com/assets/-ftp://files.example.com/assets/next]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[http://[broken]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[data:text/plain,invalid]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[javascript:void(0)]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[about:blank]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[mailto:help@example.com]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_invalid_document_base_does_not_lose_valid_relative_links[blob:https://example.com/id]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_web_fetch_relative_links",
+      "name": "test_document_base_skips_target_only_base",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.skills.test_skill_storage.TestEnsureSafeSupportPath",
+      "name": "test_absolute_path_raises",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_packaged_deploy_script_defaults_to_its_bundle_directory",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_bundled_conflict_option_is_validated_and_parsed",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_fails_when_frontend_route_is_unhealthy",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_seeds_valid_runtime_config_and_stable_auth_files",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_no_longer_installs_bundled_agents",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_never_installs_agents_into_per_user_directories",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_status_logs_and_stop_do_not_install_agents",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_generates_random_admin_password_shown_once",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_does_not_persist_or_display_password_when_admin_exists",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_uses_explicit_admin_password_without_persisting_or_displaying",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_initialize_body_survives_quotes_and_backslashes_in_password",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_up_reads_env_values_without_executing_the_env_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_failed_extraction_does_not_mint_the_version_marker",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_reuses_persisted_auth_secrets_when_env_file_is_recreated",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_backfills_auth_secrets_into_existing_env_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prepare_reports_missing_seed_source_with_actionable_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_source_archive_includes_runtime_seed_templates",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_script_fails_when_skills_manifest_skill_missing",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_manifest_records_custom_skills_and_exclusion",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_check_script_uses_bundle_version_images_and_runtime_env_contract",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_check_script_warns_when_env_file_is_missing",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_upgrade_refreshes_env_image_tags_and_reextracts_source",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_upgrade_preserves_custom_image_values",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prune_old_removes_only_stale_gateway_and_frontend_tags",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prune_old_dry_run_previews_without_removing",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prune_old_rejects_invalid_keep_versions",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_prune_old_keep_zero_removes_all_but_current",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_load_reuses_local_sandbox_tag_for_incremental_bundle",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_incremental_bundle_saves_only_gateway_and_frontend",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_manifest_helper_excludes_local_env_files",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_full_bundle_manifest_marks_bundle_type_full",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_manifest_helper_builds_source_delta_and_deletion_list",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_manifest_helper_applies_delta_and_verifies_result",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_compose_invocation_appends_dood_overlay_only_for_aio_sandbox_mode",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_intranet_deploy_scripts",
+      "name": "test_package_exclude_skills_warning_fires_for_preinstall_conflict",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_edge_cases_search.TestFindGrepMatches",
+      "name": "test_symlink_skipped",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox.TestResolvePathWithMapping",
+      "name": "test_root_mapping",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox.TestResolvePathWithMapping",
+      "name": "test_permission_escape",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox.TestResolvePathsInCommand",
+      "name": "test_with_mappings",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox.TestUpdateFile",
+      "name": "test_oserror_hides_resolved_path",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.mcp_tasks.test_mcp_task_service",
+      "name": "test_run_once_releases_claim_when_driver_is_missing_or_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_invoke_acp_agent_tool",
+      "name": "test_invoke_acp_agent_times_out_and_kills_hung_subprocess",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_renders_paged_hex_view_for_committed_dat_sample",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_reads_dat_nested_in_upload_subdirectories",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_pages_with_offset_and_length",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_length_beyond_single_output_limit_is_truncated_with_notice",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_offset_at_exact_end_of_file_returns_empty_view",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_offset_past_end_of_file_is_invalid_paging",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_negative_offset_or_length_is_invalid_paging",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_symlink_escape_out_of_uploads_dir_is_rejected",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_dat_suffix_match_is_case_insensitive",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_structure_mode_detects_sync_word_frame_length_and_caps_output",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_structure_mode_reports_explicit_not_detected_for_unstructured_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_structure_mode_on_truncated_stream_detects_frames_without_fabricating",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_structure_caps_are_enforced_and_marked_in_payload",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_internal_symlink_is_rejected_without_following",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_fifo_is_rejected_without_blocking",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_unreadable_file_is_structurally_rejected",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_read_dat_tool",
+      "name": "test_structure_counts_do_not_double_count_at_chunk_boundaries",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_scanner_commands_are_fixed_and_shell_free",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_cppcheck_results_xml_on_stdout_and_progress_on_stderr_parse_separately",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_static_analysis_collects_cppcheck_xml_without_progress_noise[stderr]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_static_analysis_collects_cppcheck_xml_without_progress_noise[stdout]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_detect_scanner_reports_availability_and_version",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_no_compilation_database_skips_clang_tidy_but_runs_cppcheck",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_with_compilation_database_both_c_cpp_scanners_run",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_python_package_dispatches_to_ruff_and_bandit_readonly",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_code_analysis",
+      "name": "test_normalize_ruff_and_bandit_json_shapes",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_uploads_manager_edge_cases.TestNormalizeFilename",
+      "name": "test_backslash_in_basename_raises",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_uploads_manager_edge_cases.TestNormalizeFilename",
+      "name": "test_backslash_in_name_only_raises",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_uploads_manager_edge_cases.TestOpenUploadPosixOSErrorReRaise",
+      "name": "test_eloop_raises_unsafe_upload",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox_2.TestExecuteCommandStderr",
+      "name": "test_stderr_appended",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox_2.TestExecuteCommandStderr",
+      "name": "test_nonzero_exit_code",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox_2.TestExecuteCommandStderr",
+      "name": "test_no_output_returns_placeholder",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_edge_cases_local_sandbox_2.TestExecuteCommandStderr",
+      "name": "test_only_stderr_no_stdout",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_install_srs_writing_agent",
+      "name": "test_provision_officecli_lifecycle",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_install_srs_writing_agent",
+      "name": "test_provision_officecli_conflict_requires_force",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_install_srs_writing_agent",
+      "name": "test_provision_officecli_replaces_dangling_symlink",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_help_explains_complete_read_search_submit_contract",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_session_records_root_read_search_and_saves_structural_answer",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_read_rejects_non_root_first_read_and_hash_drift",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_invalid_or_missing_session_record_prevents_submit_persistence",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_overlap_union_counts_utf8_bytes_and_rejects_escape",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_public_heading_listing_and_full_hierarchy_read",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_heading_reads_reject_duplicates_missing_titles_and_fenced_pseudo_headings",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_heading_listing_preserves_literal_hash_and_includes_setext_headings",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_heading_tools_are_advertised_by_mcp_and_reject_forbidden_paths",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_cost_report_implementation_is_not_readable_during_a_session",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_parallel_public_reads_preserve_every_recorded_event",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_failure_close_cannot_replace_a_persisted_submission",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_timeout_cleans_only_its_child_process_group",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_sigterm_cleans_child_group_and_records_interruption",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_only_one_linked_retry_for_infrastructure_or_protocol_failure",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_concurrent_retry_launches_claim_only_one_retry_slot",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_mcp_exposes_only_collector_operations_and_submits_answer",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_manifest_hashes_but_never_exposes_scoring_or_benchmark_material",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_empty_search_is_rejected_and_mcp_tools_declare_scope",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_timeout_cannot_be_retried_and_external_help_is_audited",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_config_identity_ignores_candidate_and_record_paths",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_no_submit_is_terminal_and_pre_read_hang_has_finite_deadline",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_quota_exhaustion_stops_later_dispatches",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_disclosure_reading_collector",
+      "name": "test_runner_recovers_quota_stop_from_record_without_marker",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_reject_ambient_environment_arguments",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_command_line_arguments_out_of_the_shell_recipe[extension-install-SOURCE---source-env __deerflow_extension_source__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_command_line_arguments_out_of_the_shell_recipe[extension-upgrade-SOURCE---source-env __deerflow_extension_source__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_command_line_arguments_out_of_the_shell_recipe[extension-enable-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_command_line_arguments_out_of_the_shell_recipe[extension-disable-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_command_line_arguments_out_of_the_shell_recipe[extension-remove-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_values_out_of_the_cmd_recipe_on_windows[extension-install-SOURCE---source-env __deerflow_extension_source__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_values_out_of_the_cmd_recipe_on_windows[extension-upgrade-SOURCE---source-env __deerflow_extension_source__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_values_out_of_the_cmd_recipe_on_windows[extension-enable-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_values_out_of_the_cmd_recipe_on_windows[extension-disable-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.extensions.test_extension_dependency_sync",
+      "name": "test_root_extension_shortcuts_keep_values_out_of_the_cmd_recipe_on_windows[extension-remove-NAME---name-env __deerflow_extension_name__]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_run_lark_cli_forwards_argv_stdin_and_credential_env",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_run_lark_cli_propagates_exit_code",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_run_lark_cli_never_shell_interprets_args",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_exec_endpoint_round_trips",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_exec_endpoint_ignores_client_supplied_credential_paths",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_shim_forwards_and_replays_exit_code",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_launcher_resolves_python_and_forwards",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_launcher_can_pin_interpreter_via_env",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_launcher_fails_loudly_without_python",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.channels.test_lark_broker",
+      "name": "test_allowed_subcommand_still_runs_with_denylist",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_resources_api.TestCanonicalRunRecordDownload",
+      "name": "test_record_download_jsonl_returns_ndjson",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_resources_api.TestCanonicalRunRecordDownload",
+      "name": "test_record_download_md_returns_markdown",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_governance_tools",
+      "name": "test_repository_lane_contracts_are_consistent",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_governance_tools",
+      "name": "test_contract_allows_distinct_nodes_in_mixed_marker_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_search_edge_cases.TestIsBinaryFileOSError",
+      "name": "test_oserror_returns_true",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_search_edge_cases.TestFindGrepMatchesSymlinkOutside",
+      "name": "test_symlink_to_outside_file",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_edge_cases_list_dir.TestListDir",
+      "name": "test_symlink_to_inside",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_upstream_governance",
+      "name": "test_non_fast_forward_mirror_is_blocked",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_edge_cases_list_dir.TestListDir",
+      "name": "test_symlink_to_outside",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_edge_cases_list_dir.TestListDir",
+      "name": "test_symlink_to_outside_not_followed",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_reference_lookup",
+      "name": "test_cli_reports_matches_as_json",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.sandbox.test_local_sandbox_command_timeout",
+      "name": "test_timeout_output_carries_authoritative_failure_marker",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_config_version",
+      "name": "test_config_upgrade_migrates_legacy_memory_storage_at_current_schema_version",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_config_version",
+      "name": "test_config_upgrade_migrates_legacy_runtime_paths_at_current_schema_version",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_config_version",
+      "name": "test_config_upgrade_registers_code_evidence_tool_in_existing_tool_lists",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader",
+      "name": "test_nonexistent_file_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_doc_reader",
+      "name": "test_unsupported_extension_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.resources.test_resource_storage",
+      "name": "test_stage_rejects_links_and_unscanned_executable_content[symlink]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_config_alone_does_not_enable_live_collection",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_explicit_opt_in_collects_live_tests",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.persistence.test_unified_chain_adoption",
+      "name": "test_merge_revision_joins_both_heads",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_ci_blocks_live_collection_even_with_opt_in",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_bench_sandbox_provider",
+      "name": "test_boxlite_shim_workaround_retries_after_fixing_permissions",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_migration_gate",
+      "name": "test_migration_gate_requires_selected_success[false-skipped-success-0]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_migration_gate",
+      "name": "test_migration_gate_requires_selected_success[true-success-success-0]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_migration_gate",
+      "name": "test_migration_selector_detects_deletion_and_rejects_invalid_refs",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_opt_in_without_config_reports_missing_config",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_make_targets_keep_default_tests_offline_and_support_live_opt_in",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_ci_unit_test_workflow_runs_duration_aware_shards",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.models.test_client_live_policy",
+      "name": "test_blocking_io_ci_workflow_owns_dedicated_suite",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_analyze_code_evidence_tool",
+      "name": "test_c_cpp_package_runs_fixed_scanners_and_writes_artifacts",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_analyze_code_evidence_tool",
+      "name": "test_no_compilation_database_skips_clang_tidy_with_recorded_reason",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.agentplatform.test_analyze_code_evidence_tool",
+      "name": "test_python_package_gets_ruff_and_bandit_and_alerts_never_confirmed",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_credential_file.TestWriteInitialCredentials",
+      "name": "test_file_permissions_are_0600",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_pnpm_script",
+      "name": "test_runner_uses_corepack_pnpm_from_frontend_directory",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_separates_roles_attempts_and_missing_submission_time",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_fails_closed_on_candidate_digest_drift",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_rejects_malformed_event_ranges_without_traceback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_rejects_missing_section_role_without_traceback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_rejects_section_roles_outside_candidate_root",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_start_script_exists_and_is_posix_sh",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_print_command_works_with_required_env_and_config",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_missing_required_env_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_rejects_unrepresentable_numeric_cost_without_traceback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_invalid_required_env_name_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_missing_config_file_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_closes_on_candidate_symlink_escape_without_traceback",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_invalid_start_target_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_report_disclosure_costs",
+      "name": "test_cost_report_rejects_missing_attempt_linked_by_parent",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_unexpected_argument_fails[--unknown]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_start_local_script",
+      "name": "test_unexpected_argument_fails[extra]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer",
+      "name": "test_nonexistent_file_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer",
+      "name": "test_empty_csv_returns_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer",
+      "name": "test_summary_contains_expected_keys",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_data_analyzer",
+      "name": "test_describe_contains_statistics",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_generate_fault_zeroing_contract_artifacts",
+      "name": "test_one_command_reproduces_the_committed_artifacts",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_root_deploy_scripts",
+      "name": "test_cleanup_containers_uses_anchored_filter_and_argv_prefix",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_root_deploy_scripts",
+      "name": "test_check_intranet_reports_ambiguous_image_tar_and_real_template_hint",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_root_deploy_scripts",
+      "name": "test_deploy_sh_down_does_not_claim_config_check",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_root_deploy_scripts",
+      "name": "test_config_upgrade_current_version_prints_no_upgrade_banner",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_sync_agent_guidance",
+      "name": "test_write_rejects_symlink_without_changing_target",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.gateway.test_langgraph_studio_routes",
+      "name": "test_persisted_legacy_assistants_survive_cross_version_restart",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_deploy_uv_extras",
+      "name": "test_deploy_build_auto_detects_postgres_extra_when_other_extras_are_enabled",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_reconcile_user_state",
+      "name": "test_delete_skips_new_database_reference_and_symlink",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_stop_cleanup_fallbacks",
+      "name": "test_serve_stop_uses_proc_cwd_when_lsof_cannot_list_process",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_stop_cleanup_fallbacks",
+      "name": "test_serve_stop_uses_ss_pid_fallback_and_marker_for_owned_listener",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_stop_cleanup_fallbacks",
+      "name": "test_serve_stop_reports_but_does_not_kill_external_listener",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_stop_cleanup_fallbacks",
+      "name": "test_local_services_stop_only_kills_repo_nginx_listener[True]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_stop_cleanup_fallbacks",
+      "name": "test_local_services_stop_only_kills_repo_nginx_listener[False]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_run_test_lane",
+      "name": "test_missing_stagehand_credentials_are_recorded_as_unexecuted",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_run_test_lane",
+      "name": "test_evidence_failure_fails_successful_lane_and_leaves_incomplete_evidence",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_run_test_lane",
+      "name": "test_test_failure_is_preserved_when_evidence_completion_also_fails",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_run_test_lane",
+      "name": "test_successful_lane_records_passed_result_consistently",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_detector_repo_root",
+      "name": "test_unmarked_location_raises_instead_of_scanning_nothing",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.tools.test_code_interpreter",
+      "name": "test_timeout_clamped_to_max",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_lane_evidence",
+      "name": "test_source_archive_records_context_without_git_metadata",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_runtime_boundary",
+      "name": "test_runtime_boundary_requires_zero_legacy_imports[from deerflow.config import get_app_config\\n-0]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_runtime_boundary",
+      "name": "test_runtime_boundary_requires_zero_legacy_imports[from ideer.config import get_app_config\\n-1]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_runtime_boundary",
+      "name": "test_runtime_boundary_without_rg_fails_closed_with_clear_error",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_lane_shadow_aggregation",
+      "name": "test_legacy_check_steps_tolerate_skip_and_fail_on_real_outcomes",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_lane_sharding",
+      "name": "test_shards_keep_serial_execution_sequential[backend-serial-False]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_test_lane_sharding",
+      "name": "test_shards_keep_serial_execution_sequential[backend-standard-True]",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.integration.api.test_canonical_run_skill_projection_e2e",
+      "name": "test_canonical_run_projects_frozen_skill_view_only",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_product_release",
+      "name": "test_product_release_requires_branch_and_committed_record",
+      "kind": "failure",
+      "category": null
+    },
+    {
+      "class": "tests.unit.scripts.test_upstream_mirror",
+      "name": "test_missing_main_requires_explicit_bootstrap",
+      "kind": "failure",
+      "category": null
+    }
+  ],
+  "fullLog": "artifacts\\issue-98\\server\\dev-log\\backend-windows-final.log",
+  "fullLogSha256": "5ed37f07171bb6ac23660e10c8cb04c6561a272094a294b7d3e19ef8a07c3a80",
+  "junitSha256": "214e5317eb8eca86f96f82924e86805353e1c37ac47cfc406eee1aa0b9f7e5dc"
+}

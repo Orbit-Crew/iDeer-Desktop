@@ -1,0 +1,11 @@
+{
+  "commit": "9d3ee3d9cdd8bdfc0e246b7249a69d80f6134d25",
+  "previous_candidate_commit": "49b635ac5a59085c7c5c028c09a835db48728c9a",
+  "changed_file": "backend/tests/unit/persistence/test_unified_chain_adoption.py",
+  "sha256": "9bba1fc14077d75dd4d566e7a97e0b43ccf87aa3f6c4e6bd099443d3014ada30",
+  "windows_linux_bytes_identical": true,
+  "method": "git fetch local source branch; git merge --ff-only FETCH_HEAD; no checkout/reset",
+  "focused_exit_code": 0,
+  "focused_duration_seconds": 14.78945693699643,
+  "status_preserved_for_live_e2e": ""
+}
