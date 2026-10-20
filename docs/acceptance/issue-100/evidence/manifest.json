@@ -1,4 +1,5 @@
 {
+  ".gitattributes": "3437b486b6b613ac55ba8289dba50e3b5cdbbfc6f4c0a91d525eeda3fbe7322e",
   "candidate-hashes.json": "f09907e6cba18717307c3bf1cf0716cd140b27bcd8aa9049212e8aa59333bf5d",
   "credential-cleanup.json": "afea33c12b4a149a63c21438a4c0d254e3a23b63acc33868e9a08a52e424b8c2",
   "data-boundary.json": "05024f49027574b5745bc33d74698519d68215aab8b9e436da91e01818c2a5e4",
@@ -51,7 +52,7 @@
   "server-ruff-final.log.gz": "84931ab9ec9e1526cb7bec3ccb46f05bfc2bdd164d156ef72c5d02f319baf464",
   "server-source-tree-proof.json": "119fa64747406905990650ab2fd4e1a191e2f9bbac116fbba36ea7667d386175",
   "server-upstream-patches-final.log.gz": "1adf913827a7170b9afc44ef78bd4f777fd08e7e0c54cc2048fc3bc93453d12f",
-  "source-binding.json": "426b06537ff08e33fd0efbad09ef116faaa59bc0ca0ccf13eddc77cfca854899",
+  "source-binding.json": "6e50111a12df4e57d293b15f2198629733aa95be1cd90949b367c2f3979acab6",
   "typecheck-final.log.gz": "228925cdd7f9b5eca7e8f1442eaaa94c400eac4703abbaa8a76211bdb42253e4",
   "typecheck-timing.json": "5ab62a6cd929c5ece10704be4eb1765cd61f0879bb36be90486e8e1e9c3703ad",
   "workspace-chat.png": "06e46649a9218b67b33b7e146a33851bf5d53c5e1c15a8e6a3cb16e6dbf7128b"
