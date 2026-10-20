@@ -1,0 +1,251 @@
+{
+  "summary": {
+    "changed_count": 17,
+    "affected_count": 9,
+    "changed_files": 8,
+    "risk_level": "high"
+  },
+  "changed_symbols": [
+    {
+      "id": "Function:backend/app/gateway/canonical_agent_run_preparation.py:prepare_canonical_agent_run",
+      "name": "prepare_canonical_agent_run",
+      "type": "Function",
+      "filePath": "backend/app/gateway/canonical_agent_run_preparation.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/canonical_agent_run_preparation.py:prepare_canonical_agent_run.send_local@271:12",
+      "name": "send_local",
+      "type": "Function",
+      "filePath": "backend/app/gateway/canonical_agent_run_preparation.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/gateway/local_workspace_policy.py:READ_CAPABILITIES",
+      "name": "READ_CAPABILITIES",
+      "type": "Variable",
+      "filePath": "backend/app/gateway/local_workspace_policy.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/local_workspace_policy.py:platform_read_capabilities",
+      "name": "platform_read_capabilities",
+      "type": "Function",
+      "filePath": "backend/app/gateway/local_workspace_policy.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/local_workspace_policy.py:agent_read_capabilities",
+      "name": "agent_read_capabilities",
+      "type": "Function",
+      "filePath": "backend/app/gateway/local_workspace_policy.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:send_local_task",
+      "name": "send_local_task",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/run_preparation.py:_bind_local_runtime_context",
+      "name": "_bind_local_runtime_context",
+      "type": "Function",
+      "filePath": "backend/app/gateway/run_preparation.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py:_PATH_SCHEMA",
+      "name": "_PATH_SCHEMA",
+      "type": "Variable",
+      "filePath": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py:LOCAL_TOOLS",
+      "name": "LOCAL_TOOLS",
+      "type": "Variable",
+      "filePath": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py:assemble_local_tools",
+      "name": "assemble_local_tools",
+      "type": "Function",
+      "filePath": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py:build_langchain_local_tools",
+      "name": "build_langchain_local_tools",
+      "type": "Function",
+      "filePath": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py:build_langchain_local_tools.schema_model@155:4",
+      "name": "schema_model",
+      "type": "Function",
+      "filePath": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/api/test_devices_router.py:test_direct_local_file_route_requires_canonical_run",
+      "name": "test_direct_local_file_route_requires_canonical_run",
+      "type": "Function",
+      "filePath": "backend/tests/integration/api/test_devices_router.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/agentplatform/test_local_runtime_extension.py:test_workspace_tools_require_logical_path_and_literal_search_query",
+      "name": "test_workspace_tools_require_logical_path_and_literal_search_query",
+      "type": "Function",
+      "filePath": "backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/agentplatform/test_local_runtime_extension.py:test_workspace_tools_require_logical_path_and_literal_search_query.sender@183:4",
+      "name": "sender",
+      "type": "Function",
+      "filePath": "backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/gateway/test_local_runtime_context.py:test_client_policy_cannot_grant_platform_capabilities",
+      "name": "test_client_policy_cannot_grant_platform_capabilities",
+      "type": "Function",
+      "filePath": "backend/tests/unit/gateway/test_local_runtime_context.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/gateway/test_local_runtime_context.py:test_workspace_context_preserves_explicit_client_denial",
+      "name": "test_workspace_context_preserves_explicit_client_denial",
+      "type": "Function",
+      "filePath": "backend/tests/unit/gateway/test_local_runtime_context.py",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_67_stateless_stream",
+      "name": "Stateless_stream \u2192 Get_device_broker",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_68_stateless_stream",
+      "name": "Stateless_stream \u2192 Platform_read_capabilities",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "platform_read_capabilities",
+          "step": 5
+        },
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_324_stateless_wait",
+      "name": "Stateless_wait \u2192 Get_device_broker",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_325_stateless_wait",
+      "name": "Stateless_wait \u2192 Platform_read_capabilities",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "platform_read_capabilities",
+          "step": 5
+        },
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_438_wait_run",
+      "name": "Wait_run \u2192 Get_device_broker",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_439_wait_run",
+      "name": "Wait_run \u2192 Platform_read_capabilities",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "platform_read_capabilities",
+          "step": 5
+        },
+        {
+          "symbol": "_bind_local_runtime_context",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_546_send_local_task",
+      "name": "Send_local_task \u2192 Canonical_json",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_local_task",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_547_send_local_task",
+      "name": "Send_local_task \u2192 Signing_dict",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_local_task",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_765_send_local_task",
+      "name": "Send_local_task \u2192 _get_internal_token",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_local_task",
+          "step": 1
+        }
+      ]
+    }
+  ]
+}

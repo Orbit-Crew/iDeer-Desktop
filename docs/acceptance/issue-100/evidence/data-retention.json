@@ -1,0 +1,50 @@
+[
+  {
+    "stage": "before-install",
+    "timestamp": "2026-10-20T11:29:04.0599645+00:00",
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace",
+    "fixtureHashes": [
+      "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6",
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ],
+    "legacyFileHashes": [
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ]
+  },
+  {
+    "stage": "after-install",
+    "timestamp": "2026-10-20T11:29:30.6065414+00:00",
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace",
+    "fixtureHashes": [
+      "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6",
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ],
+    "legacyFileHashes": [
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ]
+  },
+  {
+    "stage": "after-uninstall",
+    "timestamp": "2026-10-20T11:29:49.2452836+00:00",
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace",
+    "fixtureHashes": [
+      "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6",
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ],
+    "legacyFileHashes": [
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ]
+  },
+  {
+    "stage": "after-reinstall",
+    "timestamp": "2026-10-20T11:30:00.5230173+00:00",
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace",
+    "fixtureHashes": [
+      "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6",
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ],
+    "legacyFileHashes": [
+      "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+    ]
+  }
+]

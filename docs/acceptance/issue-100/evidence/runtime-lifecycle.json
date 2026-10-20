@@ -1,0 +1,48 @@
+[
+  {
+    "stage": "started",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 114136,
+    "login": {
+      "state": "unauthenticated",
+      "account": "",
+      "device": "",
+      "error": ""
+    },
+    "workspace": {
+      "state": "unavailable",
+      "logicalRoot": ""
+    }
+  },
+  {
+    "stage": "stopped",
+    "process": "stopped",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "crashed",
+    "process": "crashed",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "recovered",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 109804,
+    "login": {
+      "state": "unauthenticated",
+      "account": "",
+      "device": "",
+      "error": ""
+    },
+    "workspace": {
+      "state": "unavailable",
+      "logicalRoot": ""
+    }
+  }
+]

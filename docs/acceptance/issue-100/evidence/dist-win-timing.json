@@ -1,0 +1,6 @@
+{
+  "exitCode": 0,
+  "elapsedSeconds": 112.0524964,
+  "finishedAt": "2026-10-20T11:28:32.7303203Z",
+  "command": "npm.cmd run dist:win"
+}

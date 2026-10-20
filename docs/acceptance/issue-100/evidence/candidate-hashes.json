@@ -1,0 +1,26 @@
+[
+  {
+    "sha256": "AF79629C77D070C99C6C9C13D71FC1D0C31C5A9BF94EF244D0EDE9F28BBA23C5",
+    "path": "dist/ideer-desktop-0.1.0-windows-x64-setup.exe"
+  },
+  {
+    "sha256": "38E20141BB06E8814177597D6164BE854831E480783D38B4D41C2D1133CE857A",
+    "path": "package-lock.json"
+  },
+  {
+    "sha256": "C29657A8392B272B9BD7AA608DC0A3D7103D47A47196A664819203CB9D803D2D",
+    "path": "local-runtime/distribution.lock.json"
+  },
+  {
+    "sha256": "7A69600E779A0722B64DDA2254029F5A2C802DCBAFCA95733AA848EECFDDCD64",
+    "path": "resources/provenance/runtime-source.json"
+  },
+  {
+    "sha256": "5484082EC314C5933225EF852A5C7708BD60C02870472E81A11A8DEA0D4D54AF",
+    "path": "artifacts/issue-100/server/backend/uv.lock"
+  },
+  {
+    "sha256": "3FF4163EE66E540357D2F0FED3C03C034ED8BC68C4549EAD0D9CF8271A866131",
+    "path": "artifacts/issue-100/server/frontend/pnpm-lock.yaml"
+  }
+]

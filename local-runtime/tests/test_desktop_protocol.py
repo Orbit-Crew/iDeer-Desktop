@@ -137,3 +137,37 @@ def test_signed_task_replay_is_rejected_without_a_second_result():
                 await running
 
     asyncio.run(scenario())
+
+
+def test_signed_workspace_search_and_stale_directory_return_linked_receipts(tmp_path):
+    from core.file_service import WorkspaceFileService, WorkspaceSelection
+    from core.settings import RuntimeSettings
+    config = tmp_path / 'profile' / 'settings.json'
+    work = tmp_path / 'work'
+    work.mkdir()
+    (work / 'marker.py').write_bytes(b'KNOWN100 = True\n')
+    RuntimeSettings(server_url='https://test.invalid', user_id='A', device_id='D1').save(config)
+    selection = WorkspaceSelection(config)
+    root = selection.select(str(work), confirmed=True)['logicalRoot']
+    service = WorkspaceFileService(selection)
+
+    async def scenario():
+        async with connected_client(file_service=service, capabilities=service.capabilities) as (socket, frame):
+            await socket.send(json.dumps(frame({'operation': 'local.files.search', 'run_id': 'run-100',
+                'tool_call_id': 'call-100', 'arguments': {'path': root, 'query': 'KNOWN100'}}, task_id='task-search-100')))
+            response = await outcome(socket)
+            assert response['payload']['result']['matches'] == [
+                {'path': root + '/marker.py', 'line': 1, 'text': 'KNOWN100 = True'}]
+            receipt = response['payload']['receipt']
+            assert receipt['run_id'] == 'run-100'
+            assert receipt['task_id'] == 'task-search-100'
+            assert receipt['status'] == 'completed'
+            selection.select(str(work), confirmed=True)
+            await socket.send(json.dumps(frame({'operation': 'local.files.read', 'run_id': 'run-100',
+                'arguments': {'path': root + '/marker.py'}}, task_id='task-stale-100')))
+            response = await outcome(socket)
+            assert response['payload']['error_code'] == 'OUTSIDE_ALLOWED_ROOTS'
+            assert response['payload']['receipt']['task_id'] == 'task-stale-100'
+            assert 'KNOWN100' not in json.dumps(response)
+            assert str(work) not in json.dumps(response)
+    asyncio.run(scenario())

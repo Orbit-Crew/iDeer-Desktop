@@ -1,0 +1,6 @@
+{
+  "elapsedSeconds": 59.9575867,
+  "exitCode": 0,
+  "finishedAt": "2026-10-20T11:30:00.5495319Z",
+  "command": "scripts/windows-local-acceptance.ps1"
+}

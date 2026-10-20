@@ -145,6 +145,7 @@ class BrowserLogin:
             settings.device_name = device["name"]
             settings.user_name = account["name"]
             settings.user_id = account["id"]
+            settings.device_public_key = public_key_text(key)
             settings.device_key_ref = prefix + "-device-key"
             settings.session_token_ref = prefix + "-device-session"
             settings.business_token_ref = prefix + "-business-session"

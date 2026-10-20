@@ -1,0 +1,134 @@
+{
+  "matched": true,
+  "expected_staged_tree": "cb44f7515dcf615fc11b54c824500145b018c857",
+  "windows_staged_tree": "cb44f7515dcf615fc11b54c824500145b018c857",
+  "linux_staged_tree": "cb44f7515dcf615fc11b54c824500145b018c857",
+  "head": "aec07a3b9af3ab451b1f1a377a93f6f11135bf88",
+  "windows_core_autocrlf": "true",
+  "linux_core_autocrlf": "(unset)",
+  "linux_staging": "Only the eight authorized files were staged after the completed lane; no commit.",
+  "normalization": "CRLF to LF only; full Git trees and individual staged blobs match.",
+  "raw_differences": [],
+  "files": {
+    "backend/app/gateway/canonical_agent_run_preparation.py": {
+      "windows": {
+        "raw_sha256": "778c173aac1a11427615f8c7552cbaf69d393e9c3d6b59021b439aaccd58e611",
+        "lf_normalized_sha256": "df774757a52be90d7a6b0dfe41869039f3d9777b64580a319ae3a6372340fe8d",
+        "staged_git_blob": "bcc1a96efdff07bca7eddd4a9da5c7190e3b0c29"
+      },
+      "linux": {
+        "raw_sha256": "778c173aac1a11427615f8c7552cbaf69d393e9c3d6b59021b439aaccd58e611",
+        "lf_normalized_sha256": "df774757a52be90d7a6b0dfe41869039f3d9777b64580a319ae3a6372340fe8d",
+        "staged_git_blob": "bcc1a96efdff07bca7eddd4a9da5c7190e3b0c29"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/app/gateway/local_workspace_policy.py": {
+      "windows": {
+        "raw_sha256": "d87b002821357e88a0efbdd0f9e6cdbd62e688f6bec79e2d3fee81b769aa91af",
+        "lf_normalized_sha256": "eac57ff2b3382e91e17c7f0d13bc57e1b765e7c58dc421568f701c94a0214f3c",
+        "staged_git_blob": "2a5e10c606dc990f92660e4e472b7a58ff4c9833"
+      },
+      "linux": {
+        "raw_sha256": "d87b002821357e88a0efbdd0f9e6cdbd62e688f6bec79e2d3fee81b769aa91af",
+        "lf_normalized_sha256": "eac57ff2b3382e91e17c7f0d13bc57e1b765e7c58dc421568f701c94a0214f3c",
+        "staged_git_blob": "2a5e10c606dc990f92660e4e472b7a58ff4c9833"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/app/gateway/routers/devices.py": {
+      "windows": {
+        "raw_sha256": "e10c7bf5ef63968b39fed39199e5e71b818dab55837dac48f40c1f42c3387e2c",
+        "lf_normalized_sha256": "aa7e99232286f874fac8fc6973e6083448b911687fe518bf23ca5cf35fe1636c",
+        "staged_git_blob": "6a9b351fc3762105ac564909af6b2d750fef1022"
+      },
+      "linux": {
+        "raw_sha256": "e10c7bf5ef63968b39fed39199e5e71b818dab55837dac48f40c1f42c3387e2c",
+        "lf_normalized_sha256": "aa7e99232286f874fac8fc6973e6083448b911687fe518bf23ca5cf35fe1636c",
+        "staged_git_blob": "6a9b351fc3762105ac564909af6b2d750fef1022"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/app/gateway/run_preparation.py": {
+      "windows": {
+        "raw_sha256": "5be2d965a5f99082a782e1112dec26fc5fcb2e2e4ed903eac2cde5de208c969e",
+        "lf_normalized_sha256": "e7aaf3ca9051f8240ff1108c029dcaba5294bfff047eafc6795b80af05192a2b",
+        "staged_git_blob": "6607a457c1ce3ba44da49b42022aba7e50efa2b5"
+      },
+      "linux": {
+        "raw_sha256": "5be2d965a5f99082a782e1112dec26fc5fcb2e2e4ed903eac2cde5de208c969e",
+        "lf_normalized_sha256": "e7aaf3ca9051f8240ff1108c029dcaba5294bfff047eafc6795b80af05192a2b",
+        "staged_git_blob": "6607a457c1ce3ba44da49b42022aba7e50efa2b5"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py": {
+      "windows": {
+        "raw_sha256": "5a0cea00cebd10a1279d167a19e6c784dc1f2c9c95b48b4d1fdc1f649bf8caaa",
+        "lf_normalized_sha256": "57a3ee3ae73f1ea84bb350ac4bc2b904ccc22eacccbebb93bbe5fd2f9aefb290",
+        "staged_git_blob": "28d80226905e00ffa52eaf83e6e27304a1746e87"
+      },
+      "linux": {
+        "raw_sha256": "5a0cea00cebd10a1279d167a19e6c784dc1f2c9c95b48b4d1fdc1f649bf8caaa",
+        "lf_normalized_sha256": "57a3ee3ae73f1ea84bb350ac4bc2b904ccc22eacccbebb93bbe5fd2f9aefb290",
+        "staged_git_blob": "28d80226905e00ffa52eaf83e6e27304a1746e87"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/tests/integration/api/test_devices_router.py": {
+      "windows": {
+        "raw_sha256": "2e6acc778e7403358ef46776c6d0981555d8944689e430d5dcea3110038bd653",
+        "lf_normalized_sha256": "69852881cdcd5ace040f07c52560ed16987aef00af4cd41dcc25dce9f6639805",
+        "staged_git_blob": "252950d5f80514760d77b8641595396906167f99"
+      },
+      "linux": {
+        "raw_sha256": "2e6acc778e7403358ef46776c6d0981555d8944689e430d5dcea3110038bd653",
+        "lf_normalized_sha256": "69852881cdcd5ace040f07c52560ed16987aef00af4cd41dcc25dce9f6639805",
+        "staged_git_blob": "252950d5f80514760d77b8641595396906167f99"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/tests/unit/agentplatform/test_local_runtime_extension.py": {
+      "windows": {
+        "raw_sha256": "afe15d7a85125bc589fe289a93b5b0e2d53d40109e9532406236d47bd09088e2",
+        "lf_normalized_sha256": "6d68b68832e4030d7403dfc2ae1d01f795f854b5995c8482da0c5a14d7659da0",
+        "staged_git_blob": "6e1e3bf29865ff8ea0b8b05f7a0c15f5cfa95938"
+      },
+      "linux": {
+        "raw_sha256": "afe15d7a85125bc589fe289a93b5b0e2d53d40109e9532406236d47bd09088e2",
+        "lf_normalized_sha256": "6d68b68832e4030d7403dfc2ae1d01f795f854b5995c8482da0c5a14d7659da0",
+        "staged_git_blob": "6e1e3bf29865ff8ea0b8b05f7a0c15f5cfa95938"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    },
+    "backend/tests/unit/gateway/test_local_runtime_context.py": {
+      "windows": {
+        "raw_sha256": "daaa9971fed1945d5327267ea74ba94900a7fbe33b4c0492718a365f916c5af6",
+        "lf_normalized_sha256": "6765ae384da8815aaed77d1518ab010f9194daa85c27e5fc11a788d411fd6612",
+        "staged_git_blob": "6c9feeb52e401099596db633aace78b77a5b820a"
+      },
+      "linux": {
+        "raw_sha256": "daaa9971fed1945d5327267ea74ba94900a7fbe33b4c0492718a365f916c5af6",
+        "lf_normalized_sha256": "6765ae384da8815aaed77d1518ab010f9194daa85c27e5fc11a788d411fd6612",
+        "staged_git_blob": "6c9feeb52e401099596db633aace78b77a5b820a"
+      },
+      "raw_bytes_match": true,
+      "normalized_bytes_match": true,
+      "staged_git_blob_match": true
+    }
+  }
+}

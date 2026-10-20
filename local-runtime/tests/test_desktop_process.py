@@ -25,7 +25,8 @@ from server_protocol import MessageType, TaskEnvelope, public_key_text, sign_env
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows distribution and Credential Manager")
 
 
-def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
+@pytest.mark.parametrize('desktop_mode', [False, True], ids=['legacy-controller', 'desktop-mcp-denied'])
+def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path, desktop_mode):
     async def scenario():
         interpreter = Path(os.environ.get("IDEER_TEST_PYTHON", Path(__file__).resolve().parents[2] / ".runtime/python.exe"))
         assert interpreter.is_file(), "Run prepare-runtime.py first"
@@ -95,7 +96,8 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
 
                 async def start():
                     nonlocal process, monitor
-                    process = await asyncio.create_subprocess_exec(str(interpreter), "-I", "-u", "-m", "core.desktop", "--config", str(config),
+                    entry = ['-m', 'core.desktop'] if desktop_mode else [str(Path(__file__).parent / 'fixtures' / 'legacy_runtime_process.py')]
+                    process = await asyncio.create_subprocess_exec(str(interpreter), "-I", "-u", *entry, "--config", str(config),
                         cwd=interpreter.parent, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
                     monitor = asyncio.create_task(snapshot_reader(process))
                     socket = await asyncio.wait_for(queue.get(), 15)
@@ -110,6 +112,20 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path):
                         session_id=settings.session_id, task_id=task_id, payload={"run_id": "run-97", **payload}, **kwargs)
 
                 socket = await start()
+                if desktop_mode:
+                    await socket.send(task('desktop-mcp-denied-100', {'operation': capability,
+                        'arguments': {'value': 'MUST-NOT-EXECUTE'}}).model_dump_json(by_alias=True))
+                    response = await receive(socket)
+                    assert response.type == MessageType.ERROR
+                    assert response.payload['error_code'] == 'CAPABILITY_UNAVAILABLE'
+                    assert response.payload['receipt']['status'] == 'denied'
+                    assert not count.exists()
+                    assert not mcp_pid.exists()
+                    process.stdin.write(b'{"type":"shutdown"}\n')
+                    await process.stdin.drain()
+                    assert await asyncio.wait_for(process.wait(), 15) == 0
+                    await monitor
+                    return
                 await socket.send(task("echo-97", {"operation": "echo", "value": "T97-echo-marker"}).model_dump_json(by_alias=True))
                 response = await receive(socket)
                 assert response.payload["result"] == "T97-echo-marker"

@@ -1,0 +1,9 @@
+{
+  "patch": "server-implementation.patch.gz",
+  "testedTreeMatchesCommittedTree": true,
+  "branch": "codex/issue-100",
+  "tree": "cb44f7515dcf615fc11b54c824500145b018c857",
+  "commit": "ed13672c4134681a9391e0baefca002a6dde2ad6",
+  "patchSha256": "aef06257c546a55601ef7154dbba9309934ec3a6888502c7f7ea61947e6a1e90",
+  "base": "aec07a3b9af3ab451b1f1a377a93f6f11135bf88"
+}

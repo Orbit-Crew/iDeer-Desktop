@@ -1,0 +1,6 @@
+{
+  "elapsedSeconds": 36.2569287,
+  "command": "scripts/acceptance/issue-100/installed.ps1 -State artifacts/issue-100/installed-verified",
+  "exitCode": 0,
+  "finishedAt": "2026-10-20T11:20:04.0934008Z"
+}

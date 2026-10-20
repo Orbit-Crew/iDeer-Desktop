@@ -1,0 +1,6 @@
+lane=local-runtime
+command=/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\ local-runtime
+started=2026-10-20T11:09:23Z
+finished=2026-10-20T11:09:43Z
+status=0
+seconds=20

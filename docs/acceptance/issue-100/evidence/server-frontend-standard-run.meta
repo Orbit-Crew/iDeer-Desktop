@@ -1,0 +1,6 @@
+lane=frontend-standard
+command=/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\ frontend-standard
+started=2026-10-20T11:39:28Z
+finished=2026-10-20T11:47:22Z
+status=0
+seconds=474

@@ -279,8 +279,15 @@ class DesktopChat:
         if additional_kwargs:
             message['additional_kwargs'] = additional_kwargs
         self._turns.add(turn_id)
+        from .file_service import WorkspaceSelection
+        workspace = WorkspaceSelection(self.config).status()
+        local_context = {}
+        if workspace['state'] == 'ready':
+            settings = load_settings(self.config)
+            local_context = {'local_device_id': settings.device_id,
+                             'local_workspace_root': workspace['logicalRoot']}
         body = dict(assistant_id=agent_id, input={'messages': [message]},
-                    context={'agent_name': agent_id, **({'skill_resource_id': thread['skillId']} if thread['skillId'] else {})},
+                    context={'agent_name': agent_id, **local_context, **({'skill_resource_id': thread['skillId']} if thread['skillId'] else {})},
                     metadata={'desktop_turn_id': turn_id}, stream_mode=['messages-tuple', 'values', 'custom'],
                     stream_subgraphs=True, multitask_strategy='reject', on_disconnect='continue')
         try:
