@@ -1,0 +1,61 @@
+{
+  "files": {
+    "backend/app/gateway/canonical_agent_run_preparation.py": {
+      "beforeSha256": "778c173aac1a11427615f8c7552cbaf69d393e9c3d6b59021b439aaccd58e611",
+      "afterSha256": "26f9fa53730003d3aa793b0e7936a95f2516fa66a0c0e0bea80214ec00c20225",
+      "astSha256": "d080b3a6d07ada5e00b71fb17ca6a12825686cfd650e74ae207191626b93ff3c",
+      "astUnchanged": true
+    },
+    "backend/app/gateway/local_workspace_policy.py": {
+      "beforeSha256": "d87b002821357e88a0efbdd0f9e6cdbd62e688f6bec79e2d3fee81b769aa91af",
+      "afterSha256": "2534e280bd6d75cfb5577c512fce6a2e7941e8eb4c87441b032b2236d2acb76f",
+      "astSha256": "bd380adf4e1820314dece3e574fb6d681cc7e3ce695c38b40d4cf4584168e989",
+      "astUnchanged": true
+    },
+    "backend/app/gateway/run_preparation.py": {
+      "beforeSha256": "5be2d965a5f99082a782e1112dec26fc5fcb2e2e4ed903eac2cde5de208c969e",
+      "afterSha256": "588e3da2371d030d9132b37fcf88746d985eb531bc571d4f101f4c0234e3cc5b",
+      "astSha256": "8bf5284455c134dde273b00ad2f6090576c9267aad1ad285749c57905c87ff68",
+      "astUnchanged": true
+    },
+    "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py": {
+      "beforeSha256": "5a0cea00cebd10a1279d167a19e6c784dc1f2c9c95b48b4d1fdc1f649bf8caaa",
+      "afterSha256": "dbce392ae0abf26c3dc8a4c621cea2d87aeb4c6327b9e6aa0d307fb7961b969c",
+      "astSha256": "37922c47e60952c82cfefd0d7eebfe9d9b996b65076fd312002a2e8d1ce50d6b",
+      "astUnchanged": true
+    },
+    "backend/tests/integration/api/test_devices_router.py": {
+      "beforeSha256": "2e6acc778e7403358ef46776c6d0981555d8944689e430d5dcea3110038bd653",
+      "afterSha256": "5cc80de822e1ae350b7f1cb4d5e769d884a9b77c820df312d73b10ba64c57a9d",
+      "astSha256": "bb930dcd597e1ad49ef8de783a7bc60ad3febe8e69dcb0717ad6aa50c5faa732",
+      "astUnchanged": true
+    },
+    "backend/tests/unit/agentplatform/test_local_runtime_extension.py": {
+      "beforeSha256": "afe15d7a85125bc589fe289a93b5b0e2d53d40109e9532406236d47bd09088e2",
+      "afterSha256": "2b09ae786c8d21ba80c60ff710c104eacb42d0b19f2e1daae445a0f32317a706",
+      "astSha256": "bc9ab16e5e9a472d5999c5b263c87b0a2b221e9013441fa3ea28d46055a2bccc",
+      "astUnchanged": true
+    },
+    "backend/tests/unit/gateway/test_local_runtime_context.py": {
+      "beforeSha256": "daaa9971fed1945d5327267ea74ba94900a7fbe33b4c0492718a365f916c5af6",
+      "afterSha256": "d4f7d4184b53b9160982263a89d70d5cac910598502ea44b1cb8201c6517eb8f",
+      "astSha256": "9a65eafd62edde98417d861c0080fe9de37948bb47139379d2ebf1b5e4458357",
+      "astUnchanged": true
+    }
+  },
+  "astUnchanged": true,
+  "reason": "Remote CI additionally enforces ruff format --check; seven issue-100 files required formatting.",
+  "originalFunctionalCandidate": "ed13672c4134681a9391e0baefca002a6dde2ad6",
+  "formattedCandidate": "80feb941246a3cd8175d9048a2771b3e1beb6182",
+  "formattedTree": "8587a8a2db79c0394c567f9fa830a90b920b9940",
+  "focusedRegression": {
+    "passed": 33,
+    "seconds": 19.37
+  },
+  "staticCommands": [
+    "make lint (backend)",
+    "pnpm check (frontend)"
+  ],
+  "staticExitCode": 0,
+  "desktopPayloadChanged": false
+}

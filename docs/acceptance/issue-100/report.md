@@ -20,6 +20,7 @@ or external model-provider pass is claimed.
 | Desktop | Branch `codex/issue-100`; base `b7e1e0a52cbc540afc48f01e40ad55ab4f3f4152`; final implementation is the commit containing this report |
 | Desktop product source | SHA-256 `0a2e2c2af11bcfdaba60a9b71a0c2e4d3ebd2307ac1e27ebd582fa5abcd8911a`; [per-file manifest](evidence/source-binding.json) binds source independently of report/commit metadata |
 | Server | Commit `ed13672c4134681a9391e0baefca002a6dde2ad6`; base `aec07a3b9af3ab451b1f1a377a93f6f11135bf88`, with the same tree as prerequisite `95260f452670df62e365f10035d095838ec3a495`; eight changed files are SHA-256 bound in the same manifest |
+| Server integration formatting | Follow-up `80feb941246a3cd8175d9048a2771b3e1beb6182`, tree `8587a8a2db79c0394c567f9fa830a90b920b9940`; seven files were formatted after remote CI identified a missing format check. Every module AST is unchanged; see the integration record below |
 | Installer | `dist/ideer-desktop-0.1.0-windows-x64-setup.exe`; SHA-256 `af79629c77d070c99c6c9c13d71fc1d0c31c5a9bf94ef244d0ede9f28bba23c5` |
 | Installed app | `D:\software\iDeer Desktop\ideer-desktop`; ASAR SHA-256 `5332092aa2424b99f56aa51c925c3b645df5c88d8dac7fe023a59f0a3187e923`; all 271 prepared Runtime files match installed files, and Runtime core matches checked-in source |
 | Windows | Windows 11 Pro, `10.0.26300`, x64; [OS evidence](evidence/os.json) |
@@ -190,6 +191,31 @@ The earlier fixture runs used installer
 `f42e9c125aa409aae46daa0174bbf269f6b5a8be4d8ed6f11097279fb40e18c0` with the same
 ASAR and Runtime payload. The `installed-package-final` history entry and final
 lifecycle evidence refer to the rebuilt package.
+
+## Integration formatting correction
+
+PR #137's remote static job additionally ran `ruff format --check`, which had
+not been included in the initial changed-file `ruff check`. It found seven
+issue-100 files needing formatting. This was an actual CI failure and was fixed
+before merge, rather than waived by administrator authorization.
+
+Server follow-up `80feb941246a3cd8175d9048a2771b3e1beb6182` changes formatting
+only. A strict `ast.dump(..., include_attributes=False)` comparison matches every
+original and formatted module, including test modules and string constants.
+[Per-file hashes and AST proof](evidence/server-format-integration.json) map the
+original functional candidate to the follow-up tree. The original acceptance
+results and receipt hashes remain preserved as historical candidate evidence.
+
+The formatted candidate passes whole-backend `make lint` (ruff check and all
+2,135 files' format check), frontend `pnpm check` (ESLint and TypeScript, exit 0,
+0 errors / 1,273 existing frontend warnings), and the same 33 focused regressions
+in 19.37 seconds. [Regression log](evidence/server-format-validation.log.gz),
+[static log](evidence/server-ci-static-recheck.log.gz),
+[document/upstream gates](evidence/server-format-doc-gates.log.gz),
+[complete change detection](evidence/server-format-detect.json).
+Final remote checks and merge records are linked from
+[Server PR #137](https://github.com/Orbit-Crew/iDeer/pull/137) and the closure
+record on issue #100. Desktop product code and its accepted installer are unchanged.
 
 ## Windows 7 follow-up
 

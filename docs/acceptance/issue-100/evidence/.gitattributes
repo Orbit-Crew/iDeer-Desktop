@@ -1,2 +1,2 @@
 # Acceptance hashes describe original bytes, independent of checkout OS.
-* -text
+* -text whitespace=cr-at-eol
