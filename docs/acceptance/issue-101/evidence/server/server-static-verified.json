@@ -1,0 +1,12 @@
+{
+  "command": [
+    "backend/.venv-candidate/bin/python",
+    "/mnt/c/Users/Neo/.codex/worktrees/5834/iDeer-Desktop/scripts/acceptance/issue-101/verify_server_static.py",
+    "/tmp/ideer-issue101-server-20261021"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T12:56:45.440034+00:00",
+  "finished": "2026-10-21T12:56:46.040772+00:00",
+  "seconds": 0.601,
+  "exitCode": 0
+}

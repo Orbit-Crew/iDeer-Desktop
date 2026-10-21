@@ -682,7 +682,12 @@ class LocalConsentCoordinator:
             return
         if receipt is None:
             raise RuntimeError("local execution did not produce a receipt")
-        wire._record_execution(receipt)
+        from .receipt_ledger import ReceiptStorageError
+        try:
+            wire.persist_receipt(receipt)
+        except ReceiptStorageError:
+            await wire._storage_error(task_id, "RESULT_UNCERTAIN")
+            return
 
         assert wire.connection is not None
         await wire.connection.send(
@@ -701,6 +706,7 @@ class LocalConsentCoordinator:
                 separators=(",", ":"),
             )
         )
+        await wire.replay_receipts()
 
     async def _send_python_output(self, task_id: str, stream: str, output: str) -> None:
 
@@ -733,10 +739,6 @@ class LocalConsentCoordinator:
         consent_decision: str | None = None,
     ) -> None:
         wire = self._wire
-        if wire.connection is None:
-            # Nothing to report to: the session ended first. The local audit
-            # carries the outcome, and the broker resolves the task by timeout.
-            return
         from .receipts import LocalExecutionReceipt
 
         receipt = LocalExecutionReceipt(
@@ -747,7 +749,18 @@ class LocalConsentCoordinator:
             status=status,
             payload_hash=content_hash(payload),
             consent_decision=consent_decision,
+            error_code=code,
         )
+        if wire.receipt_ledger is not None:
+            from .receipt_ledger import ReceiptStorageError
+            try:
+                wire.persist_receipt(receipt)
+            except (ReceiptStorageError, ValueError):
+                # Invalid/unadmitted protocol frames are never execution facts.
+                # An already completed receipt is immutable on cancellation.
+                pass
+        if wire.connection is None:
+            return
         await wire.connection.send(
             json.dumps(
                 sign_envelope(
@@ -765,3 +778,4 @@ class LocalConsentCoordinator:
                 separators=(",", ":"),
             )
         )
+        await wire.replay_receipts()

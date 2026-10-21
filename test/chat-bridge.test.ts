@@ -1,5 +1,6 @@
 import { mkdtempSync, rmSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 
@@ -11,7 +12,7 @@ describe('restricted chat bridge', () => {
     expect(runtime.status().process).toBe('stopped')
   })
   it.skipIf(process.platform !== 'win32')('returns an unauthenticated state through the actual bundled Runtime', async () => {
-    const profile = mkdtempSync(resolve('artifacts/issue-99/bridge-'))
+    const profile = mkdtempSync(join(tmpdir(), 'ideer-chat-bridge-'))
     const runtime = new RuntimeProcess(resolve('.runtime'), profile)
     try {
       await runtime.start()

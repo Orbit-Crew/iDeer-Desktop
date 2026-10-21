@@ -1,0 +1,11 @@
+{
+  "command": [
+    "bash",
+    "backend/scripts/run-real-e2e.sh"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T12:45:18.966269+00:00",
+  "finished": "2026-10-21T12:50:04.948104+00:00",
+  "seconds": 272.483,
+  "exitCode": 0
+}

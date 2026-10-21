@@ -1,0 +1,149 @@
+{
+  "target": {
+    "id": "Class:backend/app/device_control/protocol.py:MessageType",
+    "name": "MessageType",
+    "type": "Class",
+    "filePath": "backend/app/device_control/protocol.py"
+  },
+  "direction": "upstream",
+  "impactedCount": 12,
+  "risk": "LOW",
+  "epistemic": "lower-bound",
+  "boundaries": [
+    "StrEnum is an interface with 39 implementations; callers that bind via the interface (e.g. a DI container or dynamic dispatch) are not traced to the concrete symbol — actual impact may be higher."
+  ],
+  "causes": {
+    "receiverTyping": 0,
+    "dispatchBoundary": 39,
+    "externalBoundary": 0,
+    "undecidedSatisfaction": 0
+  },
+  "summary": {
+    "direct": 4,
+    "processes_affected": 0,
+    "modules_affected": 0
+  },
+  "byDepthCounts": {
+    "1": 4,
+    "2": 4,
+    "3": 4
+  },
+  "affected_processes": [],
+  "affected_modules": [],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "File:backend/app/device_control/broker.py",
+        "name": "broker.py",
+        "filePath": "backend/app/device_control/broker.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:backend/app/device_control/desktop_login.py",
+        "name": "desktop_login.py",
+        "filePath": "backend/app/device_control/desktop_login.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:backend/app/device_control/receipt_archive.py",
+        "name": "receipt_archive.py",
+        "filePath": "backend/app/device_control/receipt_archive.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "File:backend/app/gateway/routers/devices.py",
+        "name": "devices.py",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "File:backend/app/gateway/app.py",
+        "name": "app.py",
+        "filePath": "backend/app/gateway/app.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "File:backend/app/gateway/canonical_agent_run_preparation.py",
+        "name": "canonical_agent_run_preparation.py",
+        "filePath": "backend/app/gateway/canonical_agent_run_preparation.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "File:backend/app/gateway/routers/__init__.py",
+        "name": "__init__.py",
+        "filePath": "backend/app/gateway/routers/__init__.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 2,
+        "id": "File:backend/app/gateway/run_preparation.py",
+        "name": "run_preparation.py",
+        "filePath": "backend/app/gateway/run_preparation.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      }
+    ],
+    "3": [
+      {
+        "depth": 3,
+        "id": "File:backend/app/gateway/__init__.py",
+        "name": "__init__.py",
+        "filePath": "backend/app/gateway/__init__.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 3,
+        "id": "File:backend/app/gateway/routers/auth.py",
+        "name": "auth.py",
+        "filePath": "backend/app/gateway/routers/auth.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 3,
+        "id": "File:backend/app/gateway/services.py",
+        "name": "services.py",
+        "filePath": "backend/app/gateway/services.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      },
+      {
+        "depth": 3,
+        "id": "File:backend/scripts/run_replay_gateway.py",
+        "name": "run_replay_gateway.py",
+        "filePath": "backend/scripts/run_replay_gateway.py",
+        "relationType": "IMPORTS",
+        "confidence": 1,
+        "processes": []
+      }
+    ]
+  }
+}

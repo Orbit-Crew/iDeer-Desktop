@@ -17,6 +17,8 @@ from .settings import load_settings
 from .file_service import WorkspaceSelection
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
+from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
+from .receipts import content_hash
 from .tray import load_controller
 
 
@@ -28,6 +30,7 @@ def main() -> int:
     stop = threading.Event()
     commands: queue.Queue = queue.Queue(maxsize=1)
     workspace_commands: queue.Queue = queue.Queue(maxsize=1)
+    receipt_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     output_lock = threading.Lock()
 
@@ -43,6 +46,12 @@ def main() -> int:
                 if len(line) > 131072:
                     continue
                 command = json.loads(line)
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'offset', 'scope'}
+                        and command['type'] == 'receipts' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and command['action'] in {'history', 'clear-confirmed'}
+                        and type(command['offset']) is int and 0 <= command['offset'] <= 1000000000):
+                    receipt_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['path'], str)
@@ -76,6 +85,8 @@ def main() -> int:
 
         workspace = WorkspaceSelection(args.config)
         chat = DesktopChat(args.config, login.secure, login.status)
+        args.config.parent.mkdir(parents=True, exist_ok=True)
+        receipts = ReceiptLedger(args.config.with_name('receipts.db'))
 
         def chat_control():
             while not stop.is_set():
@@ -116,6 +127,8 @@ def main() -> int:
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
+            controller.client.receipt_ledger = receipts
+            controller.client.user_id = settings.user_id
             controller.client.file_service.available = lambda: login.status()['state'] == 'authenticated'
             controller.start()
             return controller
@@ -123,6 +136,23 @@ def main() -> int:
         controller = connect()
         while not stop.is_set():
             browser_url = None
+            try:
+                receipt_command = receipt_commands.get_nowait()
+            except queue.Empty:
+                receipt_command = None
+            if receipt_command:
+                error = ''
+                receipt_owner = profile_binding(load_settings(args.config))
+                try:
+                    if receipt_command['action'] == 'clear-confirmed':
+                        if receipt_owner is None or receipt_command['scope'] != content_hash(receipt_owner):
+                            error = 'RECEIPT_BINDING_CHANGED'
+                        else:
+                            receipts.clear_confirmed(receipt_owner)
+                except ReceiptStorageError:
+                    error = 'RECEIPT_STORAGE_UNAVAILABLE'
+                emit({'v': 1, 'type': 'receipts', 'id': receipt_command['id'],
+                      'result': receipts.snapshot(receipt_owner, offset=receipt_command['offset']), 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
@@ -157,15 +187,17 @@ def main() -> int:
             if controller is not None and login.status()["state"] != "authenticated":
                 controller.stop()
                 controller = None
-            tasks = []
+            current_receipt_owner = profile_binding(load_settings(args.config))
+            receipt_view = receipts.snapshot(current_receipt_owner)
+            tasks = [{"taskId": row['task_id'][:256], "runId": row['run_id'][:256],
+                      "state": (row['status'] if row['delivery_state'] != 'cleaned' else 'cleaned')[:256],
+                      "capability": row['capability'][:256]} for row in receipt_view['rows']]
             connection = "offline" if load_settings(args.config).device_id else "not-configured"
             if controller is not None:
                 connection = controller.status().connection
-                for entry in controller.audit.recent(limit=20):
-                    if entry.task_id:
-                        tasks.append({"taskId": entry.task_id[:256], "runId": (entry.run_id or "")[:256],
-                                      "state": entry.action[:256], "capability": (entry.capability or "")[:256]})
             status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status(),
+                      "receiptStorageError": receipts.error,
+                      "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "selectionScope": workspace.scope(),
                       "workspace": workspace.status() if login.status()["state"] == "authenticated" else {"state": "unavailable", "logicalRoot": ""}}
             if browser_url:

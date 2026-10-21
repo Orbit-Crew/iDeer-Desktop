@@ -1,0 +1,19 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "scripts\\acceptance\\issue-101\\installed.ps1",
+    "-State",
+    "artifacts\\issue-101\\functional-visual",
+    "-Executable",
+    "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\5834\\iDeer-Desktop",
+  "started": "2026-10-21T12:52:52.258775+00:00",
+  "finished": "2026-10-21T12:54:57.910120+00:00",
+  "seconds": 125.641,
+  "exitCode": 0
+}

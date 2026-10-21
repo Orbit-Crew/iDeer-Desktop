@@ -1,0 +1,457 @@
+[
+  {
+    "path": ".gitattributes",
+    "sha256": "54da72ffe7b7a9529b193ff0de762c16c29616be3c582b4ed940400e6d2a8ded",
+    "bytes": 9
+  },
+  {
+    "path": "attempts/desktop-tests-first.json",
+    "sha256": "f39413d125ad66b9a850667a97f65f1c698591fdc546294c54bf08a6c44c108a",
+    "bytes": 300
+  },
+  {
+    "path": "attempts/desktop-tests-first.log.gz",
+    "sha256": "47e7b619fa6dd4ae39af5761ffa5eaff4afc097126f18a44d1758e2c07ffe8e8",
+    "bytes": 893
+  },
+  {
+    "path": "attempts/dist-win-first.json",
+    "sha256": "ef9d6c6bda7ed58051b988157ed701d95965943fbef48b12ffa6cf49a2ef3217",
+    "bytes": 316
+  },
+  {
+    "path": "attempts/dist-win-first.log.gz",
+    "sha256": "ad2c0d124f723af3cf67088141e58146396da2460f8ee517876db58251d823eb",
+    "bytes": 1335
+  },
+  {
+    "path": "attempts/functional-command.json",
+    "sha256": "c8c1b40b9af83d86ffba4b42b757dcf2f24325c031faa1a5aa254389ed25388f",
+    "bytes": 629
+  },
+  {
+    "path": "attempts/functional-command.log.gz",
+    "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "bytes": 20
+  },
+  {
+    "path": "attempts/functional-first/gateway-cleanup.json",
+    "sha256": "5e53c56613489af143413cbae6312dcbe5a19b4d2f8ccec76c56383620f03a75",
+    "bytes": 16
+  },
+  {
+    "path": "attempts/functional-first/profile-restoration.json",
+    "sha256": "24ce2df69e765c260ad4b8b5568b83c6e077b96f3b30a72ee7d46f52ecbc52ba",
+    "bytes": 125
+  },
+  {
+    "path": "attempts/functional-first/result.json",
+    "sha256": "2a5d1ede76178b7bfb66e58fe3b1d62e1d018582bef1170ff857e8f0877f6f75",
+    "bytes": 12330
+  },
+  {
+    "path": "attempts/functional-first/run-reconciliation.json",
+    "sha256": "b0e49eb1600030646c09eb8d52105f9593bf01cfe2d396d588edc581bb384739",
+    "bytes": 3776
+  },
+  {
+    "path": "attempts/install-lifecycle-first.json",
+    "sha256": "247df0b127433f7e6e98b9b068d3ca5991fa71451a79c4d0fe8dd89c89ab5ec7",
+    "bytes": 615
+  },
+  {
+    "path": "attempts/install-lifecycle-first.log.gz",
+    "sha256": "513c84c63cd92c56b8104c259622560144c9eff89edc2172cebb419cfa1dd30d",
+    "bytes": 442
+  },
+  {
+    "path": "desktop/builder-helper-hashes.json",
+    "sha256": "4295b937d13155620bd2e4b932e37948d17043ef1ae2615fb4edc30b7b7a4515",
+    "bytes": 12475
+  },
+  {
+    "path": "desktop/desktop-source-binding.json.gz",
+    "sha256": "81d6814e29d1465395d736951194fe53f97c38aad2318c9905eb166d2311f689",
+    "bytes": 5999
+  },
+  {
+    "path": "desktop/desktop-tests-release.json",
+    "sha256": "532b9bbaad427ed13ead285b0d2e2b0ad243445757d900e228092fa7b34e2d4b",
+    "bytes": 300
+  },
+  {
+    "path": "desktop/desktop-tests-release.log.gz",
+    "sha256": "e92fd93b0c511192cd8929676020db46128ea185b4434a9c9b49f4614bcfd847",
+    "bytes": 498
+  },
+  {
+    "path": "desktop/dist-win-release.json",
+    "sha256": "487d9db284c8db8e53d0a0756652e4345e8a1b5b824dcdd437122aa04546b3fd",
+    "bytes": 316
+  },
+  {
+    "path": "desktop/dist-win-release.log.gz",
+    "sha256": "adbedce93525a53239b0d827eda9439b054fb969d014e86dc8f68471348328dc",
+    "bytes": 643
+  },
+  {
+    "path": "desktop/environment.json",
+    "sha256": "72a8041986eba5784908eb2ff584063b317adad67cf080266e71a1e85e459c32",
+    "bytes": 322
+  },
+  {
+    "path": "desktop/functional-final-command.json",
+    "sha256": "7fbc670fa2d8718b684db4bdf3a0178cf032bafffd58ddb62da72cc5e1a758f1",
+    "bytes": 627
+  },
+  {
+    "path": "desktop/functional-final-command.log.gz",
+    "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "bytes": 20
+  },
+  {
+    "path": "desktop/functional-visual-command.json",
+    "sha256": "c66c8c1ebcd790adea5177e6c68e7868b39d63e7147857d4f2411e172d44af56",
+    "bytes": 628
+  },
+  {
+    "path": "desktop/functional-visual-command.log.gz",
+    "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "bytes": 20
+  },
+  {
+    "path": "desktop/install-lifecycle-release.json",
+    "sha256": "ae302a917b6da032f09a1e3403e0daebb1d7198104b7e3c0610f4a986167de01",
+    "bytes": 707
+  },
+  {
+    "path": "desktop/install-lifecycle-release.log.gz",
+    "sha256": "7420b8a3cb6f20a1c01e10037dc44fa2060aae4b6111ac3585d9580f90de23f9",
+    "bytes": 646
+  },
+  {
+    "path": "desktop/lock-hashes.json",
+    "sha256": "d7df79726139af7a1eaccc0ddb006eca5005e6a9b5ea43ab69e498842df1f7ba",
+    "bytes": 486
+  },
+  {
+    "path": "desktop/package-hashes.json",
+    "sha256": "b08e1a038c1224e03b53ebf2140860789092619f6a7f21e75a6e1d1fb1738932",
+    "bytes": 336
+  },
+  {
+    "path": "desktop/provenance-verified.json",
+    "sha256": "e319686d1280cab9ea12c0211146a9a785b81d9bd6348c25027cd3f06682654e",
+    "bytes": 324
+  },
+  {
+    "path": "desktop/provenance-verified.log.gz",
+    "sha256": "047df0a7cc74d493dcf5b9fa3d9995c6b87c263dfe3f98584c25da879fec5ce3",
+    "bytes": 135
+  },
+  {
+    "path": "desktop/runtime-static-verified.json",
+    "sha256": "0abd96fb23fc0142ace9403ff9c6315ea85e431c23d78181bf10e6a546f71414",
+    "bytes": 527
+  },
+  {
+    "path": "desktop/runtime-static-verified.log.gz",
+    "sha256": "f3af4d142827f5aad2eb0c72d556d325488a57fb6219aac10afeb51085667d53",
+    "bytes": 39
+  },
+  {
+    "path": "desktop/runtime-tests-verified.json",
+    "sha256": "a37aff99432258ad6359447f902c35e57e7e2ddb86c9b6850036631fefd822ac",
+    "bytes": 536
+  },
+  {
+    "path": "desktop/runtime-tests-verified.log.gz",
+    "sha256": "4e03a771768196fa2bb7cf4dc644e232f44a7c95123528bcf4544cea7ea2643e",
+    "bytes": 456
+  },
+  {
+    "path": "desktop/runtime-tests-verified.xml.gz",
+    "sha256": "c045143807de0a06de96ae013e369a25374db9641f9992bdb2adc4d3ce85e17e",
+    "bytes": 7276
+  },
+  {
+    "path": "desktop/security-release.json",
+    "sha256": "d0c292afa8b8c2ec1ad6513c6b005a5989358fe1a83a1faa078c6fc35b046bd1",
+    "bytes": 320
+  },
+  {
+    "path": "desktop/security-release.log.gz",
+    "sha256": "4300dfbc389b1f38c086cd05b801aa1f9bfb678d872b86db34feb17345c0d4a7",
+    "bytes": 369
+  },
+  {
+    "path": "desktop/typecheck-release.json",
+    "sha256": "a0ea70eda8c1ee0ab4b263b4d1859c6d6a66e31de5cf57ac2e5254452e723a94",
+    "bytes": 316
+  },
+  {
+    "path": "desktop/typecheck-release.log.gz",
+    "sha256": "53284fb104ae9e38d5aa4446b73466b2779fec1648bd3ff235fd013db2ad6c3f",
+    "bytes": 99
+  },
+  {
+    "path": "functional/credential-cleanup.json",
+    "sha256": "e1836197bb486916999dc8159e5a733c9e397f93652fa139d891a8726f91c9b9",
+    "bytes": 32
+  },
+  {
+    "path": "functional/gateway-cleanup.json",
+    "sha256": "5e53c56613489af143413cbae6312dcbe5a19b4d2f8ccec76c56383620f03a75",
+    "bytes": 16
+  },
+  {
+    "path": "functional/profile-restoration.json",
+    "sha256": "16bb08ef5d46c2dd36003b65e46b5709810d057075453105244df18a2b6019c8",
+    "bytes": 125
+  },
+  {
+    "path": "functional/receipt-events.jsonl",
+    "sha256": "18cff977fb5003e0e48760452c34fafcbb433620eac6075f5857a52366e06368",
+    "bytes": 7421
+  },
+  {
+    "path": "functional/receipt-history-older.png",
+    "sha256": "e8a278f0ac4a36e692d64cd66063b28c609a7bbc22a7d740ff99a551d9cce770",
+    "bytes": 75294
+  },
+  {
+    "path": "functional/receipt-history.png",
+    "sha256": "301e2b033a58ec6f75b22b6972c366e01f61a2e0e73d94a3a4f174176796d889",
+    "bytes": 74981
+  },
+  {
+    "path": "functional/result.json",
+    "sha256": "9594a12e9995f21f1355934099c0bd19d478d9ed818b5e540b1711697106fe06",
+    "bytes": 79435
+  },
+  {
+    "path": "lifecycle/desktop-command.json",
+    "sha256": "46c10ee137d96d3d4a0d9fff9d632a9546deeebe02fe6098c449b84d7c19a672",
+    "bytes": 176
+  },
+  {
+    "path": "lifecycle/installed-desktop-smoke.log.gz",
+    "sha256": "1a2184963b055f1930cb340986f02f814225a42f4e6bc30011c6d2f0ae740c22",
+    "bytes": 360
+  },
+  {
+    "path": "lifecycle/installed-desktop-startup.png",
+    "sha256": "be3c320beb64138c31ef9f6f4ae0ba22490bc9eb5cfd819e6c8ec32a4514596a",
+    "bytes": 60361
+  },
+  {
+    "path": "lifecycle/lifecycle-results.json",
+    "sha256": "6747d6bfcca424c4c23976a1cb19fb68cb984630fa165bf9fb8e0615cc4518c9",
+    "bytes": 1604
+  },
+  {
+    "path": "lifecycle/profile-restoration.json",
+    "sha256": "13c631c17e4c55146d49355ce611d2c18508dc62898115a73c202e318b170338",
+    "bytes": 102
+  },
+  {
+    "path": "server/deadline-baseline-blobs.txt",
+    "sha256": "2a918a9d937da3c7528da662518afdce5729921518cb1f736081b9936641a622",
+    "bytes": 164
+  },
+  {
+    "path": "server/deadline-isolated.json",
+    "sha256": "6f37d1380c80150fb3784b9884b59c543250359a8e3b6555e0fe6052e26f8766",
+    "bytes": 487
+  },
+  {
+    "path": "server/deadline-isolated.log.gz",
+    "sha256": "98159e99eb002a3ae0ef4aa4fefcd1f533739603e253193cff7d8952b45b8d3a",
+    "bytes": 453
+  },
+  {
+    "path": "server/deadline-verified.json",
+    "sha256": "112f70b9ad0d5e73e70d8a5e03ab5a55637d33472d879205a1d18a0a37d7abcb",
+    "bytes": 488
+  },
+  {
+    "path": "server/deadline-verified.log.gz",
+    "sha256": "fb5ba166e89b3b43f9fb6dcabbff6a5c98dc6e56dc3bd63b9e2281e939216945",
+    "bytes": 49
+  },
+  {
+    "path": "server/detect-changes-final.json",
+    "sha256": "bdfb13854a18d66d5ed6ecf4e260623fe2f54247dbe429ca93697457210dfa56",
+    "bytes": 455
+  },
+  {
+    "path": "server/detect-changes-final.log.gz",
+    "sha256": "9807a01aad9468af19c4233a3b52df7315b4fde6cdb698f96e4efbbc798286b2",
+    "bytes": 152
+  },
+  {
+    "path": "server/detect-changes-result.json",
+    "sha256": "510177d74f2d9807b116212388c84ab641835f7b931fe86d6c12ef37409e7966",
+    "bytes": 25592
+  },
+  {
+    "path": "server/documents-signoff.json",
+    "sha256": "7759a82f3179d4eb10a22cfc58fc8be374af38b1df6fc7f31bc4ab04b59085d3",
+    "bytes": 281
+  },
+  {
+    "path": "server/documents-signoff.log.gz",
+    "sha256": "004f1ea5fbe06104bd0f5dcf5d08d271d9a13b18dad63c322c58fc3ee3de72ed",
+    "bytes": 76
+  },
+  {
+    "path": "server/functional-fixture-cleanup.json",
+    "sha256": "e5856c72057c3e8a1962836ea30523cc2fa52718dccc17ae4a9c40c06916ee2f",
+    "bytes": 476
+  },
+  {
+    "path": "server/gitnexus-final.json",
+    "sha256": "104ed8d7a29d8068a1e44f5b271a796cc1db751529bc96a6846300514f18eb91",
+    "bytes": 380
+  },
+  {
+    "path": "server/gitnexus-final.log.gz",
+    "sha256": "56da3a37f025f299ee30dcae3c034a1ad71512622311470e380a460fa5aff36d",
+    "bytes": 9903
+  },
+  {
+    "path": "server/impact-__init__.json",
+    "sha256": "1586890e7d026f0912ed5d0ccb82af9bd57a3813b3e02a9c1dccd9b374f67611",
+    "bytes": 1448
+  },
+  {
+    "path": "server/impact-attach.json",
+    "sha256": "711aa975a3ad6a5671e86c04e502943261fc9eb3c96ff2c9d00f1d11295b8d77",
+    "bytes": 2465
+  },
+  {
+    "path": "server/impact-device-websocket.json",
+    "sha256": "84d26245336cfd7dd25e4095a5efa9b15fbe3c59b57a3126e7a207e2320e3a08",
+    "bytes": 971
+  },
+  {
+    "path": "server/impact-get_device_broker.json",
+    "sha256": "8d006bc4316c66d38e56b660ff676c929b71278228ea43f5742b9b5ed45fdcff",
+    "bytes": 26078
+  },
+  {
+    "path": "server/impact-message-type-1.6.10.json",
+    "sha256": "2ad7e021282beb3887c9672b758cf1e29623b40228eccb0bb99b0370e5016334",
+    "bytes": 4262
+  },
+  {
+    "path": "server/impact-receive.json",
+    "sha256": "a21facf2b6dfa8bd45d79a2dc0c55e565c52119471e8eb8364ec2562bec939cf",
+    "bytes": 2467
+  },
+  {
+    "path": "server/impact-safe-logical-target-review.txt",
+    "sha256": "65ecddf2fec4f2e782b4efe0f501069e67f7ef8a936ccf17199d0c0a6b6e1598",
+    "bytes": 179
+  },
+  {
+    "path": "server/impact-send-task.json",
+    "sha256": "8e93868b7943afe213f37f6f682a60a4d03645d2b178387fbc34bc5ec23a4b03",
+    "bytes": 4232
+  },
+  {
+    "path": "server/inventory-signoff.json",
+    "sha256": "ba3f249d5f9f9a46506379799aa5588cbf85919b7f9b69cf9861dd687bce2b7f",
+    "bytes": 281
+  },
+  {
+    "path": "server/inventory-signoff.log.gz",
+    "sha256": "e327c20e15d0e47eb509b0b91c9edfee857f38f747fa5498180bd890469a8c9a",
+    "bytes": 41648
+  },
+  {
+    "path": "server/real-final-cleanup.json",
+    "sha256": "570ed65a7138b138adfc51953d97ec2fc6162d3826bfe27d218565422012f018",
+    "bytes": 193
+  },
+  {
+    "path": "server/real-first-cleanup.json",
+    "sha256": "91aafa88b55ce25f9fb28bc7a141056fb27f1f61cdccbd1024f65b5da2c59351",
+    "bytes": 194
+  },
+  {
+    "path": "server/server-delivery.patch.gz",
+    "sha256": "eeb7ad5fad5cf0b13a9a31f66343d1ba3a23ee39a99768d789f3c031c0dceedc",
+    "bytes": 13446
+  },
+  {
+    "path": "server/server-environment.json",
+    "sha256": "84687d0be940dc0d7a9724fef274e346ce637ceb0444b3cf9358096798ded9f0",
+    "bytes": 1321
+  },
+  {
+    "path": "server/server-focused-verified.json",
+    "sha256": "c6847c1175287fb498f77cba3aa3e89b23cbbb9e531baf876bfd6acd457fa591",
+    "bytes": 690
+  },
+  {
+    "path": "server/server-focused-verified.log.gz",
+    "sha256": "c49b3299c72606e5c22627b917736941c1542498d14889532283e4963eba78b5",
+    "bytes": 416
+  },
+  {
+    "path": "server/server-pr-signoff.json",
+    "sha256": "95f3ffad5e6a2646bfffe1a6c4c1db5adda9fa5365182c45a14e27fb7e0edeac",
+    "bytes": 271
+  },
+  {
+    "path": "server/server-pr-signoff.log.gz",
+    "sha256": "885b8564fdd895518233b433284ece917ac15c731eb79f132bbc26f39a450ec0",
+    "bytes": 711114
+  },
+  {
+    "path": "server/server-real-signoff.json",
+    "sha256": "ead99e7be01f7baa1d8688e75ee2a3cdfeb6db517b77c5cf33f6f0a420af3592",
+    "bytes": 258
+  },
+  {
+    "path": "server/server-real-signoff.log.gz",
+    "sha256": "b556cd13be548a4313a82d9c6f32d9e700f9fd6d1ecb77eeeaccefa2fa22ee7c",
+    "bytes": 6864
+  },
+  {
+    "path": "server/server-real-verified.json",
+    "sha256": "5d23f1ca0a9f3000b6e094fc42cb29b159758f63b670795bb7e38211c5eae762",
+    "bytes": 258
+  },
+  {
+    "path": "server/server-real-verified.log.gz",
+    "sha256": "fe8e0685d0f89ec3acc674dec6dfc0a30d1ff841e846af738fc0f023f9611cab",
+    "bytes": 7619
+  },
+  {
+    "path": "server/server-source-binding.json.gz",
+    "sha256": "c912862696e20847bd312afc90a408ed02cd3736b62c4cf34adc88d4a86c17df",
+    "bytes": 194716
+  },
+  {
+    "path": "server/server-static-verified.json",
+    "sha256": "6df54d62c4f2ffab5d09876807c8b6a9889ec9225306904fbb8a784590376bab",
+    "bytes": 403
+  },
+  {
+    "path": "server/server-static-verified.log.gz",
+    "sha256": "066023176303acc6870a29b0d4cded8a73a35716b834091ab7c8e079d87fac82",
+    "bytes": 298
+  },
+  {
+    "path": "server/upstream-signoff.json",
+    "sha256": "81302bbdd223c42b0354a1ee43e525065b39d7fb47cae661763a369c4ce84bb0",
+    "bytes": 425
+  },
+  {
+    "path": "server/upstream-signoff.log.gz",
+    "sha256": "8538295fea5c052302a0470c06bf05fd5a885d517bf03ba28433cff59e4dc944",
+    "bytes": 218
+  }
+]

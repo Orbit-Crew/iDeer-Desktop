@@ -1,0 +1,12 @@
+{
+  "command": [
+    "bash",
+    "scripts/run-test-lane.sh",
+    "pr-standard"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T05:40:01.685006+00:00",
+  "finished": "2026-10-21T06:40:54.011591+00:00",
+  "seconds": 3652.327,
+  "exitCode": 1
+}

@@ -78,6 +78,21 @@ if (!app.requestSingleInstanceLock()) {
       requireMainFrame(event)
       return runtime.chat(command)
     })
+    ipcMain.handle('desktop:receipts', async (event, action, offset = 0) => {
+      requireMainFrame(event)
+      if (!['history', 'clear-confirmed'].includes(action)) throw new Error('RECEIPT_ACTION_INVALID')
+      const receiptScope = runtime.receiptOwnershipScope()
+      if (action === 'clear-confirmed') {
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '清理已确认回执', message: '清理已由 Server 确认的回执详情？',
+          detail: '未确认和结果待核实的记录会保留。清理后仍保留任务归属与清理标记，不会再次执行操作。',
+          buttons: ['取消', '清理已确认记录'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (runtime.receiptOwnershipScope() !== receiptScope) throw new Error('RECEIPT_BINDING_CHANGED')
+        if (confirmation.response !== 1) return runtime.receipts('history', offset)
+      }
+      return runtime.receipts(action, offset, receiptScope)
+    })
     ipcMain.handle('desktop:runtime:start', (event) => {
       requireMainFrame(event)
       return runtime.start()

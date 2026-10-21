@@ -1,0 +1,23 @@
+[
+  {
+    "fixture": "signoff",
+    "gatewayStopped": true,
+    "credentialsRemoved": 6,
+    "originalProfileRestored": true,
+    "linuxStateRemoved": true
+  },
+  {
+    "fixture": "final",
+    "gatewayStopped": true,
+    "credentialsRemoved": 6,
+    "originalProfileRestored": true,
+    "linuxStateRemoved": true
+  },
+  {
+    "fixture": "visual",
+    "gatewayStopped": true,
+    "credentialsRemoved": 6,
+    "originalProfileRestored": true,
+    "linuxStateRemoved": true
+  }
+]

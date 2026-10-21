@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/mnt/c/Users/Neo/.codex/worktrees/5834/iDeer-Desktop/scripts/acceptance/issue-101/detect_changes.mjs",
+    "/tmp/ideer-issue101-server-20261021",
+    "/tmp/ideer-issue101-server-20261021/dev-log/detect-changes-result.json"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T13:04:10.387285+00:00",
+  "finished": "2026-10-21T13:04:11.438246+00:00",
+  "seconds": 1.051,
+  "exitCode": 0
+}

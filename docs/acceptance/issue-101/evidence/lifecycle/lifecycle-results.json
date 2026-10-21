@@ -1,0 +1,50 @@
+[
+  {
+    "check": "install",
+    "result": "passed",
+    "detail": "Installed candidate to D:\\software\\iDeer Desktop\\ideer-desktop",
+    "timestamp": "2026-10-21T06:01:43.4819893+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 24.6172798
+  },
+  {
+    "check": "shortcuts",
+    "result": "passed",
+    "detail": "Desktop and Start Menu shortcuts target the installed executable",
+    "timestamp": "2026-10-21T06:01:43.5708342+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 24.7049707
+  },
+  {
+    "check": "installed-candidate",
+    "result": "passed",
+    "detail": "7489DDB6A554EC9E4C8B2E5AB574B02A965F078BADB4019A924CD0C155F880C8",
+    "timestamp": "2026-10-21T06:01:44.7024080+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 25.8365709
+  },
+  {
+    "check": "installed-desktop-smoke",
+    "result": "passed",
+    "detail": "Real Electron UI, sandbox, IPC, CSP, sidebar, UI quit and native close",
+    "timestamp": "2026-10-21T06:02:14.0531909+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 55.1873299
+  },
+  {
+    "check": "uninstall-data-retention",
+    "result": "passed",
+    "detail": "Executable removed; Desktop fixture and all original linz files preserved",
+    "timestamp": "2026-10-21T06:02:17.9252322+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 59.0593675
+  },
+  {
+    "check": "reinstall-data-retention",
+    "result": "passed",
+    "detail": "Reinstalled at original location with data and shortcuts retained",
+    "timestamp": "2026-10-21T06:02:35.7495788+00:00",
+    "exitCode": 0,
+    "elapsedSeconds": 76.8837237
+  }
+]

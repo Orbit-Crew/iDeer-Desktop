@@ -14,6 +14,7 @@ import hashlib
 import json
 from dataclasses import replace
 from typing import Any
+from urllib.parse import urlsplit
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from websockets.asyncio.client import ClientConnection, connect
@@ -42,7 +43,8 @@ from .protocol import (
     verify_envelope,
 )
 from .python import LocalPythonService, PythonResult
-from .receipts import LocalExecutionReceipt, content_hash
+from .receipts import LocalExecutionReceipt, content_hash, safe_logical_target
+from .receipt_ledger import ReceiptLedger, ReceiptStorageError
 from .secrets import SecretStoreError
 from .task_guard import TaskGuard
 
@@ -78,6 +80,8 @@ class LocalRuntimeClient:
         on_server_public_key: Any | None = None,
         task_guard: TaskGuard | None = None,
         restrict_capabilities: bool = False,
+        receipt_ledger: ReceiptLedger | None = None,
+        user_id: str = "",
     ) -> None:
         self.server_url = server_url
         self.device_id = device_id
@@ -90,6 +94,9 @@ class LocalRuntimeClient:
         self.runtime_version = runtime_version
         self.task_guard = task_guard or TaskGuard()
         self.restrict_capabilities = restrict_capabilities
+        self.receipt_ledger = receipt_ledger
+        self.user_id = user_id
+        self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
             if file_service is not None:
@@ -373,6 +380,7 @@ class LocalRuntimeClient:
         await self.send_capability_update()
         assert self.connection is not None
         expiry_task = asyncio.create_task(self._expire_consents_periodically())
+        replay_task = None
         try:
             server_hello = json.loads(await self.connection.recv())
             pinned_before_hello = bool(self.server_public_key)
@@ -402,6 +410,10 @@ class LocalRuntimeClient:
             )
             self.server_public_key = configured_key
             self.connected = True
+            self.receipt_replay_enabled = server_hello.get("payload", {}).get("receipt_replay") == 1
+            # Drain ACKs concurrently with the outbox: a full socket must not
+            # prevent the peer from making upload progress.
+            replay_task = asyncio.create_task(self.replay_receipts())
             if not pinned_before_hello and self.on_server_public_key is not None:
                 # Only a first bind is announced: a pinned key is persisted by
                 # pairing itself and would only rewrite the same value.
@@ -415,7 +427,9 @@ class LocalRuntimeClient:
             raise
         finally:
             expiry_task.cancel()
-            await asyncio.gather(expiry_task, return_exceptions=True)
+            if replay_task is not None:
+                replay_task.cancel()
+            await asyncio.gather(expiry_task, *([replay_task] if replay_task is not None else []), return_exceptions=True)
             # Reached on every exit: a clean close, an aborted socket and a
             # verification failure all end here. Without this the next run()
             # finds self.connection still set and "sends" hello to a socket
@@ -452,7 +466,14 @@ class LocalRuntimeClient:
                 if not task_id or len(task_id) > 256:
                     await self._send_error(task_id[:256], "invalid task identity", "INVALID_TASK", {}, "")
                     continue
-                if not self.task_guard.claim(self.device_id, task_id):
+                try:
+                    claimed = self.task_guard.claim(self.device_id, task_id)
+                except Exception:
+                    if self.receipt_ledger is not None:
+                        self.receipt_ledger.error = "RECEIPT_STORAGE_UNAVAILABLE"
+                    await self._storage_error(task_id, "RECEIPT_STORAGE_UNAVAILABLE")
+                    continue
+                if not claimed:
                     self._record(AuditKind.TASK, "rejected", task_id=task_id,
                                  run_id=str(envelope.payload.get("run_id", "")), detail={"error_code": "TASK_REPLAYED"})
                     await self._send_error(task_id, "task already admitted", "TASK_REPLAYED", envelope.payload, str(envelope.payload.get("operation", "")), status="denied")
@@ -468,6 +489,37 @@ class LocalRuntimeClient:
                 await self._handle_consent_decision(envelope, background=True)
             elif envelope.type == MessageType.TASK_CANCEL:
                 await self._handle_task_cancel(envelope.task_id or "")
+            elif envelope.type == MessageType.RECEIPT_ACK and self.receipt_ledger is not None:
+                try:
+                    self.receipt_ledger.confirm(str(envelope.payload.get("receipt_id", "")),
+                        str(envelope.payload.get("receipt_hash", "")), str(envelope.payload.get("acknowledgment", "")), binding=self.receipt_binding())
+                except ReceiptStorageError:
+                    pass
+
+    def receipt_binding(self):
+        url = urlsplit(self.server_url)
+        scheme = {"wss": "https", "ws": "http"}.get(url.scheme, url.scheme)
+        return {"server_origin": f"{scheme}://{url.netloc}", "user_id": self.user_id,
+                "device_id": self.device_id, "device_public_key": public_key_text(self.private_key),
+                "broker_public_key": self.server_public_key or ""}
+
+    async def replay_receipts(self):
+        """Only evidence is replayed, after the original pinned peer authenticates."""
+        if self.receipt_ledger is None or not self.connected or self.connection is None or not self.receipt_replay_enabled:
+            return
+        try:
+            pending = self.receipt_ledger.pending(self.receipt_binding())
+        except ReceiptStorageError:
+            return
+        for item in pending:
+            await self.connection.send(json.dumps(sign_envelope(private_key=self.private_key,
+                message_type=MessageType.RECEIPT_UPLOAD, device_id=self.device_id,
+                session_id=self.session_id or "", task_id=item["task"]["task_id"], payload=item), separators=(",", ":")))
+
+    def persist_receipt(self, receipt):
+        if self.receipt_ledger is not None:
+            self.receipt_ledger.complete(self.receipt_binding(), receipt.as_dict())
+        self._record_execution(receipt)
 
     def _task_finished(self, task_id: str, task: asyncio.Task[None]) -> None:
         self._running_tasks.pop(task_id, None)
@@ -499,6 +551,20 @@ class LocalRuntimeClient:
         assert self.connection is not None
         task_id = envelope.task_id or ""
         operation = str(envelope.payload.get("operation", ""))
+        if self.receipt_ledger is not None:
+            try:
+                admitted = self.receipt_ledger.admit(self.receipt_binding(), {
+                    "task_id": task_id, "run_id": str(envelope.payload.get("run_id", "")),
+                    "tool_call_id": str(envelope.payload.get("tool_call_id", "")), "capability": operation,
+                    "request_hash": content_hash(envelope.payload), "original_session_id": envelope.session_id,
+                    "logical_target": safe_logical_target(envelope.payload),
+                    "task_signature": getattr(envelope, "signature", "")})
+            except ReceiptStorageError:
+                await self._storage_error(task_id, "RECEIPT_STORAGE_UNAVAILABLE")
+                return
+            if not admitted:
+                await self._storage_error(task_id, "TASK_REPLAYED")
+                return
         if self.restrict_capabilities and operation not in self._current_capabilities():
             await self._send_error(task_id, "capability unavailable", "CAPABILITY_UNAVAILABLE",
                                    dict(envelope.payload), operation,
@@ -680,6 +746,11 @@ class LocalRuntimeClient:
                 task_id, str(exc), "INVALID_TASK", envelope.payload, operation
             )
             return
+        try:
+            self.persist_receipt(receipt)
+        except ReceiptStorageError:
+            await self._storage_error(task_id, "RESULT_UNCERTAIN")
+            return
         await self.connection.send(
             json.dumps(
                 sign_envelope(
@@ -693,7 +764,6 @@ class LocalRuntimeClient:
                 separators=(",", ":"),
             )
         )
-        self._record_execution(receipt)
         await self.connection.send(
             json.dumps(
                 sign_envelope(
@@ -707,6 +777,16 @@ class LocalRuntimeClient:
                 separators=(",", ":"),
             )
         )
+        await self.replay_receipts()
+
+    async def _storage_error(self, task_id, code):
+        self._record(AuditKind.TASK, "uncertain" if code == "RESULT_UNCERTAIN" else "rejected",
+                     task_id=task_id, detail={"error_code": code})
+        if self.connection is not None:
+            await self.connection.send(json.dumps(sign_envelope(private_key=self.private_key,
+                message_type=MessageType.ERROR, device_id=self.device_id,
+                session_id=self.session_id or "", task_id=task_id,
+                payload={"error_code": code, "message": code}), separators=(",", ":")))
 
     def _record_policy_denial(
         self, capability: str, task_id: str, payload: dict[str, Any]

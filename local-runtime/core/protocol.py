@@ -26,6 +26,8 @@ class MessageType(StrEnum):
     TASK_ACK = "task_ack"
     TASK_PROGRESS = "task_progress"
     TASK_RESULT = "task_result"
+    RECEIPT_UPLOAD = "receipt_upload"
+    RECEIPT_ACK = "receipt_ack"
     TASK_CANCEL = "task_cancel"
     CONSENT_REQUIRED = "consent_required"
     CONSENT_DECISION = "consent_decision"
@@ -43,6 +45,7 @@ class VerifiedEnvelope:
     session_id: str
     task_id: str | None
     payload: dict[str, Any]
+    signature: str = ""
 
 
 def _canonical(value: Any) -> bytes:
@@ -143,6 +146,7 @@ def verify_envelope(
             expected_session_id,
             message.get("task_id"),
             payload,
+            str(message["signature"]),
         )
     except ProtocolError:
         raise

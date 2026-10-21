@@ -1,0 +1,15 @@
+{
+  "command": [
+    "backend/.venv-candidate/bin/python",
+    "scripts/check_upstream_patches.py",
+    "--base",
+    "fb5ded4d37587d1c70b067087cf20bf444a18b3d",
+    "--upstream-baseline",
+    "345f08be00c8a9495079b732a39b46aa9af1584e"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T06:00:18.856414+00:00",
+  "finished": "2026-10-21T06:00:19.394583+00:00",
+  "seconds": 0.538,
+  "exitCode": 0
+}

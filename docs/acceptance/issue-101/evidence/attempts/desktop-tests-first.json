@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cmd.exe",
+    "/d",
+    "/c",
+    "npm.cmd",
+    "test"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\5834\\iDeer-Desktop",
+  "started": "2026-10-21T01:46:56.129096+00:00",
+  "finished": "2026-10-21T01:47:07.784257+00:00",
+  "seconds": 11.657,
+  "exitCode": 1
+}

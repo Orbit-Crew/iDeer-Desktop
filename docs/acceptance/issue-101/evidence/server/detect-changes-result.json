@@ -1,0 +1,781 @@
+{
+  "summary": {
+    "changed_count": 67,
+    "affected_count": 20,
+    "changed_files": 18,
+    "risk_level": "critical"
+  },
+  "changed_symbols": [
+    {
+      "id": "Variable:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:revision",
+      "name": "revision",
+      "type": "Variable",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:down_revision",
+      "name": "down_revision",
+      "type": "Variable",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:branch_labels",
+      "name": "branch_labels",
+      "type": "Variable",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:depends_on",
+      "name": "depends_on",
+      "type": "Variable",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:upgrade",
+      "name": "upgrade",
+      "type": "Function",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py:downgrade",
+      "name": "downgrade",
+      "type": "Function",
+      "filePath": "backend/app/agentplatform/persistence/migrations/versions/20261021_receipt_outbox.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/app/device_control/broker.py:DeviceConnection",
+      "name": "DeviceConnection",
+      "type": "Class",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/broker.py:DeviceConnection.server_origin",
+      "name": "server_origin",
+      "type": "Property",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/app/device_control/broker.py:DeviceBroker",
+      "name": "DeviceBroker",
+      "type": "Class",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/broker.py:DeviceBroker.__init__#2",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/broker.py:DeviceBroker.attach#1",
+      "name": "attach",
+      "type": "Method",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/broker.py:DeviceBroker.receipt_binding#1",
+      "name": "receipt_binding",
+      "type": "Method",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/broker.py:DeviceBroker.send_task#8",
+      "name": "send_task",
+      "type": "Method",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/broker.py:DeviceBroker.receive#2",
+      "name": "receive",
+      "type": "Method",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/broker.py:_broker",
+      "name": "_broker",
+      "type": "Property",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/broker.py:_broker_lock",
+      "name": "_broker_lock",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/device_control/broker.py:get_device_broker",
+      "name": "get_device_broker",
+      "type": "Function",
+      "filePath": "backend/app/device_control/broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/device_control/identity.py:persistent_broker_key",
+      "name": "persistent_broker_key",
+      "type": "Function",
+      "filePath": "backend/app/device_control/identity.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/app/device_control/protocol.py:MessageType",
+      "name": "MessageType",
+      "type": "Class",
+      "filePath": "backend/app/device_control/protocol.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/protocol.py:RECEIPT_UPLOAD",
+      "name": "RECEIPT_UPLOAD",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/protocol.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/protocol.py:RECEIPT_ACK",
+      "name": "RECEIPT_ACK",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/protocol.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/receipt_archive.py:BINDING_FIELDS",
+      "name": "BINDING_FIELDS",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/receipt_archive.py:RECEIPT_FIELDS",
+      "name": "RECEIPT_FIELDS",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/device_control/receipt_archive.py:receipt_digest",
+      "name": "receipt_digest",
+      "type": "Function",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/device_control/receipt_archive.py:safe_logical_target",
+      "name": "safe_logical_target",
+      "type": "Function",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/app/device_control/receipt_archive.py:ReceiptArchive",
+      "name": "ReceiptArchive",
+      "type": "Class",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/receipt_archive.py:ReceiptArchive.__init__#1",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/receipt_archive.py:ReceiptArchive._factory#0",
+      "name": "_factory",
+      "type": "Method",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/receipt_archive.py:ReceiptArchive.admit#2",
+      "name": "admit",
+      "type": "Method",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/receipt_archive.py:ReceiptArchive.accept#2",
+      "name": "accept",
+      "type": "Method",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/app/device_control/receipt_archive.py:ReceiptArchive.get#2",
+      "name": "get",
+      "type": "Method",
+      "filePath": "backend/app/device_control/receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel",
+      "name": "DeviceTaskReceiptModel",
+      "type": "Class",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/app/device_control/receipt_models.py:__tablename__",
+      "name": "__tablename__",
+      "type": "Variable",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.task_id",
+      "name": "task_id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.owner_id",
+      "name": "owner_id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.binding",
+      "name": "binding",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.task",
+      "name": "task",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.receipt_id",
+      "name": "receipt_id",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.receipt_hash",
+      "name": "receipt_hash",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.receipt",
+      "name": "receipt",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.evidence",
+      "name": "evidence",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Property:backend/app/device_control/receipt_models.py:DeviceTaskReceiptModel.acknowledgment",
+      "name": "acknowledgment",
+      "type": "Property",
+      "filePath": "backend/app/device_control/receipt_models.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:get_execution_receipt",
+      "name": "get_execution_receipt",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/app/gateway/routers/devices.py:device_websocket",
+      "name": "device_websocket",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/api/test_receipt_api.py:test_receipt_replay_api_is_idempotent_owner_scoped_and_revocation_checked",
+      "name": "test_receipt_replay_api_is_idempotent_owner_scoped_and_revocation_checked",
+      "type": "Function",
+      "filePath": "backend/tests/integration/api/test_receipt_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/api/test_receipt_api.py:test_receipt_replay_api_is_idempotent_owner_scoped_and_revocation_checked.hello@36:8",
+      "name": "hello",
+      "type": "Function",
+      "filePath": "backend/tests/integration/api/test_receipt_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/api/test_receipt_api.py:test_receipt_replay_api_is_idempotent_owner_scoped_and_revocation_checked.leave_existing_socket_open@70:12",
+      "name": "leave_existing_socket_open",
+      "type": "Function",
+      "filePath": "backend/tests/integration/api/test_receipt_api.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/persistence/test_migration_0025_repair_run_change_seq.py:test_0025_is_in_the_unified_chain",
+      "name": "test_0025_is_in_the_unified_chain",
+      "type": "Function",
+      "filePath": "backend/tests/integration/persistence/test_migration_0025_repair_run_change_seq.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/tests/integration/persistence/test_migration_schema.py:CURRENT_HEAD",
+      "name": "CURRENT_HEAD",
+      "type": "Variable",
+      "filePath": "backend/tests/integration/persistence/test_migration_schema.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/integration/persistence/test_receipt_migration.py:test_receipt_migration_upgrades_desktop_login_and_preserves_confirmed_evidence",
+      "name": "test_receipt_migration_upgrades_desktop_login_and_preserves_confirmed_evidence",
+      "type": "Function",
+      "filePath": "backend/tests/integration/persistence/test_receipt_migration.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/device_control/test_broker_identity.py:test_broker_identity_is_stable_across_process_restart",
+      "name": "test_broker_identity_is_stable_across_process_restart",
+      "type": "Function",
+      "filePath": "backend/tests/unit/device_control/test_broker_identity.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/tests/unit/device_control/test_receipt_archive.py:BINDING",
+      "name": "BINDING",
+      "type": "Variable",
+      "filePath": "backend/tests/unit/device_control/test_receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/tests/unit/device_control/test_receipt_archive.py:TASK",
+      "name": "TASK",
+      "type": "Variable",
+      "filePath": "backend/tests/unit/device_control/test_receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Variable:backend/tests/unit/device_control/test_receipt_archive.py:RECEIPT",
+      "name": "RECEIPT",
+      "type": "Variable",
+      "filePath": "backend/tests/unit/device_control/test_receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/device_control/test_receipt_archive.py:test_idempotent_receipt_after_restart_is_unique_and_owner_bound",
+      "name": "test_idempotent_receipt_after_restart_is_unique_and_owner_bound",
+      "type": "Function",
+      "filePath": "backend/tests/unit/device_control/test_receipt_archive.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Class:backend/tests/unit/device_control/test_receipt_broker.py:Socket",
+      "name": "Socket",
+      "type": "Class",
+      "filePath": "backend/tests/unit/device_control/test_receipt_broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/tests/unit/device_control/test_receipt_broker.py:Socket.__init__#0",
+      "name": "__init__",
+      "type": "Method",
+      "filePath": "backend/tests/unit/device_control/test_receipt_broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/tests/unit/device_control/test_receipt_broker.py:Socket.send_text#1",
+      "name": "send_text",
+      "type": "Method",
+      "filePath": "backend/tests/unit/device_control/test_receipt_broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Method:backend/tests/unit/device_control/test_receipt_broker.py:Socket.close",
+      "name": "close",
+      "type": "Method",
+      "filePath": "backend/tests/unit/device_control/test_receipt_broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/device_control/test_receipt_broker.py:test_terminal_task_receipt_replayed_after_broker_restart",
+      "name": "test_terminal_task_receipt_replayed_after_broker_restart",
+      "type": "Function",
+      "filePath": "backend/tests/unit/device_control/test_receipt_broker.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/device_control/test_receipt_target.py:test_receipt_target_matches_nested_file_execution_argument_precedence",
+      "name": "test_receipt_target_matches_nested_file_execution_argument_precedence",
+      "type": "Function",
+      "filePath": "backend/tests/unit/device_control/test_receipt_target.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Function:backend/tests/unit/persistence/test_unified_chain_adoption.py:test_merge_revision_joins_both_heads",
+      "name": "test_merge_revision_joins_both_heads",
+      "type": "Function",
+      "filePath": "backend/tests/unit/persistence/test_unified_chain_adoption.py",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/local-runtime/ARCHITECTURE.md:L11:Local Runtime architecture",
+      "name": "Local Runtime architecture",
+      "type": "Section",
+      "filePath": "docs/local-runtime/ARCHITECTURE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/local-runtime/ARCHITECTURE.md:L16:Durable receipt recovery, issue 101",
+      "name": "Durable receipt recovery, issue 101",
+      "type": "Section",
+      "filePath": "docs/local-runtime/ARCHITECTURE.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/testing/test-migration-ledger.md:L1536:→ 5 test files, 324 passed",
+      "name": "→ 5 test files, 324 passed",
+      "type": "Section",
+      "filePath": "docs/testing/test-migration-ledger.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/testing/test-migration-ledger.md:L1767:Batch 2026-10-06: Stale `detect_blocking_io_static` duplicate removal",
+      "name": "Batch 2026-10-06: Stale `detect_blocking_io_static` duplicate removal",
+      "type": "Section",
+      "filePath": "docs/testing/test-migration-ledger.md",
+      "change_type": "touched"
+    },
+    {
+      "id": "Section:docs/testing/test-migration-ledger.md:L1780:Issue 101 receipt durability, 2026-10-21",
+      "name": "Issue 101 receipt durability, 2026-10-21",
+      "type": "Section",
+      "filePath": "docs/testing/test-migration-ledger.md",
+      "change_type": "touched"
+    }
+  ],
+  "affected_processes": [
+    {
+      "id": "proc_24_send_echo_task",
+      "name": "Send_echo_task → Canonical_json",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_25_send_echo_task",
+      "name": "Send_echo_task → Signing_dict",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_37_stateless_stream",
+      "name": "Stateless_stream → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 6
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_59_send_echo_task",
+      "name": "Send_echo_task → Public_key_text",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 3
+        },
+        {
+          "symbol": "receipt_binding",
+          "step": 4
+        }
+      ]
+    },
+    {
+      "id": "proc_60_send_echo_task",
+      "name": "Send_echo_task → _factory",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "admit",
+          "step": 4
+        },
+        {
+          "symbol": "_factory",
+          "step": 5
+        },
+        {
+          "symbol": "send_task",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_181_device_websocket",
+      "name": "Device_websocket → Send_text",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "attach",
+          "step": 2
+        },
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_285_stateless_wait",
+      "name": "Stateless_wait → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 6
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_302_device_websocket",
+      "name": "Device_websocket → Hash_secret",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_303_send_local_task",
+      "name": "Send_local_task → Public_key_text",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 2
+        },
+        {
+          "symbol": "receipt_binding",
+          "step": 3
+        }
+      ]
+    },
+    {
+      "id": "proc_304_send_local_task",
+      "name": "Send_local_task → _factory",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "admit",
+          "step": 3
+        },
+        {
+          "symbol": "_factory",
+          "step": 4
+        },
+        {
+          "symbol": "send_task",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_332_device_websocket",
+      "name": "Device_websocket → Validate_device_transition",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_333_device_websocket",
+      "name": "Device_websocket → _get_device",
+      "process_type": "cross_community",
+      "step_count": 4,
+      "changed_steps": [
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_410_wait_run",
+      "name": "Wait_run → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 6,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 6
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "proc_487_device_websocket",
+      "name": "Device_websocket → Canonical_json",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "attach",
+          "step": 2
+        },
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_488_device_websocket",
+      "name": "Device_websocket → Signing_dict",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "attach",
+          "step": 2
+        },
+        {
+          "symbol": "device_websocket",
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "proc_496_disconnect",
+      "name": "Disconnect → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 3
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_539_send_local_task",
+      "name": "Send_local_task → Canonical_json",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_540_send_local_task",
+      "name": "Send_local_task → Signing_dict",
+      "process_type": "cross_community",
+      "step_count": 5,
+      "changed_steps": [
+        {
+          "symbol": "send_task",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_546_get_task",
+      "name": "Get_task → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 3
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 2
+        }
+      ]
+    },
+    {
+      "id": "proc_592_issue_artifact_grant",
+      "name": "Issue_artifact_grant → Persistent_broker_key",
+      "process_type": "cross_community",
+      "step_count": 3,
+      "changed_steps": [
+        {
+          "symbol": "persistent_broker_key",
+          "step": 3
+        },
+        {
+          "symbol": "get_device_broker",
+          "step": 2
+        }
+      ]
+    }
+  ]
+}

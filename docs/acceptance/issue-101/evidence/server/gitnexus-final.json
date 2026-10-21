@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/usr/bin/node",
+    "/home/neowyh/.npm-global/lib/node_modules/gitnexus/dist/cli/index.js",
+    "analyze",
+    "--force",
+    "--index-only",
+    "--workers",
+    "2"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T12:56:46.530573+00:00",
+  "finished": "2026-10-21T13:02:35.510670+00:00",
+  "seconds": 330.141,
+  "exitCode": 0
+}
