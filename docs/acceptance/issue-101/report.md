@@ -1,6 +1,6 @@
 # Issue #101 acceptance
 
-[Issue #101](https://github.com/Orbit-Crew/iDeer/issues/101) now has durable, identity-bound execution receipts and metadata-only recovery. T101-01 through T101-05 passed against the installed Desktop, bundled Windows Runtime and real isolated Server. Final source fingerprints match the tested candidates. The full Server PR lane retains one existing deadline-test failure; it is not reported as green.
+[Issue #101](https://github.com/Orbit-Crew/iDeer/issues/101) now has durable, identity-bound execution receipts and metadata-only recovery. T101-01 through T101-05 passed against the installed Desktop, bundled Windows Runtime and real isolated Server. Source fingerprints bind the tested candidates. The historical local Server PR lane failure remains in the evidence. GitHub delivery gates and the later test-only correction are recorded below.
 
 ## Candidate and environment
 
@@ -85,7 +85,7 @@ Server static checks passed for all 16 changed Python files in 0.601 seconds. Th
 
 The index logs retain global callable/flow enumeration caps and cross-language inference warnings; missing graph edges are not evidence of safety. Three unchanged generated/vendor files above 512 KB were skipped. The complete change-query result does not claim an exhaustive dynamic call graph. Authorization, migration, restart and replay tests provide separate behavioral evidence.
 
-Server commit `2929de002b9823f3aa2bc700b830de34f9300cec` is local to the isolated checkout. Its [exact Git format-patch](evidence/server/server-delivery.patch.gz) is included for delivery. No branch was pushed and no issue was closed.
+Server commit `2929de002b9823f3aa2bc700b830de34f9300cec` was local to the isolated checkout at the original evidence capture. Its [exact Git format-patch](evidence/server/server-delivery.patch.gz) is preserved. The later branch publication and delivery candidate are recorded below.
 
 ## Attempts, recovery and cleanup
 
@@ -103,3 +103,13 @@ Both successful lifecycle and scenario wrappers hash-restored the original Runti
 [Two-axis review](code-review.md): Standards 0 open findings; Spec 0 open findings. Rechecks resolved ownership isolation, immutable cleanup, nested logical-target/error metadata and renderer status races. Source review does not replace test-gate evidence.
 
 Real Windows 7 validation remains **unexecuted** under [#131](https://github.com/Orbit-Crew/iDeer/issues/131), owner Neowyh. It covers persistence/restart, legal reconnect, account isolation, cleanup, storage faults and installer lifecycle. Dependencies include the Win7 Python/crypto distribution and existing Electron, Node 16 and process-ownership patches. Modern Windows results do not establish Win7 compatibility.
+
+## Delivery follow-up
+
+On 2026-10-21 both `feat/issue-101` branches were published as [Server PR #138](https://github.com/Orbit-Crew/iDeer/pull/138) and [Desktop PR #6](https://github.com/Orbit-Crew/iDeer-Desktop/pull/6). Desktop product/test candidate `c68816994789392fbf6d1f08b4c34c4654d98de7` passed both GitHub Linux and Windows jobs, including packaging and installed lifecycle checks, in [Desktop baseline run](https://github.com/Orbit-Crew/iDeer-Desktop/actions/runs/39609907789). This report follow-up changes documentation only; the installed product/test fingerprint above remains unchanged.
+
+The first Server CI run passed all four backend standard shards, static checks, contracts, replay and Real E2E. Its [Migration Tests run](https://github.com/Orbit-Crew/iDeer/actions/runs/39609880295) failed one stale direct-parent assertion: the receipt head follows `desktop_login`, while the assertion still expected `rejoin_upstream_line`. Server follow-up commit `aa7bada13417e99ce7550c274bc3ffec2a6c435b` changes only `backend/tests/integration/persistence/test_migration_schema.py`. It verifies receipt → desktop_login → rejoin, keeps the old merge's two parents, and verifies ancestry back to that merge. The other migration tests remain intact. No product, dependency, migration or fixture file changed, so the installed cross-repository scenarios retain their original candidate binding.
+
+The original assertion failure was reproduced before the correction. The corrected schema suite passed 8 tests in 15.10 seconds. The complete migration regression set passed 121 tests with 5 conditional skips in 83.18 seconds. Ruff, inventory, document/upstream/guidance checks passed. Independent incremental Standards and Spec reviews each found 0 issues. Complete change analysis reported 2 symbols in 1 file, low risk, 0 indexed affected processes, `partial=false`, `truncated=false`; source review separately checked pytest/CI invocation. The final Server product/test fingerprint is `f69b37971bd872b76be1d41f5791c30e1f287fb22790742cc2f13aa15244c367`; comparing its path/hash records with the original binding confirms that only the migration test changed.
+
+Final Server candidate checks are recorded by [PR Standard](https://github.com/Orbit-Crew/iDeer/actions/runs/39611674453), [Migration Tests](https://github.com/Orbit-Crew/iDeer/actions/runs/39611674452), [Real E2E](https://github.com/Orbit-Crew/iDeer/actions/runs/39611674885), [Replay E2E](https://github.com/Orbit-Crew/iDeer/actions/runs/39611674575), and [Blocking IO](https://github.com/Orbit-Crew/iDeer/actions/runs/39611674482). Merge and issue closure remain conditional on their successful completion. The issue's delivery record retains the final merge/closure outcome; historical local and first-CI failures above are not rewritten as passes. Real Win7 remains unexecuted under #131.

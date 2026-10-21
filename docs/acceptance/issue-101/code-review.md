@@ -64,3 +64,7 @@ These automated checks are recorded separately in the acceptance report.
 Standards: 0 open findings. Spec: 0 open findings. Final product/test fingerprints
 are recorded in the acceptance evidence. Reviews are source reviews, not a claim
 that unexecuted platform or acceptance checks passed.
+
+## Delivery test correction
+
+Server follow-up `aa7bada13417e99ce7550c274bc3ffec2a6c435b` was reviewed incrementally against `2929de002b9823f3aa2bc700b830de34f9300cec` by the same independent reviewers. Standards: 0 findings. Spec: 0 findings. The migration-chain test now checks receipt → desktop_login → rejoin and ancestry to the old merge, while retaining its two-parent assertion and all existing upgrade/schema/bootstrap coverage. Only that test changed; product sources are unchanged. Final GitHub gate results are recorded separately in the acceptance report and PR checks.
