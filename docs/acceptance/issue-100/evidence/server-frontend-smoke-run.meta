@@ -1,0 +1,6 @@
+lane=frontend-smoke
+command=/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\ frontend-smoke
+started=2026-10-20T11:47:22Z
+finished=2026-10-20T11:49:40Z
+status=0
+seconds=138

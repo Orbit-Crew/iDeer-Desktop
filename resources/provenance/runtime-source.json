@@ -49,11 +49,15 @@
     "local-runtime/tests/test_tray_transport.py": "df377961847e95ef1baa06eadec97cd9e26c284a",
     "local-runtime/tests/server_protocol.py": "a73b9e432e5e6de1857264011aabf6adfcd4314c"
   },
-  "modified": [
-    "local-runtime/core/transport.py",
-    "local-runtime/pyproject.toml",
-    "local-runtime/core/python.py",
-    "local-runtime/core/settings.py"
-  ],
+  "modified": {
+    "local-runtime/core/transport.py": "#97 verifies the pinned broker HELLO, persists task admission, and signs policy/replay rejection receipts. #100 adds signed workspace search dispatch and an explicit Desktop-only announced-capability admission rule; standalone legacy protocol behavior remains covered.",
+    "local-runtime/pyproject.toml": "#97 pins production dependencies, preserves the explicit core wheel package configuration, and declares the Desktop entry and test extras.",
+    "local-runtime/core/python.py": "#97 closes the assigned Windows Job Object immediately on cancellation or timeout so descendants cannot continue side effects while taskkill starts.",
+    "local-runtime/core/settings.py": "#98 adds separate business identity, expiry and OS credential references. #100 persists the device signing public key and account/device/key-bound workspace grant, and uses a shared reentrant lock for atomic workspace and reconnect settings transactions.",
+    "local-runtime/core/file_service.py": "#100 adds an account/device-bound read-only workspace service with fresh logical roots, persistent explicit grants, local DENY, protected-profile exclusions, bounded UTF-8 reads and literal code search, provenance, and scan-limit reporting.",
+    "local-runtime/core/files.py": "#100 bounds file/directory reads, validates selected directory identity, rejects every Windows reparse tag/attribute before resolution, and pins Windows and POSIX ancestor opens against path replacement; legacy public file operations remain covered.",
+    "local-runtime/core/policy.py": "#100 classifies local.files.search with the existing read-only operations while retaining local DENY precedence.",
+    "local-runtime/core/tray.py": "#100 assembles only the implemented read-only workspace service in Desktop mode, withholds legacy Python/MCP/configured-root execution there, and atomically persists reconnect/session and broker-pin updates without restoring stale workspace grants. Standalone legacy controller services remain available and tested."
+  },
   "serverProtocolSource": "backend/app/device_control/protocol.py"
 }

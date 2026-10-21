@@ -1,0 +1,50 @@
+{
+  "channels": [
+    "governance",
+    "backend-standard",
+    "static-checks"
+  ],
+  "reasons": {
+    "governance": [
+      "all changes require ownership and guidance checks"
+    ],
+    "backend-standard": [
+      "backend path: backend/app/gateway/canonical_agent_run_preparation.py",
+      "backend path: backend/app/gateway/local_workspace_policy.py",
+      "backend path: backend/app/gateway/routers/devices.py",
+      "backend path: backend/app/gateway/run_preparation.py",
+      "backend path: backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "backend path: backend/tests/integration/api/test_devices_router.py",
+      "backend path: backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+      "backend path: backend/tests/unit/gateway/test_local_runtime_context.py"
+    ],
+    "static-checks": [
+      "backend code or test path: backend/app/gateway/canonical_agent_run_preparation.py",
+      "backend code or test path: backend/app/gateway/local_workspace_policy.py",
+      "backend code or test path: backend/app/gateway/routers/devices.py",
+      "backend code or test path: backend/app/gateway/run_preparation.py",
+      "backend code or test path: backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "backend code or test path: backend/tests/integration/api/test_devices_router.py",
+      "backend code or test path: backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+      "backend code or test path: backend/tests/unit/gateway/test_local_runtime_context.py"
+    ]
+  },
+  "changed_files": [
+    "backend/app/gateway/canonical_agent_run_preparation.py",
+    "backend/app/gateway/local_workspace_policy.py",
+    "backend/app/gateway/routers/devices.py",
+    "backend/app/gateway/run_preparation.py",
+    "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+    "backend/tests/integration/api/test_devices_router.py",
+    "backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+    "backend/tests/unit/gateway/test_local_runtime_context.py"
+  ],
+  "docs_only": false,
+  "protected_selector": true,
+  "selected_real_e2e": true,
+  "workflow": ".github/workflows/real-e2e-tests.yml",
+  "protected_rule": ".github/scripts/should-run-real-e2e.sh",
+  "protected_match": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+  "command": "QA_ISOLATED=1 bash backend/scripts/run-real-e2e.sh",
+  "grep_filter": null
+}

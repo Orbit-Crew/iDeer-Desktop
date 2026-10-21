@@ -51,7 +51,7 @@ from .secrets import (
     SecretStoreError,
     create_default_secret_store,
 )
-from .settings import CapabilityRule, RuntimeSettings, load_settings
+from .settings import CapabilityRule, RuntimeSettings, _SAVE_LOCK, load_settings
 from .transport import ConsentDecisionError, LocalRuntimeClient, RePairRequired
 
 #: Reconnect delay after a dropped session, doubling up to a cap: a tray that
@@ -374,6 +374,7 @@ class TrayController:
     #: pairing has completed and the client refuses to connect unless the
     #: settings enable the explicit first-connection fallback.
     server_public_key: str | None = None
+    desktop_mode: bool = False
 
     def __post_init__(self) -> None:
         if self.server_public_key is None and self.settings.server_public_key:
@@ -387,7 +388,7 @@ class TrayController:
             db_path=self.consent_store_path or self._default_consent_path()
         )
         self.secrets = _build_secret_resolver(self.settings, self._note_secret_use)
-        self.mcp_service = _build_mcp_service(self.settings, self.secrets, self.consent)
+        self.mcp_service = None if self.desktop_mode else _build_mcp_service(self.settings, self.secrets, self.consent)
         self._mcp_config_path = self.settings.mcp_config_path
         self.client = LocalRuntimeClient(
             server_url=(
@@ -401,11 +402,13 @@ class TrayController:
             private_key=self.private_key,
             server_public_key=self.server_public_key,
             allow_unpinned_broker_key=self.settings.allow_unpinned_broker_key,
+            capabilities=self._desktop_capabilities() if self.desktop_mode else None,
+            restrict_capabilities=self.desktop_mode,
             runtime_version=self.settings.runtime_version,
             policy=self.settings.policy(),
             policy_hash=self.settings.policy_hash(),
-            file_service=_build_file_service(self.settings, self.consent),
-            python_service=_build_python_service(
+            file_service=self._desktop_files() if self.desktop_mode else _build_file_service(self.settings, self.consent),
+            python_service=None if self.desktop_mode else _build_python_service(
                 self.settings, self.secrets, self.consent
             ),
             mcp_service=self.mcp_service,
@@ -425,16 +428,32 @@ class TrayController:
         self._last_audit_seq = 0
         self._integrity_cache: tuple[float, AuditIntegrity] | None = None
 
+    def _desktop_files(self):
+        from .file_service import WorkspaceFileService, WorkspaceSelection
+        return WorkspaceFileService(WorkspaceSelection(self.settings.config_path))
+
+    def _desktop_capabilities(self):
+        from .file_service import READ_CAPABILITIES, WorkspaceSelection
+        return READ_CAPABILITIES if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready' else ()
+
+    def _save_connection_setting(self, name: str, value: str) -> None:
+        # Selection and connection callbacks share this transaction. Loading
+        # outside the lock could overwrite a newer directory grant on reconnect.
+        with _SAVE_LOCK:
+            if self.desktop_mode:
+                current_path = self.settings.config_path
+                self.settings = load_settings(current_path)
+                self.settings.config_path = current_path
+            setattr(self.settings, name, value)
+            if self.settings.config_path:
+                self.settings.save(self.settings.config_path)
+
     def _remember_session_id(self, session_id: str) -> None:
-        self.settings.session_id = session_id
-        if self.settings.config_path:
-            self.settings.save(self.settings.config_path)
+        self._save_connection_setting("session_id", session_id)
 
     def _remember_server_public_key(self, public_key: str) -> None:
-        self.settings.server_public_key = public_key
+        self._save_connection_setting("server_public_key", public_key)
         self.server_public_key = public_key
-        if self.settings.config_path:
-            self.settings.save(self.settings.config_path)
 
     def _default_consent_path(self) -> str | None:
         if not self.settings.audit_db_path:
@@ -1136,6 +1155,7 @@ def load_controller(
     *,
     private_key: Ed25519PrivateKey | None = None,
     audit: LocalAuditLog | None = None,
+    desktop_mode: bool = False,
 ) -> TrayController:
     """Build a controller from a settings file; a missing file is a fresh device."""
     settings = load_settings(path)
@@ -1176,6 +1196,7 @@ def load_controller(
         settings.save(path)
     return TrayController(
         settings=settings,
+        desktop_mode=desktop_mode,
         private_key=private_key,
         audit=audit,
         consent_store_path=Path(path).with_name("consent.db"),

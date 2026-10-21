@@ -1,0 +1,39 @@
+{
+  "inventory": {
+    "command": [
+      "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+      "scripts/test_inventory.py"
+    ],
+    "cwd": "/tmp/ideer-issue100-server-20261019",
+    "started_at": "2026-10-20T11:24:05.225895+00:00",
+    "seconds": 5.806,
+    "exit_code": 0,
+    "log": "server-inventory-final.log"
+  },
+  "documents": {
+    "command": [
+      "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+      "scripts/check_documents.py"
+    ],
+    "cwd": "/tmp/ideer-issue100-server-20261019",
+    "started_at": "2026-10-20T11:24:11.032351+00:00",
+    "seconds": 0.775,
+    "exit_code": 0,
+    "log": "server-documents-final.log"
+  },
+  "upstream-patches": {
+    "command": [
+      "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+      "scripts/check_upstream_patches.py",
+      "--base",
+      "95260f452670df62e365f10035d095838ec3a495",
+      "--upstream-baseline",
+      "345f08be00c8a9495079b732a39b46aa9af1584e"
+    ],
+    "cwd": "/tmp/ideer-issue100-server-20261019",
+    "started_at": "2026-10-20T11:24:11.807469+00:00",
+    "seconds": 0.086,
+    "exit_code": 0,
+    "log": "server-upstream-patches-final.log"
+  }
+}

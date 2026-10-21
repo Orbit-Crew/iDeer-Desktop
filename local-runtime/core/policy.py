@@ -31,7 +31,7 @@ class LocalPolicy:
 
     def risk_level(self, capability: str, payload: dict[str, Any]) -> RiskLevel:
         del payload
-        if capability in {"echo", "local.files.list", "local.files.read"}:
+        if capability in {"echo", "local.files.list", "local.files.read", "local.files.search"}:
             return RiskLevel.LEVEL_0
         if (
             capability in self.level_two_capabilities

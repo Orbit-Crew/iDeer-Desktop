@@ -1,0 +1,6 @@
+{
+  "exitCode": 0,
+  "command": "scripts/acceptance/issue-100/installed.ps1 -State artifacts/issue-100/installed-package-final",
+  "elapsedSeconds": 53.2139284,
+  "finishedAt": "2026-10-20T11:31:10.9593056Z"
+}

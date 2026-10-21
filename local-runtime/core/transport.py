@@ -77,6 +77,7 @@ class LocalRuntimeClient:
         on_session_id: Any | None = None,
         on_server_public_key: Any | None = None,
         task_guard: TaskGuard | None = None,
+        restrict_capabilities: bool = False,
     ) -> None:
         self.server_url = server_url
         self.device_id = device_id
@@ -88,6 +89,7 @@ class LocalRuntimeClient:
         self.protocol_version = protocol_version
         self.runtime_version = runtime_version
         self.task_guard = task_guard or TaskGuard()
+        self.restrict_capabilities = restrict_capabilities
         if capabilities is None:
             default_capabilities = ["echo"]
             if file_service is not None:
@@ -497,6 +499,11 @@ class LocalRuntimeClient:
         assert self.connection is not None
         task_id = envelope.task_id or ""
         operation = str(envelope.payload.get("operation", ""))
+        if self.restrict_capabilities and operation not in self._current_capabilities():
+            await self._send_error(task_id, "capability unavailable", "CAPABILITY_UNAVAILABLE",
+                                   dict(envelope.payload), operation,
+                                   policy_decision=PolicyDecision.DENY.value, status="denied")
+            return
         if self.paused:
             # Pause never drops a task silently: the caller gets a structured
             # denial carrying a receipt, which the broker records as DENIED.
@@ -541,7 +548,7 @@ class LocalRuntimeClient:
                 if receipt.policy_decision != PolicyDecision.ALLOW.value:
                     await self._denial_response(operation, task_id, envelope.payload, PolicyDecision(receipt.policy_decision))
                     return
-            elif operation in {"local.files.list", "local.files.read"}:
+            elif operation in {"local.files.list", "local.files.read", "local.files.search"}:
                 if not self.server_public_key:
                     # No broker key is bound: pairing never completed and no
                     # explicitly-configured fallback pinned one. LEVEL_0 file
@@ -940,6 +947,7 @@ class LocalRuntimeClient:
         if capability not in {
             "local.files.list",
             "local.files.read",
+            "local.files.search",
             "local.files.write",
         }:
             raise ValueError("unsupported local file capability")

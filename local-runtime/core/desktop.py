@@ -14,6 +14,7 @@ from .browser_login import BrowserLogin
 from .platform_chat import DesktopChat
 from .process_job import own_process_tree
 from .settings import load_settings
+from .file_service import WorkspaceSelection
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .tray import load_controller
@@ -26,6 +27,7 @@ def main() -> int:
     job = own_process_tree()
     stop = threading.Event()
     commands: queue.Queue = queue.Queue(maxsize=1)
+    workspace_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     output_lock = threading.Lock()
 
@@ -41,6 +43,13 @@ def main() -> int:
                 if len(line) > 131072:
                     continue
                 command = json.loads(line)
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
+                        and command['type'] == 'workspace' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['path'], str)
+                        and len(command['path']) <= 32768 and command['confirmed'] is True
+                        and isinstance(command['scope'], str)):
+                    workspace_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['command'], dict)):
@@ -65,6 +74,7 @@ def main() -> int:
         except Exception:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
 
+        workspace = WorkspaceSelection(args.config)
         chat = DesktopChat(args.config, login.secure, login.status)
 
         def chat_control():
@@ -95,18 +105,39 @@ def main() -> int:
             private_key = load_pem_private_key(base64.b64decode(secure.get(settings.device_key_ref)), password=None)
             if not isinstance(private_key, Ed25519PrivateKey):
                 raise ValueError("PAIRING_REQUIRED")
+            from .protocol import public_key_text
+            actual_key = public_key_text(private_key)
+            if settings.device_public_key != actual_key:
+                settings.device_public_key = actual_key
+                settings.save(args.config)
             args.config.parent.mkdir(parents=True, exist_ok=True)
-            controller = load_controller(args.config, private_key=private_key,
+            controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
                 audit=LocalAuditLog(db_path=args.config.with_name("audit.db")))
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
+            controller.client.file_service.available = lambda: login.status()['state'] == 'authenticated'
             controller.start()
             return controller
 
         controller = connect()
         while not stop.is_set():
             browser_url = None
+            try:
+                selection = workspace_commands.get_nowait()
+            except queue.Empty:
+                selection = None
+            if selection:
+                try:
+                    if login.status()['state'] != 'authenticated' or selection['scope'] != workspace.scope():
+                        raise ValueError('WORKSPACE_UNAVAILABLE')
+                    workspace.select(selection['path'], confirmed=True)
+                    if controller is not None:
+                        controller.stop()
+                    controller = connect()
+                    emit({'v': 1, 'type': 'workspace', 'id': selection['id'], 'error': ''})
+                except Exception:
+                    emit({'v': 1, 'type': 'workspace', 'id': selection['id'], 'error': 'WORKSPACE_SELECTION_FAILED'})
             try:
                 try:
                     command = commands.get_nowait()
@@ -134,7 +165,9 @@ def main() -> int:
                     if entry.task_id:
                         tasks.append({"taskId": entry.task_id[:256], "runId": (entry.run_id or "")[:256],
                                       "state": entry.action[:256], "capability": (entry.capability or "")[:256]})
-            status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status()}
+            status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status(),
+                      "selectionScope": workspace.scope(),
+                      "workspace": workspace.status() if login.status()["state"] == "authenticated" else {"state": "unavailable", "logicalRoot": ""}}
             if browser_url:
                 status["browserUrl"] = browser_url
             emit(status)

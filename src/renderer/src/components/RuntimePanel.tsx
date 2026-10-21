@@ -9,6 +9,7 @@ export default function RuntimePanel(): JSX.Element {
   const [deviceName, setDeviceName] = useState('我的电脑')
   const [loginError, setLoginError] = useState(false)
   const [opening, setOpening] = useState(false)
+  const [workspaceError, setWorkspaceError] = useState(false)
   useEffect(() => {
     let active = true
     const refresh = async (): Promise<void> => {
@@ -50,6 +51,14 @@ export default function RuntimePanel(): JSX.Element {
       <Button disabled={!runtime || !['stopped', 'crashed'].includes(runtime.process)} onClick={() => void window.ideer.startRuntime().catch(() => setFailed(true))}>启动 Runtime</Button>
       <Button disabled={!runtime || !['running', 'starting', 'unresponsive'].includes(runtime.process)} onClick={() => void window.ideer.stopRuntime().catch(() => setFailed(true))}>停止 Runtime</Button>
     </Space>
+    <Typography.Title level={5} className="mt-5">只读工作目录</Typography.Title>
+    <Typography.Paragraph>按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。</Typography.Paragraph>
+    <Typography.Paragraph>{runtime?.workspace?.state === 'ready' ? runtime.workspace.logicalRoot : '尚未选择并确认目录'}</Typography.Paragraph>
+    <Button disabled={login?.state !== 'authenticated'} onClick={() => {
+      setWorkspaceError(false)
+      void window.ideer.chooseWorkspace().catch(() => setWorkspaceError(true))
+    }}>选择并授权只读目录</Button>
+    {workspaceError && <Alert type="error" message="目录不可用或授权未完成，请选择普通工作目录" />}
     <Typography.Title level={5} className="mt-5">近期任务</Typography.Title>
     {!runtime?.tasks.length ? <Typography.Text type="secondary">暂无任务记录</Typography.Text> : runtime.tasks.map((task, index) => <Typography.Paragraph key={`${task.taskId}-${index}`}>
       {task.taskId} · {task.runId} · {task.capability} · {task.state}

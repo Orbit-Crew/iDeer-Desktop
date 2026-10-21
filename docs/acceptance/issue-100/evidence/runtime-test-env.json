@@ -1,0 +1,8 @@
+{
+  "python": "3.12.8 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:48:34) [MSC v.1929 64 bit (AMD64)]",
+  "packages": {
+    "pytest": "8.3.5",
+    "cryptography": "43.0.3",
+    "websockets": "13.1"
+  }
+}

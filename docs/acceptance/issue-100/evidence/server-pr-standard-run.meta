@@ -1,0 +1,6 @@
+lane=pr-standard
+command=scripts/run-test-lane.sh\ pr-standard
+started=2026-10-20T11:09:12Z
+finished=2026-10-20T11:49:40Z
+status=0
+seconds=2428

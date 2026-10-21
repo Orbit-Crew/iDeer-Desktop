@@ -17,10 +17,12 @@ export interface RuntimeStatus {
   connection: DesktopStatus['server']
   pid?: number
   tasks: RuntimeTask[]
+  workspace?: { state: 'ready' | 'unavailable'; logicalRoot: string }
   login?: LoginStatus
 }
 
 export interface DesktopBridge {
+  chooseWorkspace(): Promise<void>
   getStatus(): Promise<DesktopStatus>
   quit(): Promise<void>
   startRuntime(): Promise<void>

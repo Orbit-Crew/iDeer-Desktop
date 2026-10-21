@@ -23,7 +23,7 @@ from typing import Any
 
 # One in-process lock for every RuntimeSettings.save(): the tray UI thread
 # and the runtime loop thread both persist configuration (05-L4).
-_SAVE_LOCK = threading.Lock()
+_SAVE_LOCK = threading.RLock()
 
 from .compat import StrEnum
 from .files import RootConfig
@@ -61,6 +61,7 @@ class RuntimeSettings:
     #: possibly substituted broker.
     allow_unpinned_broker_key: bool = False
     #: Secure-store reference for the device signing key.
+    device_public_key: str = ""
     device_key_ref: str = ""
     runtime_version: str = "0.1.0"
     #: Bearer credential for this device's Broker session, issued at pairing by
@@ -69,6 +70,7 @@ class RuntimeSettings:
     session_token: str = ""
     session_token_ref: str = ""
     claim_token_ref: str = ""
+    workspace: dict[str, Any] = field(default_factory=dict)
     roots: list[dict[str, str]] = field(default_factory=list)
     rules: dict[str, str] = field(default_factory=dict)
     #: Per-capability risk-tier overrides: ``{"local.python": "level_2"}``.

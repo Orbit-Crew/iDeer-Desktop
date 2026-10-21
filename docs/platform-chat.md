@@ -54,3 +54,49 @@ Use the [issue #99 fixture instructions](../scripts/acceptance/issue-99/README.m
 for reproducible protocol checks and the real Gateway/Desktop probe. The
 [acceptance report](acceptance/issue-99/report.md) records protocol checks,
 real-provider scenarios and installed-app acceptance separately.
+
+## Read-only local workspace
+
+The Runtime card opens a native directory chooser and a separate native data
+boundary confirmation. A grant permits file names and requested UTF-8 text to
+reach Server and the model on demand. It never uploads an entire directory or
+creates a platform Resource. The renderer cannot supply a physical path or
+execute a local file operation.
+
+The local grant persists across restarts and same-account/device reauthentication.
+It binds the platform origin, user, device, device signing public key and broker
+pin. A directory selection creates a fresh `/workspace/<uuid>` logical root and
+records the directory identity. Changing directory or binding invalidates old
+paths. Login expiry disables access. No physical path or device identifier enters
+the model's file tool schema or result.
+
+Server exposes `local.files.list`, `local.files.read`, and `local.files.search`
+through the selected canonical Agent Run. `path` is required; search also
+requires a literal `query` of at most 256 characters. Published Agent
+`tool_groups: [local.files]` enables these operations; an explicit empty list
+withholds them. The deployment's `IDEER_LOCAL_READ_CAPABILITIES` comma-separated
+allowlist defaults to the three read operations; an empty value disables them.
+The authenticated caller's Resource USE permission, live device owner and
+capabilities, frozen Agent limits and local policy must all allow execution.
+The legacy direct `/api/devices/{id}/tasks/local` endpoint rejects these file
+operations with `CANONICAL_RUN_REQUIRED`.
+
+Desktop advertises only the implemented read operations after a directory grant.
+Legacy configured roots, file writes, Python and MCP execution remain unavailable
+in Desktop mode. The standalone legacy Runtime classes and their tests remain.
+
+Reads accept at most 65,536 bytes of UTF-8 text and reject binary or oversized
+files. Listings return at most 500 entries. Literal search visits at most 500
+nodes and returns at most 100 matches with 1-based line numbers and up to 1,000
+characters per matching line. Results include a logical source path; text reads
+also include byte count and SHA-256. Truncated listings/searches identify that
+state. Protected credential/configuration paths, the Runtime profile, outside
+roots and link/junction/reparse paths fail before content is returned. Windows
+opens pin every ancestor against rename and validate the selected root identity.
+The existing signed task and receipt chain binds each result or stable error to
+its Run and Local Task.
+
+The [issue #100 acceptance runners](../scripts/acceptance/issue-100/README.md)
+exercise the real Gateway and installed Windows Runtime with synthetic files.
+The [acceptance report](acceptance/issue-100/report.md) binds the candidate,
+installer, scenario evidence, review and platform limitations.

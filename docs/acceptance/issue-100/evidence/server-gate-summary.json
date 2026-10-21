@@ -1,0 +1,339 @@
+{
+  "command": "bash scripts/run-test-lane.sh pr-standard",
+  "working_directory": "/tmp/ideer-issue100-server-20261019",
+  "environment": {
+    "TEST_PNPM_BIN": "unset",
+    "PATH_prefix": "/tmp/ideer-issue100-lane-bin:/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin:/home/neowyh/.local/bin",
+    "pnpm_shim": "exec /usr/bin/node /tmp/ideer-issue98-01a14c7b/corepack/v1/pnpm/10.26.2/bin/pnpm.cjs \"$@\"",
+    "PYTHON": "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+    "UV_PROJECT_ENVIRONMENT": "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate",
+    "UV_CACHE_DIR": "/tmp/deer-flow-uv-cache",
+    "PYTEST_XDIST_AUTO_NUM_WORKERS": "2",
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  },
+  "lanes": {
+    "pr-standard": {
+      "source_artifacts": "/tmp/ideer-issue100-server-20261019/logs/test-lanes/pr-standard-20261020T110912Z-2143381",
+      "metadata": {
+        "lane": "pr-standard",
+        "command": "scripts/run-test-lane.sh\\ pr-standard",
+        "started": "2026-10-20T11:09:12Z",
+        "finished": "2026-10-20T11:49:40Z",
+        "status": "0",
+        "seconds": "2428"
+      },
+      "summary": [
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_zero_passing_tests_is_not_a_pass[test result: ok. 0 passed; 0 failed] ",
+        "[gw0] [  3%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_zero_passing_tests_is_not_a_pass[test result: ok. 0 passed; 0 failed] ",
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_pass_shapes[test result: ok. 5 passed; 0 failed] ",
+        "[gw0] [  4%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_pass_shapes[test result: ok. 5 passed; 0 failed] ",
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_fail_shapes[test result: FAILED. 4 passed; 1 failed] ",
+        "[gw0] [  4%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_fail_shapes[test result: FAILED. 4 passed; 1 failed] ",
+        "======== 26857 passed, 237 skipped, 1078 warnings in 1613.77s (0:26:53) ========",
+        "TEST_LANE_DURATION lane=backend-standard seconds=1785 status=0",
+        " Test Files 167 passed",
+        "      Tests 1270 passed",
+        " Test Files  355 passed (355)",
+        "      Tests  10565 passed (10565)",
+        "TEST_LANE_DURATION lane=frontend-standard seconds=474 status=0",
+        "\u001b[1A\u001b[2K  35 passed (2.0m)",
+        "TEST_LANE_DURATION lane=frontend-smoke seconds=138 status=0",
+        "TEST_LANE_DURATION lane=pr-standard seconds=2428 status=0"
+      ]
+    },
+    "local-runtime": {
+      "source_artifacts": "/tmp/ideer-issue100-server-20261019/logs/test-lanes/local-runtime-20261020T110923Z-2143652",
+      "metadata": {
+        "lane": "local-runtime",
+        "command": "/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\\ local-runtime",
+        "started": "2026-10-20T11:09:23Z",
+        "finished": "2026-10-20T11:09:43Z",
+        "status": "0",
+        "seconds": "20"
+      },
+      "summary": [
+        "230 passed, 4 skipped, 1 warning in 9.32s",
+        "TEST_LANE_DURATION lane=local-runtime seconds=20 status=0"
+      ]
+    },
+    "backend-standard": {
+      "source_artifacts": "/tmp/ideer-issue100-server-20261019/logs/test-lanes/backend-standard-20261020T110943Z-2143981",
+      "metadata": {
+        "lane": "backend-standard",
+        "command": "/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\\ backend-standard",
+        "started": "2026-10-20T11:09:43Z",
+        "finished": "2026-10-20T11:39:28Z",
+        "status": "0",
+        "seconds": "1785"
+      },
+      "summary": [
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_zero_passing_tests_is_not_a_pass[test result: ok. 0 passed; 0 failed] ",
+        "[gw0] [  3%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_zero_passing_tests_is_not_a_pass[test result: ok. 0 passed; 0 failed] ",
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_pass_shapes[test result: ok. 5 passed; 0 failed] ",
+        "[gw0] [  4%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_pass_shapes[test result: ok. 5 passed; 0 failed] ",
+        "tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_fail_shapes[test result: FAILED. 4 passed; 1 failed] ",
+        "[gw0] [  4%] PASSED tests/unit/sandbox/test_acceptance_checks.py::TestTestsPassedLeaf::test_fail_shapes[test result: FAILED. 4 passed; 1 failed] ",
+        "======== 26857 passed, 237 skipped, 1078 warnings in 1613.77s (0:26:53) ========",
+        "TEST_LANE_DURATION lane=backend-standard seconds=1785 status=0"
+      ]
+    },
+    "frontend-standard": {
+      "source_artifacts": "/tmp/ideer-issue100-server-20261019/logs/test-lanes/frontend-standard-20261020T113928Z-2192521",
+      "metadata": {
+        "lane": "frontend-standard",
+        "command": "/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\\ frontend-standard",
+        "started": "2026-10-20T11:39:28Z",
+        "finished": "2026-10-20T11:47:22Z",
+        "status": "0",
+        "seconds": "474"
+      },
+      "summary": [
+        " Test Files 167 passed",
+        "      Tests 1270 passed",
+        " Test Files  355 passed (355)",
+        "      Tests  10565 passed (10565)",
+        "TEST_LANE_DURATION lane=frontend-standard seconds=474 status=0"
+      ]
+    },
+    "frontend-smoke": {
+      "source_artifacts": "/tmp/ideer-issue100-server-20261019/logs/test-lanes/frontend-smoke-20261020T114722Z-2201163",
+      "metadata": {
+        "lane": "frontend-smoke",
+        "command": "/tmp/ideer-issue100-server-20261019/scripts/run-test-lane.sh\\ frontend-smoke",
+        "started": "2026-10-20T11:47:22Z",
+        "finished": "2026-10-20T11:49:40Z",
+        "status": "0",
+        "seconds": "138"
+      },
+      "summary": [
+        "\u001b[1A\u001b[2K  35 passed (2.0m)",
+        "TEST_LANE_DURATION lane=frontend-smoke seconds=138 status=0"
+      ]
+    }
+  },
+  "copied_files_sha256": {
+    "server-pr-final-evidence/pr-standard/run.meta": "d24a93e4ab60d2f0a870d910b0f41fd82c894e50d9c469858ef71f61c6039b5b",
+    "server-pr-final-evidence/pr-standard/lane-evidence.json": "f3627e850a21b2ed955c4b641296069c7ec17d15407564e25b3fae786d4091f4",
+    "server-pr-final-evidence/local-runtime/run.meta": "406abf443b429e0590fbf263c6395c70fcee8974f7f38d8d81db37e584c44896",
+    "server-pr-final-evidence/local-runtime/lane-evidence.json": "cb188971f499e4ab432513c4f5bd28400a025ea046d016997f1fe3db37208bf3",
+    "server-pr-final-evidence/backend-standard/run.meta": "7493266f78721c5bad3bf2b95d80be72b5eac4763364c2c3cba31778ea221286",
+    "server-pr-final-evidence/backend-standard/lane-evidence.json": "e768c7bb5a8ca3d809fb01672521a4490a701e5764c4cb446a342be9d8dd66c0",
+    "server-pr-final-evidence/frontend-standard/run.meta": "8e4c9fe48b1f6c8218fd93cb92f1783ce5175360ac524917a0320a623a54c8f7",
+    "server-pr-final-evidence/frontend-standard/lane-evidence.json": "b6a1cd3aac7a450caaaac2f9f3d8960599361fa574977aec7f34008ed853c548",
+    "server-pr-final-evidence/frontend-smoke/run.meta": "55c310ec4ffe07fb3fde1003e4a5b94f45f77f26b4c302fd40f58693d2fe6aa6",
+    "server-pr-final-evidence/frontend-smoke/lane-evidence.json": "fac869fd2a8d83a4fb602d3272b090369ce7a6057a349949d92e7cb21161defa"
+  },
+  "candidate_source_sha256": {
+    "backend/app/gateway/canonical_agent_run_preparation.py": "778c173aac1a11427615f8c7552cbaf69d393e9c3d6b59021b439aaccd58e611",
+    "backend/app/gateway/local_workspace_policy.py": "d87b002821357e88a0efbdd0f9e6cdbd62e688f6bec79e2d3fee81b769aa91af",
+    "backend/app/gateway/routers/devices.py": "e10c7bf5ef63968b39fed39199e5e71b818dab55837dac48f40c1f42c3387e2c",
+    "backend/app/gateway/run_preparation.py": "5be2d965a5f99082a782e1112dec26fc5fcb2e2e4ed903eac2cde5de208c969e",
+    "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py": "5a0cea00cebd10a1279d167a19e6c784dc1f2c9c95b48b4d1fdc1f649bf8caaa",
+    "backend/tests/integration/api/test_devices_router.py": "2e6acc778e7403358ef46776c6d0981555d8944689e430d5dcea3110038bd653",
+    "backend/tests/unit/agentplatform/test_local_runtime_extension.py": "afe15d7a85125bc589fe289a93b5b0e2d53d40109e9532406236d47bd09088e2",
+    "backend/tests/unit/gateway/test_local_runtime_context.py": "daaa9971fed1945d5327267ea74ba94900a7fbe33b4c0492718a365f916c5af6"
+  },
+  "exit_code": 0,
+  "log": "server-pr-final.log",
+  "environment_fix": {
+    "cause": "Exported TEST_PNPM_BIN bypassed the PATH stubs in existing script tests.",
+    "solution": "Unset TEST_PNPM_BIN; expose pinned pnpm 10.26.2 through an ordinary task-local PATH shim.",
+    "product_or_test_changes": false,
+    "reproduction": {
+      "log": "server-pnpm-env-red.log",
+      "failed": 8,
+      "passed": 9
+    },
+    "confirmation": {
+      "log": "server-pnpm-env-green.log",
+      "passed": 17
+    }
+  },
+  "focused": {
+    "cwd": "/tmp/ideer-issue100-server-20261019/backend",
+    "command": [
+      "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+      "-m",
+      "pytest",
+      "tests/unit/gateway/test_local_runtime_context.py",
+      "tests/unit/gateway/test_canonical_agent_run.py",
+      "tests/unit/agentplatform/test_local_runtime_extension.py",
+      "tests/unit/agentplatform/test_runtime_adapter.py",
+      "tests/integration/api/test_devices_router.py",
+      "-q",
+      "-p",
+      "no:cacheprovider"
+    ],
+    "environment": {
+      "TEST_PNPM_BIN": "unset",
+      "PYTHONPATH": "/tmp/ideer-issue100-server-20261019/backend:/tmp/ideer-issue100-server-20261019/backend/tests:/tmp/ideer-issue100-server-20261019/backend/packages/harness:/tmp/ideer-issue100-server-20261019/backend/packages/agentplatform-extension:/tmp/ideer-issue100-server-20261019/backend/packages/extension-api"
+    },
+    "passed": 33,
+    "warnings": 4,
+    "pytest_duration_seconds": 10.38,
+    "exit_code": 0,
+    "log": "server-focused-final.log"
+  },
+  "ruff": {
+    "cwd": "/tmp/ideer-issue100-server-20261019/backend",
+    "command": [
+      "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/ruff",
+      "check",
+      "app/gateway/run_preparation.py",
+      "app/gateway/canonical_agent_run_preparation.py",
+      "app/gateway/local_workspace_policy.py",
+      "app/gateway/routers/devices.py",
+      "packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "tests/unit/gateway/test_local_runtime_context.py",
+      "tests/unit/agentplatform/test_local_runtime_extension.py",
+      "tests/integration/api/test_devices_router.py"
+    ],
+    "exit_code": 0,
+    "result": "All checks passed!",
+    "duration_seconds": null,
+    "duration_note": "Wall time was not captured for this focused check.",
+    "log": "server-ruff-final.log"
+  },
+  "auxiliary_gates": {
+    "inventory": {
+      "command": [
+        "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+        "scripts/test_inventory.py"
+      ],
+      "cwd": "/tmp/ideer-issue100-server-20261019",
+      "started_at": "2026-10-20T11:24:05.225895+00:00",
+      "seconds": 5.806,
+      "exit_code": 0,
+      "log": "server-inventory-final.log"
+    },
+    "documents": {
+      "command": [
+        "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+        "scripts/check_documents.py"
+      ],
+      "cwd": "/tmp/ideer-issue100-server-20261019",
+      "started_at": "2026-10-20T11:24:11.032351+00:00",
+      "seconds": 0.775,
+      "exit_code": 0,
+      "log": "server-documents-final.log"
+    },
+    "upstream-patches": {
+      "command": [
+        "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin/python",
+        "scripts/check_upstream_patches.py",
+        "--base",
+        "95260f452670df62e365f10035d095838ec3a495",
+        "--upstream-baseline",
+        "345f08be00c8a9495079b732a39b46aa9af1584e"
+      ],
+      "cwd": "/tmp/ideer-issue100-server-20261019",
+      "started_at": "2026-10-20T11:24:11.807469+00:00",
+      "seconds": 0.086,
+      "exit_code": 0,
+      "log": "server-upstream-patches-final.log"
+    }
+  },
+  "protected_real_e2e": {
+    "selection": {
+      "channels": [
+        "governance",
+        "backend-standard",
+        "static-checks"
+      ],
+      "reasons": {
+        "governance": [
+          "all changes require ownership and guidance checks"
+        ],
+        "backend-standard": [
+          "backend path: backend/app/gateway/canonical_agent_run_preparation.py",
+          "backend path: backend/app/gateway/local_workspace_policy.py",
+          "backend path: backend/app/gateway/routers/devices.py",
+          "backend path: backend/app/gateway/run_preparation.py",
+          "backend path: backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+          "backend path: backend/tests/integration/api/test_devices_router.py",
+          "backend path: backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+          "backend path: backend/tests/unit/gateway/test_local_runtime_context.py"
+        ],
+        "static-checks": [
+          "backend code or test path: backend/app/gateway/canonical_agent_run_preparation.py",
+          "backend code or test path: backend/app/gateway/local_workspace_policy.py",
+          "backend code or test path: backend/app/gateway/routers/devices.py",
+          "backend code or test path: backend/app/gateway/run_preparation.py",
+          "backend code or test path: backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+          "backend code or test path: backend/tests/integration/api/test_devices_router.py",
+          "backend code or test path: backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+          "backend code or test path: backend/tests/unit/gateway/test_local_runtime_context.py"
+        ]
+      },
+      "changed_files": [
+        "backend/app/gateway/canonical_agent_run_preparation.py",
+        "backend/app/gateway/local_workspace_policy.py",
+        "backend/app/gateway/routers/devices.py",
+        "backend/app/gateway/run_preparation.py",
+        "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+        "backend/tests/integration/api/test_devices_router.py",
+        "backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+        "backend/tests/unit/gateway/test_local_runtime_context.py"
+      ],
+      "docs_only": false,
+      "protected_selector": true,
+      "selected_real_e2e": true,
+      "workflow": ".github/workflows/real-e2e-tests.yml",
+      "protected_rule": ".github/scripts/should-run-real-e2e.sh",
+      "protected_match": "backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+      "command": "QA_ISOLATED=1 bash backend/scripts/run-real-e2e.sh",
+      "grep_filter": null
+    },
+    "command": "QA_ISOLATED=1 bash backend/scripts/run-real-e2e.sh",
+    "cwd": "\\tmp\\ideer-issue100-server-20261019",
+    "environment": {
+      "TEST_PNPM_BIN": "unset",
+      "PATH_prefix": "/tmp/ideer-issue100-lane-bin:/tmp/ideer-issue100-server-20261019/backend/.venv-candidate/bin:/home/neowyh/.local/bin",
+      "UV_PROJECT_ENVIRONMENT": "/tmp/ideer-issue100-server-20261019/backend/.venv-candidate",
+      "UV_CACHE_DIR": "/tmp/deer-flow-uv-cache",
+      "PYTHONIOENCODING": "utf-8",
+      "PYTHONUTF8": "1",
+      "QA_ISOLATED": "1",
+      "SKIP_ENV_VALIDATION": "1",
+      "PORT": "21901",
+      "E2E_FRONTEND_PORT": "23101",
+      "E2E_RUN_ID": "issue100-final-20261020T111056Z",
+      "REAL_E2E_ARTIFACTS_DIR": "C:\\Users\\Neo\\.codex\\worktrees\\c418\\iDeer-Desktop\\artifacts\\issue-100\\server-real-e2e-artifacts"
+    },
+    "started_at": "2026-10-20T11:10:56Z",
+    "passed": 7,
+    "skipped": 5,
+    "playwright_duration_display": "5.5m",
+    "duration_seconds": null,
+    "duration_note": "Runner reports rounded Playwright duration only; total wall time not instrumented.",
+    "skip_reasons": "Four knowledge tests require RAGFlow dataset configuration; one model workflow requires explicit real-model credentials. Existing default guards applied; no grep filter.",
+    "exit_code": 0,
+    "log": "server-real-final.log",
+    "cleanup": {
+      "run_id": "issue100-final-20261020T111056Z",
+      "original_lane_exit": 0,
+      "tests": {
+        "passed": 7,
+        "skipped": 5
+      },
+      "initial_cleanup": "incomplete: immutable published resource directory permissions",
+      "state_dir": "/tmp/ideer-real-e2e-issue100-final-20261020T111056Z-iZfzF3",
+      "residual_state_removed": true,
+      "ports_closed": {
+        "21901": true,
+        "23101": true
+      }
+    }
+  },
+  "source_tree_proof": "server-source-tree-proof.json",
+  "evidence_sha256": {
+    "server-source-tree-proof.json": "119fa64747406905990650ab2fd4e1a191e2f9bbac116fbba36ea7667d386175",
+    "server-focused-final.log": "9130387cafeccb6c8ddcddc875f6b61beac746c0c62e5abcf1f19ac4fa8cb381",
+    "server-ruff-final.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "server-pr-final.log": "074973daef3718e53d5bddd10638e87111606a41544877f771a4d2f2e50c864d",
+    "server-real-final.log": "26bc688eea47df90bca2894adc0c7c2776865f7bdaeb8edf8b4992734d3ce4db",
+    "server-pnpm-env-red.log": "b58559482d406c3c58ba6722ac09825a98759e3e1af2f70774732f7f0290a2db",
+    "server-pnpm-env-green.log": "a316d569a51e04196ac6d45103bf806108a8a6ed4e503785772f4f0a11d9f08b"
+  }
+}

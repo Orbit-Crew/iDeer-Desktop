@@ -1,0 +1,1022 @@
+{
+  "startedAt": "2026-10-20T11:30:18.434Z",
+  "model": "deterministic Server model; real Gateway and Windows Runtime tools",
+  "fixtures": {
+    "W1/marker.py": "286c61aad961e8d42fc984fd7d3facb2ae0fdcbf73787d676b7ef6e594fcb6c2",
+    "W2/other.txt": "3c0a3febdf1c25479842c7b7171617ef6e0bcb2d79a23c911ced4dc302f351dc",
+    "outside/secret.txt": "e2dd7526f10f39c8e2e5e1ce293fff9ec04f84dfcba5fb598417729e0084d6fd"
+  },
+  "stages": [
+    {
+      "name": "T100-01 selection",
+      "root": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+      "confirmation": {
+        "title": "\u786e\u8ba4\u5de5\u4f5c\u76ee\u5f55\u7684\u6570\u636e\u8fb9\u754c",
+        "detail": "<synthetic directory>\n\n\u4ec5\u5728\u4f1a\u8bdd\u8bf7\u6c42\u5217\u4e3e\u3001\u8bfb\u53d6\u6216\u641c\u7d22\u65f6\uff0c\u5c06\u6240\u9700\u6587\u4ef6\u540d\u6216\u6587\u672c\u53d1\u9001\u5230 Server \u548c\u6a21\u578b\u3002\u4e0d\u4f1a\u81ea\u52a8\u4e0a\u4f20\u6574\u4e2a\u76ee\u5f55\u3002\u6a21\u578b\u4ec5\u80fd\u770b\u5230\u903b\u8f91\u76ee\u5f55\u3002\u76ee\u5f55\u4e0d\u4f1a\u767b\u8bb0\u4e3a\u5e73\u53f0 Resource\u3002\u6388\u6743\u4fdd\u5b58\u5728\u672c\u673a\uff0c\u540c\u8d26\u53f7\u4e0e\u8bbe\u5907\u91cd\u542f\u540e\u7ee7\u7eed\u6709\u6548\u3002\u5207\u6362\u76ee\u5f55\u5c06\u4f7f\u65e7\u8def\u5f84\u5931\u6548\u3002",
+        "buttons": [
+          "\u53d6\u6d88",
+          "\u786e\u8ba4\u53ea\u8bfb\u6388\u6743"
+        ]
+      }
+    },
+    {
+      "name": "list",
+      "threadId": "a9566b78-9a03-40f4-aa7d-daf9ebb91192",
+      "runId": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "c98a0ae8-bbcc-488f-b04c-aad9ec2d1b90__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"list\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-b61a-79f2-a488-c0ca8624fa36-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "2672839e-2227-4f83-9e6c-49363169d91d",
+          "role": "tool",
+          "text": "{\"entries\": [\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\"], \"truncated\": false, \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.list\"}}",
+          "name": "local.files.list",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-b70c-7a52-b48e-63b6e1b64695-0",
+          "role": "ai",
+          "text": "T100_RESULT {\"entries\": [\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\"], \"truncated\": false, \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.list\"}}",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "3f9e6d9c-1d99-4864-8bad-a3cf29a648a1",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "completed",
+            "run_id": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+            "tool_call_id": "t100-9665c2df61c1",
+            "expires_at": "2026-10-20T11:35:26.477056Z",
+            "receipt": {
+              "run_id": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+              "task_id": "3f9e6d9c-1d99-4864-8bad-a3cf29a648a1",
+              "capability": "local.files.list",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "7d7171c79d750c481d5e84b26e4d7210b8c3b5a8630bb9b2abe7c7763a09b305",
+              "request_hash": "7d7171c79d750c481d5e84b26e4d7210b8c3b5a8630bb9b2abe7c7763a09b305",
+              "result_hash": "14dd5ede86e50d261260532583ae9705dc0ee73a4eedefe20c6bfffd08ac1725",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": {
+              "entries": [
+                "/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py"
+              ],
+              "truncated": false,
+              "source": {
+                "path": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+                "logicalRoot": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+                "operation": "local.files.list"
+              }
+            },
+            "error": null,
+            "error_code": null,
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "78f54275-8e73-427b-b259-fa7ba30db92a",
+      "runId": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "faeefb5f-6004-432e-a873-edbd5f82a565__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-c8cb-7a40-a0d4-738bcd8df9d9-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "4fc3f5a5-4764-4436-9306-f3daadd17a2e",
+          "role": "tool",
+          "text": "{\"content\": \"known_marker = 100\\n\", \"bytes\": 19, \"sha256\": \"286c61aad961e8d42fc984fd7d3facb2ae0fdcbf73787d676b7ef6e594fcb6c2\", \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.read\"}}",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-cb19-7ab2-8e30-f9f3856b2e8b-0",
+          "role": "ai",
+          "text": "T100_RESULT {\"content\": \"known_marker = 100\\n\", \"bytes\": 19, \"sha256\": \"286c61aad961e8d42fc984fd7d3facb2ae0fdcbf73787d676b7ef6e594fcb6c2\", \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.read\"}}",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "cd6dc54a-56bc-4dca-88af-9e0ecd7a447f",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "completed",
+            "run_id": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+            "tool_call_id": "t100-1464aa2a40ad",
+            "expires_at": "2026-10-20T11:35:31.269967Z",
+            "receipt": {
+              "run_id": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+              "task_id": "cd6dc54a-56bc-4dca-88af-9e0ecd7a447f",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "d3d1bfa4d25a8ac9c8c01b898dfd7819cbd82bed5105a1e9e9b08457d88bc34a",
+              "request_hash": "d3d1bfa4d25a8ac9c8c01b898dfd7819cbd82bed5105a1e9e9b08457d88bc34a",
+              "result_hash": "10a1e9ed96ea7a4f17814596ec035a45230be718e7e2d3f6f8d37d3fe32e6471",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": {
+              "content": "known_marker = 100\n",
+              "bytes": 19,
+              "sha256": "286c61aad961e8d42fc984fd7d3facb2ae0fdcbf73787d676b7ef6e594fcb6c2",
+              "source": {
+                "path": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py",
+                "logicalRoot": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+                "operation": "local.files.read"
+              }
+            },
+            "error": null,
+            "error_code": null,
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "search",
+      "threadId": "f5cf2627-b275-429f-8ab8-0b5f800e9265",
+      "runId": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "873db3b5-6190-47cf-8243-cf0e0c6021db__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"search\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\",\"query\":\"known_marker\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-d29e-7e41-a5ec-103f0ede2787-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "3a050a38-9d91-43b0-b3f1-94ea67611585",
+          "role": "tool",
+          "text": "{\"matches\": [{\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\", \"line\": 1, \"text\": \"known_marker = 100\"}], \"truncated\": false, \"filesScanned\": 1, \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.search\"}}",
+          "name": "local.files.search",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-d32a-70b3-b668-5d26d5abdcf3-0",
+          "role": "ai",
+          "text": "T100_RESULT {\"matches\": [{\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\", \"line\": 1, \"text\": \"known_marker = 100\"}], \"truncated\": false, \"filesScanned\": 1, \"source\": {\"path\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"logicalRoot\": \"/workspace/00185bde-158d-497c-9823-27c5afc27f8e\", \"operation\": \"local.files.search\"}}",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "94f3bd65-1057-435e-88d2-4301d381a8c1",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "completed",
+            "run_id": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+            "tool_call_id": "t100-cd2eaa73308d",
+            "expires_at": "2026-10-20T11:35:33.787315Z",
+            "receipt": {
+              "run_id": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+              "task_id": "94f3bd65-1057-435e-88d2-4301d381a8c1",
+              "capability": "local.files.search",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "891c175123c06bf970e2b66302450d21a3e1b31f72511826aceb2b899b9ca4ee",
+              "request_hash": "891c175123c06bf970e2b66302450d21a3e1b31f72511826aceb2b899b9ca4ee",
+              "result_hash": "5492a2dbca447b09bf11dadf80deb186da7f9a9024713aaaa014100db4640310",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": {
+              "matches": [
+                {
+                  "path": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py",
+                  "line": 1,
+                  "text": "known_marker = 100"
+                }
+              ],
+              "truncated": false,
+              "filesScanned": 1,
+              "source": {
+                "path": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+                "logicalRoot": "/workspace/00185bde-158d-497c-9823-27c5afc27f8e",
+                "operation": "local.files.search"
+              }
+            },
+            "error": null,
+            "error_code": null,
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "T100-01 resource comparison",
+      "before": {
+        "total": 1,
+        "items": [
+          {
+            "id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "type": "agent",
+            "slug": "t100-a"
+          }
+        ]
+      },
+      "after": {
+        "total": 1,
+        "items": [
+          {
+            "id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "type": "agent",
+            "slug": "t100-a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "read",
+      "threadId": "bfaabfb7-75af-4981-8ac9-1763d8143987",
+      "runId": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "adf1297d-f3e6-4efd-b4d3-c31fe4085eaf__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/.git/config\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-da47-7b01-8816-fbc0f608cc95-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "1334cb5d-e5d8-461e-9500-ef49723849a0",
+          "role": "tool",
+          "text": "PROTECTED_PATH",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-da95-7f32-a609-5acdcaaf7dd8-0",
+          "role": "ai",
+          "text": "T100_RESULT PROTECTED_PATH",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "b3fabb13-af8c-454e-9f25-7ee0ac3b750c",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+            "tool_call_id": "t100-f54e85e77f48",
+            "expires_at": "2026-10-20T11:35:35.735791Z",
+            "receipt": {
+              "run_id": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+              "task_id": "b3fabb13-af8c-454e-9f25-7ee0ac3b750c",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "fd143ea14d06991a9b63697d6d8d108597f4bd663f6577914e76b41b483d7cc9",
+              "request_hash": "fd143ea14d06991a9b63697d6d8d108597f4bd663f6577914e76b41b483d7cc9",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "protected path",
+            "error_code": "PROTECTED_PATH",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "63efc095-8939-4e84-a250-2551552d6d1f",
+      "runId": "64199542-8af8-4c15-a6ed-5eead4036210",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "aa0f0f9f-1abf-46ed-8477-e661ae978c6c__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/../outside/secret.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-dff6-7a41-8106-9e17ef6ff7ca-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "07723fcd-d8d4-49fa-9939-3e17cebb2a47",
+          "role": "tool",
+          "text": "OUTSIDE_ALLOWED_ROOTS",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-e0a3-79f0-8aee-da0d38a8c159-0",
+          "role": "ai",
+          "text": "T100_RESULT OUTSIDE_ALLOWED_ROOTS",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "46a80596-eee0-475c-835e-2953be93ea84",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "64199542-8af8-4c15-a6ed-5eead4036210",
+            "tool_call_id": "t100-7beee1d8f7f0",
+            "expires_at": "2026-10-20T11:35:37.187674Z",
+            "receipt": {
+              "run_id": "64199542-8af8-4c15-a6ed-5eead4036210",
+              "task_id": "46a80596-eee0-475c-835e-2953be93ea84",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "ce5051d13301c261deaa2d90684eeb1658c5a676cee68f30eb032ae44701a269",
+              "request_hash": "ce5051d13301c261deaa2d90684eeb1658c5a676cee68f30eb032ae44701a269",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "outside allowed roots",
+            "error_code": "OUTSIDE_ALLOWED_ROOTS",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "abb200f3-c413-4a6d-863d-65935efb1bda",
+      "runId": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "acd11bfb-65a1-46d6-a2bf-50c1aaf06b76__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/junction/secret.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-e69a-7222-9008-9392cd05180c-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "5d5b27d5-84a6-454d-839b-139b4f1c3220",
+          "role": "tool",
+          "text": "OUTSIDE_ALLOWED_ROOTS",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-e6e9-7e43-a475-0a61a0b07c9c-0",
+          "role": "ai",
+          "text": "T100_RESULT OUTSIDE_ALLOWED_ROOTS",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "e88d05a4-1963-45b7-b397-e6ad07404bdc",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+            "tool_call_id": "t100-4517f0d1c2a5",
+            "expires_at": "2026-10-20T11:35:38.889688Z",
+            "receipt": {
+              "run_id": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+              "task_id": "e88d05a4-1963-45b7-b397-e6ad07404bdc",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "d4d1718c6ffd6cec4bb97b00f8a2ec0587416f3b12fff9bb7dffe2228d5a8863",
+              "request_hash": "d4d1718c6ffd6cec4bb97b00f8a2ec0587416f3b12fff9bb7dffe2228d5a8863",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "outside allowed roots",
+            "error_code": "OUTSIDE_ALLOWED_ROOTS",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "df95761b-3dcf-485f-b2fa-997a75acdaec",
+      "runId": "e1792337-e27b-459a-88cf-bc56b7668190",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "d53b9270-93fe-44e8-b286-d29fdbfdc9ff__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/symlink.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-ed55-7ba0-9431-a1542c13e19f-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "8abd7bf8-41f7-4eaf-ba34-9c23dc5e3366",
+          "role": "tool",
+          "text": "OUTSIDE_ALLOWED_ROOTS",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-eda2-77f1-83ea-6710176bdc97-0",
+          "role": "ai",
+          "text": "T100_RESULT OUTSIDE_ALLOWED_ROOTS",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "578df6c4-766a-4180-a9f2-8a2a71765a6f",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "e1792337-e27b-459a-88cf-bc56b7668190",
+            "tool_call_id": "t100-9711761df064",
+            "expires_at": "2026-10-20T11:35:40.614513Z",
+            "receipt": {
+              "run_id": "e1792337-e27b-459a-88cf-bc56b7668190",
+              "task_id": "578df6c4-766a-4180-a9f2-8a2a71765a6f",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "03d8f8e650eccde378de03b013f41c533bd18df64f161227fc54bfe56dae3f8e",
+              "request_hash": "03d8f8e650eccde378de03b013f41c533bd18df64f161227fc54bfe56dae3f8e",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "outside allowed roots",
+            "error_code": "OUTSIDE_ALLOWED_ROOTS",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "symlink",
+      "status": "passed",
+      "kind": "NTFS WSL LX symlink",
+      "limitation": "Win32 CreateSymbolicLink privilege unavailable; LX reparse-point symlink tested instead."
+    },
+    {
+      "name": "T100-04 pending old directory",
+      "runId": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+      "messages": [
+        {
+          "id": "865c7e15-858b-48e9-a5e3-1bca695da1d9__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\"},\"hold\":true}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-f2d7-7743-a429-41191a717156-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "13914e67-2d8e-4ac6-a876-f16cc8722c81",
+          "role": "tool",
+          "text": "OUTSIDE_ALLOWED_ROOTS",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-f9e7-7f73-9bb7-0c7d10f46952-0",
+          "role": "ai",
+          "text": "T100_RESULT OUTSIDE_ALLOWED_ROOTS",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "b993da2d-d414-45ec-b36e-71097ec258b0",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+            "tool_call_id": "t100-22657c5ddc2b",
+            "expires_at": "2026-10-20T11:35:43.705500Z",
+            "receipt": {
+              "run_id": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+              "task_id": "b993da2d-d414-45ec-b36e-71097ec258b0",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "e158fd04c77ecbf55427ec0cbe7a8116c0b3b3ecb6d672d42a20422436f32191",
+              "request_hash": "e158fd04c77ecbf55427ec0cbe7a8116c0b3b3ecb6d672d42a20422436f32191",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "outside allowed roots",
+            "error_code": "OUTSIDE_ALLOWED_ROOTS",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "6dac4e52-30ae-4822-ab5a-585a4a7ee84d",
+      "runId": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "3f288c30-f49f-45bd-96b6-d7e20dd52326__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/00185bde-158d-497c-9823-27c5afc27f8e/marker.py\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-fd22-7c72-8ba4-29e63db57979-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "b2c57f80-1027-4f12-8785-3a6ca06f84f7",
+          "role": "tool",
+          "text": "OUTSIDE_ALLOWED_ROOTS",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15913-fd6e-7180-b88c-0ab13d1a2eec-0",
+          "role": "ai",
+          "text": "T100_RESULT OUTSIDE_ALLOWED_ROOTS",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "a3cdd2b6-fa52-4c3b-aee6-9b5a71da0816",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+            "tool_call_id": "t100-0ccd9737466a",
+            "expires_at": "2026-10-20T11:35:44.658451Z",
+            "receipt": {
+              "run_id": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+              "task_id": "a3cdd2b6-fa52-4c3b-aee6-9b5a71da0816",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "cbcb1712c60f58c6d6a14f9d5874dee978835646b6d5d8e3beea32f9ea93e067",
+              "request_hash": "cbcb1712c60f58c6d6a14f9d5874dee978835646b6d5d8e3beea32f9ea93e067",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "outside allowed roots",
+            "error_code": "OUTSIDE_ALLOWED_ROOTS",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "read",
+      "threadId": "01abd3ae-2117-4683-a9c9-c52c0042b09e",
+      "runId": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "61b9aa80-6723-4c62-86a8-2003d5d75d30__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-02d8-7ec2-b78f-2edbe97ae2a6-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "e581a009-9f73-4a2c-996d-3c65aac3833c",
+          "role": "tool",
+          "text": "{\"content\": \"W2 fixed text\\n\", \"bytes\": 14, \"sha256\": \"3c0a3febdf1c25479842c7b7171617ef6e0bcb2d79a23c911ced4dc302f351dc\", \"source\": {\"path\": \"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt\", \"logicalRoot\": \"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe\", \"operation\": \"local.files.read\"}}",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-0357-7ca3-9602-59d2fd37dfe4-0",
+          "role": "ai",
+          "text": "T100_RESULT {\"content\": \"W2 fixed text\\n\", \"bytes\": 14, \"sha256\": \"3c0a3febdf1c25479842c7b7171617ef6e0bcb2d79a23c911ced4dc302f351dc\", \"source\": {\"path\": \"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt\", \"logicalRoot\": \"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe\", \"operation\": \"local.files.read\"}}",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "575616a5-c35d-40d6-8f74-70611130d6e1",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "completed",
+            "run_id": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+            "tool_call_id": "t100-a6b9b93727c2",
+            "expires_at": "2026-10-20T11:35:46.120952Z",
+            "receipt": {
+              "run_id": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+              "task_id": "575616a5-c35d-40d6-8f74-70611130d6e1",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "79bf06310f9af1c97fa3ec97ed0e0a85e28f22038966179708de32e087d0ffa1",
+              "request_hash": "79bf06310f9af1c97fa3ec97ed0e0a85e28f22038966179708de32e087d0ffa1",
+              "result_hash": "16764fb13318b55baae958e7b831b75bde033d90a27cf6f093c1e26f5927188f",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": {
+              "content": "W2 fixed text\n",
+              "bytes": 14,
+              "sha256": "3c0a3febdf1c25479842c7b7171617ef6e0bcb2d79a23c911ced4dc302f351dc",
+              "source": {
+                "path": "/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt",
+                "logicalRoot": "/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe",
+                "operation": "local.files.read"
+              }
+            },
+            "error": null,
+            "error_code": null,
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "T100-04 old Server route",
+      "status": 403,
+      "body": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "INTERNAL_ERROR",
+          "message": "{'code': 'CANONICAL_RUN_REQUIRED', 'message': 'Workspace reads require an authorized Agent Run'}"
+        },
+        "detail": "{'code': 'CANONICAL_RUN_REQUIRED', 'message': 'Workspace reads require an authorized Agent Run'}"
+      }
+    },
+    {
+      "name": "read",
+      "threadId": "a93063f1-8c15-42df-a581-ab4c5c5d750d",
+      "runId": "b013ad25-2c45-4544-8c72-b2ca83a26ed0",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "3660d0ea-5067-401c-be9c-062a92384bed__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-1755-7021-953f-2f8c1a599f3a-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "6d2fc166-86ba-482e-a901-3ad8c7eabecd",
+          "role": "tool",
+          "text": "Error: local.files.read is not a valid tool, try one of [present_files, ask_clarification, review_skill_package, list_uploaded_files].",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-1773-79d3-85c9-23a0c974c0d7-0",
+          "role": "ai",
+          "text": "T100_RESULT Error: local.files.read is not a valid tool, try one of [present_files, ask_clarification, review_skill_package, list_uploaded_files].",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": []
+    },
+    {
+      "name": "T100-03 platform denial",
+      "status": "passed"
+    },
+    {
+      "name": "read",
+      "threadId": "cf41a564-c93a-49de-8205-822e50be2182",
+      "runId": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+      "runStatus": "success",
+      "messages": [
+        {
+          "id": "301d61af-3bbf-4e1d-a30a-eb16902c7a69__user",
+          "role": "human",
+          "text": "T100_REQUEST {\"operation\":\"read\",\"arguments\":{\"path\":\"/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe/other.txt\"}}",
+          "name": "user-input",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-214e-73c2-8b6b-03e3c9dd90a7-0",
+          "role": "ai",
+          "text": "",
+          "name": null,
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "e33d84ff-e4c8-4261-9a9b-6461391941ad",
+          "role": "tool",
+          "text": "POLICY_DENIED",
+          "name": "local.files.read",
+          "request": null,
+          "response": null
+        },
+        {
+          "id": "lc_run--01a15914-21a3-7fa3-a4c2-2df41902ac7e-0",
+          "role": "ai",
+          "text": "T100_RESULT POLICY_DENIED",
+          "name": null,
+          "request": null,
+          "response": null
+        }
+      ],
+      "tasks": [
+        {
+          "status": 200,
+          "body": {
+            "task_id": "e4e51327-690f-42b5-b39f-865025bd2cd2",
+            "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+            "session_id": "1bae9a37-8575-444d-b9b5-336423928649",
+            "status": "failed",
+            "run_id": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+            "tool_call_id": "t100-eed58fa2348d",
+            "expires_at": "2026-10-20T11:35:53.924513Z",
+            "receipt": {
+              "run_id": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+              "task_id": "e4e51327-690f-42b5-b39f-865025bd2cd2",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "1d74d1fabf473e870bc0751a08457ee2544526160a4e19210a446fc3f4725c8c",
+              "request_hash": "1d74d1fabf473e870bc0751a08457ee2544526160a4e19210a446fc3f4725c8c",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null
+            },
+            "result": null,
+            "error": "deny",
+            "error_code": "POLICY_DENIED",
+            "consent_request": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "T100-04 B/D2 isolation",
+      "workspace": {
+        "state": "unavailable",
+        "logicalRoot": ""
+      },
+      "threadAccess": 404
+    },
+    {
+      "name": "T100-04 A/D1 restart",
+      "workspace": {
+        "state": "ready",
+        "logicalRoot": "/workspace/1a2a5102-33a2-46d8-9aba-86144ce34dfe"
+      }
+    },
+    {
+      "name": "T100-03 unchanged files",
+      "marker": "286c61aad961e8d42fc984fd7d3facb2ae0fdcbf73787d676b7ef6e594fcb6c2",
+      "outside": "e2dd7526f10f39c8e2e5e1ce293fff9ec04f84dfcba5fb598417729e0084d6fd",
+      "protected": "6a44b1b0455fdff1931ab09b352721d77680a9fa068c46114133e4b74d7209d7"
+    }
+  ],
+  "picker": "Native dialog callbacks supply synthetic paths; actual Desktop button and confirmation options are exercised.",
+  "status": "passed",
+  "finishedAt": "2026-10-20T11:31:10.300Z"
+}

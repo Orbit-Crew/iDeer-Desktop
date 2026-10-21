@@ -1,0 +1,1166 @@
+[
+  {
+    "threadId": "cf41a564-c93a-49de-8205-822e50be2182",
+    "runId": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "301d61af-3bbf-4e1d-a30a-eb16902c7a69",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-eed58fa2348d",
+            "local_execution_receipt": {
+              "run_id": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+              "task_id": "e4e51327-690f-42b5-b39f-865025bd2cd2",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "1d74d1fabf473e870bc0751a08457ee2544526160a4e19210a446fc3f4725c8c",
+              "request_hash": "1d74d1fabf473e870bc0751a08457ee2544526160a4e19210a446fc3f4725c8c",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-eed58fa2348d"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "aafc0e27-346c-4ae2-b96c-924ccc8a9cf7",
+        "thread_id": "cf41a564-c93a-49de-8205-822e50be2182",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "ca796916205646e8b93fe733b6909ed9"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "a93063f1-8c15-42df-a581-ab4c5c5d750d",
+    "runId": "b013ad25-2c45-4544-8c72-b2ca83a26ed0",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "3660d0ea-5067-401c-be9c-062a92384bed",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_call_id": "t100-87d75defb0dc",
+            "tool_name": "local.files.read",
+            "status": "error",
+            "args_sha256": "2e8b3b468ae0d023",
+            "output_sha256": "ebcd3fde01c209f1",
+            "output_bytes": 134,
+            "created_at": "2026-10-20T11:30:51.369630+00:00"
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "b013ad25-2c45-4544-8c72-b2ca83a26ed0",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "b013ad25-2c45-4544-8c72-b2ca83a26ed0",
+        "thread_id": "a93063f1-8c15-42df-a581-ab4c5c5d750d",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": []
+      },
+      "deerflow_trace_id": "3122e0dc4e1048aaa6dbd5e2b1ec7b70"
+    },
+    "runEvidence": null,
+    "toolReceipts": [
+      {
+        "tool_call_id": "t100-87d75defb0dc",
+        "tool_name": "local.files.read",
+        "status": "error",
+        "args_sha256": "2e8b3b468ae0d023",
+        "output_sha256": "ebcd3fde01c209f1",
+        "output_bytes": 134,
+        "created_at": "2026-10-20T11:30:51.369630+00:00"
+      }
+    ]
+  },
+  {
+    "threadId": "01abd3ae-2117-4683-a9c9-c52c0042b09e",
+    "runId": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "61b9aa80-6723-4c62-86a8-2003d5d75d30",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-a6b9b93727c2",
+            "local_execution_receipt": {
+              "run_id": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+              "task_id": "575616a5-c35d-40d6-8f74-70611130d6e1",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "79bf06310f9af1c97fa3ec97ed0e0a85e28f22038966179708de32e087d0ffa1",
+              "request_hash": "79bf06310f9af1c97fa3ec97ed0e0a85e28f22038966179708de32e087d0ffa1",
+              "result_hash": "16764fb13318b55baae958e7b831b75bde033d90a27cf6f093c1e26f5927188f",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-a6b9b93727c2"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "40bb9f98-e49d-4c52-ac94-a05ebe666322",
+        "thread_id": "01abd3ae-2117-4683-a9c9-c52c0042b09e",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "615d56f1847f4a2fada95c2105012429"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "6dac4e52-30ae-4822-ab5a-585a4a7ee84d",
+    "runId": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "3f288c30-f49f-45bd-96b6-d7e20dd52326",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-0ccd9737466a",
+            "local_execution_receipt": {
+              "run_id": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+              "task_id": "a3cdd2b6-fa52-4c3b-aee6-9b5a71da0816",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "cbcb1712c60f58c6d6a14f9d5874dee978835646b6d5d8e3beea32f9ea93e067",
+              "request_hash": "cbcb1712c60f58c6d6a14f9d5874dee978835646b6d5d8e3beea32f9ea93e067",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-0ccd9737466a"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "a0d6cccb-57bb-405f-9872-bc4cf6100a99",
+        "thread_id": "6dac4e52-30ae-4822-ab5a-585a4a7ee84d",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "a9d1a238cdbc4205800a54059cc82892"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "ace53ea8-8514-4f97-93c6-2324267b79fc",
+    "runId": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "865c7e15-858b-48e9-a5e3-1bca695da1d9",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-22657c5ddc2b",
+            "local_execution_receipt": {
+              "run_id": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+              "task_id": "b993da2d-d414-45ec-b36e-71097ec258b0",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "e158fd04c77ecbf55427ec0cbe7a8116c0b3b3ecb6d672d42a20422436f32191",
+              "request_hash": "e158fd04c77ecbf55427ec0cbe7a8116c0b3b3ecb6d672d42a20422436f32191",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-22657c5ddc2b"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "443c8eb1-3e51-4d34-a7b2-4360808ac102",
+        "thread_id": "ace53ea8-8514-4f97-93c6-2324267b79fc",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "26e21d8fad284552b57a99a8d59bb357"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "df95761b-3dcf-485f-b2fa-997a75acdaec",
+    "runId": "e1792337-e27b-459a-88cf-bc56b7668190",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "d53b9270-93fe-44e8-b286-d29fdbfdc9ff",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-9711761df064",
+            "local_execution_receipt": {
+              "run_id": "e1792337-e27b-459a-88cf-bc56b7668190",
+              "task_id": "578df6c4-766a-4180-a9f2-8a2a71765a6f",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "03d8f8e650eccde378de03b013f41c533bd18df64f161227fc54bfe56dae3f8e",
+              "request_hash": "03d8f8e650eccde378de03b013f41c533bd18df64f161227fc54bfe56dae3f8e",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-9711761df064"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "e1792337-e27b-459a-88cf-bc56b7668190",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "e1792337-e27b-459a-88cf-bc56b7668190",
+        "thread_id": "df95761b-3dcf-485f-b2fa-997a75acdaec",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "d87ca4faca7a422e9a9bd297fb03981c"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "abb200f3-c413-4a6d-863d-65935efb1bda",
+    "runId": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "acd11bfb-65a1-46d6-a2bf-50c1aaf06b76",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-4517f0d1c2a5",
+            "local_execution_receipt": {
+              "run_id": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+              "task_id": "e88d05a4-1963-45b7-b397-e6ad07404bdc",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "d4d1718c6ffd6cec4bb97b00f8a2ec0587416f3b12fff9bb7dffe2228d5a8863",
+              "request_hash": "d4d1718c6ffd6cec4bb97b00f8a2ec0587416f3b12fff9bb7dffe2228d5a8863",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-4517f0d1c2a5"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "833eed2f-2aa9-4980-af61-ba7ac07601a8",
+        "thread_id": "abb200f3-c413-4a6d-863d-65935efb1bda",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "2d6f0c58cc9c45e18ff3fdedb0d0bd65"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "63efc095-8939-4e84-a250-2551552d6d1f",
+    "runId": "64199542-8af8-4c15-a6ed-5eead4036210",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "aa0f0f9f-1abf-46ed-8477-e661ae978c6c",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-7beee1d8f7f0",
+            "local_execution_receipt": {
+              "run_id": "64199542-8af8-4c15-a6ed-5eead4036210",
+              "task_id": "46a80596-eee0-475c-835e-2953be93ea84",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "ce5051d13301c261deaa2d90684eeb1658c5a676cee68f30eb032ae44701a269",
+              "request_hash": "ce5051d13301c261deaa2d90684eeb1658c5a676cee68f30eb032ae44701a269",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-7beee1d8f7f0"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "64199542-8af8-4c15-a6ed-5eead4036210",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "64199542-8af8-4c15-a6ed-5eead4036210",
+        "thread_id": "63efc095-8939-4e84-a250-2551552d6d1f",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "16bbece658544540beca46ca06b7af94"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "bfaabfb7-75af-4981-8ac9-1763d8143987",
+    "runId": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "adf1297d-f3e6-4efd-b4d3-c31fe4085eaf",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-f54e85e77f48",
+            "local_execution_receipt": {
+              "run_id": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+              "task_id": "b3fabb13-af8c-454e-9f25-7ee0ac3b750c",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "failed",
+              "payload_hash": "fd143ea14d06991a9b63697d6d8d108597f4bd663f6577914e76b41b483d7cc9",
+              "request_hash": "fd143ea14d06991a9b63697d6d8d108597f4bd663f6577914e76b41b483d7cc9",
+              "result_hash": null,
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-f54e85e77f48"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "393d5377-f9bb-42eb-9e2e-1e17df334440",
+        "thread_id": "bfaabfb7-75af-4981-8ac9-1763d8143987",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "b191dd20615d466190bc1020b95d8c25"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "f5cf2627-b275-429f-8ab8-0b5f800e9265",
+    "runId": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "873db3b5-6190-47cf-8243-cf0e0c6021db",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.search",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-cd2eaa73308d",
+            "local_execution_receipt": {
+              "run_id": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+              "task_id": "94f3bd65-1057-435e-88d2-4301d381a8c1",
+              "capability": "local.files.search",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "891c175123c06bf970e2b66302450d21a3e1b31f72511826aceb2b899b9ca4ee",
+              "request_hash": "891c175123c06bf970e2b66302450d21a3e1b31f72511826aceb2b899b9ca4ee",
+              "result_hash": "5492a2dbca447b09bf11dadf80deb186da7f9a9024713aaaa014100db4640310",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.search",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-cd2eaa73308d"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "8befe1f9-2f7a-4cd0-a830-7d72e930e923",
+        "thread_id": "f5cf2627-b275-429f-8ab8-0b5f800e9265",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "3e14ac36528a42c0b23a6de3a0fae960"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "78f54275-8e73-427b-b259-fa7ba30db92a",
+    "runId": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "faeefb5f-6004-432e-a873-edbd5f82a565",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.read",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-1464aa2a40ad",
+            "local_execution_receipt": {
+              "run_id": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+              "task_id": "cd6dc54a-56bc-4dca-88af-9e0ecd7a447f",
+              "capability": "local.files.read",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "d3d1bfa4d25a8ac9c8c01b898dfd7819cbd82bed5105a1e9e9b08457d88bc34a",
+              "request_hash": "d3d1bfa4d25a8ac9c8c01b898dfd7819cbd82bed5105a1e9e9b08457d88bc34a",
+              "result_hash": "10a1e9ed96ea7a4f17814596ec035a45230be718e7e2d3f6f8d37d3fe32e6471",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.read",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-1464aa2a40ad"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "8a0c5acb-ac8a-4af8-b4c8-0e9c4a183f02",
+        "thread_id": "78f54275-8e73-427b-b259-fa7ba30db92a",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "3b9b40423c4e4b8fa3369789b7a39ed7"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  },
+  {
+    "threadId": "a9566b78-9a03-40f4-aa7d-daf9ebb91192",
+    "runId": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+    "status": "success",
+    "metadata": {
+      "desktop_turn_id": "c98a0ae8-bbcc-488f-b04c-aad9ec2d1b90",
+      "selection_snapshot": {
+        "agent": {
+          "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "display_name": "T100 file expert A",
+          "slug": "t100-a",
+          "version": 1,
+          "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883"
+        },
+        "resolved_skill_ids": [],
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "policy_revision": "1"
+      },
+      "run_evidence": {
+        "resource_snapshots": [
+          {
+            "resource_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+            "version": 1,
+            "content_hash": "81d337fbe3000a1c016143f79661c587ff053d81ac7691080d1dff6070cea883",
+            "selection_role": "root"
+          }
+        ],
+        "authorization_context": {
+          "caller_user_id": "c205317d-dbe7-4f9a-99f9-d3dafe94f255",
+          "effective_agent_id": "c959c4be-274b-4c3d-b578-b8f63c51290f",
+          "policy_revision": "1",
+          "allowed_tools": [],
+          "memory_scope": "c205317d-dbe7-4f9a-99f9-d3dafe94f255"
+        },
+        "runtime_assembly_fingerprint": "1457bde0b9e83ce70f180d84111b138c2d71efe5b68f5a442e621f036421131d",
+        "trace_id": null,
+        "policy_revision": "1",
+        "tool_receipts": [
+          {
+            "tool_name": "local.files.list",
+            "receipt_kind": "tool",
+            "tool_call_id": "t100-9665c2df61c1",
+            "local_execution_receipt": {
+              "run_id": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+              "task_id": "3f9e6d9c-1d99-4864-8bad-a3cf29a648a1",
+              "capability": "local.files.list",
+              "policy_decision": "allow",
+              "status": "completed",
+              "payload_hash": "7d7171c79d750c481d5e84b26e4d7210b8c3b5a8630bb9b2abe7c7763a09b305",
+              "request_hash": "7d7171c79d750c481d5e84b26e4d7210b8c3b5a8630bb9b2abe7c7763a09b305",
+              "result_hash": "14dd5ede86e50d261260532583ae9705dc0ee73a4eedefe20c6bfffd08ac1725",
+              "policy_version": "1",
+              "consent_decision": null,
+              "stdout_hash": null,
+              "stderr_hash": null,
+              "artifact_refs": [],
+              "runtime_version": null,
+              "exit_code": null,
+              "started_at": null,
+              "finished_at": null,
+              "tool_name": "local.files.list",
+              "receipt_kind": "local_execution",
+              "tool_call_id": "t100-9665c2df61c1"
+            }
+          }
+        ],
+        "retrieval_receipts": [],
+        "subagent_verification": [],
+        "artifact_receipts": [],
+        "run_id": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+        "knowledge_scope": {
+          "logical_selectors": []
+        },
+        "archive_status": "archived"
+      },
+      "local_authorization_snapshot": {
+        "run_id": "97ccf469-52d6-4dd9-aa0f-a0427acc84f9",
+        "thread_id": "a9566b78-9a03-40f4-aa7d-daf9ebb91192",
+        "device_id": "34c385a9-9c9c-4670-ab4c-c929128597db",
+        "policy_version": "1",
+        "effective_capabilities": [
+          "local.files.list",
+          "local.files.read",
+          "local.files.search"
+        ]
+      },
+      "deerflow_trace_id": "c6340c5c65ec48b3a74ce9d6258683ce"
+    },
+    "runEvidence": null,
+    "toolReceipts": []
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "run_id": "issue100-final-20261020T111056Z",
+  "original_lane_exit": 0,
+  "tests": {
+    "passed": 7,
+    "skipped": 5
+  },
+  "initial_cleanup": "incomplete: immutable published resource directory permissions",
+  "state_dir": "/tmp/ideer-real-e2e-issue100-final-20261020T111056Z-iZfzF3",
+  "residual_state_removed": true,
+  "ports_closed": {
+    "21901": true,
+    "23101": true
+  }
+}

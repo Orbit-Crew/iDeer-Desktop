@@ -8,6 +8,9 @@ import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask
 export class RuntimeProcess {
   private child: ChildProcessWithoutNullStreams | null = null
   private snapshot: RuntimeStatus = { process: 'stopped', connection: 'offline', tasks: [] }
+  private selectionScope = ''
+  workspaceScope(): string { return this.selectionScope }
+  private workspaceRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private stopping: Promise<void> | null = null
   private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
@@ -15,6 +18,21 @@ export class RuntimeProcess {
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async selectWorkspace(path: string, scope: string): Promise<void> {
+    if (!this.child || this.stopping || this.snapshot.login?.state !== 'authenticated') throw new Error('WORKSPACE_UNAVAILABLE')
+    if (this.workspaceRequest) throw new Error('WORKSPACE_BUSY')
+    if (!scope || scope !== this.selectionScope) throw new Error('WORKSPACE_BINDING_CHANGED')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.workspaceRequest = null; reject(new Error('WORKSPACE_TIMEOUT')) }, 30000)
+      this.workspaceRequest = { id,
+        resolve: () => { clearTimeout(timer); this.workspaceRequest = null; resolve() },
+        reject: (error) => { clearTimeout(timer); this.workspaceRequest = null; reject(error) }
+      }
+      this.child!.stdin.write(JSON.stringify({ type: 'workspace', id, path, scope, confirmed: true }) + '\n')
+    })
   }
 
   async chat(command: ChatCommand): Promise<ChatSnapshot> {
@@ -106,6 +124,12 @@ export class RuntimeProcess {
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
+          if (value.v === 1 && value.type === 'workspace') {
+            if (value.id !== this.workspaceRequest?.id) continue
+            if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
+            else this.workspaceRequest?.resolve()
+            continue
+          }
           if (value.v === 1 && value.type === 'chat') {
             const result = value.result
             if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
@@ -135,8 +159,9 @@ export class RuntimeProcess {
                 !/^[A-Za-z0-9-]{1,64}$/.test(url.searchParams.get('login_id') || '')) throw new Error('Invalid browser URL')
             this.loginRequest.resolve(url.href)
           }
+          if (typeof value.selectionScope === 'string' && /^[0-9a-f]{64}$/.test(value.selectionScope)) this.selectionScope = value.selectionScope
           lastStatus = Date.now()
-          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login }
+          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace }
         } catch { child.kill() }
       }
     })
@@ -147,6 +172,7 @@ export class RuntimeProcess {
       this.snapshot = { process: 'crashed', connection: 'offline', tasks: [] }
     })
     child.on('close', () => {
+      this.workspaceRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
