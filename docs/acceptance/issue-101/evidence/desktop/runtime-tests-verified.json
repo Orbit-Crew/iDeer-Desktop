@@ -1,0 +1,19 @@
+{
+  "command": [
+    ".venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer-101-runtime-verified-20261021",
+    "--junitxml=artifacts/issue-101/runtime-tests-verified.xml"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\5834\\iDeer-Desktop",
+  "started": "2026-10-21T05:48:54.592268+00:00",
+  "finished": "2026-10-21T05:50:06.984229+00:00",
+  "seconds": 72.391,
+  "exitCode": 0
+}

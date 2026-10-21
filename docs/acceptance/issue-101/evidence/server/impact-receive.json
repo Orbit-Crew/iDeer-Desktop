@@ -1,0 +1,94 @@
+
+  GitNexus Impact (1.6.12)
+{
+  "target": {
+    "id": "Method:backend/app/device_control/broker.py:DeviceBroker.receive#2",
+    "name": "receive",
+    "type": "Method",
+    "filePath": "backend/app/device_control/broker.py"
+  },
+  "direction": "upstream",
+  "impactedCount": 1,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 1,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 1
+  },
+  "affected_processes": [
+    {
+      "name": "device_websocket",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 6,
+      "total_hits": 6,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Device_control",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:device_websocket",
+        "name": "device_websocket",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_191_device_websocket",
+            "label": "Device_websocket → Send_text",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_319_device_websocket",
+            "label": "Device_websocket → Hash_secret",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_349_device_websocket",
+            "label": "Device_websocket → _get_device",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_499_device_websocket",
+            "label": "Device_websocket → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_348_device_websocket",
+            "label": "Device_websocket → Validate_device_transition",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_498_device_websocket",
+            "label": "Device_websocket → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      }
+    ]
+  }
+}

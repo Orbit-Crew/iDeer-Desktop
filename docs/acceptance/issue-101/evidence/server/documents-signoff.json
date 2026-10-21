@@ -1,0 +1,11 @@
+{
+  "command": [
+    "backend/.venv-candidate/bin/python",
+    "scripts/check_documents.py"
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021",
+  "started": "2026-10-21T06:00:15.254506+00:00",
+  "finished": "2026-10-21T06:00:18.356944+00:00",
+  "seconds": 3.102,
+  "exitCode": 0
+}

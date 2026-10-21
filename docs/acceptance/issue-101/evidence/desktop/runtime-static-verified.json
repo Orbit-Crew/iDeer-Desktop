@@ -1,0 +1,19 @@
+{
+  "command": [
+    ".venv\\Scripts\\python.exe",
+    "-m",
+    "ruff",
+    "check",
+    "local-runtime/core",
+    "local-runtime/tests/test_receipt_ledger.py",
+    "local-runtime/tests/test_receipt_replay.py",
+    "local-runtime/tests/test_receipt_transport.py",
+    "--select",
+    "E9,F63,F7,F82"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\5834\\iDeer-Desktop",
+  "started": "2026-10-21T05:53:31.097761+00:00",
+  "finished": "2026-10-21T05:53:32.913405+00:00",
+  "seconds": 1.828,
+  "exitCode": 0
+}

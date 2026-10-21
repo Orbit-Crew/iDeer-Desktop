@@ -1,27 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
-import type { DesktopStatus } from '../../../shared/desktop'
+import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 
 export default function RuntimePanel(): JSX.Element {
-  const [status, setStatus] = useState<DesktopStatus | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [view, setView] = useState(emptyRuntimePanelView)
+  const { status, history, failed, historyError, clearing } = view
   const [server, setServer] = useState('')
   const [deviceName, setDeviceName] = useState('我的电脑')
   const [loginError, setLoginError] = useState(false)
   const [opening, setOpening] = useState(false)
   const [workspaceError, setWorkspaceError] = useState(false)
+  const [historyOffset, setHistoryOffset] = useState(0)
+  const controller = useRef<RuntimePanelController | null>(null)
   useEffect(() => {
     let active = true
-    const refresh = async (): Promise<void> => {
-      try {
-        const next = await window.ideer.getStatus()
-        if (active) { setStatus(next); setFailed(false) }
-      } catch { if (active) setFailed(true) }
-    }
-    void refresh()
-    const timer = setInterval(() => void refresh(), 1000)
-    return () => { active = false; clearInterval(timer) }
-  }, [])
+    const current = new RuntimePanelController(window.ideer, next => { if (active) setView(next) })
+    controller.current = current
+    void current.refresh(historyOffset)
+    const timer = setInterval(() => void current.refresh(historyOffset), 1000)
+    return () => { active = false; current.invalidate(); clearInterval(timer); if (controller.current === current) controller.current = null }
+  }, [historyOffset])
   const runtime = status?.runtime
   const login = runtime?.login
   const processNames = { stopped: '已停止', starting: '启动中', running: '运行中', stopping: '停止中', crashed: '异常退出', missing: '随附文件缺失', unresponsive: '无响应' }
@@ -48,8 +46,8 @@ export default function RuntimePanel(): JSX.Element {
       <Typography.Paragraph>设备连接：{runtime ? connectionNames[runtime.connection] : '读取中'}</Typography.Paragraph>
     </>}
     <Space>
-      <Button disabled={!runtime || !['stopped', 'crashed'].includes(runtime.process)} onClick={() => void window.ideer.startRuntime().catch(() => setFailed(true))}>启动 Runtime</Button>
-      <Button disabled={!runtime || !['running', 'starting', 'unresponsive'].includes(runtime.process)} onClick={() => void window.ideer.stopRuntime().catch(() => setFailed(true))}>停止 Runtime</Button>
+      <Button disabled={!runtime || !['stopped', 'crashed'].includes(runtime.process)} onClick={() => void window.ideer.startRuntime().catch(() => setView(current => ({ ...current, failed: true })))}>启动 Runtime</Button>
+      <Button disabled={!runtime || !['running', 'starting', 'unresponsive'].includes(runtime.process)} onClick={() => void controller.current?.stop()}>停止 Runtime</Button>
     </Space>
     <Typography.Title level={5} className="mt-5">只读工作目录</Typography.Title>
     <Typography.Paragraph>按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。</Typography.Paragraph>
@@ -59,6 +57,20 @@ export default function RuntimePanel(): JSX.Element {
       void window.ideer.chooseWorkspace().catch(() => setWorkspaceError(true))
     }}>选择并授权只读目录</Button>
     {workspaceError && <Alert type="error" message="目录不可用或授权未完成，请选择普通工作目录" />}
+    <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
+    <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
+    {(runtime?.receiptStorageError || history?.storageError) && <Alert type="error" message="可靠记录存储不可用，已阻止新操作。已发生效果的任务请核实结果；修复本机存储后重试。" />}
+    {historyError && <Alert type="error" message="无法读取回执历史，不能据此判断记录为空" />}
+    {history && <Typography.Paragraph>共 {history.total} 条 · 待确认 {history.pending} · 已确认 {history.confirmed} · 结果待核实 {history.uncertain} · 已清理标记 {history.cleaned}</Typography.Paragraph>}
+    <Button loading={clearing} disabled={!history?.confirmed || runtime?.process !== 'running'} onClick={() => void controller.current?.clearConfirmed(historyOffset)}>清理已确认回执</Button>
+    <Space className="ml-3">
+      <Button disabled={historyOffset === 0} onClick={() => setHistoryOffset(Math.max(0, historyOffset - 20))}>较新回执</Button>
+      <Button disabled={!history || historyOffset + 20 >= history.total} onClick={() => setHistoryOffset(historyOffset + 20)}>较早回执</Button>
+    </Space>
+    {history?.rows.map(row => <Typography.Paragraph key={row.receipt_id}>
+      {row.task_id} · {row.run_id} · {row.tool_call_id} · {row.capability} · {row.logical_target} · {row.user_id} / {row.device_id} · {row.status} · {row.error_code} ·
+      {{ pending: '待确认，等待原身份合法连接', confirmed: 'Server 已确认', uncertain: '结果待核实', cleaned: '已清理，保留标记' }[row.delivery_state] || row.delivery_state}
+    </Typography.Paragraph>)}
     <Typography.Title level={5} className="mt-5">近期任务</Typography.Title>
     {!runtime?.tasks.length ? <Typography.Text type="secondary">暂无任务记录</Typography.Text> : runtime.tasks.map((task, index) => <Typography.Paragraph key={`${task.taskId}-${index}`}>
       {task.taskId} · {task.runId} · {task.capability} · {task.state}

@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -14,10 +14,30 @@ export class RuntimeProcess {
   private stopping: Promise<void> | null = null
   private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
+  private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
+  private receiptScope = ''
+  receiptOwnershipScope(): string { return this.receiptScope }
   constructor(private readonly directory: string, private readonly profile: string) {}
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async receipts(action: 'history' | 'clear-confirmed', offset = 0, expectedScope = this.receiptScope): Promise<ReceiptHistory> {
+    if (!['history', 'clear-confirmed'].includes(action)) throw new Error('RECEIPT_ACTION_INVALID')
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1000000000) throw new Error('RECEIPT_OFFSET_INVALID')
+    if (action === 'clear-confirmed' && (!expectedScope || expectedScope !== this.receiptScope)) throw new Error('RECEIPT_BINDING_CHANGED')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    if (this.receiptRequests.size) throw new Error('RECEIPT_BUSY')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.receiptRequests.delete(id); reject(new Error('RECEIPT_TIMEOUT')) }, 15000)
+      this.receiptRequests.set(id, {
+        resolve: (state) => { clearTimeout(timer); this.receiptRequests.delete(id); resolve(state) },
+        reject: (error) => { clearTimeout(timer); this.receiptRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'receipts', id, action, offset, scope: expectedScope }) + '\n')
+    })
   }
 
   async selectWorkspace(path: string, scope: string): Promise<void> {
@@ -124,6 +144,14 @@ export class RuntimeProcess {
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
+          if (value.v === 1 && value.type === 'receipts') {
+            if (value.error) this.receiptRequests.get(value.id)?.reject(new Error(value.error === 'RECEIPT_BINDING_CHANGED' ? value.error : 'RECEIPT_STORAGE_UNAVAILABLE'))
+            else if (value.result && Array.isArray(value.result.rows) && value.result.rows.length <= 20 &&
+                ['total', 'pending', 'confirmed', 'uncertain', 'cleaned'].every((key) => Number.isSafeInteger(value.result[key]) && value.result[key] >= 0) &&
+                typeof value.result.storageError === 'string') this.receiptRequests.get(value.id)?.resolve(value.result)
+            else throw new Error('Invalid receipt response')
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -160,8 +188,10 @@ export class RuntimeProcess {
             this.loginRequest.resolve(url.href)
           }
           if (typeof value.selectionScope === 'string' && /^[0-9a-f]{64}$/.test(value.selectionScope)) this.selectionScope = value.selectionScope
+          this.receiptScope = typeof value.receiptScope === 'string' && /^[0-9a-f]{64}$/.test(value.receiptScope) ? value.receiptScope : ''
           lastStatus = Date.now()
-          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace }
+          if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
+            receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
     })
@@ -175,6 +205,7 @@ export class RuntimeProcess {
       this.workspaceRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.receiptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

@@ -1,0 +1,23 @@
+{
+  "recordedAt": "2026-10-21T13:10:39.756636+00:00",
+  "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "distribution": "PRETTY_NAME=\"Ubuntu 24.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.1 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "node": "v22.23.2",
+  "uv": "uv 0.12.9 (x86_64-unknown-linux-gnu)",
+  "pnpm": "10.26.2",
+  "packages": {
+    "pytest": "9.0.3",
+    "SQLAlchemy": "2.0.49",
+    "alembic": "1.18.4",
+    "fastapi": "0.136.1",
+    "cryptography": "50.0.0",
+    "websockets": "16.0"
+  },
+  "locks": {
+    "backend/uv.lock": "5484082ec314c5933225ef852a5c7708bd60c02870472e81a11a8dea0d4d54af",
+    "backend/pyproject.toml": "8591c0a26b97ba31b329fd60c471fe9784abeaab4dd9650515e72d7ade93a9be",
+    "frontend/pnpm-lock.yaml": "3ff4163ee66e540357d2f0fed3c03c034ed8bc68c4549ead0d9cf8271a866131",
+    "frontend/package.json": "f68381e462dcf4e76345e85fd8a5e1e07b13af62356f0a07a0df33bd781764db"
+  }
+}

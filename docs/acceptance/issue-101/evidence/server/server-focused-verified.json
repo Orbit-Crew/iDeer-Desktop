@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/tmp/ideer-issue101-server-20261021/backend/.venv-candidate/bin/python",
+    "-m",
+    "pytest",
+    "tests/unit/device_control/test_receipt_target.py",
+    "tests/unit/device_control/test_receipt_archive.py",
+    "tests/unit/device_control/test_receipt_broker.py",
+    "tests/unit/device_control/test_broker_identity.py",
+    "tests/integration/api/test_receipt_api.py",
+    "tests/integration/persistence/test_receipt_migration.py",
+    "-q",
+    "-o",
+    "addopts="
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021/backend",
+  "started": "2026-10-21T12:44:09.345112+00:00",
+  "finished": "2026-10-21T12:44:20.678222+00:00",
+  "seconds": 11.333,
+  "exitCode": 0
+}

@@ -1,0 +1,1912 @@
+{
+  "startedAt": "2026-10-21T12:52:53.923Z",
+  "markerSHA256": "3dce537f1dc69be993eec4d74f279be641e7325d77595416265559e6acb36a44",
+  "stages": [
+    {
+      "id": "T101-01 before restart",
+      "runId": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+      "threadId": "a9dc510f-8004-4fc2-b645-0ec59481875d",
+      "runStatus": "success",
+      "original": {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+        "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+        "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+        "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+        "tool_call_id": "t100-4a2bab32e837",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+        "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+        "delivery_state": "pending",
+        "acknowledgment": null,
+        "error_code": "",
+        "status": "completed"
+      },
+      "serverReceipt": {
+        "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+        "binding": {
+          "server_origin": "http://127.0.0.1:39089",
+          "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+          "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+          "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+          "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg="
+        },
+        "task": {
+          "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+          "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+          "tool_call_id": "t100-4a2bab32e837",
+          "capability": "local.files.read",
+          "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+          "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+          "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+          "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt"
+        },
+        "receipt_id": null,
+        "receipt_hash": null,
+        "receipt": null,
+        "evidence": null,
+        "acknowledgment": null
+      },
+      "markerSHA256": "3dce537f1dc69be993eec4d74f279be641e7325d77595416265559e6acb36a44"
+    },
+    {
+      "id": "T101-03 account B",
+      "forbiddenReceiptStatus": 404,
+      "history": {
+        "rows": [],
+        "total": 0,
+        "pending": 0,
+        "confirmed": 0,
+        "uncertain": 0,
+        "cleaned": 0,
+        "storageError": ""
+      },
+      "taskSummary": []
+    },
+    {
+      "id": "T101-03 invalid A",
+      "login": {
+        "state": "error",
+        "account": "",
+        "device": "",
+        "error": "LOGIN_REAUTHENTICATION_REQUIRED"
+      },
+      "pending": 1
+    },
+    {
+      "id": "T101-01 Server recovered with lost ACK",
+      "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+      "history": {
+        "rows": [
+          {
+            "capability": "local.files.read",
+            "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+            "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+            "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+            "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+            "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+            "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+            "tool_call_id": "t100-4a2bab32e837",
+            "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+            "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+            "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+            "server_origin": "http://127.0.0.1:39089",
+            "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+            "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+            "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+            "delivery_state": "pending",
+            "acknowledgment": null,
+            "error_code": "",
+            "status": "completed"
+          }
+        ],
+        "total": 1,
+        "pending": 1,
+        "confirmed": 0,
+        "uncertain": 0,
+        "cleaned": 0,
+        "storageError": ""
+      }
+    },
+    {
+      "id": "T101-01 T101-02 recovered",
+      "recovered": {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+        "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+        "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+        "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+        "tool_call_id": "t100-4a2bab32e837",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+        "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+        "delivery_state": "confirmed",
+        "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+        "error_code": "",
+        "status": "completed"
+      },
+      "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+      "runStatus": "success",
+      "executionCount": 1
+    },
+    {
+      "id": "T101-03 cleanup",
+      "tombstone": {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+        "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+        "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+        "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+        "tool_call_id": "t100-4a2bab32e837",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+        "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+        "delivery_state": "cleaned",
+        "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+        "error_code": "",
+        "status": "unknown"
+      },
+      "confirmation": {
+        "type": "question",
+        "title": "清理已确认回执",
+        "message": "清理已由 Server 确认的回执详情？",
+        "detail": "未确认和结果待核实的记录会保留。清理后仍保留任务归属与清理标记，不会再次执行操作。",
+        "buttons": [
+          "取消",
+          "清理已确认记录"
+        ],
+        "defaultId": 0,
+        "cancelId": 0,
+        "noLink": true
+      }
+    },
+    {
+      "id": "T101-04 storage versus display",
+      "total": 23,
+      "firstPage": 20,
+      "olderPage": [
+        {
+          "capability": "local.files.read",
+          "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+          "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+          "request_hash": "58ec078f13184d304cc66f63ac0fc9339995acc3de6759e9fd4d00608dde8e81",
+          "run_id": "9f21b889-9059-48ba-83b6-c4dc259eeeb7",
+          "task_id": "e169dfa1-6022-4c31-b2d5-dc33ec649ceb",
+          "task_signature": "eaELSso1dQ51_oXHvQOq8ckTQfSLFqrJxL49C48_CR6JLOUhDqAxvNqUe0rIdd02XOU_ikEANVEyLLOiFiL_Cw==",
+          "tool_call_id": "t100-5d85fb5704dd",
+          "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+          "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+          "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+          "server_origin": "http://127.0.0.1:39089",
+          "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+          "receipt_id": "9f57ff8a-1384-423a-b22d-d1027255ea8f",
+          "receipt_hash": "6fac316d48740788187ed19d9afbff633f7d983d4b7ee74753d7e9d328c8bb0c",
+          "delivery_state": "confirmed",
+          "acknowledgment": "80dfcbf8-f172-49fb-92f3-e7e16668bede",
+          "error_code": "",
+          "status": "completed"
+        },
+        {
+          "capability": "local.files.read",
+          "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+          "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+          "request_hash": "cad5be85d469f721154bd30ca28b08805986c0475099ce14c7d729dde7235e03",
+          "run_id": "fe612491-b182-41b9-b738-cb805e9f13df",
+          "task_id": "eca47e95-7fb4-4d24-9e50-44d3fac5b34c",
+          "task_signature": "p6Iu4hQQ61f0oPyshHw7-5RXceCSfoViUkLZ9qATLWkGLfvaByiM6q2EhgkZPuy7teL-M2tok1O7OgSOAjfqDw==",
+          "tool_call_id": "t100-e51d9025ae2f",
+          "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+          "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+          "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+          "server_origin": "http://127.0.0.1:39089",
+          "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+          "receipt_id": "ad59b884-58d9-464d-9c53-5798a4dc97e1",
+          "receipt_hash": "262879a2404250e95f51cd7dbc1a916c9960de3959e2005c31b9e12bb2a08e45",
+          "delivery_state": "confirmed",
+          "acknowledgment": "4f89fe23-77a0-44d9-826a-c4b7d05b3bd8",
+          "error_code": "",
+          "status": "completed"
+        },
+        {
+          "capability": "local.files.read",
+          "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+          "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+          "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+          "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+          "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+          "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+          "tool_call_id": "t100-4a2bab32e837",
+          "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+          "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+          "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+          "server_origin": "http://127.0.0.1:39089",
+          "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+          "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+          "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+          "delivery_state": "cleaned",
+          "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+          "error_code": "",
+          "status": "unknown"
+        }
+      ],
+      "markerSHA256": "3dce537f1dc69be993eec4d74f279be641e7325d77595416265559e6acb36a44"
+    },
+    {
+      "id": "T101-05 faults",
+      "admissionBlockedNewRow": true,
+      "uncertain": {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adef4ad4a3bc789f35ad86d7a97241c3f2af16350ddd60e47041f15e174b8cd4",
+        "run_id": "5c460758-683c-45fd-86f8-cb8e0fe95eae",
+        "task_id": "3c43b4df-8c1f-4065-acbf-cf26c08d4027",
+        "task_signature": "xarme5DTuIkXyTrnHtA5mWaR15N41RQtY803icZah1hEro0lxbNEnrs9njCDATta2sn-dMXD6COqPSNXHBAQBQ==",
+        "tool_call_id": "t100-86d04b2ef704",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "d8b69191-f74a-4d7b-81aa-00112aee06a7",
+        "receipt_hash": null,
+        "delivery_state": "uncertain",
+        "acknowledgment": null,
+        "error_code": "RESULT_UNCERTAIN",
+        "status": "unknown"
+      },
+      "networkOnlyNewReads": 2,
+      "protectedPending": 2
+    }
+  ],
+  "operations": [
+    {
+      "id": "76b2ebf3-5ccc-4b72-8d1a-ac151c046d60",
+      "startedAt": "2026-10-21T12:52:56.694Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:52:57.344Z",
+          "elapsedMs": 266,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "a9dc510f-8004-4fc2-b645-0ec59481875d",
+      "turnId": "6c18e147-7357-4d95-adf3-2c1f382e0b2f",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:53:00.131Z",
+      "runId": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+      "runStatus": "success"
+    },
+    {
+      "id": "a65c2bb5-7a30-4630-9ece-7a0702258e95",
+      "startedAt": "2026-10-21T12:53:53.750Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:53:53.758Z",
+          "elapsedMs": 292,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "e0ecb4cf-26e1-477a-9717-367493355945",
+      "turnId": "dff153ac-0cf4-4921-a44d-d653f5a471b4",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:53:56.440Z",
+      "runId": "fe612491-b182-41b9-b738-cb805e9f13df",
+      "runStatus": "success"
+    },
+    {
+      "id": "cb53e23e-9fc6-4d76-b157-077c6b658e31",
+      "startedAt": "2026-10-21T12:53:56.442Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:53:56.456Z",
+          "elapsedMs": 333,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "a1cf07b7-ac80-437b-8ea0-001b7ca79b29",
+      "turnId": "e45a58ca-5829-4cdc-9f96-6cecaa921640",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:53:58.409Z",
+      "runId": "9f21b889-9059-48ba-83b6-c4dc259eeeb7",
+      "runStatus": "success"
+    },
+    {
+      "id": "4321832f-c9a2-4fe5-8fde-8652dc355a22",
+      "startedAt": "2026-10-21T12:53:58.412Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:53:58.425Z",
+          "elapsedMs": 325,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "ff305702-74e8-471c-aac0-920bb57bc5a4",
+      "turnId": "25d54d0f-bbd6-466f-9622-aa587175d594",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:00.085Z",
+      "runId": "40ecfeb9-fc5c-4ccb-842a-e22e12a2f016",
+      "runStatus": "success"
+    },
+    {
+      "id": "fcc0c5ca-532d-4281-b416-b5769daed71f",
+      "startedAt": "2026-10-21T12:54:00.088Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:00.095Z",
+          "elapsedMs": 329,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "f4003dbc-02ad-4ec5-8d52-e9fc96a96623",
+      "turnId": "dcc8b23b-6e9d-422c-b229-af0ce3359ac9",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:01.843Z",
+      "runId": "a8ec0431-0dc3-4c73-a08d-77291b75d7ec",
+      "runStatus": "success"
+    },
+    {
+      "id": "ea18c60d-f9bc-4c79-be4f-0e338c3163ea",
+      "startedAt": "2026-10-21T12:54:01.846Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:01.853Z",
+          "elapsedMs": 315,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "772b3521-da77-41f5-9629-dd15ffc64c36",
+      "turnId": "bbe416e9-9617-4c77-a4d2-89c214d7c447",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:03.404Z",
+      "runId": "b808dac6-0bb2-4745-81bf-446f31e3365a",
+      "runStatus": "success"
+    },
+    {
+      "id": "fe695730-ff08-4f5a-b536-cfccb1dfbe39",
+      "startedAt": "2026-10-21T12:54:03.406Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:03.413Z",
+          "elapsedMs": 331,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "48f7fc42-17d1-48f8-9963-ef538ffcc87e",
+      "turnId": "11b4653f-9a93-4faa-bebf-8c4677cda56d",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:05.110Z",
+      "runId": "445ca2b8-c44a-4c5d-a33d-5a11b7bbaf4c",
+      "runStatus": "success"
+    },
+    {
+      "id": "3de33402-d959-4528-942f-0a637a9e9658",
+      "startedAt": "2026-10-21T12:54:05.112Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:05.142Z",
+          "elapsedMs": 357,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "2f2b7d62-469f-46f7-8ff9-44afd4d9fcea",
+      "turnId": "a9572514-8e38-4114-8a1d-3ba9d58754c8",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:07.052Z",
+      "runId": "40c695bc-4326-420b-ba7d-dfb96216b57a",
+      "runStatus": "success"
+    },
+    {
+      "id": "2afa6fd7-4c83-4551-87e4-dd720b8ca5e6",
+      "startedAt": "2026-10-21T12:54:07.054Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:07.091Z",
+          "elapsedMs": 305,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "86528fb0-6b83-4ce5-913d-cb27bc4116c3",
+      "turnId": "1630c445-3de7-4185-8832-bd2063478f40",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:08.725Z",
+      "runId": "a688074d-ead1-4398-b564-675decee19a8",
+      "runStatus": "success"
+    },
+    {
+      "id": "22b14a2b-7b54-42a6-b088-02ae13ac5e0d",
+      "startedAt": "2026-10-21T12:54:08.728Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:08.817Z",
+          "elapsedMs": 328,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "3bfe7c02-e245-426f-8ae4-c81801b2fc79",
+      "turnId": "9ce33ed4-64f2-4a19-bb85-705cb558e8ee",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:10.367Z",
+      "runId": "9d2693b5-3a97-4b08-a8d7-d446efc67781",
+      "runStatus": "success"
+    },
+    {
+      "id": "018e60b4-567b-4ef4-9509-fd401fcae10d",
+      "startedAt": "2026-10-21T12:54:10.370Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:10.376Z",
+          "elapsedMs": 340,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "b6caa271-a271-4859-967d-dc13fc6771d4",
+      "turnId": "4b77760c-cbb3-4f90-ac31-d1ce9440c0da",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:12.145Z",
+      "runId": "e05ae19b-dca3-4dc6-aeb4-a805cd24a8a5",
+      "runStatus": "success"
+    },
+    {
+      "id": "f0b62c5d-f8dc-4ef5-9901-90ef26cb589e",
+      "startedAt": "2026-10-21T12:54:12.147Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:12.154Z",
+          "elapsedMs": 277,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "cc1ab1f4-297a-4c65-bd4f-fc1d9bf56a24",
+      "turnId": "557f1b38-dc49-440c-bb11-bbb7635a77fc",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:13.464Z",
+      "runId": "6f545dd9-e1eb-4222-acef-fe492e75a852",
+      "runStatus": "success"
+    },
+    {
+      "id": "95202ed8-dc71-4cd3-b964-809d918311c8",
+      "startedAt": "2026-10-21T12:54:13.466Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:13.474Z",
+          "elapsedMs": 358,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "00d6fd7f-06b9-4f7a-a981-a9322ece315f",
+      "turnId": "3354f9de-5bf7-4a8a-b506-3f6b721aca32",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:14.880Z",
+      "runId": "147df894-8f9a-4b61-8bb7-e003ea89ae74",
+      "runStatus": "success"
+    },
+    {
+      "id": "e0f6eb1c-c364-43e4-b713-ed710c140e7e",
+      "startedAt": "2026-10-21T12:54:14.883Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:14.889Z",
+          "elapsedMs": 264,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "f80c7ba8-c625-462c-8775-87052531113e",
+      "turnId": "30cab21f-a19f-4a03-b187-964d27f5da01",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:16.436Z",
+      "runId": "ce7189e2-7006-4d3a-a7c9-c214c79e148a",
+      "runStatus": "success"
+    },
+    {
+      "id": "694b8cdb-92ef-49ad-a75e-d08ae1a14f01",
+      "startedAt": "2026-10-21T12:54:16.439Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:16.455Z",
+          "elapsedMs": 344,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "cd74072e-66e9-4dae-a4ed-4811a34e4397",
+      "turnId": "a38640e3-d0bc-49ab-ab76-b97a9c27efe9",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:18.044Z",
+      "runId": "ada155de-70ef-4ec8-a2a0-621ddf80ec57",
+      "runStatus": "success"
+    },
+    {
+      "id": "1d005778-205d-42f2-8456-6cc15fadf9f1",
+      "startedAt": "2026-10-21T12:54:18.046Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:18.053Z",
+          "elapsedMs": 252,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "4bc5d3b0-0401-482a-ada6-73ddec5b0561",
+      "turnId": "555c44be-e687-4103-946b-c3e9fc34b45e",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:19.482Z",
+      "runId": "eeb9181c-0f99-4844-a757-2a02ec891112",
+      "runStatus": "success"
+    },
+    {
+      "id": "f0e7beb1-3538-4023-b479-4893c3f19691",
+      "startedAt": "2026-10-21T12:54:19.485Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:19.492Z",
+          "elapsedMs": 270,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "ca6cbcc0-8e74-4f0d-8d9b-8cfc7818c955",
+      "turnId": "f44d423e-bbf2-4d49-8c96-093a74e38ffc",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:20.813Z",
+      "runId": "9f527fb1-86b8-47d4-8522-4a9320f950e1",
+      "runStatus": "success"
+    },
+    {
+      "id": "c78f69cb-dbb2-4779-b428-dd1539b40b98",
+      "startedAt": "2026-10-21T12:54:20.816Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:20.822Z",
+          "elapsedMs": 344,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "e28eafbc-ca8d-4c73-a13d-154eb894be9e",
+      "turnId": "6d65b72a-b8b3-4c3b-bcf3-ad534c1372c5",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:22.237Z",
+      "runId": "5c34f7b0-34b0-428c-a805-d9dad90369b3",
+      "runStatus": "success"
+    },
+    {
+      "id": "68666ea1-3ad4-4749-a969-49adfb37dd0b",
+      "startedAt": "2026-10-21T12:54:22.239Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:22.275Z",
+          "elapsedMs": 359,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "f69e7c5e-6f12-424f-9867-128b20962185",
+      "turnId": "220327aa-5ba8-4a2c-8445-4c17b0a7ada3",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:23.890Z",
+      "runId": "a3936d79-e56a-4675-aef5-40ab6adbc235",
+      "runStatus": "success"
+    },
+    {
+      "id": "087b6708-4dae-4e8d-bb01-18612733d5bf",
+      "startedAt": "2026-10-21T12:54:23.892Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:23.899Z",
+          "elapsedMs": 245,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "e53b0249-0619-4a0d-88bf-97e89c7cedc0",
+      "turnId": "50a21450-a3c2-413c-960f-fc87e82d7bad",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:25.405Z",
+      "runId": "efd4d8b1-1c5f-4755-b16f-93e4f87e1d8c",
+      "runStatus": "success"
+    },
+    {
+      "id": "504338e2-d160-4f47-856f-c9b42e24c6c9",
+      "startedAt": "2026-10-21T12:54:25.407Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:25.415Z",
+          "elapsedMs": 335,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "af11f463-6bb7-4990-8894-3b9cd42ca192",
+      "turnId": "630e3520-6a33-49e2-8e7e-864efbcf6c62",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:26.841Z",
+      "runId": "b694facd-3a12-4ced-a5e7-822719044191",
+      "runStatus": "success"
+    },
+    {
+      "id": "e60b4174-de06-422c-90cf-7fda7c254168",
+      "startedAt": "2026-10-21T12:54:26.843Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:26.849Z",
+          "elapsedMs": 304,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "3c513bdf-8c43-4a78-a633-fd1ed2f43e37",
+      "turnId": "5c8754bf-3a2e-4629-a6d7-8a2b82f98ee2",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:28.714Z",
+      "runId": "87e436dc-e3fd-4e90-b4d5-c35b7a1d30b3",
+      "runStatus": "success"
+    },
+    {
+      "id": "018b36d3-7231-4fa3-a2ad-47c46e11ad83",
+      "startedAt": "2026-10-21T12:54:28.718Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:28.725Z",
+          "elapsedMs": 301,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "45617537-eae2-4992-bf31-49e71b26fa8d",
+      "turnId": "9d60a56c-d1ab-40a8-a36d-3d3b3c8ec42f",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:30.512Z",
+      "runId": "a076cde0-0455-4a0a-ac50-f333abe6e0ff",
+      "runStatus": "success"
+    },
+    {
+      "id": "915ddb15-3562-43ee-998c-2b39b81f38bf",
+      "startedAt": "2026-10-21T12:54:37.062Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:37.156Z",
+          "elapsedMs": 752,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "e7b0984f-01b1-47c3-a5c9-3bdd89879ee5",
+      "turnId": "fc9201ab-ccc4-4232-92c1-5730afe071b9",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:39.424Z",
+      "runId": "ac021578-6f77-4ba3-9280-397bde311151",
+      "runStatus": "success"
+    },
+    {
+      "id": "e87a1817-9d4c-46f6-887c-4294088d5315",
+      "startedAt": "2026-10-21T12:54:41.174Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:41.375Z",
+          "elapsedMs": 418,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "c28f5b17-36d8-435b-8190-8e29fc8cd7aa",
+      "turnId": "629b78c0-76aa-474e-a0e9-92045ebd27f8",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:43.687Z",
+      "runId": "5c460758-683c-45fd-86f8-cb8e0fe95eae",
+      "runStatus": "success"
+    },
+    {
+      "id": "050ed96b-ccc4-4c76-86fc-6b7e1d7d3cad",
+      "startedAt": "2026-10-21T12:54:47.138Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:47.320Z",
+          "elapsedMs": 439,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "a3c6f2cb-4900-47e5-af0f-3e06aaae6dca",
+      "turnId": "eb7ccdf7-a75c-43b0-a9a1-dd1458c570fa",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:49.158Z",
+      "runId": "95520840-9f1e-4457-ae49-ab438b629aac",
+      "runStatus": "success"
+    },
+    {
+      "id": "9eefc529-1049-4835-8dec-6ed668809706",
+      "startedAt": "2026-10-21T12:54:49.161Z",
+      "phase": "completed",
+      "refreshAttempts": [
+        {
+          "attempt": 1,
+          "startedAt": "2026-10-21T12:54:49.169Z",
+          "elapsedMs": 293,
+          "error": ""
+        }
+      ],
+      "createError": "",
+      "threadId": "ff063bc6-5bdf-4cfd-815d-33e2ba8ef992",
+      "turnId": "adb8feb3-3133-4c38-88ec-f9fa4e3720fd",
+      "sendError": "",
+      "finishedAt": "2026-10-21T12:54:51.057Z",
+      "runId": "93d6c08f-0757-4272-acf1-acd84012c0e2",
+      "runStatus": "success"
+    }
+  ],
+  "installed": true,
+  "visuals": [
+    {
+      "filename": "receipt-history-older.png",
+      "settledAt": "2026-10-21T12:54:34.418Z",
+      "elapsedMs": 469,
+      "consecutiveSamples": 3
+    },
+    {
+      "filename": "receipt-history.png",
+      "settledAt": "2026-10-21T12:54:53.143Z",
+      "elapsedMs": 442,
+      "consecutiveSamples": 3
+    }
+  ],
+  "activeStorageFault": "none",
+  "finishedAt": "2026-10-21T12:54:53.145Z",
+  "passed": true,
+  "finalLocalHistory": {
+    "rows": [
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "3cf21f227b1f8a8118582e7f933775ed67f3d83525877cf4a54b3f95a4686f22",
+        "run_id": "93d6c08f-0757-4272-acf1-acd84012c0e2",
+        "task_id": "ea687b8e-b502-4c2e-a33f-cc75a51977c1",
+        "task_signature": "MWvcr7-EJkBoXKYqctalAZNNG5FPWevG_MBp3IhhXjAmnwS1trXjhYYQQlXkWAvQBknYRSM2lkRMWbJQCW1JDA==",
+        "tool_call_id": "t100-b5fcd5a85159",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "88417cc2-5034-49f0-886e-6a40c828264a",
+        "receipt_hash": "d7e82a1c005eb9351a99b4baf6312e2de5bbe6759e28dc442097db6ca8939f1a",
+        "delivery_state": "pending",
+        "acknowledgment": null,
+        "error_code": "",
+        "status": "completed"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adbea3cf254ea303e41e082868f57ce2d547930e33aac4ed0afb668f1b242307",
+        "run_id": "95520840-9f1e-4457-ae49-ab438b629aac",
+        "task_id": "d9f646ae-604d-4dc7-9466-613c332a8815",
+        "task_signature": "02PqWFcOpXWIaLb5_wGEOILUW-d7fxJvZ4myjatj5lFsGq1mx_DT6xdOwXJQmCWn6clY99JG3V6uimUgLp2lCg==",
+        "tool_call_id": "t100-26625c8ec167",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "07101cfe-1a72-4542-8ca9-2d578c4dff00",
+        "receipt_hash": "4460aab42ddc09c99883087ab6632a520613c0960d2c8b4bd00e4548d2f88b43",
+        "delivery_state": "pending",
+        "acknowledgment": null,
+        "error_code": "",
+        "status": "completed"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adef4ad4a3bc789f35ad86d7a97241c3f2af16350ddd60e47041f15e174b8cd4",
+        "run_id": "5c460758-683c-45fd-86f8-cb8e0fe95eae",
+        "task_id": "3c43b4df-8c1f-4065-acbf-cf26c08d4027",
+        "task_signature": "xarme5DTuIkXyTrnHtA5mWaR15N41RQtY803icZah1hEro0lxbNEnrs9njCDATta2sn-dMXD6COqPSNXHBAQBQ==",
+        "tool_call_id": "t100-86d04b2ef704",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "d8b69191-f74a-4d7b-81aa-00112aee06a7",
+        "receipt_hash": null,
+        "delivery_state": "uncertain",
+        "acknowledgment": null,
+        "error_code": "RESULT_UNCERTAIN",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "d746eb69652ca2d2ce0c4506318770279d70639410da638cb037a5319ce5fbe3",
+        "run_id": "a076cde0-0455-4a0a-ac50-f333abe6e0ff",
+        "task_id": "01ef225b-d979-45f6-9335-b3cd9c284e28",
+        "task_signature": "M0fpl7-oR9NWwbd2KoZHutWCwgN8CHa8vRLMmiExxYZz-vpNGgbtqjsLU4x0GhB98S6bVOho7c29T-joKWOhDA==",
+        "tool_call_id": "t100-49e7a5f6588b",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "bd8982d2-cfcc-4e3a-80fa-4894f4ee941c",
+        "receipt_hash": "0cdd67a75e3c615d60bff9615f0e2a43bc67b91526938248507f9fdfcc3f4b01",
+        "delivery_state": "cleaned",
+        "acknowledgment": "5aaf68ee-f17c-4b9d-95e0-fd9397a67d2a",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "5152c75759e28433722625b88c2040d6b655190401a7733dad8f42b45be76525",
+        "run_id": "87e436dc-e3fd-4e90-b4d5-c35b7a1d30b3",
+        "task_id": "b3953615-2176-4954-9e18-d207044e0a6e",
+        "task_signature": "G1U_5A2lRXwGCxSLJnLMbTkBFCY39bqDz_gNkhThZSWBbL--ZqlaxhXghO7bSQVFwmgZ9ik8gmtl0m3-7qMEDg==",
+        "tool_call_id": "t100-39eba615580e",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "f8005dd8-b875-4e80-b830-f8058eaec58e",
+        "receipt_hash": "bb274bc06fc5c6e2fa5f0b808a466a21f2565db96165b8e6b1ca66eabce977a1",
+        "delivery_state": "cleaned",
+        "acknowledgment": "b6faa53e-4336-4461-9c5c-03683bc55387",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "b90a5753cf324fea9f627125da0ba502f80471cbe6ee4e145e693b7064c9183a",
+        "run_id": "b694facd-3a12-4ced-a5e7-822719044191",
+        "task_id": "334fa6b8-4054-4ced-baac-55c6367aa87e",
+        "task_signature": "zhNpuhL14iaa_SsATUw63GRgwvXoqM9dGrT2fvZwiZiPK5o6wve_c0CnZRTYxGGKMKmOOv0G22SAbLC1ouBCCQ==",
+        "tool_call_id": "t100-75cc5c734efb",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "72a44d1f-f1bd-4d93-9313-dfe99d4de333",
+        "receipt_hash": "13acdad3e15c449d02efeb5f5d681c88231cfd5057f4bcba08df8dac1c78f656",
+        "delivery_state": "cleaned",
+        "acknowledgment": "c37c7f9d-763d-49a7-b99c-f2d0d9a5f54f",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "a7a71b7c5adbcadd3ac09d197df5a265326b13a09e11b1b1da80d2446c66cfba",
+        "run_id": "efd4d8b1-1c5f-4755-b16f-93e4f87e1d8c",
+        "task_id": "75d4a0c4-48f7-4aa8-b65b-b4f1be94a66a",
+        "task_signature": "U8KlyORTyUT4slTFOka-vpWfaZwTHJ6rih_g9XNyQxH4PFDQSkbhddeILsJnL-iTn1YWoWrm4a9CXPYjvxVGBQ==",
+        "tool_call_id": "t100-211c26b95866",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "cc464bee-e5fa-44b1-bbb2-218b76233acb",
+        "receipt_hash": "62a4ae81e44290e5d4a75a3d9a02ff782a101005cbd32b6fa1a6c2121c8330b3",
+        "delivery_state": "cleaned",
+        "acknowledgment": "90ec1df5-c537-456c-a292-fcf3fc94af97",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "415fb79705a9203ee84e7e23d87ad11935d28d615030d41f5803d8a7da19b946",
+        "run_id": "a3936d79-e56a-4675-aef5-40ab6adbc235",
+        "task_id": "428efab1-fedb-4c08-ad29-ea74c75edc95",
+        "task_signature": "khQQJFs97w4O8f7jyAetvLdNa_f2W4cP9yswnpZZ6-uFmbqplSA6NDPb1X6zzkqqm9mWwPOaO-ObbjuAVr4LCw==",
+        "tool_call_id": "t100-620ba73b6b0f",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "d12a57c2-7be3-494b-acf5-3726541230fe",
+        "receipt_hash": "018ca73d6c5752e75d27b81da9963a67cde71c3a1d0e1e59dd3ba7e74e3024bd",
+        "delivery_state": "cleaned",
+        "acknowledgment": "0ba2817e-b839-42b1-abd9-d732eda0aa4e",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "f7739a0728fd6731d0ebcec1fa4352ab018c7660aa611b85a6f4f64d5cb4ff6f",
+        "run_id": "5c34f7b0-34b0-428c-a805-d9dad90369b3",
+        "task_id": "204924c4-537b-4957-8813-873af10e4ff4",
+        "task_signature": "iMu7QZEybXFRaiC_YZiGbageogRvC3vvEqY-ssav7Z-iYP1e3bNlNx1pPuT7JtyzxodBw50-XWPKEBaYnDXyDg==",
+        "tool_call_id": "t100-c9f5e7371c2c",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "39405160-9944-4c13-916f-46240b5c9bf9",
+        "receipt_hash": "ce46d78d77f229fcf4af44d8d41f62c7c63ca1412773b8c03e41b677dcea2c30",
+        "delivery_state": "cleaned",
+        "acknowledgment": "53839c5c-d8f0-42db-b0c8-8a216451810e",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "95919e3331c93659e8358c7ac61e3906ae7c46ed9ad669107051d896c2914a92",
+        "run_id": "9f527fb1-86b8-47d4-8522-4a9320f950e1",
+        "task_id": "2a37a7fc-4eca-4624-9ff1-56bef66b7045",
+        "task_signature": "dHy9haD65PNGxhF63glqSynF3vyAQeAewZj2A2eCSqTEl03Cv9Z3X1J4CmDbzeiISu6gZsR8IsPp-iUAP-H_Bg==",
+        "tool_call_id": "t100-78cc2a182372",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "c86cb885-3ac1-420d-bba0-eef7300cc413",
+        "receipt_hash": "b27e61bdbc34037e799f4217d836e729a30b0f7f60ca2acdb35df55558038f9d",
+        "delivery_state": "cleaned",
+        "acknowledgment": "b40132ff-601f-449a-9389-2315f91cec84",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "49c98b1b5861828eb8f95516d4a346a5a506b3f621cb810619b7040c0074dc85",
+        "run_id": "eeb9181c-0f99-4844-a757-2a02ec891112",
+        "task_id": "48ca5e17-343f-488d-ac12-09d5c21fd4c4",
+        "task_signature": "I7H9_kNZRZR_ikAr5TQfEFD_G9XFMRkSUMOgD3EMM9ZR5KU-s5gLcZvbTfSj6MZPbitzZrZpn9CZG8g-XFlNDw==",
+        "tool_call_id": "t100-f66c2e12142a",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "b819ff8c-2584-47bd-92b7-6981b5094e64",
+        "receipt_hash": "57644c74089e70abbd2ef5c173ee954af26dc4e948f7a9259fd90724afb2498c",
+        "delivery_state": "cleaned",
+        "acknowledgment": "202f786b-c4f7-4dbc-9423-4762448df6c3",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "9a4ab68005d8fcf2c30dacbdfce5b81e5bbcff68079053ed2ca62ea2b93dd04e",
+        "run_id": "ada155de-70ef-4ec8-a2a0-621ddf80ec57",
+        "task_id": "985ae1c9-03ce-461b-af70-dc3050f7db48",
+        "task_signature": "8OGzn03vSCu9gttKFLb9jO4jzAXBXwuK7D-pMqiuH0xvWFUkU2xI6Kl71SAyFshDT0_d6QmcHGUI9K0rhSGOAA==",
+        "tool_call_id": "t100-46e20c752e3c",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "a125ad67-f824-491f-b959-841841d45e5b",
+        "receipt_hash": "6774f739f75ea4d87e44a21458eb970585468834dc09f0f565520cf22137463f",
+        "delivery_state": "cleaned",
+        "acknowledgment": "4e092aca-2148-4c50-ba24-f4315d80bbb8",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "5faabd5510daaa8cbe22be2f3d2b5c377114f2874769b6c1858ea20b48324632",
+        "run_id": "ce7189e2-7006-4d3a-a7c9-c214c79e148a",
+        "task_id": "80469efb-0a73-4399-9a84-461aa3ff13c6",
+        "task_signature": "fltES7F2_hX6LBs-29TLXkuHy7i7mBe2KUcuEwBPnK7EGQk2Tex7jdoTsi8d5O6_THcGuU-_4EdapF2nASUmDQ==",
+        "tool_call_id": "t100-96bc24077a26",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "dc2de699-14f9-4310-a38f-0aac88b724f8",
+        "receipt_hash": "f53095e78b7c5f05e29bb3155202a7b95f67cba38419c04b18139019da7c05c4",
+        "delivery_state": "cleaned",
+        "acknowledgment": "a7a2f944-b361-4448-9373-7bc7659de391",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "8d0d19a8ad3e948c8607ea7962ce53a10272438716b27cc18a46fb44751bc5d0",
+        "run_id": "147df894-8f9a-4b61-8bb7-e003ea89ae74",
+        "task_id": "2a4a0230-459c-46f7-a68b-903db637dac8",
+        "task_signature": "wi8XmpnosspshCcsC8Sz8WJGqn0H9iiPhikX7wmEq8Ho5yxJ0NmRnRQdUdQJOhzgMgNUCAK_z-D0LFXO90LdBQ==",
+        "tool_call_id": "t100-f24c09e8749e",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "694a06bb-8a31-4133-a89e-391c4e2c853a",
+        "receipt_hash": "13139e914d55793496133f57899e86253d7368860e613cc4029ec8983ed03267",
+        "delivery_state": "cleaned",
+        "acknowledgment": "52bb1408-c745-4944-9425-2ed7ba8a33d5",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "927f9f677c4af320a3af96b17f94f3cdc4f0e5a5b61371429870e4d346b014fb",
+        "run_id": "6f545dd9-e1eb-4222-acef-fe492e75a852",
+        "task_id": "caddd754-7245-4ec7-973f-86e635067770",
+        "task_signature": "RU2ckalyz-nF1Tm9Cm3korQDZ202z_DKjMovGcuTqPOxLIDM2skK0GU9Uc0XM4M-xfa1XnSfPnW1hg4ZOxtjCQ==",
+        "tool_call_id": "t100-62828f99c9ed",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "f003a00f-c1d9-4b2f-9516-1b840c33c42d",
+        "receipt_hash": "a4f4b08c1ecf0cc2c6b5d44a02a6dc654b0903ae6eac6d3d00336f1b9c22ad63",
+        "delivery_state": "cleaned",
+        "acknowledgment": "6a128c66-3f33-4516-a3df-ea85aec66027",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "09b00b3da84ac078c5a3137f5c8eb50446b0fc19dcd3c4f40ef61b738068c619",
+        "run_id": "e05ae19b-dca3-4dc6-aeb4-a805cd24a8a5",
+        "task_id": "cb80b09d-2514-436d-b578-f43678647b4b",
+        "task_signature": "20qcW20ZRgczx8l_3L5C041nGtoWQn5Q8P5n-3qehxMKfryNU0Bng33d6jC_MXd1B_NczHwg3kcx4fSSs9RHAQ==",
+        "tool_call_id": "t100-26f81f9f0120",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "60b20fcf-6926-4b9e-bee3-dd8d521c0461",
+        "receipt_hash": "e285fdf341fb0f6cfada7b836e684d1e03410054736c498492a1918fb3387fec",
+        "delivery_state": "cleaned",
+        "acknowledgment": "8f6099d4-3764-4ece-9eb0-dea4285c1224",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "c7dc72300cb5dcfd70ab220bf5108f2a45cd7a0f0c82a9fa15aefb781989c4c4",
+        "run_id": "9d2693b5-3a97-4b08-a8d7-d446efc67781",
+        "task_id": "84a1bf7f-a338-4f34-853e-91142ab904f1",
+        "task_signature": "vc0onEbWo21yIarCCmRD4IFl3amGb2a9sg6sOrAuA30zHUlPKxZitNM2OdB8amTs--CvEfDzK_AiAvdz4ljGBg==",
+        "tool_call_id": "t100-726c765be20a",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "5c4d9076-b31d-4d0f-9df3-a72c900d04d3",
+        "receipt_hash": "c710427c00784d4c1ed3c4f557c847afb70a550beb4e2706ef1a70a47b6eedc7",
+        "delivery_state": "cleaned",
+        "acknowledgment": "cfdd2929-f2ff-486e-89db-b4521a90481e",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "bffae5bfff9f76d0eca3acaf14de509eff1ed50806638fe3fe38aac24654241d",
+        "run_id": "a688074d-ead1-4398-b564-675decee19a8",
+        "task_id": "7abebae2-171b-4fd0-9e02-a27bab3f20d0",
+        "task_signature": "x5FfOAl4NlyP6adwkdUCXGK7NphAljszPzpLhIxlZtS6mZh-DZU_mpAb2Xwa_MfApL7ziv5faDpxNOCZ_eePDQ==",
+        "tool_call_id": "t100-e842c9dec7e7",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "e199409b-e5d7-4fce-81ad-e4399785e978",
+        "receipt_hash": "db89901ededcd30c0422f6bed968e265a7b46a209fc39ea6bdc9b80793c0193a",
+        "delivery_state": "cleaned",
+        "acknowledgment": "6d488b5f-ddab-45ad-ba36-2e89219fa982",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "9aaaadece4cf2edaa7309fce200a05831bb1268f5c4d255f783a4f36fbffb5e1",
+        "run_id": "40c695bc-4326-420b-ba7d-dfb96216b57a",
+        "task_id": "9fab3ef8-5c6b-4db2-88dd-15ed6b857f54",
+        "task_signature": "argtkE9nFtA0GZ9DHxuYZZM3UhP2jH4JKk0MMrvlf2B6zMaqQ7y55v7dMjhnh_uikCKEkdI1Nv_UpCdXbKqtBw==",
+        "tool_call_id": "t100-545446b89948",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "d4dd0ff4-1c47-406a-aeaf-460462ca3db5",
+        "receipt_hash": "bdd4acb998cc446e76db6d57df7927bc6a67451deb54d50c9ffb2b3e1e705f63",
+        "delivery_state": "cleaned",
+        "acknowledgment": "2bf1b9e1-8e9f-4b0d-bd22-c55d2d66f7b7",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "f49d1702d7108baf4196c43d680537fafa717f4a210a4bc159ed32c78ec058bf",
+        "run_id": "445ca2b8-c44a-4c5d-a33d-5a11b7bbaf4c",
+        "task_id": "7bdd4fe2-0055-47bd-a0c7-37645319631e",
+        "task_signature": "u_p4CA98Gwj-ojnyH8ZBpmcj1pbybiqe43CVNGC1r8VbU0wKbTeCqClk1A6ZI75MjJ_KjO95ndFwBNTN0M3lCg==",
+        "tool_call_id": "t100-cd8ded8d3a4c",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "ab7d1607-e192-4c51-8149-200b9e00db1c",
+        "receipt_hash": "f0e96cab2312cbb8ec1bfa749dc7594e76d91dc7e3f52f73a7e27f704d8b7019",
+        "delivery_state": "cleaned",
+        "acknowledgment": "1d7ffc2c-2372-462c-8585-d30de99ba209",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "349313a91bfce404fb32c1417a03aa93678dcebc6ce80d71e51542a72d9bdee1",
+        "run_id": "b808dac6-0bb2-4745-81bf-446f31e3365a",
+        "task_id": "da4e92da-1749-4b7d-a898-6ef5c014e473",
+        "task_signature": "hheWC5_HKaQMS4X-8IYuSP88t6QSfB1yiKGfS3BC_HFtws8BsiS0clHMvTkODf06mga3JXgqRWLVJP9BWVRgDg==",
+        "tool_call_id": "t100-d700c2b53079",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "75d80af8-c646-4e8c-9b99-34a787fb315a",
+        "receipt_hash": "78675f829008e2445f64a20e25811e4ad290838e86303ea86e0bc6968e558daa",
+        "delivery_state": "cleaned",
+        "acknowledgment": "70446df5-359c-4f3f-944d-7b0a68e61f5f",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "5c32e95bec46c3d28909c367c0219d659c31660381eef04ddf6a090b81207e72",
+        "run_id": "a8ec0431-0dc3-4c73-a08d-77291b75d7ec",
+        "task_id": "e72aacda-a086-45eb-9732-31d108a81485",
+        "task_signature": "OnQt1fB_n2Ooa5qZJSxQyFq1FwO4d6vK9ge_oQOHYUoK77xsubYd-Y-hW7T4Kg-rESeUaOjfNOolYgR_IlDkCg==",
+        "tool_call_id": "t100-6c468f53ef55",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "7277276e-54cc-4cca-b53d-0fdb67234a97",
+        "receipt_hash": "4b2df6c06bd1dfe3672bca06beb1aad7f4fd2c0fd368df69ce7d96e11829dc2c",
+        "delivery_state": "cleaned",
+        "acknowledgment": "cda8b4cf-3f06-442b-8d1e-71c33d40aba1",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "0ccbbc3decc2dfc83cf3efa2dfc30478c26cb9618210aaf4791006933c2c7028",
+        "run_id": "40ecfeb9-fc5c-4ccb-842a-e22e12a2f016",
+        "task_id": "18498b6c-c93d-4b98-a6c9-3f73e6190014",
+        "task_signature": "VoW7fdam4_U67AVs1TGtuz5A2nVumlXk7WPAYND4uz4XZzfFGVvp6UlDNxbT_yIDFP2Ky0IwQAcgf1HU6EZNBQ==",
+        "tool_call_id": "t100-b0eb7766a7b7",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "1c498f2e-f0aa-42a0-a943-7fa5bcf9e5a0",
+        "receipt_hash": "0a5dbd8fe8e71f84792f327624fbd09f90fd9f18327339b957b6c44b90a7e2bd",
+        "delivery_state": "cleaned",
+        "acknowledgment": "c284e37a-95fb-4ba7-9b87-72844a70680a",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "58ec078f13184d304cc66f63ac0fc9339995acc3de6759e9fd4d00608dde8e81",
+        "run_id": "9f21b889-9059-48ba-83b6-c4dc259eeeb7",
+        "task_id": "e169dfa1-6022-4c31-b2d5-dc33ec649ceb",
+        "task_signature": "eaELSso1dQ51_oXHvQOq8ckTQfSLFqrJxL49C48_CR6JLOUhDqAxvNqUe0rIdd02XOU_ikEANVEyLLOiFiL_Cw==",
+        "tool_call_id": "t100-5d85fb5704dd",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "9f57ff8a-1384-423a-b22d-d1027255ea8f",
+        "receipt_hash": "6fac316d48740788187ed19d9afbff633f7d983d4b7ee74753d7e9d328c8bb0c",
+        "delivery_state": "cleaned",
+        "acknowledgment": "80dfcbf8-f172-49fb-92f3-e7e16668bede",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "cad5be85d469f721154bd30ca28b08805986c0475099ce14c7d729dde7235e03",
+        "run_id": "fe612491-b182-41b9-b738-cb805e9f13df",
+        "task_id": "eca47e95-7fb4-4d24-9e50-44d3fac5b34c",
+        "task_signature": "p6Iu4hQQ61f0oPyshHw7-5RXceCSfoViUkLZ9qATLWkGLfvaByiM6q2EhgkZPuy7teL-M2tok1O7OgSOAjfqDw==",
+        "tool_call_id": "t100-e51d9025ae2f",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "ad59b884-58d9-464d-9c53-5798a4dc97e1",
+        "receipt_hash": "262879a2404250e95f51cd7dbc1a916c9960de3959e2005c31b9e12bb2a08e45",
+        "delivery_state": "cleaned",
+        "acknowledgment": "4f89fe23-77a0-44d9-826a-c4b7d05b3bd8",
+        "error_code": "",
+        "status": "unknown"
+      },
+      {
+        "capability": "local.files.read",
+        "logical_target": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449/marker.txt",
+        "original_session_id": "0d073746-41b3-49e4-9be1-5308f31e43a4",
+        "request_hash": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13",
+        "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+        "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+        "task_signature": "127FpsLQXWoOog1yQQhueZYpjQ2klE4E1wO5AHiE37kejV60byA8PkiU8eUo_kWJjYrpnjPZ5tLgX6u9BMkGDQ==",
+        "tool_call_id": "t100-4a2bab32e837",
+        "broker_public_key": "3LeAAUu_EmyfJ1CWluflk1grWFAYI3Q4cXaimdk5vOg=",
+        "device_id": "6c7b9d65-99ee-4664-bca3-99b1d9a83f5b",
+        "device_public_key": "M2O7OGk8EJED73ms3YkTl9zyB9SWOTEqHYbgmP_t_uc=",
+        "server_origin": "http://127.0.0.1:39089",
+        "user_id": "1e9ad305-43b7-415d-9ac4-5977e1e7e1bb",
+        "receipt_id": "7a1d5714-c89f-4746-b465-a28b142857a0",
+        "receipt_hash": "14e47c267e7bcdf5f576aa08834f6c95af1fe05ab0cd1c1922e10a3b3f31878a",
+        "delivery_state": "cleaned",
+        "acknowledgment": "f1a9fdf1-fe0a-489d-a527-9092dc1962a0",
+        "error_code": "",
+        "status": "unknown"
+      }
+    ],
+    "total": 26,
+    "pending": 2,
+    "confirmed": 0,
+    "uncertain": 1,
+    "cleaned": 23,
+    "storageError": ""
+  },
+  "finalLocalAudit": [
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "ea687b8e-b502-4c2e-a33f-cc75a51977c1",
+      "run_id": "93d6c08f-0757-4272-acf1-acd84012c0e2",
+      "digest": "3cf21f227b1f8a8118582e7f933775ed67f3d83525877cf4a54b3f95a4686f22"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "ea687b8e-b502-4c2e-a33f-cc75a51977c1",
+      "run_id": "93d6c08f-0757-4272-acf1-acd84012c0e2",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "d9f646ae-604d-4dc7-9466-613c332a8815",
+      "run_id": "95520840-9f1e-4457-ae49-ab438b629aac",
+      "digest": "adbea3cf254ea303e41e082868f57ce2d547930e33aac4ed0afb668f1b242307"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "d9f646ae-604d-4dc7-9466-613c332a8815",
+      "run_id": "95520840-9f1e-4457-ae49-ab438b629aac",
+      "digest": null
+    },
+    {
+      "kind": "task",
+      "action": "uncertain",
+      "task_id": "3c43b4df-8c1f-4065-acbf-cf26c08d4027",
+      "run_id": null,
+      "digest": null
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "3c43b4df-8c1f-4065-acbf-cf26c08d4027",
+      "run_id": "5c460758-683c-45fd-86f8-cb8e0fe95eae",
+      "digest": null
+    },
+    {
+      "kind": "task",
+      "action": "rejected",
+      "task_id": "14d0fd5b-6e28-45d4-8744-7e6877b7afcf",
+      "run_id": null,
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "01ef225b-d979-45f6-9335-b3cd9c284e28",
+      "run_id": "a076cde0-0455-4a0a-ac50-f333abe6e0ff",
+      "digest": "d746eb69652ca2d2ce0c4506318770279d70639410da638cb037a5319ce5fbe3"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "01ef225b-d979-45f6-9335-b3cd9c284e28",
+      "run_id": "a076cde0-0455-4a0a-ac50-f333abe6e0ff",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "b3953615-2176-4954-9e18-d207044e0a6e",
+      "run_id": "87e436dc-e3fd-4e90-b4d5-c35b7a1d30b3",
+      "digest": "5152c75759e28433722625b88c2040d6b655190401a7733dad8f42b45be76525"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "b3953615-2176-4954-9e18-d207044e0a6e",
+      "run_id": "87e436dc-e3fd-4e90-b4d5-c35b7a1d30b3",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "334fa6b8-4054-4ced-baac-55c6367aa87e",
+      "run_id": "b694facd-3a12-4ced-a5e7-822719044191",
+      "digest": "b90a5753cf324fea9f627125da0ba502f80471cbe6ee4e145e693b7064c9183a"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "334fa6b8-4054-4ced-baac-55c6367aa87e",
+      "run_id": "b694facd-3a12-4ced-a5e7-822719044191",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "75d4a0c4-48f7-4aa8-b65b-b4f1be94a66a",
+      "run_id": "efd4d8b1-1c5f-4755-b16f-93e4f87e1d8c",
+      "digest": "a7a71b7c5adbcadd3ac09d197df5a265326b13a09e11b1b1da80d2446c66cfba"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "75d4a0c4-48f7-4aa8-b65b-b4f1be94a66a",
+      "run_id": "efd4d8b1-1c5f-4755-b16f-93e4f87e1d8c",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "428efab1-fedb-4c08-ad29-ea74c75edc95",
+      "run_id": "a3936d79-e56a-4675-aef5-40ab6adbc235",
+      "digest": "415fb79705a9203ee84e7e23d87ad11935d28d615030d41f5803d8a7da19b946"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "428efab1-fedb-4c08-ad29-ea74c75edc95",
+      "run_id": "a3936d79-e56a-4675-aef5-40ab6adbc235",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "204924c4-537b-4957-8813-873af10e4ff4",
+      "run_id": "5c34f7b0-34b0-428c-a805-d9dad90369b3",
+      "digest": "f7739a0728fd6731d0ebcec1fa4352ab018c7660aa611b85a6f4f64d5cb4ff6f"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "204924c4-537b-4957-8813-873af10e4ff4",
+      "run_id": "5c34f7b0-34b0-428c-a805-d9dad90369b3",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "2a37a7fc-4eca-4624-9ff1-56bef66b7045",
+      "run_id": "9f527fb1-86b8-47d4-8522-4a9320f950e1",
+      "digest": "95919e3331c93659e8358c7ac61e3906ae7c46ed9ad669107051d896c2914a92"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "2a37a7fc-4eca-4624-9ff1-56bef66b7045",
+      "run_id": "9f527fb1-86b8-47d4-8522-4a9320f950e1",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "48ca5e17-343f-488d-ac12-09d5c21fd4c4",
+      "run_id": "eeb9181c-0f99-4844-a757-2a02ec891112",
+      "digest": "49c98b1b5861828eb8f95516d4a346a5a506b3f621cb810619b7040c0074dc85"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "48ca5e17-343f-488d-ac12-09d5c21fd4c4",
+      "run_id": "eeb9181c-0f99-4844-a757-2a02ec891112",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "985ae1c9-03ce-461b-af70-dc3050f7db48",
+      "run_id": "ada155de-70ef-4ec8-a2a0-621ddf80ec57",
+      "digest": "9a4ab68005d8fcf2c30dacbdfce5b81e5bbcff68079053ed2ca62ea2b93dd04e"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "985ae1c9-03ce-461b-af70-dc3050f7db48",
+      "run_id": "ada155de-70ef-4ec8-a2a0-621ddf80ec57",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "80469efb-0a73-4399-9a84-461aa3ff13c6",
+      "run_id": "ce7189e2-7006-4d3a-a7c9-c214c79e148a",
+      "digest": "5faabd5510daaa8cbe22be2f3d2b5c377114f2874769b6c1858ea20b48324632"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "80469efb-0a73-4399-9a84-461aa3ff13c6",
+      "run_id": "ce7189e2-7006-4d3a-a7c9-c214c79e148a",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "2a4a0230-459c-46f7-a68b-903db637dac8",
+      "run_id": "147df894-8f9a-4b61-8bb7-e003ea89ae74",
+      "digest": "8d0d19a8ad3e948c8607ea7962ce53a10272438716b27cc18a46fb44751bc5d0"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "2a4a0230-459c-46f7-a68b-903db637dac8",
+      "run_id": "147df894-8f9a-4b61-8bb7-e003ea89ae74",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "caddd754-7245-4ec7-973f-86e635067770",
+      "run_id": "6f545dd9-e1eb-4222-acef-fe492e75a852",
+      "digest": "927f9f677c4af320a3af96b17f94f3cdc4f0e5a5b61371429870e4d346b014fb"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "caddd754-7245-4ec7-973f-86e635067770",
+      "run_id": "6f545dd9-e1eb-4222-acef-fe492e75a852",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "cb80b09d-2514-436d-b578-f43678647b4b",
+      "run_id": "e05ae19b-dca3-4dc6-aeb4-a805cd24a8a5",
+      "digest": "09b00b3da84ac078c5a3137f5c8eb50446b0fc19dcd3c4f40ef61b738068c619"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "cb80b09d-2514-436d-b578-f43678647b4b",
+      "run_id": "e05ae19b-dca3-4dc6-aeb4-a805cd24a8a5",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "84a1bf7f-a338-4f34-853e-91142ab904f1",
+      "run_id": "9d2693b5-3a97-4b08-a8d7-d446efc67781",
+      "digest": "c7dc72300cb5dcfd70ab220bf5108f2a45cd7a0f0c82a9fa15aefb781989c4c4"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "84a1bf7f-a338-4f34-853e-91142ab904f1",
+      "run_id": "9d2693b5-3a97-4b08-a8d7-d446efc67781",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "7abebae2-171b-4fd0-9e02-a27bab3f20d0",
+      "run_id": "a688074d-ead1-4398-b564-675decee19a8",
+      "digest": "bffae5bfff9f76d0eca3acaf14de509eff1ed50806638fe3fe38aac24654241d"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "7abebae2-171b-4fd0-9e02-a27bab3f20d0",
+      "run_id": "a688074d-ead1-4398-b564-675decee19a8",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "9fab3ef8-5c6b-4db2-88dd-15ed6b857f54",
+      "run_id": "40c695bc-4326-420b-ba7d-dfb96216b57a",
+      "digest": "9aaaadece4cf2edaa7309fce200a05831bb1268f5c4d255f783a4f36fbffb5e1"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "9fab3ef8-5c6b-4db2-88dd-15ed6b857f54",
+      "run_id": "40c695bc-4326-420b-ba7d-dfb96216b57a",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "7bdd4fe2-0055-47bd-a0c7-37645319631e",
+      "run_id": "445ca2b8-c44a-4c5d-a33d-5a11b7bbaf4c",
+      "digest": "f49d1702d7108baf4196c43d680537fafa717f4a210a4bc159ed32c78ec058bf"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "7bdd4fe2-0055-47bd-a0c7-37645319631e",
+      "run_id": "445ca2b8-c44a-4c5d-a33d-5a11b7bbaf4c",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "da4e92da-1749-4b7d-a898-6ef5c014e473",
+      "run_id": "b808dac6-0bb2-4745-81bf-446f31e3365a",
+      "digest": "349313a91bfce404fb32c1417a03aa93678dcebc6ce80d71e51542a72d9bdee1"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "da4e92da-1749-4b7d-a898-6ef5c014e473",
+      "run_id": "b808dac6-0bb2-4745-81bf-446f31e3365a",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "e72aacda-a086-45eb-9732-31d108a81485",
+      "run_id": "a8ec0431-0dc3-4c73-a08d-77291b75d7ec",
+      "digest": "5c32e95bec46c3d28909c367c0219d659c31660381eef04ddf6a090b81207e72"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "e72aacda-a086-45eb-9732-31d108a81485",
+      "run_id": "a8ec0431-0dc3-4c73-a08d-77291b75d7ec",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "18498b6c-c93d-4b98-a6c9-3f73e6190014",
+      "run_id": "40ecfeb9-fc5c-4ccb-842a-e22e12a2f016",
+      "digest": "0ccbbc3decc2dfc83cf3efa2dfc30478c26cb9618210aaf4791006933c2c7028"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "18498b6c-c93d-4b98-a6c9-3f73e6190014",
+      "run_id": "40ecfeb9-fc5c-4ccb-842a-e22e12a2f016",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "e169dfa1-6022-4c31-b2d5-dc33ec649ceb",
+      "run_id": "9f21b889-9059-48ba-83b6-c4dc259eeeb7",
+      "digest": "58ec078f13184d304cc66f63ac0fc9339995acc3de6759e9fd4d00608dde8e81"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "e169dfa1-6022-4c31-b2d5-dc33ec649ceb",
+      "run_id": "9f21b889-9059-48ba-83b6-c4dc259eeeb7",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "eca47e95-7fb4-4d24-9e50-44d3fac5b34c",
+      "run_id": "fe612491-b182-41b9-b738-cb805e9f13df",
+      "digest": "cad5be85d469f721154bd30ca28b08805986c0475099ce14c7d729dde7235e03"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "eca47e95-7fb4-4d24-9e50-44d3fac5b34c",
+      "run_id": "fe612491-b182-41b9-b738-cb805e9f13df",
+      "digest": null
+    },
+    {
+      "kind": "execution",
+      "action": "completed",
+      "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+      "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+      "digest": "adae6896962facf85b99a3c42c5f47764ea957bc6dfc3b81d1396b14d1db5d13"
+    },
+    {
+      "kind": "task",
+      "action": "accepted",
+      "task_id": "d1fcd276-92eb-4beb-8ded-83d89302cb42",
+      "run_id": "f46f3cd8-495b-49f1-83a5-4a61c6a29d1b",
+      "digest": null
+    }
+  ],
+  "finalRuntimeStatus": {
+    "version": "0.1.0",
+    "server": "connected",
+    "runtime": {
+      "process": "running",
+      "connection": "connected",
+      "tasks": [
+        {
+          "taskId": "ea687b8e-b502-4c2e-a33f-cc75a51977c1",
+          "runId": "93d6c08f-0757-4272-acf1-acd84012c0e2",
+          "capability": "local.files.read",
+          "state": "completed"
+        },
+        {
+          "taskId": "d9f646ae-604d-4dc7-9466-613c332a8815",
+          "runId": "95520840-9f1e-4457-ae49-ab438b629aac",
+          "capability": "local.files.read",
+          "state": "completed"
+        },
+        {
+          "taskId": "3c43b4df-8c1f-4065-acbf-cf26c08d4027",
+          "runId": "5c460758-683c-45fd-86f8-cb8e0fe95eae",
+          "capability": "local.files.read",
+          "state": "unknown"
+        },
+        {
+          "taskId": "01ef225b-d979-45f6-9335-b3cd9c284e28",
+          "runId": "a076cde0-0455-4a0a-ac50-f333abe6e0ff",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "b3953615-2176-4954-9e18-d207044e0a6e",
+          "runId": "87e436dc-e3fd-4e90-b4d5-c35b7a1d30b3",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "334fa6b8-4054-4ced-baac-55c6367aa87e",
+          "runId": "b694facd-3a12-4ced-a5e7-822719044191",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "75d4a0c4-48f7-4aa8-b65b-b4f1be94a66a",
+          "runId": "efd4d8b1-1c5f-4755-b16f-93e4f87e1d8c",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "428efab1-fedb-4c08-ad29-ea74c75edc95",
+          "runId": "a3936d79-e56a-4675-aef5-40ab6adbc235",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "204924c4-537b-4957-8813-873af10e4ff4",
+          "runId": "5c34f7b0-34b0-428c-a805-d9dad90369b3",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "2a37a7fc-4eca-4624-9ff1-56bef66b7045",
+          "runId": "9f527fb1-86b8-47d4-8522-4a9320f950e1",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "48ca5e17-343f-488d-ac12-09d5c21fd4c4",
+          "runId": "eeb9181c-0f99-4844-a757-2a02ec891112",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "985ae1c9-03ce-461b-af70-dc3050f7db48",
+          "runId": "ada155de-70ef-4ec8-a2a0-621ddf80ec57",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "80469efb-0a73-4399-9a84-461aa3ff13c6",
+          "runId": "ce7189e2-7006-4d3a-a7c9-c214c79e148a",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "2a4a0230-459c-46f7-a68b-903db637dac8",
+          "runId": "147df894-8f9a-4b61-8bb7-e003ea89ae74",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "caddd754-7245-4ec7-973f-86e635067770",
+          "runId": "6f545dd9-e1eb-4222-acef-fe492e75a852",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "cb80b09d-2514-436d-b578-f43678647b4b",
+          "runId": "e05ae19b-dca3-4dc6-aeb4-a805cd24a8a5",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "84a1bf7f-a338-4f34-853e-91142ab904f1",
+          "runId": "9d2693b5-3a97-4b08-a8d7-d446efc67781",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "7abebae2-171b-4fd0-9e02-a27bab3f20d0",
+          "runId": "a688074d-ead1-4398-b564-675decee19a8",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "9fab3ef8-5c6b-4db2-88dd-15ed6b857f54",
+          "runId": "40c695bc-4326-420b-ba7d-dfb96216b57a",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        },
+        {
+          "taskId": "7bdd4fe2-0055-47bd-a0c7-37645319631e",
+          "runId": "445ca2b8-c44a-4c5d-a33d-5a11b7bbaf4c",
+          "capability": "local.files.read",
+          "state": "cleaned"
+        }
+      ],
+      "pid": 152804,
+      "login": {
+        "state": "authenticated",
+        "account": "t100-a@test.com",
+        "device": "T100 isolated device A",
+        "error": ""
+      },
+      "workspace": {
+        "state": "ready",
+        "logicalRoot": "/workspace/5fce2eea-d9e3-4e71-a28f-df9ac6d9e449"
+      },
+      "receiptStorageError": "",
+      "receiptScope": "d58df0ed08a4e196f989f4b68c171905df64c7fb9f2d0b2f0fbdf987fa9e9075"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "error": "Target 'safe_logical_target' not found",
+  "target": {
+    "name": "safe_logical_target"
+  },
+  "direction": "upstream",
+  "impactedCount": 0,
+  "risk": "UNKNOWN"
+}

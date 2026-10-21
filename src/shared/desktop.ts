@@ -5,6 +5,17 @@ export interface DesktopStatus {
 }
 
 export interface RuntimeTask { taskId: string; runId: string; capability: string; state: string }
+export interface ReceiptHistory {
+  rows: { task_id: string; run_id: string; tool_call_id: string; capability: string; status: string;
+    user_id: string; device_id: string; delivery_state: string; receipt_id: string; receipt_hash: string | null;
+    logical_target: string; error_code: string }[]
+  total: number
+  pending: number
+  confirmed: number
+  uncertain: number
+  cleaned: number
+  storageError: string
+}
 export interface LoginStatus {
   state: 'unauthenticated' | 'awaiting-confirmation' | 'authenticated' | 'expired' | 'error'
   account: string
@@ -19,6 +30,8 @@ export interface RuntimeStatus {
   tasks: RuntimeTask[]
   workspace?: { state: 'ready' | 'unavailable'; logicalRoot: string }
   login?: LoginStatus
+  receiptStorageError?: string
+  receiptScope?: string
 }
 
 export interface DesktopBridge {
@@ -29,6 +42,7 @@ export interface DesktopBridge {
   stopRuntime(): Promise<void>
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
+  receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
 }
 
 export type ChatCommand =

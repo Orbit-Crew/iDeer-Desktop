@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/tmp/ideer-issue101-server-20261021/backend/.venv-candidate/bin/python",
+    "-m",
+    "pytest",
+    "tests/unit/scripts/test_disclosure_reading_collector.py::test_runner_no_submit_is_terminal_and_pre_read_hang_has_finite_deadline",
+    "-q",
+    "-o",
+    "addopts="
+  ],
+  "cwd": "/tmp/ideer-issue101-server-20261021/backend",
+  "started": "2026-10-21T12:50:44.879011+00:00",
+  "finished": "2026-10-21T12:50:59.310571+00:00",
+  "seconds": 12.698,
+  "exitCode": 0
+}

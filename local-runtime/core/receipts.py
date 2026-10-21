@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +31,7 @@ class LocalExecutionReceipt:
     exit_code: int | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    error_code: str | None = None
 
     @property
     def request_hash(self) -> str:
@@ -55,6 +57,7 @@ class LocalExecutionReceipt:
             "exit_code": self.exit_code,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+            "error_code": self.error_code,
         }
 
     def cleanup_local_logs(self) -> None:
@@ -70,3 +73,14 @@ def content_hash(value: Any) -> str:
             value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         ).encode("utf-8")
     ).hexdigest()
+
+
+def safe_logical_target(payload: dict[str, Any]) -> str:
+    """Keep logical paths only; arbitrary physical or malformed input is hashed."""
+    arguments = payload.get('arguments', payload.get('args', payload))
+    value = arguments.get('path') if isinstance(arguments, dict) else None
+    if (isinstance(value, str) and re.match(r'^/workspace/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:/|$)', value) and len(value) <= 1024
+            and not any(character in value for character in ('\\', ':', '\x00'))
+            and '..' not in value.split('/')):
+        return value
+    return 'sha256:' + content_hash(value)

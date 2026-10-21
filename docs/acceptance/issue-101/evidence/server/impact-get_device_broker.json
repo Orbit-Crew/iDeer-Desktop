@@ -1,0 +1,841 @@
+
+  GitNexus Impact (1.6.12)
+{
+  "target": {
+    "id": "Function:backend/app/device_control/broker.py:get_device_broker",
+    "name": "get_device_broker",
+    "type": "Function",
+    "filePath": "backend/app/device_control/broker.py"
+  },
+  "direction": "upstream",
+  "impactedCount": 16,
+  "risk": "CRITICAL",
+  "riskSharedAxes": "MEDIUM",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 14,
+    "processes_affected": 12,
+    "modules_affected": 4
+  },
+  "byDepthCounts": {
+    "1": 14,
+    "2": 1,
+    "3": 1
+  },
+  "affected_processes": [
+    {
+      "name": "stateless_stream",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/runs.py",
+      "affected_process_count": 11,
+      "total_hits": 19,
+      "earliest_broken_step": 2
+    },
+    {
+      "name": "stateless_wait",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/runs.py",
+      "affected_process_count": 11,
+      "total_hits": 19,
+      "earliest_broken_step": 2
+    },
+    {
+      "name": "wait_run",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/thread_runs.py",
+      "affected_process_count": 10,
+      "total_hits": 18,
+      "earliest_broken_step": 2
+    },
+    {
+      "name": "device_websocket",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 6,
+      "total_hits": 6,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "cancel_task",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 5,
+      "total_hits": 5,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "decide_task_consent",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 5,
+      "total_hits": 5,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "desktop_login_complete",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 5,
+      "total_hits": 5,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "get_task",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 3,
+      "total_hits": 3,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "send_echo_task",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 3,
+      "total_hits": 3,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "send_local_task",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 3,
+      "total_hits": 3,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "issue_artifact_grant",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 1,
+      "total_hits": 1,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "revoke_device",
+      "type": "Function",
+      "filePath": "backend/app/gateway/routers/devices.py",
+      "affected_process_count": 1,
+      "total_hits": 1,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Device_control",
+      "hits": 7,
+      "impact": "direct"
+    },
+    {
+      "name": "Gateway",
+      "hits": 4,
+      "impact": "direct"
+    },
+    {
+      "name": "Routers",
+      "hits": 4,
+      "impact": "direct"
+    },
+    {
+      "name": "Blocking_io",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/canonical_agent_run_preparation.py:prepare_canonical_agent_run.send_local@271:12",
+        "name": "send_local",
+        "filePath": "backend/app/gateway/canonical_agent_run_preparation.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:cancel_task",
+        "name": "cancel_task",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_290_cancel_task",
+            "label": "Cancel_task → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_188_cancel_task",
+            "label": "Cancel_task → _task",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_189_cancel_task",
+            "label": "Cancel_task → _expire_if_needed",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_289_cancel_task",
+            "label": "Cancel_task → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_555_cancel_task",
+            "label": "Cancel_task → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:complete_registration",
+        "name": "complete_registration",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:decide_task_consent",
+        "name": "decide_task_consent",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_377_decide_task_consent",
+            "label": "Decide_task_consent → _task",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_378_decide_task_consent",
+            "label": "Decide_task_consent → _expire_if_needed",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_413_decide_task_consent",
+            "label": "Decide_task_consent → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_596_decide_task_consent",
+            "label": "Decide_task_consent → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_412_decide_task_consent",
+            "label": "Decide_task_consent → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:desktop_login_complete",
+        "name": "desktop_login_complete",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_60_desktop_login_comple",
+            "label": "Desktop_login_complete → Hash_secret",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_119_desktop_login_comple",
+            "label": "Desktop_login_complete → Validate_device_transition",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_120_desktop_login_comple",
+            "label": "Desktop_login_complete → _get_device",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_190_desktop_login_comple",
+            "label": "Desktop_login_complete → _check_existing_owner",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_118_desktop_login_comple",
+            "label": "Desktop_login_complete → _as_utc",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:device_websocket",
+        "name": "device_websocket",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_348_device_websocket",
+            "label": "Device_websocket → Validate_device_transition",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_498_device_websocket",
+            "label": "Device_websocket → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_191_device_websocket",
+            "label": "Device_websocket → Send_text",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_319_device_websocket",
+            "label": "Device_websocket → Hash_secret",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_349_device_websocket",
+            "label": "Device_websocket → _get_device",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_499_device_websocket",
+            "label": "Device_websocket → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:disconnect",
+        "name": "disconnect",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:get_task",
+        "name": "get_task",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_671_get_task",
+            "label": "Get_task → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_475_get_task",
+            "label": "Get_task → _task",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_476_get_task",
+            "label": "Get_task → _expire_if_needed",
+            "processType": "intra_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:issue_artifact_grant",
+        "name": "issue_artifact_grant",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_704_issue_artifact_grant",
+            "label": "Issue_artifact_grant → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:register_device",
+        "name": "register_device",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:revoke_device",
+        "name": "revoke_device",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_728_revoke_device",
+            "label": "Revoke_device → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:send_echo_task",
+        "name": "send_echo_task",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_26_send_echo_task",
+            "label": "Send_echo_task → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_749_send_echo_task",
+            "label": "Send_echo_task → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_27_send_echo_task",
+            "label": "Send_echo_task → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/routers/devices.py:send_local_task",
+        "name": "send_local_task",
+        "filePath": "backend/app/gateway/routers/devices.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_546_send_local_task",
+            "label": "Send_local_task → Canonical_json",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_547_send_local_task",
+            "label": "Send_local_task → Signing_dict",
+            "processType": "cross_community",
+            "step": 1
+          },
+          {
+            "id": "proc_765_send_local_task",
+            "label": "Send_local_task → _get_internal_token",
+            "processType": "cross_community",
+            "step": 1
+          }
+        ]
+      },
+      {
+        "depth": 1,
+        "id": "Function:backend/app/gateway/run_preparation.py:_bind_local_runtime_context",
+        "name": "_bind_local_runtime_context",
+        "filePath": "backend/app/gateway/run_preparation.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_67_stateless_stream",
+            "label": "Stateless_stream → Get_device_broker",
+            "processType": "cross_community",
+            "step": 4
+          },
+          {
+            "id": "proc_324_stateless_wait",
+            "label": "Stateless_wait → Get_device_broker",
+            "processType": "cross_community",
+            "step": 4
+          },
+          {
+            "id": "proc_68_stateless_stream",
+            "label": "Stateless_stream → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 4
+          },
+          {
+            "id": "proc_325_stateless_wait",
+            "label": "Stateless_wait → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 4
+          },
+          {
+            "id": "proc_438_wait_run",
+            "label": "Wait_run → Get_device_broker",
+            "processType": "cross_community",
+            "step": 4
+          },
+          {
+            "id": "proc_439_wait_run",
+            "label": "Wait_run → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 4
+          }
+        ]
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "Function:backend/app/gateway/run_preparation.py:prepare_run",
+        "name": "prepare_run",
+        "filePath": "backend/app/gateway/run_preparation.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_39_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_68_stateless_stream",
+            "label": "Stateless_stream → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_69_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_301_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_325_stateless_wait",
+            "label": "Stateless_wait → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_360_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_422_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_438_wait_run",
+            "label": "Wait_run → Get_device_broker",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_439_wait_run",
+            "label": "Wait_run → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_464_wait_run",
+            "label": "Wait_run → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_465_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_67_stateless_stream",
+            "label": "Stateless_stream → Get_device_broker",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_133_stateless_stream",
+            "label": "Stateless_stream → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_134_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_324_stateless_wait",
+            "label": "Stateless_wait → Get_device_broker",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_326_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_359_stateless_wait",
+            "label": "Stateless_wait → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 3
+          },
+          {
+            "id": "proc_440_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 3
+          }
+        ]
+      }
+    ],
+    "3": [
+      {
+        "depth": 3,
+        "id": "Function:backend/app/gateway/services.py:start_run",
+        "name": "start_run",
+        "filePath": "backend/app/gateway/services.py",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": [
+          {
+            "id": "proc_67_stateless_stream",
+            "label": "Stateless_stream → Get_device_broker",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_131_stateless_stream",
+            "label": "Stateless_stream → Get_config",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_132_stateless_stream",
+            "label": "Stateless_stream → Get_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_133_stateless_stream",
+            "label": "Stateless_stream → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_134_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_213_stateless_stream",
+            "label": "Stateless_stream → Get_trusted_internal_owner_user_id",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_324_stateless_wait",
+            "label": "Stateless_wait → Get_device_broker",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_326_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_358_stateless_wait",
+            "label": "Stateless_wait → Get_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_359_stateless_wait",
+            "label": "Stateless_wait → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_386_stateless_wait",
+            "label": "Stateless_wait → Require_cancel_permission_if",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_387_stateless_wait",
+            "label": "Stateless_wait → Get_trusted_internal_owner_user_id",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_440_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_462_wait_run",
+            "label": "Wait_run → Get_config",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_463_wait_run",
+            "label": "Wait_run → Get_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_481_wait_run",
+            "label": "Wait_run → Require_cancel_permission_if",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_519_wait_run",
+            "label": "Wait_run → Get_thread_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_39_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_68_stateless_stream",
+            "label": "Stateless_stream → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_69_stateless_stream",
+            "label": "Stateless_stream → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_212_stateless_stream",
+            "label": "Stateless_stream → Require_cancel_permission_if",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_301_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_325_stateless_wait",
+            "label": "Stateless_wait → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_331_stateless_stream",
+            "label": "Stateless_stream → Get_thread_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_357_stateless_wait",
+            "label": "Stateless_wait → Get_config",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_360_stateless_wait",
+            "label": "Stateless_wait → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_422_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_438_wait_run",
+            "label": "Wait_run → Get_device_broker",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_439_wait_run",
+            "label": "Wait_run → Platform_read_capabilities",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_443_stateless_wait",
+            "label": "Stateless_wait → Get_thread_store",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_464_wait_run",
+            "label": "Wait_run → Validate_evidence_selection",
+            "processType": "cross_community",
+            "step": 2
+          },
+          {
+            "id": "proc_465_wait_run",
+            "label": "Wait_run → As_mapping",
+            "processType": "cross_community",
+            "step": 2
+          }
+        ]
+      }
+    ]
+  }
+}
