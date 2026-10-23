@@ -34,6 +34,8 @@ from server_protocol import MessageType as ServerMessageType, sign_envelope as s
     ('completion-followup', 'RESULT_UNCERTAIN'), ('pending-storage', 'RECEIPT_STORAGE_UNAVAILABLE'),
     ('restart-recovery', 'completed'),
     ('readback-cancel', 'result_not_verified'),
+    ('duplicate-after', 'TASK_REPLAYED'),
+    ('local-stop', 'CANCELLED'),
 ])
 def test_signed_write_requires_exact_local_approval_and_durable_admission(tmp_path, monkeypatch, scenario, expected):
     async def run():
@@ -92,7 +94,7 @@ def test_signed_write_requires_exact_local_approval_and_durable_admission(tmp_pa
                 await asyncio.Event().wait()
             if scenario == 'expiry':
                 await asyncio.sleep(0.2)
-            if scenario == 'cancel-before':
+            if scenario in {'cancel-before', 'local-stop'}:
                 await asyncio.Event().wait()
             if scenario == 'directory-changed':
                 selection.select(str(work), confirmed=True)
@@ -125,8 +127,9 @@ def test_signed_write_requires_exact_local_approval_and_durable_admission(tmp_pa
                 # A metadata-only ACK must not clear the restart safety latch.
                 await socket.send(frame(MessageType.RECEIPT_ACK, {'receipt_id': 'unknown', 'receipt_hash': 'unknown', 'acknowledgment': 'fixture'}))
             path = '/outside/target.txt' if scenario == 'outside' else root + ('/.env' if scenario == 'protected' else '/target.txt')
-            await socket.send(frame(MessageType.TASK, {'operation': 'local.files.write', 'run_id': 'run-102',
-                'thread_id': 'thread-102', 'tool_call_id': 'call-102', 'arguments': {'path': path, 'content': 'AFTER\n'}}, 'task-102'))
+            original_task = frame(MessageType.TASK, {'operation': 'local.files.write', 'run_id': 'run-102',
+                'thread_id': 'thread-102', 'tool_call_id': 'call-102', 'arguments': {'path': path, 'content': 'AFTER\n'}}, 'task-102')
+            await socket.send(original_task)
             async def interrupt_after_effect():
                 await result_delivery_started.wait()
                 if scenario in {'cancel-after', 'readback-cancel'}:
@@ -145,11 +148,21 @@ def test_signed_write_requires_exact_local_approval_and_durable_admission(tmp_pa
                     continue
                 if value['type'] == 'consent_required' and scenario == 'cancel-before':
                     await socket.send(frame(MessageType.TASK_CANCEL, {}, 'task-102'))
+                if value['type'] == 'consent_required' and scenario == 'local-stop':
+                    await client.stop_run('run-102')
                 if value['type'] == 'consent_required' and scenario == 'remote':
                     await socket.send(frame(MessageType.CONSENT_DECISION, {'approved': True,
                         'request_hash': value['payload']['request_hash']}, 'task-102'))
                 if value['type'] in {'task_result', 'error'}:
                     outcomes.append(value)
+                    if scenario == 'duplicate-after' and len(outcomes) == 1:
+                        await socket.send(original_task)
+                        continue
+                    if scenario == 'local-stop' and len(outcomes) == 1:
+                        await socket.send(frame(MessageType.TASK, {'operation': 'local.files.write', 'run_id': 'run-102',
+                            'thread_id': 'thread-102', 'tool_call_id': 'next-call',
+                            'arguments': {'path': path, 'content': 'SECOND'}}, 'next-task'))
+                        continue
                     if scenario == 'restart-recovery' and len(outcomes) == 1:
                         assert value['payload']['error_code'] == 'RECEIPT_STORAGE_UNAVAILABLE'
                         await socket.send(frame(MessageType.TASK, {'operation': 'local.files.read', 'run_id': 'run-102',
@@ -213,6 +226,22 @@ def test_signed_write_requires_exact_local_approval_and_durable_admission(tmp_pa
             assert target.read_bytes() == b'AFTER\n'
             assert len(prompts) == 1
             assert ledger.error == ''
+            return
+        if scenario == 'duplicate-after':
+            assert outcomes[0]['payload']['receipt']['status'] == 'completed'
+            assert outcomes[1]['payload']['error_code'] == 'TASK_REPLAYED'
+            assert 'receipt' not in outcomes[1]['payload']
+            assert target.read_bytes() == b'AFTER\n'
+            assert len(prompts) == 1
+            saved, = ledger.pending(client.receipt_binding())
+            assert saved['receipt']['status'] == 'completed'
+            return
+        if scenario == 'local-stop':
+            assert [row['payload']['error_code'] for row in outcomes] == ['CANCELLED', 'CANCELLED']
+            assert target.read_bytes() == b'BEFORE'
+            assert len(prompts) == 1
+            assert TaskGuard(config.with_name('tasks.db')).run_stopped('device-102', 'run-102')
+            assert not TaskGuard(config.with_name('tasks.db')).run_stopped('another-device', 'run-102')
             return
         outcome, = outcomes
         assert outcome['payload'].get('error_code', outcome['payload'].get('receipt', {}).get('status')) == expected

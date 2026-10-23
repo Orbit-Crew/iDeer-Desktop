@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import pytest
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -293,8 +294,9 @@ def test_cancelled_consent_cannot_be_revived_by_a_late_approval(tmp_path: Path) 
     assert not (tmp_path / "a.txt").exists()
 
 
+@pytest.mark.parametrize('stop_run', [False, True])
 def test_cancel_during_approved_python_execution_returns_cancelled_receipt(
-    tmp_path: Path,
+    tmp_path: Path, stop_run: bool,
 ) -> None:
     server_key = Ed25519PrivateKey.generate()
     client = LocalRuntimeClient(
@@ -311,7 +313,7 @@ def test_cancel_during_approved_python_execution_returns_cancelled_receipt(
     payload = {
         "operation": "local.python",
         "working_root": "/projects",
-        "script": "import time; time.sleep(30)",
+        "script": "from pathlib import Path; import time; Path('started.txt').write_text('STARTED'); time.sleep(30)",
         "environment": [],
         "run_id": "run-1",
     }
@@ -356,8 +358,20 @@ def test_cancel_during_approved_python_execution_returns_cancelled_receipt(
             background=True,
         )
         running = client._running_tasks["task-cancel-python"]
-        running.cancel()
-        await asyncio.gather(running, return_exceptions=True)
+        try:
+            for _ in range(250):
+                if (tmp_path / 'started.txt').exists():
+                    break
+                await asyncio.sleep(.02)
+            assert (tmp_path / 'started.txt').read_text() == 'STARTED'
+            if stop_run:
+                await client.stop_run('run-1')
+            else:
+                running.cancel()
+            await asyncio.wait_for(asyncio.shield(running), 2)
+        finally:
+            running.cancel()
+            await asyncio.gather(running, return_exceptions=True)
 
     asyncio.run(run_and_cancel())
     result = json.loads(client.connection.sent[-1])

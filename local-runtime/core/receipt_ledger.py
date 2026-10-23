@@ -49,6 +49,8 @@ class ReceiptLedger:
                     receipt_hash TEXT, delivery_state TEXT NOT NULL,
                     acknowledgment TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)
                 """)
+                if 'thread_id' not in {row[1] for row in db.execute('PRAGMA table_info(local_receipts)')}:
+                    db.execute("ALTER TABLE local_receipts ADD COLUMN thread_id TEXT NOT NULL DEFAULT ''")
                 # A crash can lose the in-memory completion failure, but not
                 # its admitted uncertain row. Require a real saved receipt
                 # before allowing further writes after such a restart.
@@ -98,13 +100,13 @@ class ReceiptLedger:
     def _identity(cls, binding, task_id):
         return content_hash({**cls._binding(binding), "task_id": task_id})
 
-    def admit(self, binding, task):
+    def admit(self, binding, task, *, thread_id=''):
         """Commit an immutable identity and execution basis before any effect."""
         def write(db):
             cursor = db.execute("INSERT OR IGNORE INTO local_receipts "
-                "(identity, receipt_id, binding, task, delivery_state) VALUES (?, ?, ?, ?, 'uncertain')",
+                "(identity, receipt_id, binding, task, delivery_state, thread_id) VALUES (?, ?, ?, ?, 'uncertain', ?)",
                 (self._identity(binding, task["task_id"]), str(uuid4()),
-                 json.dumps(self._binding(binding), sort_keys=True), json.dumps(task, sort_keys=True)))
+                 json.dumps(self._binding(binding), sort_keys=True), json.dumps(task, sort_keys=True), thread_id))
             return cursor.rowcount == 1
         return self._execute(write, write=True)
 
@@ -179,6 +181,25 @@ class ReceiptLedger:
                 ("RESULT_UNCERTAIN" if row["delivery_state"] == 'uncertain' else ''),
             "status": (json.loads(row["receipt"]) if row["receipt"] else {}).get("status", "unknown")}
             for row in db.execute("SELECT * FROM local_receipts WHERE binding=? ORDER BY rowid DESC LIMIT ? OFFSET ?", (encoded, limit, offset))])
+
+    def thread_history(self, binding, thread_id, run_ids=()):
+        """Metadata for one original Thread, excluding keys and signed basis."""
+        if binding is None:
+            return []
+        encoded = json.dumps(self._binding(binding), sort_keys=True)
+        def read(db):
+            rows = []
+            for row in db.execute('SELECT * FROM local_receipts WHERE binding=? ORDER BY rowid DESC', (encoded,)):
+                task = json.loads(row['task'])
+                if row['thread_id'] != thread_id and task.get('run_id') not in run_ids:
+                    continue
+                receipt = json.loads(row['receipt']) if row['receipt'] else {}
+                rows.append({key: task.get(key, '') for key in ('task_id', 'run_id', 'capability', 'logical_target')})
+                rows[-1].update(status=receipt.get('status', 'unknown'), delivery_state=row['delivery_state'],
+                    receipt_hash=row['receipt_hash'], error_code=receipt.get('error_code') or
+                    ('RESULT_UNCERTAIN' if row['delivery_state'] == 'uncertain' else ''))
+            return rows
+        return self._execute(read)
 
     def snapshot(self, binding=None, *, offset=0):
         encoded = json.dumps(self._binding(binding), sort_keys=True) if binding is not None else ''

@@ -1,0 +1,475 @@
+{
+  "recordedAt": "2026-10-23T20:30:26.546856+00:00",
+  "kind": "desktop",
+  "base": "8901c170c02afbb10adee994ed2058c90d9045bb",
+  "headAtBinding": "8901c170c02afbb10adee994ed2058c90d9045bb",
+  "branch": "feat/issue-104",
+  "sourceSHA256": "95cfa02cea3b7a110ac07fa07444fcfca2baa52296a2c24b686daf8746eaf891",
+  "algorithm": "SHA256 of UTF-8 canonical sorted path/hash records; product/test/build inputs; acceptance scripts and generated evidence excluded",
+  "files": [
+    {
+      "path": "electron-builder.yml",
+      "sha256": "efb5986ce9ce1ee3b46ed14c012407f82ee69a1de9dc1f34c8479b2cb7246220"
+    },
+    {
+      "path": "local-runtime/LICENSE.upstream",
+      "sha256": "a98b7d471f6e69fc010f79bc4645059900d1d3c2f5f496061fb7f2b80a1b17cd"
+    },
+    {
+      "path": "local-runtime/README.md",
+      "sha256": "6537a163d2b2a66217096713898b9ce574e16655b4a157f5d85989f2f94fa4c9"
+    },
+    {
+      "path": "local-runtime/core/__init__.py",
+      "sha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46"
+    },
+    {
+      "path": "local-runtime/core/artifacts.py",
+      "sha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b"
+    },
+    {
+      "path": "local-runtime/core/audit.py",
+      "sha256": "08ae1aeaf041c3ba6cf6c647ad1364ce17b107efa6c27eda7d9ff668adc1f9bd"
+    },
+    {
+      "path": "local-runtime/core/browser_login.py",
+      "sha256": "8f2fc0da1ec748faa6b6a88d7046ad5c0bbe10027e14dbeb02a49975c24510ed"
+    },
+    {
+      "path": "local-runtime/core/capabilities.py",
+      "sha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc"
+    },
+    {
+      "path": "local-runtime/core/cli.py",
+      "sha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711"
+    },
+    {
+      "path": "local-runtime/core/compat.py",
+      "sha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c"
+    },
+    {
+      "path": "local-runtime/core/consent.py",
+      "sha256": "6ce1fb3680b52c03ccf91b584267faca654933fd7c0e38b6957d87a2351e3710"
+    },
+    {
+      "path": "local-runtime/core/consent_coord.py",
+      "sha256": "b5c89d2af84d439f28cd61582daf7b5a77de41e8ff395c0e29162de3f4f1dcd3"
+    },
+    {
+      "path": "local-runtime/core/desktop.py",
+      "sha256": "e270227bf898907d33c04efc4f9564709dd08cd361d1315f3b9ea7a57364bf1d"
+    },
+    {
+      "path": "local-runtime/core/file_service.py",
+      "sha256": "f2ec5eef43ae97a48d5252421359d4e5c416be4debcd321befa66793eeb3fda6"
+    },
+    {
+      "path": "local-runtime/core/files.py",
+      "sha256": "b67abe228574d576d6e1dd8c03e9b5bfc2819490f44d5612efbde265866c1049"
+    },
+    {
+      "path": "local-runtime/core/files_nt.py",
+      "sha256": "dd4283a3b99296fe71b40e80e54b525cc1161e5e8796cefddf3f8cc302b5dd44"
+    },
+    {
+      "path": "local-runtime/core/mcp.py",
+      "sha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a"
+    },
+    {
+      "path": "local-runtime/core/platform_chat.py",
+      "sha256": "50ab1062b54f23003abab66a90d9040cd15e0713d068a69c415c9a0b4de56f4e"
+    },
+    {
+      "path": "local-runtime/core/policy.py",
+      "sha256": "d022a61c5ddb3c5462ca96eacdaf8c695a48f004643bfc7bbf0e2f514f777282"
+    },
+    {
+      "path": "local-runtime/core/process_job.py",
+      "sha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea"
+    },
+    {
+      "path": "local-runtime/core/protocol.py",
+      "sha256": "71ddd254afdcef25fcd0f1b8e164141f430afc978042a55ef07a61d156386205"
+    },
+    {
+      "path": "local-runtime/core/python.py",
+      "sha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1"
+    },
+    {
+      "path": "local-runtime/core/receipt_ledger.py",
+      "sha256": "133471f25568c39142ed2ad04cf5329544b542e0819bc1687bcbfa88d0aa9761"
+    },
+    {
+      "path": "local-runtime/core/receipts.py",
+      "sha256": "1ccd4957072104feed176d66b2c9044cff37e6fa16eac2b79fca23be86c66ded"
+    },
+    {
+      "path": "local-runtime/core/secrets.py",
+      "sha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad"
+    },
+    {
+      "path": "local-runtime/core/settings.py",
+      "sha256": "319af4af23cdaeef215f9dada030b35b473b514f7256fe930d5b5c4b5b057d8b"
+    },
+    {
+      "path": "local-runtime/core/task_guard.py",
+      "sha256": "6dfaa7f4916040fef88975362601efc3956a82ca1205fe1dbde38edfc7750f00"
+    },
+    {
+      "path": "local-runtime/core/transport.py",
+      "sha256": "d9e0713d92418b00ec9f54ee9dbcd746c6c46e921c34e1f3096c46f19017bba9"
+    },
+    {
+      "path": "local-runtime/core/tray.py",
+      "sha256": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d"
+    },
+    {
+      "path": "local-runtime/distribution.lock.json",
+      "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    {
+      "path": "local-runtime/pyproject.toml",
+      "sha256": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/counting_mcp_server.py",
+      "sha256": "2066de3a76ce882df70bc63e93f12cf40631d359b682a449bd07ac4499b624a5"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/filesystem_mcp_server.py",
+      "sha256": "b998951588e0b9a10eff80fb23d3257e1e70f2e2f0de9f0895e460359d9549a9"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/legacy_runtime_process.py",
+      "sha256": "d06f84f376d3b9ac1ecd8ec4588a329498b25af7ae31aee3cb47c86829b6f57d"
+    },
+    {
+      "path": "local-runtime/tests/helpers_fake_broker.py",
+      "sha256": "ee632d95511df6bc7b28fd56646549e6aad52b16981dd55bc6ab1f805c2e1564"
+    },
+    {
+      "path": "local-runtime/tests/server_protocol.py",
+      "sha256": "fd8ea7d1070349f3df81c855592d70650fbb0e8ba283fc3164b76d882c864147"
+    },
+    {
+      "path": "local-runtime/tests/test_audit.py",
+      "sha256": "6aff5901ab734740583ceabb473747c12f29e4456c71a665cfd5213764319eb7"
+    },
+    {
+      "path": "local-runtime/tests/test_broker_key_binding.py",
+      "sha256": "4ed71fb52439e41205c4d4e3821b8a37be7c57716c6a55f9e78ca5da2c1f31e8"
+    },
+    {
+      "path": "local-runtime/tests/test_browser_login.py",
+      "sha256": "a8eef1fbf3c17d9c8510425b8e693d2878d6c70d476cddfe8e9128d145489f22"
+    },
+    {
+      "path": "local-runtime/tests/test_capabilities.py",
+      "sha256": "ac1e5881bf859064412bd99992efe1c6e2b89f83c48d35bfc587ec181e4dba39"
+    },
+    {
+      "path": "local-runtime/tests/test_cli.py",
+      "sha256": "e9d1bbbfb9456fe8f6860c233cf416b8957ca7da7255614afdae3170cfd85c9d"
+    },
+    {
+      "path": "local-runtime/tests/test_consent.py",
+      "sha256": "d804608b77048bd2c83993abcc79780a4e4ceebe71870bf8be494a92aafc7f57"
+    },
+    {
+      "path": "local-runtime/tests/test_consent_summary.py",
+      "sha256": "1efa3e9c82811addd41ba0d50e265b7acbded51f578275e932541bd8c9f8d5de"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_process.py",
+      "sha256": "79ab35d636953aec5bc0d2964db977d34630858fdfdcc958066e17ad264f0d64"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_protocol.py",
+      "sha256": "ba7f5ba1610a973a16d01d7a60f3a263b52d5639ceb0f3b9aeaff4e571f44f90"
+    },
+    {
+      "path": "local-runtime/tests/test_directory_grants.py",
+      "sha256": "cdef2c89e18a21d8cf8538c3a2ff895bc69d7f7983bcda872dd8ccdbd506e66f"
+    },
+    {
+      "path": "local-runtime/tests/test_file_service.py",
+      "sha256": "76e4f6a642e87e13adbf4ed5e837e91516781f74da5bd8732896e8bb63a2f35c"
+    },
+    {
+      "path": "local-runtime/tests/test_files.py",
+      "sha256": "b3af9c15f844f47dd6048b7075ada56c16247a46374be47150a69e5bf87eb65e"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp.py",
+      "sha256": "fd6117434be668b4e10a0730445985dd77939b98908cd5cebfdc6ec63700b263"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp_secrets.py",
+      "sha256": "534f6545794eaa408b245a40c1a5e1d27ff85d7a3225b8d26a0e4889553699bf"
+    },
+    {
+      "path": "local-runtime/tests/test_platform_chat.py",
+      "sha256": "4df33a55844abdb467d4a420a28a31e479b1cf778cc8c8c6cbe0fd3acc8085aa"
+    },
+    {
+      "path": "local-runtime/tests/test_policy.py",
+      "sha256": "bf3e0c39ca91aaf3a76d1a53b84ccf4cc013c0b1d8f4fcc08d040dbd0c787ade"
+    },
+    {
+      "path": "local-runtime/tests/test_policy_denial.py",
+      "sha256": "8fc72f7326c01a78b49dcf14787b4b5a3bf2c53baeb0e2f71280d8d5c56b0e48"
+    },
+    {
+      "path": "local-runtime/tests/test_protocol.py",
+      "sha256": "fa723596b51f8baf84268ccc9d928ef7610e24838d7310cbd2dd2d352697139d"
+    },
+    {
+      "path": "local-runtime/tests/test_python.py",
+      "sha256": "9960040db4219979d3484af653e25e741ba1501cd49a7e74d578c17e5d4ccf4f"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_ledger.py",
+      "sha256": "b9c85f4aba9c3f37d9b2feaae5ec7bc072cadc5a5dc84b644e75425ac315d766"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_replay.py",
+      "sha256": "b9bf7b404894d6ce37617a7b4b31b02c5899f95cc3b8bc91ca8f65b0a56fbdb4"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_transport.py",
+      "sha256": "2f0d7e77a2465ba7f763230bdd8c09ab14c9cf0851b7a5919b6c12c8b20ffc6c"
+    },
+    {
+      "path": "local-runtime/tests/test_receipts.py",
+      "sha256": "a29a805417b5e6460803abf102790fb72c7f589a19ae587d476b56a8c2b392b2"
+    },
+    {
+      "path": "local-runtime/tests/test_secrets.py",
+      "sha256": "10d7f4d911cd93b13194d50dce5a3bbfbd70232b498da7f7021aa6340936d245"
+    },
+    {
+      "path": "local-runtime/tests/test_settings.py",
+      "sha256": "0b2db01976aee59b4f09c2e2bb97d73617b8344e7ffa22562841d73be0b29680"
+    },
+    {
+      "path": "local-runtime/tests/test_transport.py",
+      "sha256": "c40c6fb5f5b883941c0171d271d9f46f7229e31727a92715adc787556a0106d4"
+    },
+    {
+      "path": "local-runtime/tests/test_transport_split.py",
+      "sha256": "da06e8edb8affb6234880c732fad821a67d282a9b7cf711429932eaaf7b7d5af"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_actions.py",
+      "sha256": "b49a36f961ae89e7e2f05931372a18cf1dfe7b6b1ea3763de30c7a54446ab3cd"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_consent.py",
+      "sha256": "f9403c80c2ef30254f23175ae161c252d2452f60861fab5f52ca99555fc92810"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_lifecycle.py",
+      "sha256": "3e8307a9750f610523792a3b7961936489b43905c11108fd749ac20636ab4adc"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_transport.py",
+      "sha256": "1c08a709cdf8b314cd6029f89ebed9d28851b58fc7f0453f3ff41875a722050d"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_files.py",
+      "sha256": "11f2b44199981fbd73ea74396dc1955c54da2549faab7ee1e7c829acbb0cf28f"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_lifecycle.py",
+      "sha256": "1c409670864743e9c2ba41613cfbf86e432491ca5cb5f58792f1f54513fb71a8"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_writes.py",
+      "sha256": "cc7224b661cd6e3c6556cf0f5bb8ebe10b49398b90d9e1a2a298d36eb4a5a81a"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a"
+    },
+    {
+      "path": "package.json",
+      "sha256": "6c2208d42237477e1b83b539f0195bf3165f0ec3ca2b9dd319bac1bdcd6e4a24"
+    },
+    {
+      "path": "resources/compat/node16-banner.cjs",
+      "sha256": "4170c04def9bc287cd685241be775b8f132412af3115e5e6fdef24353141894f"
+    },
+    {
+      "path": "resources/provenance/linz-package-lock.json",
+      "sha256": "e3e948bf231158a8773d766456c2a959442c742c7766c0eb59e00e3a7d4f6101"
+    },
+    {
+      "path": "resources/provenance/linz-package.json",
+      "sha256": "4705d1bb0c58033b70e4e66a32c637e8e57ced220560dad15d9354d3299e6e7c"
+    },
+    {
+      "path": "resources/provenance/linz-source.json",
+      "sha256": "cd1359af00ec9802aba279f49d3337e7ed48b18972aee7a3b9ce367b3223d3cf"
+    },
+    {
+      "path": "resources/provenance/runtime-source.json",
+      "sha256": "451dd90bb42c2754596d3d9182b0dcf4209eec856e4bf99ca93b98de0e49ffd7"
+    },
+    {
+      "path": "scripts/acceptance-graph.cjs",
+      "sha256": "74c57c9cb8200ef49cddf5d0d6089506e85e22fbdf6a50315d4151ed29a9b80d"
+    },
+    {
+      "path": "scripts/desktop-smoke.cjs",
+      "sha256": "de237f1bd85b1ea3ec63f42f835e466040bec7d306d61da55f5b3fcaf9f33a8b"
+    },
+    {
+      "path": "scripts/prepare-runtime.py",
+      "sha256": "368f5a98ba59a5cd289bdfd883f7dcadfbf36aeee8a647e4c35f5631927bccb9"
+    },
+    {
+      "path": "scripts/verify-issue-97.ps1",
+      "sha256": "0dafc0bbf2c31a6f541e4333faf2d07863bd9bf31e87965a11d76f361229af54"
+    },
+    {
+      "path": "scripts/verify-provenance.cjs",
+      "sha256": "556b63b76774cfb7bf401d02052de7e82330ebb00e9577621d5e2f59e74c3aa3"
+    },
+    {
+      "path": "scripts/verify-runtime-source.py",
+      "sha256": "d13f840dbfc34167bc8275f9024dc529ee807504e6f8d9e42138adb7a5651ce2"
+    },
+    {
+      "path": "scripts/windows-acceptance-baseline.ps1",
+      "sha256": "afa7e0570ce9dfa5e5cd8a8644fa7874c551c228e4b91533fc97c1100a0185c4"
+    },
+    {
+      "path": "scripts/windows-install-smoke.ps1",
+      "sha256": "87d10133e49c4a3c7721bda1ccb48dfb1ed19fa07a248c5e2e48465ba2ae4611"
+    },
+    {
+      "path": "scripts/windows-local-acceptance.ps1",
+      "sha256": "d901f7858eff1b83a2f4cb31a251f509ad25e61999c0ac43f5458c2b8d077d99"
+    },
+    {
+      "path": "scripts/windows-runtime-acceptance.ps1",
+      "sha256": "7840dbcf5fd5ee31ba68e131ea784176fe5aef53179d43bf9328dfd21338cedf"
+    },
+    {
+      "path": "src/main/index.ts",
+      "sha256": "b00a2654abb800e6bfe3f426359ea0798b678b20f5229a72a446bbe59da30912"
+    },
+    {
+      "path": "src/main/runtime.ts",
+      "sha256": "5bab015fa1e865b8459d5bb249a38ec48bd8daae1b1ccec13b091aaddd6ce7b6"
+    },
+    {
+      "path": "src/main/window.ts",
+      "sha256": "b07f3a3ac7bfe8f185b6464f2cc3d1d9f26134883a281fde3696737f44115f75"
+    },
+    {
+      "path": "src/preload/index.d.ts",
+      "sha256": "fc765891524157fb090e5391c9621b8aa5a309a44f92499eaaef38cdff0d8b3e"
+    },
+    {
+      "path": "src/preload/index.ts",
+      "sha256": "9db820dbf435e8abedf9ec8e1658018915cce8535c003ba9e4d7d24ca2b09018"
+    },
+    {
+      "path": "src/renderer/index.html",
+      "sha256": "16773b5ebce6dd00b52618f77aa292f6a8c5a3e4089ed05c8e56bc1c3efe1557"
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "03ef47656fd00891cbd5848efca7f7799db2fd0875863632d74f4b75d3b14ac8"
+    },
+    {
+      "path": "src/renderer/src/assets/styles/globals.css",
+      "sha256": "d868b6209ea2c2233a785c631af83e4e1283eee5d533bb2edc6f3c71540bdcdb"
+    },
+    {
+      "path": "src/renderer/src/components/ChatPanel.tsx",
+      "sha256": "8def6e96eddfa7a282b38a2768317d060138d6aec876aaba867af54955054f7f"
+    },
+    {
+      "path": "src/renderer/src/components/ErrorBoundary.tsx",
+      "sha256": "fe80454e0ddfa8b6ed604921031502199f303ef7cd6530cd1db9299acf66d781"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/AppLayout.tsx",
+      "sha256": "f7ef667ff28cf40d8b6fa538cd80b8237b719b839e806f9b709372cdc6bd6e2a"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/Sidebar.tsx",
+      "sha256": "3d4e0b687c89469b8e96a68c922933594a263725e27542da811ccbb53cc9667d"
+    },
+    {
+      "path": "src/renderer/src/components/RuntimePanel.tsx",
+      "sha256": "6dad6153f9fdf25c7b05e0e6c46fa88c8d305430b4733d4f2be708c9b6143889"
+    },
+    {
+      "path": "src/renderer/src/main.tsx",
+      "sha256": "bee274bec9a7655a71511d2409ad205b8df4d02a6eb4ee01909f23bd4b6242d1"
+    },
+    {
+      "path": "src/renderer/src/stores/receiptHistory.ts",
+      "sha256": "07c70d74c3be5404b9fc1a934108a72c4250966d98cbbef17eaa215041c130d8"
+    },
+    {
+      "path": "src/renderer/src/stores/runtimePanel.ts",
+      "sha256": "8069132361217b2262cb34e64cce16ab5ff838bb587c24ef7ad721be8241abcd"
+    },
+    {
+      "path": "src/renderer/src/stores/uiStore.ts",
+      "sha256": "a7d45669bcf1c61e98541867acaab834c5470c828d1a0b28e80596d11687d698"
+    },
+    {
+      "path": "src/shared/desktop.ts",
+      "sha256": "41e6e2a1519ca469fc7ca8216bb586271641496675c02ee7fae005198ff0505b"
+    },
+    {
+      "path": "test/chat-bridge.test.ts",
+      "sha256": "5d190a8e9d196aab24d33ef59c6198de8af9897221c4b37be6752e40251da8b5"
+    },
+    {
+      "path": "test/chat.test.tsx",
+      "sha256": "e5eec317d7cc1c3ab062b775e4833aa7aca14959207ddba64f8950da0da54c16"
+    },
+    {
+      "path": "test/compat.test.ts",
+      "sha256": "a8e9c31735b0609881b89cd10f5b0b942acad9b91639e4fd3dde7be368ba195a"
+    },
+    {
+      "path": "test/grant-management.test.ts",
+      "sha256": "9ad4807b667d1509fe410e09576e4fa971ceefb15efa3ab7940184c7e70ead3e"
+    },
+    {
+      "path": "test/login.test.ts",
+      "sha256": "b2511e3098a84f10707195a4a2a2dfdd362f121922426fdd7c14383b80f8ea26"
+    },
+    {
+      "path": "test/receipt-history-view.test.ts",
+      "sha256": "f07324bae2a5253b76fa3e53b754dde7998ad2fae1d6ab472cc9b7ac6b43d596"
+    },
+    {
+      "path": "test/receipt-history.test.ts",
+      "sha256": "5d69f1e18b91a0377bd96a153fc5b97aebe93ad37c0551409c386cffecb3fb48"
+    },
+    {
+      "path": "test/runtime-panel-controller.test.ts",
+      "sha256": "ad886832dd5059ea5bd1f3b16a7db633aa3ac05d6202c3d578bedac446be9c48"
+    },
+    {
+      "path": "test/runtime.test.ts",
+      "sha256": "4aced123017f62ee2785c8f63cca77d76068f90196d024400ee6dcb9f23014b1"
+    },
+    {
+      "path": "test/security.test.ts",
+      "sha256": "05db06f9637bfb93068d0437eec76d9e82f0bae873075cf1e21b3ad2ff6c9838"
+    },
+    {
+      "path": "test/startup.test.tsx",
+      "sha256": "8dc9aeaea83cdb3ad9dbc646a295d431d9981c8b4d9a07035465b956bcaec2ae"
+    }
+  ]
+}

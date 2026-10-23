@@ -4,6 +4,29 @@ import { ChatView } from '../src/renderer/src/components/ChatPanel'
 import type { ChatSnapshot } from '../src/shared/desktop'
 
 describe('platform chat UI', () => {
+  it('keeps requested stop, Server facts and local upload state separate in the original Thread', () => {
+    const state: ChatSnapshot = { scope: 'A', resources: [], threads: [], messages: [], events: [],
+      thread: { id: 'thread-104', status: 'idle', agentId: 'agent', skillId: '' },
+      run: { id: 'run-104', status: 'interrupted', selection: {} }, stream: 'idle', error: '', lastEventId: '',
+      stop: { runId: 'run-104', state: 'requested' }, localTasks: [{ task_id: 'task-104', run_id: 'run-104',
+        capability: 'local.files.write', logical_target: '/workspace/test/target.txt', status: 'result_not_verified',
+        local: { status: 'completed', delivery_state: 'pending' } }] }
+    const html = renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)
+    expect(html).toContain('已请求停止')
+    expect(html).toContain('Server 任务：结果待核实')
+    expect(html).toContain('本机回执：已完成')
+    expect(html).toContain('待补传')
+    expect(html).toContain('已提交的文件修改不会回滚')
+    expect(html).toContain('task-104')
+    expect(html).toContain('/workspace/test/target.txt')
+    expect(html).not.toContain('停止当前 Turn')
+    state.stop = null
+    state.run!.status = 'running'
+    state.stream = 'disconnected'
+    expect(renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)).toContain('停止当前 Turn')
+    state.stop = { runId: 'run-104', state: 'uncertain' }
+    expect(renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)).toContain('重试停止请求')
+  })
   it('shows the exact pending local write in its original streaming Run with one-time decisions', () => {
     const state: ChatSnapshot = { scope: 'identity', resources: [], threads: [], messages: [], events: [],
       thread: { id: 'thread-102', status: 'running', agentId: 'agent', skillId: '' },

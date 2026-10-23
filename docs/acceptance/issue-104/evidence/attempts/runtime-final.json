@@ -1,0 +1,17 @@
+{
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "local-runtime/tests",
+    "-q",
+    "--basetemp=C:/Users/Neo/AppData/Local/Temp/ideer-t104-final-sequential",
+    "--tb=short",
+    "--junitxml=artifacts/issue-104/checks/runtime-final.xml"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\e7e5\\iDeer-Desktop",
+  "started": "2026-10-23T20:29:45.185035+00:00",
+  "finished": "2026-10-23T20:29:45.228772+00:00",
+  "seconds": 0.047,
+  "exitCode": 1
+}

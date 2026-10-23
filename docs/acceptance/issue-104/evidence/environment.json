@@ -1,0 +1,17 @@
+{
+  "version": "10.0.26300",
+  "branch": "feat/issue-104",
+  "locks": {
+    "local-runtime/pyproject.toml": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a",
+    "local-runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+    "package-lock.json": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a"
+  },
+  "recordedAt": "2026-10-23T20:28:52.3263637Z",
+  "node": "v22.23.3",
+  "testPython": "Python 3.12.8",
+  "desktopBase": "8901c170c02afbb10adee994ed2058c90d9045bb",
+  "os": "Microsoft Windows 11 专业版",
+  "architecture": "64 位",
+  "hostDefaultNode": "v24.22.1",
+  "bundledPython": "Python 3.12.10"
+}

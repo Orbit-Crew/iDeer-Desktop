@@ -865,6 +865,15 @@ class TrayController:
 
     # --- consent ---------------------------------------------------------
 
+    def stop_run(self, run_id: str) -> None:
+        loop = self._loop
+        if loop is None or self._stopping or not loop.is_running():
+            # The durable fence also applies to tasks arriving after restart.
+            self.client.task_guard.stop_run(self.client.device_id, run_id)
+            return
+        future = asyncio.run_coroutine_threadsafe(self.client.stop_run(run_id), loop)
+        future.result(timeout=2)
+
     def pending_consents(self) -> tuple[PendingConsent, ...]:
         """Copy consent tables on their owning loop, never on the UI thread."""
         loop = self._loop

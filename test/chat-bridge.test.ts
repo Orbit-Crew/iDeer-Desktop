@@ -5,6 +5,14 @@ import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 
 describe('restricted chat bridge', () => {
+  it('accepts only an exact scoped stop command', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-104/unused')
+    for (const patch of [{ runId: '' }, { url: 'https://untrusted.invalid' }, { action: 'cancel-all' }]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'stop', scope: 'A', threadId: 'thread', runId: 'run', ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    expect(runtime.status().process).toBe('stopped')
+  })
   it('rejects malformed or broadened local write decisions before starting Runtime', async () => {
     const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-102/unused')
     for (const patch of [{ requestHash: 'wrong' }, { decision: 'always' }, { url: 'https://untrusted.invalid' }, { content: 'CHANGED' }]) {

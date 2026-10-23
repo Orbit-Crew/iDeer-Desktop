@@ -5,6 +5,7 @@ import hashlib
 import json
 import secrets
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -34,22 +35,30 @@ class ChatSession:
 
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
-                events=[], stream='idle', error='', lastEventId='')
+                events=[], stream='idle', error='', lastEventId='', stop=None,
+                localTasks=[], taskError='')
 
 
 class DesktopChat:
-    def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None):
+    def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
+                 local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
         self._turns = set()
         self._generation = 0
         self.local_consents, self.decide_consent = local_consents, decide_consent
+        self.local_receipts = local_receipts
+        self.stop_local = stop_local
+        self._tasks_checked = 0.0
+        self._tasks_loading = None
 
     def _consents(self, session):
         rows = []
         thread, run = self._state.get('thread'), self._state.get('run')
         if not thread or not run:
+            return rows
+        if self._state.get('stop') or run['status'] not in {'pending', 'running'}:
             return rows
         try:
             pending_rows = self.local_consents()
@@ -77,6 +86,8 @@ class DesktopChat:
         self._generation += 1
         self._state = empty_state(scope)
         self._turns.clear()
+        self._tasks_checked = 0.0
+        self._tasks_loading = None
 
     @staticmethod
     def _id(value):
@@ -197,10 +208,116 @@ class DesktopChat:
         self._state.update(thread=dict(id=thread_id, status=thread['status'],
             agentId=agent_id, skillId=skill_id),
             messages=[], events=[], run=self._run(latest) if latest else None,
-            stream='idle', lastEventId='', error='')
+            stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='')
         self._messages(messages)
+        self._load_tasks(session)
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
+
+    def _load_tasks(self, session):
+        """Observation only. A recovered task can never submit a new Turn."""
+        self._tasks_checked = time.monotonic()
+        thread_id = self._state['thread']['id']
+        tasks, error = self._task_history(session, thread_id, self._state['localTasks'])
+        self._state.update(localTasks=tasks, taskError=error)
+
+    def _task_history(self, session, thread_id, tasks):
+        error = ''
+        try:
+            loaded, offset, size = [], 0, 0
+            while True:
+                page = self._json(session, f'/api/threads/{thread_id}/local-tasks?limit=50&offset={offset}')
+                size += len(json.dumps(page))
+                if size > MAX_RESPONSE:
+                    raise ChatError('CHAT_RESPONSE_TOO_LARGE')
+                loaded.extend(page['tasks'])
+                if not page['has_more']:
+                    break
+                cursor = page['next_offset']
+                if not isinstance(cursor, int) or cursor <= offset:
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+                offset = cursor
+            tasks = loaded
+        except ChatError as exc:
+            if str(exc) in {'CHAT_UNAUTHENTICATED', 'CHAT_IDENTITY_CHANGED'}:
+                raise
+            error = str(exc)
+        except Exception:
+            error = 'CHAT_TASK_HISTORY_UNAVAILABLE'
+        try:
+            local = {row['task_id']: row for row in self.local_receipts(thread_id, {row['run_id'] for row in tasks})}
+            merged = []
+            for task in tasks:
+                row = local.pop(task['task_id'], None)
+                merged.append({**task, 'local': row})
+            merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),
+                logical_target=row.get('logical_target', ''), status='unknown', local=row) for row in local.values())
+            return merged, error
+        except Exception:
+            return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE'
+
+    def _poll_tasks(self, session):
+        """Network observations cannot hold up a user's local Stop command."""
+        if self._tasks_loading is not None:
+            return
+        ticket = object()
+        self._tasks_loading = ticket
+        self._tasks_checked = time.monotonic()
+        generation = self._generation
+        thread_id = self._state['thread']['id']
+        tasks = self._state['localTasks']
+        stopped = self._state.get('stop')
+        active = self._state['run'] and self._state['run']['status'] in {'pending', 'running'}
+
+        def refresh():
+            try:
+                rows, error = self._task_history(session, thread_id, tasks)
+                run = self._json(session, f"/api/threads/{thread_id}/runs/{stopped['runId']}") if stopped and active else None
+                with self._lock:
+                    if generation != self._generation:
+                        return
+                    if self._session().scope != session.scope:
+                        raise ChatError('CHAT_IDENTITY_CHANGED')
+                    self._state.update(localTasks=rows, taskError=error)
+                    if run:
+                        self._state['run'] = self._run(run)
+                        if run['status'] not in {'pending', 'running'}:
+                            self._generation += 1
+                            self._state['stream'] = 'idle'
+            except Exception as exc:
+                with self._lock:
+                    if generation == self._generation:
+                        code = str(exc) if isinstance(exc, ChatError) else 'CHAT_TASK_HISTORY_UNAVAILABLE'
+                        if code in {'CHAT_UNAUTHENTICATED', 'CHAT_IDENTITY_CHANGED'}:
+                            self._reset()
+                        self._state['taskError'] = code
+            finally:
+                with self._lock:
+                    if self._tasks_loading is ticket:
+                        self._tasks_loading = None
+        threading.Thread(target=refresh, daemon=True).start()
+
+    def _stop(self, session, command):
+        if set(command) != {'action', 'scope', 'threadId', 'runId'}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        thread, run = self._state['thread'], self._state['run']
+        if not thread or command['threadId'] != thread['id'] or not run or command['runId'] != run['id']:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        if (self._state.get('stop') or {}).get('state') == 'requested' or run['status'] not in {'pending', 'running'}:
+            return
+        # Persisted Server state remains authoritative. An accepted request is
+        # not proof of cancellation or of whether a local effect occurred.
+        self._state['stop'] = {'runId': run['id'], 'state': 'uncertain'}
+        try:
+            self.stop_local(run['id'])
+        except Exception:
+            # Still attempt Server cancellation if the local controller failed.
+            self._state['taskError'] = 'CHAT_LOCAL_STOP_UNAVAILABLE'
+        with self._request(session, f"/api/threads/{thread['id']}/runs/{run['id']}/cancel?wait=false&action=interrupt", {}) as response:
+            if response.status not in {202, 204}:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+        self._state['stop']['state'] = 'requested'
+        self._state['error'] = ''
 
     def _observe(self, session):
         if self._state['stream'] == 'streaming':
@@ -324,7 +441,7 @@ class DesktopChat:
             self._state['stream'] = 'uncertain'
             raise
         self._generation += 1
-        self._state.update(run=self._run(run), lastEventId='', events=[], error='')
+        self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None)
         self._observe(session)
 
     def _session(self):
@@ -406,7 +523,7 @@ class DesktopChat:
                 action = command.get('action') if isinstance(command, dict) else None
                 if action not in {'state', 'refresh'} and command.get('scope') != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
-                can_run = self._authorize(session) if action not in {'state', 'consent'} else False
+                can_run = self._authorize(session) if action not in {'state', 'consent', 'stop'} else False
                 if action in {'create', 'send', 'answer'} and not can_run:
                     raise ChatError('CHAT_FORBIDDEN')
                 if action == 'refresh':
@@ -433,6 +550,8 @@ class DesktopChat:
                     self._load_thread(session, self._id(command.get('threadId')))
                 elif action in {'send', 'answer'}:
                     self._send(session, command)
+                elif action == 'stop':
+                    self._stop(session, command)
                 elif action == 'reconnect':
                     if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
                         raise ChatError('CHAT_THREAD_CHANGED')
@@ -454,6 +573,10 @@ class DesktopChat:
                     self._state['error'] = ''
                 elif action != 'state':
                     raise ChatError('CHAT_COMMAND_INVALID')
+                if self._session().scope != session.scope:
+                    raise ChatError('CHAT_IDENTITY_CHANGED')
+                if action == 'state' and self._state['thread'] and time.monotonic() - self._tasks_checked >= 2:
+                    self._poll_tasks(session)
                 if self._session().scope != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
             except SecretStoreError:

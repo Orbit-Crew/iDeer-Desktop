@@ -19,6 +19,21 @@ RECEIPT = {"task_id": "task-101", "run_id": "run-101", "capability": "local.file
            "policy_decision": "allow", "policy_version": "1", "result_hash": "b" * 64}
 
 
+def test_thread_history_survives_restart_and_keeps_signed_upload_metadata_unchanged(tmp_path):
+    path = tmp_path / 'receipts.db'
+    ledger = ReceiptLedger(path)
+    ledger.admit(BINDING, TASK, thread_id='thread-104')
+    saved = ledger.complete(BINDING, RECEIPT)
+    assert saved['task'] == TASK
+    ledger.admit(BINDING, {**TASK, 'task_id': 'other'}, thread_id='other-thread')
+    reopened = ReceiptLedger(path)
+    rows = reopened.thread_history(BINDING, 'thread-104')
+    assert [row['task_id'] for row in rows] == ['task-101']
+    assert rows[0]['delivery_state'] == 'pending'
+    assert reopened.thread_history({**BINDING, 'user_id': 'B'}, 'thread-104') == []
+    assert reopened.thread_history(None, 'thread-104') == []
+
+
 def test_restart_pending_identity_protection_and_confirmed_cleanup(tmp_path: Path):
     path = tmp_path / "receipts.db"
     ledger = ReceiptLedger(path)

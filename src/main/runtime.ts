@@ -75,11 +75,13 @@ export class RuntimeProcess {
     const keys: Record<string, string[]> = {
       state: ['action'], refresh: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
+      stop: ['action', 'scope', 'threadId', 'runId'],
       send: ['action', 'scope', 'threadId', 'turnId', 'text'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision']
     }
     const allowed = keys[command.action]
+    if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
     if (command.action === 'consent' && (Object.keys(command).length !== 7 || !['allow', 'allow-directory', 'deny'].includes(command.decision) || !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
     if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
       throw new Error('CHAT_COMMAND_INVALID')

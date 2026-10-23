@@ -1,0 +1,12 @@
+{
+  "command": [
+    "npm.cmd",
+    "run",
+    "dist:win"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\e7e5\\iDeer-Desktop",
+  "started": "2026-10-23T20:16:05.635544+00:00",
+  "finished": "2026-10-23T20:17:01.421465+00:00",
+  "seconds": 55.797,
+  "exitCode": 1
+}

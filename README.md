@@ -20,6 +20,9 @@ disconnects do not automatically repeat a write. See the
 results and remaining verification.
 Persistent directory consent and account/device lifecycle results are in the
 [issue #103 acceptance report](docs/acceptance/issue-103/report.md).
+The original Thread can stop a Turn and recover local task and receipt facts
+after disconnects or restarts. Stop requests do not roll back committed writes.
+See [issue #104 acceptance](docs/acceptance/issue-104/report.md).
 
 Use Node 22 and npm on the build machine:
 

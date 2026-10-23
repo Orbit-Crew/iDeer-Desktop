@@ -15,7 +15,8 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 
 @contextmanager
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
-             optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False):
+             optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
+             cancel_status=202, local_tasks=None, history_gate=None, history_started=None):
     records = []
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
                     lifecycle_status=lifecycle, latest_version=version)
@@ -87,6 +88,14 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                         status, data = 422, {'detail': 'Unsupported public stream mode'}
             elif self.path == '/api/threads/thread-A/runs/run-1':
                 data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': 'success', 'metadata': {}}
+            elif self.path == '/api/threads/thread-A/runs/run-1/cancel?wait=false&action=interrupt':
+                status, data = cancel_status, None
+            elif self.path.startswith('/api/threads/thread-A/local-tasks?'):
+                if history_started:
+                    history_started.set()
+                if history_gate:
+                    history_gate.wait(5)
+                data = {'tasks': local_tasks or [], 'has_more': False, 'next_offset': None}
             elif self.path == '/api/threads/thread-A/runs/run-1/stream':
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream')
@@ -125,6 +134,64 @@ def make_chat(tmp_path, origin, **options):
                                business_expires_at='2099-01-01T00:00:00+00:00')
     settings.save(config)
     return DesktopChat(config, secure, lambda: {'state': 'authenticated'}, **options), settings, config
+
+
+@pytest.mark.parametrize('cancel_status,expected', [(202, 'requested'), (503, 'uncertain')])
+def test_stop_records_request_separately_from_final_run_and_never_submits_another_turn(tmp_path, cancel_status, expected):
+    with platform(disconnect=True, cancel_status=cancel_status) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write AFTER'})
+        stopped = chat.handle({'action': 'stop', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1'})
+        assert stopped['stop'] == {'runId': 'run-1', 'state': expected}
+        assert stopped['run']['status'] == 'running'
+        # A user can retry uncertain cancellation; accepted requests stay fenced.
+        chat.handle({'action': 'stop', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1'})
+        assert len([r for r in records if '/cancel?' in r[0]]) == (1 if expected == 'requested' else 2)
+        assert len([r for r in records if r[0] == '/api/threads/thread-A/runs' and r[1] is not None]) == 1
+
+
+def test_slow_history_poll_does_not_block_installing_the_local_stop_fence(tmp_path):
+    gate, started = threading.Event(), threading.Event()
+    gate.set()
+    with platform(disconnect=True, history_gate=gate, history_started=started) as (origin, _):
+        local_stops = []
+        chat, _, _ = make_chat(tmp_path, origin, stop_local=local_stops.append)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write AFTER'})
+        gate.clear(); started.clear()
+        time.sleep(2.05)
+        try:
+            before = time.monotonic()
+            chat.handle({'action': 'state'})
+            assert time.monotonic() - before < 1, 'history observation must not hold the command queue'
+            assert started.wait(1)
+            chat.handle({'action': 'stop', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1'})
+            assert local_stops == ['run-1']
+        finally:
+            gate.set()
+
+
+def test_reopen_restores_original_task_fact_and_local_outbox_without_starting_a_run(tmp_path):
+    task = dict(task_id='task-104', run_id='old-run', tool_call_id='call-104', capability='local.files.write',
+                status='result_not_verified', logical_target='/workspace/test/target.txt', stop_requested=True)
+    row = dict(task_id='task-104', run_id='old-run', status='completed', delivery_state='pending')
+    with platform(local_tasks=[task]) as (origin, records):
+        calls = []
+        def local(thread_id, runs):
+            calls.append((thread_id, runs))
+            return [row]
+        chat, _, _ = make_chat(tmp_path, origin, local_receipts=local)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        reopened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        assert reopened['taskError'] == ''
+        assert reopened['localTasks'] == [{**task, 'local': row}]
+        assert calls == [('thread-A', {'old-run'})]
+        assert all('/runs' not in route or body is None for route, body, _ in records)
 
 
 @pytest.mark.parametrize('change,expected', [({}, ''), ({'requestHash': '0' * 64}, 'CONSENT_MISMATCH'),
