@@ -39,6 +39,10 @@ Desktop product/test/build source SHA-256:
 `95cfa02cea3b7a110ac07fa07444fcfca2baa52296a2c24b686daf8746eaf891`.
 The [per-file binding](evidence/source-binding.json) binds the tested bytes over
 the develop base. Acceptance runners are separate source files in this branch.
+The committed Desktop implementation is
+`bc81f076fd1465d2d93ebb372eda34545152be88`; the
+[delivery check](evidence/delivery.json) confirms its product/test/build bytes
+match the tested source binding exactly.
 Server code is saved in its independent `feat/issue-104` worktree but is not
 committed or fully validated yet. No combined candidate is approved.
 

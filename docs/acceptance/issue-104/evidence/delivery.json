@@ -1,0 +1,8 @@
+{
+  "desktopCommit": "bc81f076fd1465d2d93ebb372eda34545152be88",
+  "base": "8901c170c02afbb10adee994ed2058c90d9045bb",
+  "sourceSHA256": "95cfa02cea3b7a110ac07fa07444fcfca2baa52296a2c24b686daf8746eaf891",
+  "sourceFilesUnchangedFromTestedCandidate": true,
+  "serverStatus": "incomplete, WSL service unavailable",
+  "crossRepositoryAcceptance": "unexecuted"
+}
