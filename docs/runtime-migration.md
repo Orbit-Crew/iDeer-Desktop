@@ -98,6 +98,53 @@ All original tests remain unchanged. Windows skips and their platform reasons ar
 recorded in acceptance. CPython 3.12 is a modern Windows candidate. Win7 interpreter,
 crypto and Job Object compatibility remain unexecuted and assigned to #131.
 
+Issue #102 extends the Desktop workspace service with `local.files.write` for
+text creation and replacement. The original signed task binds the Thread, Run,
+tool call, logical target and exact content. The local chat card sends its
+single-use allow or deny decision through the owned stdio channel. Server and
+Web consent frames cannot approve Desktop writes, and legacy always-allow rules
+cannot skip this prompt. The earlier standalone consent API remains available
+for the original non-Desktop Runtime.
+
+Workspace writes preserve UTF-8 bytes, including existing newline characters,
+and accept at most 65,536 bytes. They require an existing parent directory and
+pin every Windows ancestor against replacement while writing a temporary file
+and replacing the target. The same logical-root, protected-path, reparse-point
+and selected-directory identity checks used for reads apply to writes. A real
+byte readback verifies success. Any failure after replacement reports
+`RESULT_UNCERTAIN` rather than claiming that the target remained unchanged.
+The shared Windows handle helper requests read access for directories as well
+as files. Windows ignores delete-sharing restrictions for attribute-only handles;
+the earlier attribute-only ancestor handles did not prevent a real rename. The
+new regression attempts that rename during the write and verifies that Windows
+rejects it while the original target receives the approved bytes.
+
+Receipt admission remains mandatory before Desktop write execution. A failed
+completion save retains the uncertain admission for recovery. Cancellation or
+disconnect after a completed write preserves its durable receipt and never
+turns it into a cancelled no-effect result. Reconnection replays evidence rather
+than executing the original write again. The modified source explanations are
+recorded in `resources/provenance/runtime-source.json`; original upstream blob
+identities and migrated tests remain unchanged.
+
+A separate completion-storage failure latch pauses new Desktop writes before
+admission and checks again immediately before an approved write executes.
+Admission, receipt acknowledgments and cleanup do not clear it. On restart,
+uncertain admissions restore the pause conservatively. After storage is repaired,
+a read-only task must save its actual completion receipt before writes resume;
+the original uncertain task remains available for investigation and never runs
+again automatically.
+
+Pending approval snapshots are copied on the Runtime event loop before the UI
+thread consumes them. Stopped controllers return no pending requests; a bounded
+snapshot failure hides approval cards and reports an error without ending chat
+control. If credential redaction would change a card's displayed bytes or
+identity, Desktop hides the card and refuses that decision with
+`CONSENT_CONTENT_REDACTED`. The credential scrubber remains active.
+File errors after approval retain the original approved consent basis in their
+receipts. Any filesystem error after replacement, including cleanup, is reported
+as an uncertain result because the write already occurred.
+
 ## Build and evidence
 
 `npm.cmd run dist:win` prepares the Runtime before NSIS packaging.

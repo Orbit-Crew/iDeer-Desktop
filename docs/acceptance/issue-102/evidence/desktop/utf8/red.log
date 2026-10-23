@@ -1,0 +1,28 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.0 C:/Users/Neo/.codex/worktrees/f9fc/iDeer-Desktop
+
+ ❯ test/runtime.test.ts  (2 tests | 1 failed) 3299ms
+   ❯ test/runtime.test.ts > owned Runtime process > preserves Unicode and embedded CRLF through the bundled JSON control pipe
+     → LOGIN_FAILED
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.test.ts > owned Runtime process > preserves Unicode and embedded CRLF through the bundled JSON control pipe
+Error: LOGIN_FAILED
+ ❯ Socket.<anonymous> src/main/runtime.ts:183:68
+    181|             login = { state: value.login.state, account: value.login.a…
+    182|             if (typeof value.login.verification === 'string' && /^[0-9…
+    183|             if (login.state === 'error') this.loginRequest?.reject(new…
+       |                                                                    ^
+    184|           }
+    185|           if (value.browserUrl) {
+ ❯ Socket.emit node:events:519:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:08:20
+   Duration  5.73s (transform 94ms, setup 0ms, collect 107ms, tests 3.30s, environment 0ms, prepare 1.68s)
+

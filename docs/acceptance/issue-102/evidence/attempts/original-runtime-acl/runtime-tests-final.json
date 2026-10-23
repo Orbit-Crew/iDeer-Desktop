@@ -1,0 +1,15 @@
+{
+  "command": [
+    ".venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests",
+    "-q",
+    "--junitxml=artifacts/issue-102/desktop/runtime-tests-final.xml"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-21T23:00:06.956626+00:00",
+  "finished": "2026-10-21T23:03:38.987383+00:00",
+  "seconds": 212.031,
+  "exitCode": 1
+}

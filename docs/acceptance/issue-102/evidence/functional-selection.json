@@ -1,0 +1,149 @@
+{
+  "status": "passed",
+  "primaryRequestsPerRun": 21,
+  "auxiliaryReadRequestsPerRun": 4,
+  "requiredSubcasesPerRun": 22,
+  "sameAcceptanceFiles": true,
+  "sameRuntimeCore": true,
+  "runs": {
+    "development": {
+      "state": "artifacts/issue-102/functional-dev-20261023-0806-final",
+      "startedAt": "2026-10-23T00:06:22.802Z",
+      "finishedAt": "2026-10-23T00:13:03.705Z",
+      "files": [
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/result.json",
+          "bytes": 1106784,
+          "sha256": "5eb32460b2975b73f67d59e18dfd0c652f71575f8442ac3ae47b8b24ba75d53d"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/wire-events.jsonl",
+          "bytes": 33080,
+          "sha256": "94d2d7195e7527977630c2647bb480b8a776566afd4b9531653e152b65f6d350"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/create-approval.png",
+          "bytes": 65198,
+          "sha256": "2507a540c25b887244836ee04a0457cc94f1ec22bf8af431864fe5ae161ea550"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/overwrite-approval.png",
+          "bytes": 65821,
+          "sha256": "5c89937394725de3982a98aee7409180f005a322aa88294d92cac77c6cc60182"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/unicode-newlines-approval.png",
+          "bytes": 66333,
+          "sha256": "12ffd45323e41845864a18be70f7514976a757ecf8401fd2163265da58bdf4c6"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/write-recovery.png",
+          "bytes": 54386,
+          "sha256": "68a2a87aa58dc8c5b5132e83a5a98147a9e46b708b818be8661268d0998fa918"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/credential-cleanup.json",
+          "bytes": 30,
+          "sha256": "bfff91333be71e84f104124afb0773918d0cc47a180a77f1eb611c7eb02d24b5"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/gateway-cleanup.json",
+          "bytes": 16,
+          "sha256": "5e53c56613489af143413cbae6312dcbe5a19b4d2f8ccec76c56383620f03a75"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/server-source-binding.json",
+          "bytes": 670058,
+          "sha256": "60775378e0f8954422e417ff1e745b61c2560ee4e2ad47f6c392abd1b37f6d70"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/frozen-runner-hash.json",
+          "bytes": 84,
+          "sha256": "afb19b3349098e57ad67f1d5a24f4b0c64d9e112472e7ccb199c0e72f819c1ba"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/model-tool-names.json",
+          "bytes": 15841,
+          "sha256": "f11ffc1b931e100b704f60a11acda4881d02dbbc32e3190c0fafe754ff3bfb03"
+        },
+        {
+          "path": "artifacts/issue-102/functional-dev-20261023-0806-final/request-summary.json",
+          "bytes": 72462,
+          "sha256": "1f4523ceb47e99ec3e40db54b783690f53feea125b3978415bdf3373ff3b8ab3"
+        }
+      ]
+    },
+    "installed": {
+      "state": "artifacts/issue-102/functional-installed-20261023-1324-final",
+      "startedAt": "2026-10-23T05:24:32.855Z",
+      "finishedAt": "2026-10-23T05:31:17.789Z",
+      "files": [
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/result.json",
+          "bytes": 1110130,
+          "sha256": "e5493ac981f09d5da575443f2977e8b8b61265f4eca10a781b5542fe82dad704"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/wire-events.jsonl",
+          "bytes": 33080,
+          "sha256": "660012d621aaa1d63e9f420f2220450c9c3c58b166f4dc0abf86fdcb97c9c379"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/create-approval.png",
+          "bytes": 65241,
+          "sha256": "be7f2c357121d88b239bfcbdb55abb14cc773ceba186f5e63f58196b66324d27"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/overwrite-approval.png",
+          "bytes": 65193,
+          "sha256": "b60a2ef5e182b20a7c70cf3a36720f885ea60d0429c8b2c2caca5a396db0c5da"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/unicode-newlines-approval.png",
+          "bytes": 66438,
+          "sha256": "69e36b44fffda38b346b6396d410f0e2356dd6ab45e7c4e32e36abc1acc4eecd"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/write-recovery.png",
+          "bytes": 47502,
+          "sha256": "00270a4f99c5fd6e2a82452ef5f900ce57c260f0733bdb76d742c0479f141c26"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/credential-cleanup.json",
+          "bytes": 30,
+          "sha256": "bfff91333be71e84f104124afb0773918d0cc47a180a77f1eb611c7eb02d24b5"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/gateway-cleanup.json",
+          "bytes": 16,
+          "sha256": "5e53c56613489af143413cbae6312dcbe5a19b4d2f8ccec76c56383620f03a75"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/server-source-binding.json",
+          "bytes": 670058,
+          "sha256": "c228c8cd2f3a1be791b9bf7c34fe10e9b4e644a8de4c3388aeab08202b590ca2"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/frozen-runner-hash.json",
+          "bytes": 84,
+          "sha256": "77293103c84d5c0c1c4fe8b9fd47d6903eeef2d42226b00d15e86d16fb1f3e43"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/model-tool-names.json",
+          "bytes": 15841,
+          "sha256": "f11ffc1b931e100b704f60a11acda4881d02dbbc32e3190c0fafe754ff3bfb03"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/request-summary.json",
+          "bytes": 72462,
+          "sha256": "0b9270521e1c0a3e7aa6b8bf7115b399495a41b14d07b3ad257a99fb8851dfe3"
+        },
+        {
+          "path": "artifacts/issue-102/functional-installed-20261023-1324-final/profile-restoration.json",
+          "bytes": 742,
+          "sha256": "045fd89075b4b55393907cac546cc815f02f9e7b21598ffeb6deda3341a19e59"
+        }
+      ]
+    }
+  }
+}

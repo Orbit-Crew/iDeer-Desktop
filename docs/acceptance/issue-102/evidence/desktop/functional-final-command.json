@@ -1,0 +1,19 @@
+{
+  "command": [
+    "pwsh",
+    "-NoProfile",
+    "-File",
+    "scripts/acceptance/issue-102/installed.ps1",
+    "-State",
+    "C:/Users/Neo/.codex/worktrees/f9fc/iDeer-Desktop/artifacts/issue-102/functional-installed-20261023-1324-final",
+    "-Executable",
+    "D:/software/iDeer Desktop/ideer-desktop/ideer-desktop.exe",
+    "-Node",
+    "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\.cache\\node22\\node-v22.23.3-win-x64\\node.exe"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-23T05:24:30.433568+00:00",
+  "finished": "2026-10-23T05:31:17.958259+00:00",
+  "seconds": 407.531,
+  "exitCode": 0
+}

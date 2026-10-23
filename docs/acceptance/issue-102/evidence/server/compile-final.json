@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/.venv/bin/python",
+    "-m",
+    "py_compile",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/device_control/broker.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/gateway/app.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/gateway/canonical_agent_run_preparation.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/gateway/local_workspace_policy.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/gateway/routers/devices.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/app/gateway/run_preparation.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/packages/agentplatform-extension/agentplatform_extension/local_runtime/tools.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/contracts/test_global_exception_handlers.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/integration/api/test_devices_router.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/unit/agentplatform/test_local_runtime_extension.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/unit/device_control/test_broker.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/unit/gateway/test_canonical_agent_run.py",
+    "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend/tests/unit/gateway/test_local_runtime_context.py"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend",
+  "started": "2026-10-22T23:37:18.910179+00:00",
+  "finished": "2026-10-22T23:37:18.982897+00:00",
+  "seconds": 0.073,
+  "exitCode": 0
+}

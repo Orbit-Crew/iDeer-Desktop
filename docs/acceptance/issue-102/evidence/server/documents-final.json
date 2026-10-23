@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "scripts/check_documents.py"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021",
+  "started": "2026-10-23T05:33:27.045015+00:00",
+  "finished": "2026-10-23T05:33:27.911324+00:00",
+  "seconds": 0.866,
+  "exitCode": 0
+}

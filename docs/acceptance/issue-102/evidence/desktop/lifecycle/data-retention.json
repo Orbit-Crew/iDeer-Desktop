@@ -1,0 +1,102 @@
+[
+  {
+    "stage": "before-install",
+    "timestamp": "2026-10-22T12:15:04.8286091+00:00",
+    "files": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      },
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6"
+      }
+    ],
+    "legacyFiles": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      }
+    ],
+    "expectedContents": {
+      "desktop": "desktop-data-must-survive",
+      "legacy": "legacy-data-must-survive"
+    },
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-install",
+    "timestamp": "2026-10-22T12:15:23.1442792+00:00",
+    "files": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      },
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6"
+      }
+    ],
+    "legacyFiles": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      }
+    ],
+    "expectedContents": {
+      "desktop": "desktop-data-must-survive",
+      "legacy": "legacy-data-must-survive"
+    },
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-uninstall",
+    "timestamp": "2026-10-22T12:15:37.7851510+00:00",
+    "files": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      },
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6"
+      }
+    ],
+    "legacyFiles": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      }
+    ],
+    "expectedContents": {
+      "desktop": "desktop-data-must-survive",
+      "legacy": "legacy-data-must-survive"
+    },
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  },
+  {
+    "stage": "after-reinstall",
+    "timestamp": "2026-10-22T12:15:48.3405090+00:00",
+    "files": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      },
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\iDeer Desktop\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "6C62A71042D353863BC0619A046520253C36D17B16659F297E14CC34B597EAF6"
+      }
+    ],
+    "legacyFiles": [
+      {
+        "Path": "C:\\Users\\Neo\\AppData\\Roaming\\linz\\ideer-acceptance-c16a9f5e-aa47-4fee-a339-d8af4322f7e2.txt",
+        "Hash": "9E4D60F35CCEFFBD538E8E23766DFA73B9ED4A9544340BB281103123B9EB6680"
+      }
+    ],
+    "expectedContents": {
+      "desktop": "desktop-data-must-survive",
+      "legacy": "legacy-data-must-survive"
+    },
+    "coverage": "Unique test fixtures only; not a real installed linz or historical workspace"
+  }
+]

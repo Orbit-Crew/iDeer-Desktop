@@ -11,6 +11,7 @@ without a socket.
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import time
 from dataclasses import dataclass, replace
@@ -28,6 +29,8 @@ from .mcp import MCPExecution
 from .policy import LocalPolicy, PolicyDecision, RiskLevel
 from .protocol import MessageType, sign_envelope
 from .receipts import content_hash
+from .consent import request_hash
+from .files import FileAccessError
 
 
 class ConsentDecisionError(RuntimeError):
@@ -58,6 +61,7 @@ class _LocalConsent:
     loop: asyncio.AbstractEventLoop
     requested_at: float
     task_id: str
+    deadline: float = float('inf')
     #: The prompt coroutine; cancelled when the request stops being answerable.
     prompt: asyncio.Future[Any] | None = None
     #: Why nobody answered (disconnect, timeout); recorded in the audit as-is.
@@ -156,15 +160,19 @@ class LocalConsentCoordinator:
         return PendingConsent(
             task_id=task_id,
             capability=request.capability,
-            payload=dict(request.payload),
+            payload=copy.deepcopy(request.payload),
             request_hash=request.request_hash,
             risk_level=level.value,
             # Level 2 is displayed but never silenceable (§9: dangerous work
             # has no "always allow" escape hatch).
-            silenceable=level is not RiskLevel.LEVEL_2,
+            silenceable=level is not RiskLevel.LEVEL_2 and not self._desktop_write(request.capability),
             summary=self._summary(request),
             requested_at=time.monotonic(),
         )
+
+    def _desktop_write(self, capability):
+        from .file_service import WorkspaceFileService
+        return capability == 'local.files.write' and isinstance(self._wire.file_service, WorkspaceFileService)
 
     def _summary(self, request: ConsentRequest) -> dict[str, str]:
 
@@ -237,6 +245,9 @@ class LocalConsentCoordinator:
                 "summary": render_consent_summary(request.capability, payload),
             },
         )
+        if self._desktop_write(request.capability) and self.consent_prompt is None:
+            await self._deny_unanswered(envelope, request)
+            return
         if self.consent_prompt is None:
             self._relayed_consents[task_id] = _RelayedConsent(
                 request, time.monotonic()
@@ -244,20 +255,27 @@ class LocalConsentCoordinator:
             await self._send_consent_required(envelope, request)
             return
         loop = asyncio.get_running_loop()
+        deadline = time.monotonic() + CONSENT_TIMEOUT_SECONDS
+        if getattr(envelope, 'expires_at', None) is not None:
+            from datetime import datetime
+            deadline = min(deadline, time.monotonic() + (envelope.expires_at - datetime.now(envelope.expires_at.tzinfo)).total_seconds())
         consent = _LocalConsent(
             request=request,
             future=loop.create_future(),
             loop=loop,
             requested_at=time.monotonic(),
             task_id=task_id,
+            deadline=deadline,
         )
         self._local_consents[task_id] = consent
+        if self._desktop_write(request.capability):
+            await self._send_consent_required(envelope, request)
         try:
             answer = await self._await_local_consent(consent)
         finally:
             consent.prompt = None
             self._local_consents.pop(task_id, None)
-        if answer is None:
+        if answer is None or time.monotonic() >= consent.deadline:
             await self._deny_unanswered(
                 envelope, request, reason=consent.abandoned_reason
             )
@@ -291,7 +309,7 @@ class LocalConsentCoordinator:
         try:
             done, _ = await asyncio.wait(
                 {prompt, consent.future},
-                timeout=CONSENT_TIMEOUT_SECONDS,
+                timeout=max(0, consent.deadline - time.monotonic()),
                 return_when=asyncio.FIRST_COMPLETED,
             )
         except asyncio.CancelledError:
@@ -333,11 +351,16 @@ class LocalConsentCoordinator:
         approved: bool,
         actor_id: str = "local-user",
         always: bool = False,
+        expected_hash: str | None = None,
     ) -> None:
         """Answer a pending on-device request from the UI thread."""
         consent = self._local_consents.get(task_id)
         if consent is None:
             raise ConsentDecisionError("no local consent is pending for this task")
+        if (expected_hash is not None and expected_hash != consent.request.request_hash) or request_hash(consent.request.payload) != consent.request.request_hash:
+            raise ConsentDecisionError('consent request does not match')
+        if time.monotonic() >= consent.deadline:
+            raise ConsentDecisionError('consent request expired')
         if consent.future.done():
             raise ConsentDecisionError("this request was already answered")
         answer = {
@@ -430,6 +453,10 @@ class LocalConsentCoordinator:
         wire = self._wire
         task_id = envelope.task_id or ""
         self._answered_consents.add(task_id)
+        if request_hash(request.payload) != request.request_hash:
+            approved = False
+        if self._desktop_write(request.capability):
+            always = False
         exchange = ConsentExchange(store)
         exchange.decide(request, approved=approved, actor_id=actor_id)
         if approved and always:
@@ -539,6 +566,9 @@ class LocalConsentCoordinator:
 
         wire = self._wire
         task_id = envelope.task_id or ""
+        if self._desktop_write('local.files.write'):
+            self._audit(AuditKind.CONSENT, 'ignored_remote_decision', task_id=task_id, detail={'origin': 'server'})
+            return
         if task_id in wire._cancelled_tasks:
             # Consume the marker: the cancel has now been observed, and an
             # entry only ever added to would grow without bound (05-M9).
@@ -602,8 +632,19 @@ class LocalConsentCoordinator:
 
         wire = self._wire
         try:
-            await self._execute_consented_inner(envelope, request)
+            try:
+                await self._execute_consented_inner(envelope, request)
+            except FileAccessError as exc:
+                if exc.code == 'RESULT_UNCERTAIN':
+                    if not hasattr(self, '_write_effects'):
+                        self._write_effects = set()
+                    self._write_effects.add(envelope.task_id)
+                await wire._send_error(envelope.task_id or '', str(exc), exc.code,
+                    request.payload, request.capability, consent_decision='approved',
+                    status='result_not_verified' if exc.code == 'RESULT_UNCERTAIN' else 'failed')
         except asyncio.CancelledError:
+            if envelope.task_id in getattr(self, '_write_effects', set()):
+                return
             await wire._send_error(
                 envelope.task_id or "",
                 "local task cancelled",
@@ -614,6 +655,8 @@ class LocalConsentCoordinator:
                 status="cancelled",
                 consent_decision="approved",
             )
+        finally:
+            getattr(self, '_write_effects', set()).discard(envelope.task_id)
 
     async def _execute_consented_inner(
         self, envelope: Any, request: ConsentRequest
@@ -622,6 +665,9 @@ class LocalConsentCoordinator:
 
         wire = self._wire
         task_id = envelope.task_id or ""
+        if self._desktop_write(request.capability) and (wire.receipt_ledger is None or wire.receipt_ledger.error):
+            await wire._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
+            return
         if request.capability.startswith("local.mcp."):
             assert wire.mcp_service is not None
             execution = await wire.mcp_service.execute(
@@ -658,6 +704,10 @@ class LocalConsentCoordinator:
             file_task = wire.file_service.execute(
                 request.capability, request.payload, consent=True
             )
+            if self._desktop_write(request.capability) and file_task.decision is PolicyDecision.ALLOW:
+                if not hasattr(self, '_write_effects'):
+                    self._write_effects = set()
+                self._write_effects.add(task_id)
             decision = file_task.decision
             value = file_task.value
             receipt = wire._file_receipt(

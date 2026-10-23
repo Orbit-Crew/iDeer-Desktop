@@ -1,0 +1,11 @@
+{
+  "command": [
+    "bash",
+    "backend/scripts/run-real-e2e.sh"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021",
+  "started": "2026-10-22T23:31:04.671685+00:00",
+  "finished": "2026-10-22T23:36:00.759189+00:00",
+  "seconds": 276.285,
+  "exitCode": 0
+}

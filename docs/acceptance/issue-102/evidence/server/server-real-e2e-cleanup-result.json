@@ -1,0 +1,661 @@
+{
+  "recordedAt": "2026-10-22T23:36:52.259740+00:00",
+  "runId": "real-e2e-1792711864-2231",
+  "target": "/tmp/ideer-real-e2e-real-e2e-1792711864-2231-5aeaJv",
+  "automaticCleanup": "incomplete: immutable version directory permissions",
+  "ownedUid": 1000,
+  "verifiedOwnedEntries": 985,
+  "symlinks": 0,
+  "directoriesMadeOwnerWritable": [
+    {
+      "relativePath": "resources/skills/8243c620-6fa6-529e-9516-b3b99b813cc7/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/7449709e-2aba-5f63-aba0-82c4481185aa/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/7449709e-2aba-5f63-aba0-82c4481185aa/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/97d724ff-70ad-5ed2-85c4-538ac1162760/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/cbd71980-3779-5865-8139-b24efa9dc540/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/cbd71980-3779-5865-8139-b24efa9dc540/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/4451bc3c-8252-5e06-b53e-5b47b6083500/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/4451bc3c-8252-5e06-b53e-5b47b6083500/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/cd329541-573c-5231-9796-cf6289c51b8a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ae7ebc44-11aa-5f50-8886-7c0c47c16856/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ae7ebc44-11aa-5f50-8886-7c0c47c16856/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/04def76a-ede6-5b5e-838b-de50ebb10a93/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/e63f8349-1764-5a6d-a1f8-03c198ab4416/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/e63f8349-1764-5a6d-a1f8-03c198ab4416/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/96bf7d00-ef22-5c00-b2a9-36b544f6011d/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/96bf7d00-ef22-5c00-b2a9-36b544f6011d/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/970cfa98-d2e5-5181-9b6b-f1b843bb97c7/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/970cfa98-d2e5-5181-9b6b-f1b843bb97c7/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/970cfa98-d2e5-5181-9b6b-f1b843bb97c7/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/dd0ee0b9-6f71-50ff-8988-23259f8525d5/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ec9c5ed9-09ff-50d8-8155-c1ae7ba1fa9b/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ec9c5ed9-09ff-50d8-8155-c1ae7ba1fa9b/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ec9c5ed9-09ff-50d8-8155-c1ae7ba1fa9b/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ec9c5ed9-09ff-50d8-8155-c1ae7ba1fa9b/versions/1/references/config",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6f2c84cc-0837-509b-a8c1-41c0a7734aa2/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6f2c84cc-0837-509b-a8c1-41c0a7734aa2/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/383dcba3-b5c1-4d36-a825-fc08d1475564/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/55f05c3f-554b-5a15-82e1-431a10df18bf/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/55f05c3f-554b-5a15-82e1-431a10df18bf/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f258c030-0aa2-5ca4-9072-c28fa9fdadbd/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f258c030-0aa2-5ca4-9072-c28fa9fdadbd/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f258c030-0aa2-5ca4-9072-c28fa9fdadbd/versions/1/templates",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f258c030-0aa2-5ca4-9072-c28fa9fdadbd/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/58e914a2-d80b-57b5-9c00-fb0a578c7b1a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/58e914a2-d80b-57b5-9c00-fb0a578c7b1a/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d2413560-34bf-481b-83ee-febece65cc64/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a56d9e3d-297e-536b-ba7c-80dce0ade891/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a56d9e3d-297e-536b-ba7c-80dce0ade891/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a56d9e3d-297e-536b-ba7c-80dce0ade891/versions/1/templates",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a56d9e3d-297e-536b-ba7c-80dce0ade891/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/templates",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/helpers",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/validators",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas/ISO-IEC29500-4_2016",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas/mce",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas/microsoft",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas/ecma",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/1f4fb421-90b9-40bc-8b91-59d0d795f834/versions/1/scripts/office/schemas/ecma/fouth-edition",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/4298894d-0479-595e-9cb5-7c2be9826bff/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/52cb49f6-11a1-55a7-bafc-6905f7682eaf/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/24cf9f5b-0691-535f-b78d-5065a565b1be/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/helpers",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/validators",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas/ISO-IEC29500-4_2016",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas/mce",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas/microsoft",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas/ecma",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/de48df01-f794-4a1a-a3d7-bedf38256ffb/versions/1/scripts/office/schemas/ecma/fouth-edition",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/c6f46e69-4e04-54ee-840b-a9367bb8c2c2/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/c6f46e69-4e04-54ee-840b-a9367bb8c2c2/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/9fe928ec-e79f-57fb-b393-981e0aba2cab/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/5e05ca2a-7233-5f37-9f35-3a95f6286038/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/5e05ca2a-7233-5f37-9f35-3a95f6286038/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/5e05ca2a-7233-5f37-9f35-3a95f6286038/versions/1/templates",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/cbbc36c7-100a-5182-89dd-c35da6de986c/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/cbbc36c7-100a-5182-89dd-c35da6de986c/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/4e3bf1ef-0ac1-4572-a180-793a276dc8e8/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/4e3bf1ef-0ac1-4572-a180-793a276dc8e8/versions/1/reference",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/7d3155a3-6c27-5b86-b105-43c985025521/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/7d3155a3-6c27-5b86-b105-43c985025521/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a1884516-c148-5cb0-967b-857c1a181c4f/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/a1884516-c148-5cb0-967b-857c1a181c4f/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d6e4d63a-8ce9-567b-b9ae-840adcf919c9/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d6e4d63a-8ce9-567b-b9ae-840adcf919c9/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6734d242-203e-5bcd-ad77-583431295842/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6734d242-203e-5bcd-ad77-583431295842/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/306dedf9-229a-5040-8ae2-f53d9140b4a4/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/306dedf9-229a-5040-8ae2-f53d9140b4a4/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f1b5b753-1709-5885-9f2a-45c728e6e47c/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f1b5b753-1709-5885-9f2a-45c728e6e47c/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ad169df9-b595-5002-8e15-4c273ae2ade4/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/ad169df9-b595-5002-8e15-4c273ae2ade4/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1/assets",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1/eval-viewer",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f6d20629-ce42-5807-ad5c-ea1935a10473/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/b420470d-f246-5e03-ab2f-66e5264d7ecf/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/b420470d-f246-5e03-ab2f-66e5264d7ecf/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/b420470d-f246-5e03-ab2f-66e5264d7ecf/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/55ecbc41-ba70-55fe-a054-2affb32ad573/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/15f0af74-09a4-5728-a5b7-dc95b1ad6673/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/15f0af74-09a4-5728-a5b7-dc95b1ad6673/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/c7860af7-51fb-4d63-b865-8081944e165f/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/c7860af7-51fb-4d63-b865-8081944e165f/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/35ffbe7d-7078-5bae-94a6-0ab9e539cdb4/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/35ffbe7d-7078-5bae-94a6-0ab9e539cdb4/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/0c355190-3a55-59d1-92d0-1e04ab0ff98f/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/0c355190-3a55-59d1-92d0-1e04ab0ff98f/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/78443021-0258-5fc2-9479-73ac8a820c63/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/78443021-0258-5fc2-9479-73ac8a820c63/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/f76c06ae-a32d-58ed-951a-6a2f0c3457f3/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/5429c61f-89a3-5a37-a782-9fa9e0619c3a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/5429c61f-89a3-5a37-a782-9fa9e0619c3a/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/e4f5b5d3-7f5d-5e89-9b99-4edec7a1e4c2/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/9d4f97f0-9279-53c8-b77e-e00988d7b92c/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/9d4f97f0-9279-53c8-b77e-e00988d7b92c/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/aa1f5e9a-16bc-58e5-817c-a6b25061f7bf/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/17e36856-4688-5336-b9d3-9c844ff8788c/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/17e36856-4688-5336-b9d3-9c844ff8788c/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/578fb8d1-2c16-5ba6-938a-e6b0d94e0696/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d069a361-f28c-5d65-af8a-5fa275a1c6ca/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d069a361-f28c-5d65-af8a-5fa275a1c6ca/versions/1/references",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d069a361-f28c-5d65-af8a-5fa275a1c6ca/versions/1/assets",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d069a361-f28c-5d65-af8a-5fa275a1c6ca/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/d069a361-f28c-5d65-af8a-5fa275a1c6ca/versions/1/assets/fonts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/be6554b5-c8da-5633-bc1a-4d9cdf087178/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/bdc5138a-c602-5101-a985-bd233cd5015a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/bdc5138a-c602-5101-a985-bd233cd5015a/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/33c6fcde-a015-50df-9854-bc49297c9b9f/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/37363cb0-f788-55d6-b0d1-7381e862eef6/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/37363cb0-f788-55d6-b0d1-7381e862eef6/versions/1/agents",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/c0c2556f-2716-5e28-934a-d52d673bf88d/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/helpers",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/validators",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas/ISO-IEC29500-4_2016",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas/mce",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas/microsoft",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas/ecma",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/skills/6ed782a2-30e4-4c62-854f-864ef0e71a4f/versions/1/scripts/office/schemas/ecma/fouth-edition",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/fc50c28d-a9d9-5672-8117-b4f5d684ec66/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/836c0262-b657-51a6-b748-9249b58fa187/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/de7f5dc7-d602-5594-9c1d-b668c982e744/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/1ee9939c-aa37-41e4-b6ed-cd0917abeb66/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/bc5ec8b0-cd80-5574-b2a0-aa4fd31dfb85/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/4c6a5466-4ebe-4839-9e76-09a8c86d84d1/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/8d1ff9a0-c635-5498-a85c-fa4743097bf1/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/4f6814a6-cd6c-58e4-a3f4-b8a6753981a5/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/9d68a47e-f8cd-5487-8ba5-21b1bf531f92/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/24534a1b-e77f-5c6f-909c-e1ec7139598a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/4b0b0a3b-1321-59f9-870f-bcdf47489d4d/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/fa2b8af9-16e7-555f-8ede-81e148429406/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/dd0b2c9c-3709-541a-a021-8c1078f7e823/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/f364045a-59df-567a-9268-f3360b72cb22/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/3c3ce48d-56f9-54a0-85bc-b0530e07a95a/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/8206fd59-9707-5a6f-b83f-69267e5f37ad/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/56e2423d-37c3-52cb-a05f-d32677e6abcb/versions/1",
+      "modeBefore": "0o555"
+    },
+    {
+      "relativePath": "resources/agents/6c465339-44e3-5c93-97ad-1c46421341d8/versions/1",
+      "modeBefore": "0o555"
+    }
+  ],
+  "portsClosed": {
+    "48102": true,
+    "3101": true
+  },
+  "supplementalCleanup": "passed",
+  "targetAbsent": true
+}

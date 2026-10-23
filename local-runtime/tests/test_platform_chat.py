@@ -115,7 +115,7 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
         worker.join()
 
 
-def make_chat(tmp_path, origin):
+def make_chat(tmp_path, origin, **options):
     from core.platform_chat import DesktopChat
     secure = InMemorySecretStore()
     secure.set('business-A', 'business-A')
@@ -124,7 +124,80 @@ def make_chat(tmp_path, origin):
     settings = RuntimeSettings(server_url=origin, user_id='A', business_token_ref='business-A',
                                business_expires_at='2099-01-01T00:00:00+00:00')
     settings.save(config)
-    return DesktopChat(config, secure, lambda: {'state': 'authenticated'}), settings, config
+    return DesktopChat(config, secure, lambda: {'state': 'authenticated'}, **options), settings, config
+
+
+@pytest.mark.parametrize('change,expected', [({}, ''), ({'requestHash': '0' * 64}, 'CONSENT_MISMATCH'),
+    ({'taskId': 'another-task'}, 'CONSENT_MISMATCH'), ({'runId': 'another-run'}, 'CONSENT_MISMATCH'),
+    ({'threadId': 'another-thread'}, 'CONSENT_MISMATCH'), ({'content': 'CHANGED'}, 'CHAT_COMMAND_INVALID'),
+    ({'decision': 'always'}, 'CHAT_COMMAND_INVALID'), ({'scope': 'stale-owner'}, 'CHAT_IDENTITY_CHANGED')])
+def test_chat_write_decision_binds_original_run_task_hash_and_stays_on_device(tmp_path, change, expected):
+    from core.consent import PendingConsent
+    pending = PendingConsent('task-102', 'local.files.write', {'run_id': 'run-1', 'thread_id': 'thread-A',
+        'arguments': {'path': '/workspace/102/target.txt', 'content': 'AFTER\n'}}, 'a' * 64,
+        'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [pending],
+            decide_consent=lambda *args: decisions.append(args))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write exact content'})
+        assert state['localConsents'][0]['content'] == 'AFTER\n'
+        command = dict(action='consent', scope=scope, threadId='thread-A', runId='run-1', taskId='task-102',
+                       requestHash='a' * 64, decision='allow')
+        # Only the existing stream can still produce HTTP GETs. A local
+        # decision must never become an HTTP consent request or a chat Turn.
+        before = len([row for row in records if row[1] is not None])
+        result = chat.handle({**command, **change})
+        assert result['error'] == expected
+        assert decisions == ([] if expected else [('task-102', 'a' * 64, True)])
+        assert len([row for row in records if row[1] is not None]) == before
+
+
+def test_chat_survives_unavailable_local_approval_snapshot_and_recovers_next_poll(tmp_path):
+    with platform() as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write exact content'})
+        def unavailable():
+            raise RuntimeError('fixture snapshot unavailable')
+        chat.local_consents = unavailable
+        failed = chat.handle({'action': 'state'})
+        assert failed['error'] == 'CONSENT_UNAVAILABLE'
+        assert failed['localConsents'] == []
+        assert failed['scope'] == scope
+        chat.local_consents = lambda: ()
+        recovered = chat.handle({'action': 'state'})
+        assert recovered['localConsents'] == []
+        assert recovered['error'] == ''
+
+
+def test_chat_never_approves_write_content_hidden_by_credential_redaction(tmp_path):
+    from core.consent import PendingConsent
+    pending = PendingConsent('task-102', 'local.files.write', {'run_id': 'run-1', 'thread_id': 'thread-A',
+        'arguments': {'path': '/workspace/102/target.txt', 'content': 'PREFIX business-A SUFFIX'}}, 'a' * 64,
+        'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [pending],
+            decide_consent=lambda *args: decisions.append(args))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write exact content'})
+        assert state['localConsents'] == []
+        assert state['error'] == 'CONSENT_CONTENT_REDACTED'
+        assert 'business-A' not in json.dumps(state)
+        forced = chat.handle(dict(action='consent', scope=scope, threadId='thread-A', runId='run-1',
+            taskId='task-102', requestHash='a' * 64, decision='allow'))
+        assert forced['error'] == 'CONSENT_CONTENT_REDACTED'
+        assert forced['localConsents'] == []
+        assert decisions == []
+        assert 'business-A' not in json.dumps(forced)
 
 
 def test_catalog_uses_business_identity_and_retains_canonical_identity(tmp_path):

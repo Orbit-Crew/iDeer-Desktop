@@ -1,0 +1,13 @@
+{
+  "command": [
+    ".cache/node22/node-v22.23.3-win-x64/node.exe",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "test/runtime.test.ts"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-22T12:08:51.452381+00:00",
+  "finished": "2026-10-22T12:08:56.303274+00:00",
+  "seconds": 4.844,
+  "exitCode": 1
+}

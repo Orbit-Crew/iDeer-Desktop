@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import copy
 import json
 import sqlite3
 from dataclasses import dataclass, field
@@ -270,7 +271,7 @@ class ConsentExchange:
                         json.dumps(payload, ensure_ascii=False, sort_keys=True),
                     ),
                 )
-        return ConsentRequest(capability, dict(payload), digest)
+        return ConsentRequest(capability, copy.deepcopy(payload), digest)
 
     def decide(
         self,

@@ -38,7 +38,8 @@ class ReceiptStorageError(RuntimeError):
 class ReceiptLedger:
     def __init__(self, path: str | Path) -> None:
         self.path = str(path)
-        self.error = ""
+        self._error = ""
+        self._completion_error = ""
         self._lock = threading.RLock()
         try:
             with self._db() as db:
@@ -48,8 +49,23 @@ class ReceiptLedger:
                     receipt_hash TEXT, delivery_state TEXT NOT NULL,
                     acknowledgment TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)
                 """)
+                # A crash can lose the in-memory completion failure, but not
+                # its admitted uncertain row. Require a real saved receipt
+                # before allowing further writes after such a restart.
+                if db.execute("SELECT 1 FROM local_receipts WHERE delivery_state='uncertain' LIMIT 1").fetchone():
+                    self._completion_error = 'RECEIPT_STORAGE_UNAVAILABLE'
         except (sqlite3.Error, OSError):
             self.error = "RECEIPT_STORAGE_UNAVAILABLE"
+
+    @property
+    def error(self):
+        return self._completion_error or self._error
+
+    @error.setter
+    def error(self, value):
+        # Admission, acknowledgment and cleanup cannot prove that terminal
+        # execution evidence can be saved, so they never clear this latch.
+        self._error = value
 
     @contextmanager
     def _db(self):
@@ -95,7 +111,9 @@ class ReceiptLedger:
     def complete(self, binding, receipt):
         identity = self._identity(binding, receipt["task_id"])
         metadata = {key: value for key, value in receipt.items() if key in RECEIPT_FIELDS}
+        saved = False
         def write(db):
+            nonlocal saved
             row = db.execute("SELECT * FROM local_receipts WHERE identity=?", (identity,)).fetchone()
             if row is None:
                 raise ValueError("RECEIPT_NOT_ADMITTED")
@@ -107,9 +125,18 @@ class ReceiptLedger:
                 digest = content_hash(value)
                 db.execute("UPDATE local_receipts SET receipt=?, receipt_hash=?, delivery_state='pending' WHERE identity=?",
                            (json.dumps(metadata, sort_keys=True), digest, identity))
+                saved = True
                 return {**value, "receipt_hash": digest}
             return self._upload(row)
-        return self._execute(write, write=True)
+        with self._lock:
+            try:
+                result = self._execute(write, write=True)
+            except ReceiptStorageError:
+                self._completion_error = 'RECEIPT_STORAGE_UNAVAILABLE'
+                raise
+            if saved:
+                self._completion_error = ''
+            return result
 
     @staticmethod
     def _upload(row):

@@ -1,0 +1,6 @@
+{
+  "command": "node scripts/desktop-smoke.cjs",
+  "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+  "elapsedMs": 13117,
+  "exitCode": 0
+}

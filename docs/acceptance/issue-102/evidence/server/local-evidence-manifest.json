@@ -1,0 +1,106 @@
+[
+  {
+    "source": "dev-log/environment-final.json",
+    "file": "environment-final.json.gz",
+    "uncompressedBytes": 10272,
+    "uncompressedSHA256": "4ba3e8beab900b6f2bdd274195e62d547beaa503f1e2a7e08c5baa7e33f67ae6",
+    "bytes": 1053,
+    "sha256": "e526351153cf42801600ac58b5b6ea2cc2de2e70aca97fb9464a8e2dd6731758"
+  },
+  {
+    "source": "dev-log/source-binding-delivery.json",
+    "file": "source-binding-delivery.json.gz",
+    "uncompressedBytes": 670058,
+    "uncompressedSHA256": "3e2ebb9281ce3318385637f7c9ca5ab4de3991a59a43ca7c6ac2a76e1d468891",
+    "bytes": 194688,
+    "sha256": "f840ae3d68551ca20782774e194801d63d6d293384f13c6a6d23c68eadcb3802"
+  },
+  {
+    "source": "dev-log/source-binding-review-fixed.json",
+    "file": "source-binding-review-fixed.json.gz",
+    "uncompressedBytes": 1872,
+    "uncompressedSHA256": "6d3b526b8ef3f45eae81d5ca838b209f3b3a1301c45339afb226d47d4538b0dd",
+    "bytes": 942,
+    "sha256": "524ad2576017533ce6e61435c93ef0280573bd50e6ebbe2144a927ab416ebda7"
+  },
+  {
+    "source": "dev-log/detect-changes-delivery.json",
+    "file": "detect-changes-delivery.json.gz",
+    "uncompressedBytes": 16887,
+    "uncompressedSHA256": "2ebb46250ae992c7a40fbd9c1f5d7d2db9724af4786d394dbbec32647f900105",
+    "bytes": 1628,
+    "sha256": "a1978bce4df8ccb3782f8efa13132acd747a18204ee7e79f4c57b14896830b4e"
+  },
+  {
+    "source": "dev-log/static-review-fixed.log",
+    "file": "static-review-fixed.log.gz",
+    "uncompressedBytes": 46,
+    "uncompressedSHA256": "84cf8adcfacda66bbdcb0f35c0454df1a5c114f6b5e875330cbdf8dddf32664c",
+    "bytes": 66,
+    "sha256": "a90147a7ae8a22d05a9b3ea9e51bfcdeafe227cda8a913472699dcb1151bdd8c"
+  },
+  {
+    "source": "dev-log/transport-terminal-race-red.log",
+    "file": "transport-terminal-race-red.log.gz",
+    "uncompressedBytes": 23287,
+    "uncompressedSHA256": "8e4b46127a64617d83e6a551daaada1339926d63f88d65d128281c99a4ea3fc0",
+    "bytes": 1450,
+    "sha256": "27e34dc6b8ee8caabbf871295e760c424e4d024e67e43ae70f8ac10387766f3c"
+  },
+  {
+    "source": "dev-log/transport-terminal-race-green.log",
+    "file": "transport-terminal-race-green.log.gz",
+    "uncompressedBytes": 100,
+    "uncompressedSHA256": "1c734b962fbdeed2aab515460a2f3e7451d368fc53c0abf8c2d7c3e61562e55f",
+    "bytes": 53,
+    "sha256": "0a6b52f513d541d41fb945fc781c7a7055b4b7ec00dc00e9b930bd5c57a05a5a"
+  },
+  {
+    "source": "dev-log/focused-final.log",
+    "file": "focused-final.log.gz",
+    "uncompressedBytes": 1704,
+    "uncompressedSHA256": "d76ecccb32b776cad8da88977eeef4396364c72db2161e1922c554a91c639bbf",
+    "bytes": 551,
+    "sha256": "c8920cdea342771988ba372e91e8abb2f0ac66b1e8bba5118e503f6e9d5c125a"
+  },
+  {
+    "source": "dev-log/backend-fixture-twofiles.log",
+    "file": "backend-fixture-twofiles.log.gz",
+    "uncompressedBytes": 5279,
+    "uncompressedSHA256": "ed0f8d8b315e4744ba37ec9ecf51906afbf5df66155f0bda439240890feb9ff6",
+    "bytes": 926,
+    "sha256": "204be4b96667e0fc03ae5f5613809b6336e0145342eebdaad92352557c41e3ef"
+  },
+  {
+    "source": "dev-log/backend-fixture-new-python.log",
+    "file": "backend-fixture-new-python.log.gz",
+    "uncompressedBytes": 3596,
+    "uncompressedSHA256": "f90fdc491b2a4629abbe7cb53c4e55b38e79b4f09aff8ddd5e85393d908c4174",
+    "bytes": 948,
+    "sha256": "98422db434cad2f79d82c31cbf4ee959d0779d75ccfa6b5f084603e3deef84ee"
+  },
+  {
+    "source": "dev-log/venv-entrypoint-repair.json",
+    "file": "venv-entrypoint-repair.json.gz",
+    "uncompressedBytes": 653,
+    "uncompressedSHA256": "cd9080af09d4cff2a4d66ac8c2e0244b14282936a36a485723f46f48d985e578",
+    "bytes": 376,
+    "sha256": "1ce0b922f72018a85e5f0731b39a8585b85831bde5dfb00f486b66ff8ce7a05a"
+  },
+  {
+    "source": "dev-log/uv-sync.log",
+    "file": "uv-sync.log.gz",
+    "uncompressedBytes": 2793,
+    "uncompressedSHA256": "882097cec4abccc3e59181b43933a34cbe9ce6c9b6a5a12ce7cc13d8a1c24496",
+    "bytes": 721,
+    "sha256": "203ddaea4f556756f269b741f6e440effa8b6587a1dcc9bb642170484e29254c"
+  },
+  {
+    "source": "dev-log/frontend-dependencies.log",
+    "file": "frontend-dependencies.log.gz",
+    "uncompressedBytes": 4539,
+    "uncompressedSHA256": "f3bf4a1f89ca140c2e72d1b3d25a044069656a49f44213e53665179bef52c490",
+    "bytes": 1479,
+    "sha256": "16d19ce56d33dcfc11251f4183d740dc4ebcf9464f6862428a328cdf825089fa"
+  }
+]

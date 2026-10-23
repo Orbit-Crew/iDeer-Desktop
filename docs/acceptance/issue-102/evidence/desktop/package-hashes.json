@@ -1,0 +1,6 @@
+{
+  "dist/win-unpacked/resources/app.asar": "aad49fc821cbf59aa570ee6e9f35ee1a0f72dc24925081fe21be702bc5a5df77",
+  "dist/win-unpacked/resources/runtime/python.exe": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+  "dist/win-unpacked/ideer-desktop.exe": "417dcea6c92bbd1390de26abf862207522513855b8b47b6f874a485902d2d72b",
+  "dist/ideer-desktop-0.1.0-windows-x64-setup.exe": "63c0e751cd1e637a1c46abe0a50e64128226c89620c86b1ae187d71a169a9add"
+}

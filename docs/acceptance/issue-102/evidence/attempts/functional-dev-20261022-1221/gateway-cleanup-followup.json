@@ -1,0 +1,8 @@
+{
+  "originalFinallyRecordAvailable": false,
+  "exited": true,
+  "verification": "Follow-up read-only WSL process and TCP inventory after interruption; original fixture finally record was absent",
+  "checkedPort": 60103,
+  "checkedPid": 8299,
+  "checkedAt": "2026-10-22T12:08:56.4698538Z"
+}

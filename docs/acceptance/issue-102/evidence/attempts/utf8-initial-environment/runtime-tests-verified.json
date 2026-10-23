@@ -1,0 +1,18 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests",
+    "-q",
+    "--basetemp",
+    "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer-102-utf8-e3c7403843ed48469cd5b25a760e356b",
+    "--junitxml",
+    "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\desktop\\runtime-tests-verified.xml"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\build-utf8",
+  "started": "2026-10-22T12:12:09.765888+00:00",
+  "finished": "2026-10-22T12:12:13.108974+00:00",
+  "seconds": 3.344,
+  "exitCode": 2
+}

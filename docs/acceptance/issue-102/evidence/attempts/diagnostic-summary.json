@@ -1,0 +1,90 @@
+{
+  "kind": "summary of actual result records; not full raw logs",
+  "selectedAcceptanceEvidence": false,
+  "runs": [
+    {
+      "name": "functional-dev-diagnostic-20261023-0750",
+      "status": "failed",
+      "startedAt": "2026-10-22T23:49:37.536Z",
+      "finishedAt": "2026-10-22T23:50:10.717Z",
+      "diagnosticOnly": true,
+      "requiredTimeoutOmitted": true,
+      "passedSubcases": 7,
+      "primaryRequests": 8,
+      "auxiliaryReads": 0,
+      "lastOperation": "outside-path",
+      "error": "AssertionError [ERR_ASSERTION]: outside-path result in original chat",
+      "credentialCleanup": {
+        "removed": 6,
+        "failures": []
+      },
+      "fixtureCleanup": {
+        "removed": true,
+        "appClosed": true
+      }
+    },
+    {
+      "name": "functional-dev-diagnostic-20261023-0753",
+      "status": "failed",
+      "startedAt": "2026-10-22T23:52:15.528Z",
+      "finishedAt": "2026-10-22T23:54:55.530Z",
+      "diagnosticOnly": true,
+      "requiredTimeoutOmitted": true,
+      "passedSubcases": 18,
+      "primaryRequests": 18,
+      "auxiliaryReads": 0,
+      "lastOperation": "before-write-disconnect",
+      "error": "Error: Timeout: before-write-disconnect local approval card",
+      "credentialCleanup": {
+        "removed": 6,
+        "failures": []
+      },
+      "fixtureCleanup": {
+        "removed": true,
+        "appClosed": true
+      }
+    },
+    {
+      "name": "functional-dev-diagnostic-20261023-0800",
+      "status": "failed",
+      "startedAt": "2026-10-22T23:58:35.336Z",
+      "finishedAt": "2026-10-23T00:00:04.025Z",
+      "diagnosticOnly": true,
+      "requiredTimeoutOmitted": true,
+      "passedSubcases": 19,
+      "primaryRequests": 19,
+      "auxiliaryReads": 3,
+      "lastOperation": "after-write-cancel",
+      "error": "TypeError: Cannot read properties of null (reading 'status')",
+      "credentialCleanup": {
+        "removed": 6,
+        "failures": []
+      },
+      "fixtureCleanup": {
+        "removed": true,
+        "appClosed": true
+      }
+    },
+    {
+      "name": "functional-dev-diagnostic-20261023-0804",
+      "status": "diagnostic-incomplete",
+      "startedAt": "2026-10-23T00:03:36.194Z",
+      "finishedAt": "2026-10-23T00:05:16.291Z",
+      "diagnosticOnly": true,
+      "requiredTimeoutOmitted": true,
+      "passedSubcases": 21,
+      "primaryRequests": 20,
+      "auxiliaryReads": 4,
+      "lastOperation": "after-write-disconnect",
+      "error": null,
+      "credentialCleanup": {
+        "removed": 6,
+        "failures": []
+      },
+      "fixtureCleanup": {
+        "removed": true,
+        "appClosed": true
+      }
+    }
+  ]
+}

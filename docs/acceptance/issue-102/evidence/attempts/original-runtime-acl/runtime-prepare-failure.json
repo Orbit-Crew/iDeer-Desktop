@@ -1,0 +1,10 @@
+{
+  "command": [
+    ".venv/Scripts/python.exe",
+    "scripts/prepare-runtime.py"
+  ],
+  "exitCode": 1,
+  "error": "PermissionError WinError 5 accessing existing generated .runtime",
+  "rawLogCaptured": false,
+  "approach": "Isolated source-identical build mirror under artifacts/issue-102/build-candidate; preserve inaccessible old generated output"
+}

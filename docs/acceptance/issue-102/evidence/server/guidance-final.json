@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python3",
+    "scripts/sync_agent_guidance.py",
+    "--check"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021",
+  "started": "2026-10-23T05:33:33.283540+00:00",
+  "finished": "2026-10-23T05:33:33.348218+00:00",
+  "seconds": 0.065,
+  "exitCode": 0
+}

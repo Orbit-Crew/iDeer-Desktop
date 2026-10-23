@@ -1,0 +1,14 @@
+{
+  "command": [
+    ".cache/node22/node-v22.23.3-win-x64/node.exe",
+    "node_modules/typescript/bin/tsc",
+    "--noEmit",
+    "-p",
+    "tsconfig.web.json"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-22T12:10:27.408601+00:00",
+  "finished": "2026-10-22T12:10:33.036710+00:00",
+  "seconds": 5.625,
+  "exitCode": 0
+}

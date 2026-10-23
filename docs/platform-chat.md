@@ -9,9 +9,10 @@ resource closure and immutable version snapshots; the UI displays the actual
 `selection_snapshot` returned for each Run.
 
 The renderer calls one restricted `desktop:chat` IPC method. Its command union
-allows state, catalog refresh, Thread creation/open, send, human-input answer
-and reconnect. It accepts no URL, authentication header, executable or local
-path. The main-frame check also applies to this IPC. Python obtains the business
+allows state, catalog refresh, Thread creation/open, send, human-input answer,
+reconnect and an exact local approval decision. It accepts no URL,
+authentication header, executable, physical path or renderer-supplied write
+content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
 the existing session-cookie and CSRF contract. Device credentials do not
 authenticate chat. No model, Agent graph, shell or fallback executor is added
@@ -55,7 +56,7 @@ for reproducible protocol checks and the real Gateway/Desktop probe. The
 [acceptance report](acceptance/issue-99/report.md) records protocol checks,
 real-provider scenarios and installed-app acceptance separately.
 
-## Read-only local workspace
+## Local workspace
 
 The Runtime card opens a native directory chooser and a separate native data
 boundary confirmation. A grant permits file names and requested UTF-8 text to
@@ -70,20 +71,23 @@ records the directory identity. Changing directory or binding invalidates old
 paths. Login expiry disables access. No physical path or device identifier enters
 the model's file tool schema or result.
 
-Server exposes `local.files.list`, `local.files.read`, and `local.files.search`
+Server exposes `local.files.list`, `local.files.read`, `local.files.search`
+and `local.files.write`
 through the selected canonical Agent Run. `path` is required; search also
 requires a literal `query` of at most 256 characters. Published Agent
 `tool_groups: [local.files]` enables these operations; an explicit empty list
 withholds them. The deployment's `IDEER_LOCAL_READ_CAPABILITIES` comma-separated
 allowlist defaults to the three read operations; an empty value disables them.
+`IDEER_LOCAL_WRITE_CAPABILITIES` defaults to `local.files.write`; an empty value
+disables writes. The read allowlist continues to govern only read operations.
 The authenticated caller's Resource USE permission, live device owner and
 capabilities, frozen Agent limits and local policy must all allow execution.
 The legacy direct `/api/devices/{id}/tasks/local` endpoint rejects these file
 operations with `CANONICAL_RUN_REQUIRED`.
 
-Desktop advertises only the implemented read operations after a directory grant.
-Legacy configured roots, file writes, Python and MCP execution remain unavailable
-in Desktop mode. The standalone legacy Runtime classes and their tests remain.
+Desktop advertises the implemented workspace operations after a directory grant.
+Legacy configured roots, Python and MCP execution remain unavailable in Desktop
+mode. The standalone legacy Runtime classes and their tests remain.
 
 Reads accept at most 65,536 bytes of UTF-8 text and reject binary or oversized
 files. Listings return at most 500 entries. Literal search visits at most 500
@@ -100,3 +104,41 @@ The [issue #100 acceptance runners](../scripts/acceptance/issue-100/README.md)
 exercise the real Gateway and installed Windows Runtime with synthetic files.
 The [acceptance report](acceptance/issue-100/report.md) binds the candidate,
 installer, scenario evidence, review and platform limitations.
+
+## Approve one text write
+
+`local.files.write` accepts a logical `path` and UTF-8 `content`, up to 65,536
+bytes without NUL characters. It creates a file or replaces its contents;
+parent directories must already exist. It uses the same current identity,
+directory generation, protected-path and link checks as reads. Windows pins
+ancestor handles during replacement. The Runtime writes exact UTF-8 bytes,
+including the submitted newlines, then reads back and verifies the result.
+
+The original chat displays the path, exact proposed content, Run, task ID and
+request digest. Its only decisions are allow once and reject. Approval travels
+through Desktop's owned local control channel and is checked against the pending
+task, digest and current chat scope. A Web consent response cannot authorize
+the write. A changed request requires its own approval. Local DENY, expired or
+abandoned prompts, changed identity or workspace, cancellation before execution
+and failed durable admission prevent writing. Existing always-allow settings do
+not skip Desktop's per-task write approval.
+
+The Runtime admits the original task into its identity-bound receipt ledger
+before execution. A failed completion record or unverifiable readback is shown
+as a result that needs verification. Completion-storage failure pauses further
+writes, including requests already waiting for approval. Admission, receipt
+acknowledgment and history cleanup do not clear that failure. After storage is
+repaired, a successfully saved read-only task receipt can demonstrate recovery;
+it does not resolve or repeat the earlier uncertain write.
+While that uncertain record remains, restarting Runtime conservatively pauses
+writes again. A new read with a durably saved receipt verifies storage for the
+current process before another write can proceed.
+Disconnects and restarts replay receipts
+under their original binding; they do not repeat the write. Cancellation does
+not roll back an effect or replace its completed receipt with a claim that it
+never happened. Late results stay associated with the original Run.
+
+The [issue #102 runners](../scripts/acceptance/issue-102/README.md) exercise
+approval, refusal, storage faults and disconnect/cancellation behavior. The
+[scenario report](acceptance/issue-102/report.md) records what was executed on
+the actual candidate and installation.

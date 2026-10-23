@@ -551,6 +551,10 @@ class LocalRuntimeClient:
         assert self.connection is not None
         task_id = envelope.task_id or ""
         operation = str(envelope.payload.get("operation", ""))
+        from .file_service import WorkspaceFileService
+        if operation == 'local.files.write' and isinstance(self.file_service, WorkspaceFileService) and (self.receipt_ledger is None or self.receipt_ledger.error):
+            await self._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
+            return
         if self.receipt_ledger is not None:
             try:
                 admitted = self.receipt_ledger.admit(self.receipt_binding(), {
@@ -731,7 +735,8 @@ class LocalRuntimeClient:
             raise
         except FileAccessError as exc:
             await self._send_error(
-                task_id, str(exc), exc.code, envelope.payload, operation
+                task_id, str(exc), exc.code, envelope.payload, operation,
+                status='result_not_verified' if exc.code == 'RESULT_UNCERTAIN' else 'failed'
             )
             return
         except SecretStoreError as exc:
@@ -912,10 +917,11 @@ class LocalRuntimeClient:
         approved: bool,
         actor_id: str = "local-user",
         always: bool = False,
+        expected_hash: str | None = None,
     ) -> None:
         """Answer a pending on-device request from the UI thread."""
         self.consent_coord.resolve_local_consent(
-            task_id, approved=approved, actor_id=actor_id, always=always
+            task_id, approved=approved, actor_id=actor_id, always=always, expected_hash=expected_hash
         )
 
     async def expire_consents(self, *, now: float | None = None) -> tuple[str, ...]:

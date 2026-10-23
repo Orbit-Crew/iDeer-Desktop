@@ -7,6 +7,13 @@ Unconfigured devices cannot execute tasks. Browser login establishes a separate
 business session for platform Agent/Skill chat, streaming and Thread history.
 The Server runs the Agent; Desktop never falls back to a local model.
 
+After selecting a workspace, text file creation and overwrite requests appear
+in the original chat as local approval cards. Each approval binds the exact
+path and content for one task. Writes require a reliable local receipt record;
+disconnects do not automatically repeat a write. See the
+[issue #102 acceptance report](docs/acceptance/issue-102/report.md) for scenario
+results and remaining verification.
+
 Use Node 22 and npm on the build machine:
 
 ```sh

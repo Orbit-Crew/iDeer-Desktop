@@ -1,0 +1,11 @@
+{
+  "status": "unexecuted",
+  "reason": "Server candidate invalidated by concurrent-result exception review fix before Desktop launch",
+  "serverHead": "aeeb9fb2c83c7a7364de0c989c7c011cb4d15ab8",
+  "serverSourceSHA256": "90900776b60b208547bd72272a1e775035fc6fb7d47f30aab0ed765cd8db042b",
+  "desktopLaunched": false,
+  "pairedSyntheticCredentials": 6,
+  "removedSyntheticCredentials": 6,
+  "readyAt": "2026-10-22T04:07:31.0146069Z",
+  "invalidatedAt": "2026-10-22T04:11:47.1345796Z"
+}

@@ -1,0 +1,14 @@
+{
+  "command": [
+    ".venv/Scripts/python.exe",
+    "scripts/acceptance/issue-102/validate_evidence.py",
+    "--functional",
+    "artifacts/issue-102/functional-dev-20261023-0806-final",
+    "--allow-development"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-23T05:23:25.182603+00:00",
+  "finished": "2026-10-23T05:23:25.493484+00:00",
+  "seconds": 0.312,
+  "exitCode": 0
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "uv",
+    "run",
+    "--no-sync",
+    "pytest",
+    "-p",
+    "no:rerunfailures",
+    "tests/unit/channels/test_channels.py",
+    "tests/unit/sandbox/test_sandbox_tools.py",
+    "-n",
+    "2",
+    "--dist",
+    "loadfile",
+    "-q"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021/backend",
+  "started": "2026-10-22T12:09:06.625624+00:00",
+  "finished": "2026-10-22T12:09:51.300875+00:00",
+  "seconds": 44.675,
+  "exitCode": 0
+}

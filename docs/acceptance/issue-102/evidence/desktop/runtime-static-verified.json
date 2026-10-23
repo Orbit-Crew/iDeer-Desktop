@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "-m",
+    "ruff",
+    "check",
+    "local-runtime",
+    "--select",
+    "E9,F63,F7,F82"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\build-utf8",
+  "started": "2026-10-22T12:14:32.473596+00:00",
+  "finished": "2026-10-22T12:14:32.798085+00:00",
+  "seconds": 0.329,
+  "exitCode": 0
+}

@@ -51,6 +51,7 @@ class LocalFileService:
 
 # Desktop workspaces deliberately do not reuse legacy configured file roots.
 READ_CAPABILITIES = ('local.files.list', 'local.files.read', 'local.files.search')
+WORKSPACE_CAPABILITIES = (*READ_CAPABILITIES, 'local.files.write')
 MAX_TEXT_BYTES = 65536
 MAX_ENTRIES = 500
 MAX_SEARCH_FILES = 500
@@ -165,6 +166,8 @@ class WorkspaceFileStore(LocalFileStore):
 
     def _resolve(self, logical_path):
         from .files import FileAccessError
+        if isinstance(logical_path, str) and any(part and part.rstrip(' .') != part for part in logical_path.split('/')):
+            raise FileAccessError('INVALID_PATH')
         root, path = super()._resolve(logical_path)
         if any(path == protected or protected in path.parents for protected in self.protected_roots):
             raise FileAccessError('PROTECTED_PATH')
@@ -172,10 +175,73 @@ class WorkspaceFileStore(LocalFileStore):
             raise FileAccessError('PROTECTED_PATH')
         return root, path
 
+    def write_verified(self, logical_path, raw):
+        """Replace bytes with the same ancestor and root protections as reads."""
+        import os
+        from contextlib import nullcontext
+        from .files import FileAccessError
+        root, path = self._resolve(logical_path)
+        # Parent directories must already exist. Keeping creation out of this
+        # boundary avoids following an unpinned ancestor during mkdir.
+        effect = False
+        try:
+            if os.name == 'nt':
+                from .files_nt import pinned
+                context = pinned(path.parent, root=root)
+            else:
+                context = nullcontext()
+            with context:
+                self._resolve(logical_path)
+                if path.exists() and not path.is_file():
+                    raise FileAccessError('NOT_A_FILE')
+                if os.name == 'nt':
+                    import tempfile
+                    fd, temporary = tempfile.mkstemp(prefix='.local-write-', dir=path.parent)
+                    parent_fd = None
+                else:
+                    parent_fd = self._open_directory(root, path.parent)
+                    fd, temporary = self._mkstemp_at(parent_fd)
+                try:
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write(raw)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    # Check target links again while ancestors remain pinned.
+                    self._resolve(logical_path)
+                    if parent_fd is None:
+                        os.replace(temporary, path)
+                    else:
+                        os.replace(temporary, path.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                    effect = True
+                    try:
+                        observed = self.read_bytes(logical_path, max_bytes=MAX_TEXT_BYTES + 1)
+                        if observed != raw:
+                            raise FileAccessError('RESULT_UNCERTAIN')
+                    except (OSError, FileAccessError):
+                        raise FileAccessError('RESULT_UNCERTAIN') from None
+                finally:
+                    try:
+                        try:
+                            if parent_fd is None:
+                                os.unlink(temporary)
+                            else:
+                                os.unlink(temporary, dir_fd=parent_fd)
+                        except FileNotFoundError:
+                            pass
+                    finally:
+                        if parent_fd is not None:
+                            os.close(parent_fd)
+        except (FileAccessError, OSError) as exc:
+            if effect:
+                raise FileAccessError('RESULT_UNCERTAIN') from None
+            if isinstance(exc, FileAccessError):
+                raise
+            raise FileAccessError('LOCKED_OR_UNAVAILABLE') from None
+
 
 class WorkspaceFileService(LocalFileService):
     """Signed task boundary, rechecking the current local grant for every call."""
-    capabilities = READ_CAPABILITIES
+    capabilities = WORKSPACE_CAPABILITIES
 
     def __init__(self, selection, *, available=lambda: True):
         self.available = available
@@ -187,13 +253,16 @@ class WorkspaceFileService(LocalFileService):
         from pathlib import Path
         from .files import FileAccessError, RootConfig
         with self.selection.lock:
-            if capability not in READ_CAPABILITIES:
+            if capability not in WORKSPACE_CAPABILITIES:
                 return FileTaskResult(PolicyDecision.DENY)
             if not self.available():
                 raise FileAccessError('WORKSPACE_UNAVAILABLE')
             settings, grant = self.selection.current()
-            decision = settings.policy().authorize(capability, payload)
-            if decision is not PolicyDecision.ALLOW:
+            policy = settings.policy()
+            decision = policy.authorize(capability, payload, consent=consent)
+            if capability == 'local.files.write' and decision is not PolicyDecision.DENY:
+                decision = PolicyDecision.ALLOW if consent else PolicyDecision.CONSENT_REQUIRED
+            if decision is not PolicyDecision.ALLOW and (capability != 'local.files.write' or decision is PolicyDecision.DENY):
                 return FileTaskResult(decision)
             args = payload.get('arguments', payload.get('args', payload))
             if not isinstance(args, dict) or not isinstance(args.get('path'), str):
@@ -209,7 +278,21 @@ class WorkspaceFileService(LocalFileService):
                 raise FileAccessError('PROTECTED_PATH')
             except ValueError:
                 pass
-            if capability == 'local.files.list':
+            if capability == 'local.files.write':
+                content = args.get('content')
+                if not isinstance(content, str) or '\x00' in content:
+                    raise FileAccessError('NOT_UTF8_TEXT')
+                try:
+                    raw = content.encode('utf-8')
+                except UnicodeError:
+                    raise FileAccessError('NOT_UTF8_TEXT') from None
+                if len(raw) > MAX_TEXT_BYTES:
+                    raise FileAccessError('FILE_TOO_LARGE')
+                if decision is PolicyDecision.CONSENT_REQUIRED:
+                    return FileTaskResult(decision)
+                files.write_verified(path, raw)
+                value = {'written': True, 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+            elif capability == 'local.files.list':
                 entries, scan_limited = files.list_with_limit(path)
                 value = {'entries': entries[:MAX_ENTRIES], 'truncated': scan_limited or len(entries) > MAX_ENTRIES}
             elif capability == 'local.files.read':

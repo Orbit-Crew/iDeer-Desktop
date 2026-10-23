@@ -1,0 +1,38 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.0 C:/Users/Neo/.codex/worktrees/f9fc/iDeer-Desktop
+
+ ❯ test/runtime.test.ts  (2 tests | 1 failed) 1784ms
+   ❯ test/runtime.test.ts > owned Runtime process > preserves Unicode and embedded CRLF through the bundled JSON control pipe
+     → expected [ '涓�鏂囪�惧�嘰r\n绗�浜岃�岎煓�' ] to deeply equal [ '中文设备\r\n第二行🙂' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/runtime.test.ts > owned Runtime process > preserves Unicode and embedded CRLF through the bundled JSON control pipe
+AssertionError: expected [ '涓�鏂囪�惧�嘰r\n绗�浜岃�岎煓�' ] to deeply equal [ '中文设备\r\n第二行🙂' ]
+
+- Expected
++ Received
+
+  Array [
+-   "中文设备
+- 第二行🙂",
++   "涓�鏂囪�惧�嘰r
++ 绗�浜岃�岎煓�",
+  ]
+
+ ❯ test/runtime.test.ts:48:21
+     46|     try {
+     47|       expect(await runtime.beginLogin(origin, name)).toBe(`${origin}/d…
+     48|       expect(names).toEqual([name])
+       |                     ^
+     49|       await vi.waitFor(() => expect(runtime.status().login?.device).to…
+     50|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:09:46
+   Duration  2.61s (transform 61ms, setup 0ms, collect 74ms, tests 1.78s, environment 0ms, prepare 413ms)
+

@@ -5,6 +5,15 @@ import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 
 describe('restricted chat bridge', () => {
+  it('rejects malformed or broadened local write decisions before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-102/unused')
+    for (const patch of [{ requestHash: 'wrong' }, { decision: 'always' }, { url: 'https://untrusted.invalid' }, { content: 'CHANGED' }]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'consent', scope: 'account', threadId: 'thread',
+        runId: 'run', taskId: 'task', requestHash: 'a'.repeat(64), decision: 'allow', ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    expect(runtime.status().process).toBe('stopped')
+  })
   it('rejects arbitrary HTTP targets before starting a process', async () => {
     const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-99/unused')
     await expect(runtime.chat(JSON.parse('{"action":"refresh","url":"https://untrusted.invalid","headers":{"Cookie":"secret"}}')))

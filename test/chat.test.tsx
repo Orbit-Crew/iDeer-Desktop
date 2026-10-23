@@ -4,6 +4,20 @@ import { ChatView } from '../src/renderer/src/components/ChatPanel'
 import type { ChatSnapshot } from '../src/shared/desktop'
 
 describe('platform chat UI', () => {
+  it('shows the exact pending local write in its original streaming Run with one-time decisions', () => {
+    const state: ChatSnapshot = { scope: 'identity', resources: [], threads: [], messages: [], events: [],
+      thread: { id: 'thread-102', status: 'running', agentId: 'agent', skillId: '' },
+      run: { id: 'run-102', status: 'running', selection: {} }, stream: 'streaming', error: '', lastEventId: '',
+      localConsents: [{ taskId: 'task-102', runId: 'run-102', threadId: 'thread-102', requestHash: 'a'.repeat(64), path: '/workspace/test/target.txt', content: 'AFTER\n<exact>' }]
+    }
+    const html = renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)
+    expect(html).toContain('本机文件写入审批')
+    expect(html).toContain('AFTER\n&lt;exact&gt;')
+    expect(html).toContain('a'.repeat(64))
+    expect(html).toMatch(/<button[^>]*>.*?仅允许这一次/s)
+    expect(html).toContain('拒绝写入')
+    expect(html).not.toContain('始终允许')
+  })
   it('shows canonical versions, history, server run state and an answerable clarification', () => {
     const state: ChatSnapshot = {
       scope: 'identity-A', resources: [{ id: 'agent-99', type: 'agent', name: 'Expert 99', visibility: 'private', version: 3, available: true, reason: '' }],

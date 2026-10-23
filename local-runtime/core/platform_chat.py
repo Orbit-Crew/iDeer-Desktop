@@ -38,12 +38,39 @@ def empty_state(scope=""):
 
 
 class DesktopChat:
-    def __init__(self, config: Path, secure: SecretStore, login_status):
+    def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
         self._turns = set()
         self._generation = 0
+        self.local_consents, self.decide_consent = local_consents, decide_consent
+
+    def _consents(self, session):
+        rows = []
+        thread, run = self._state.get('thread'), self._state.get('run')
+        if not thread or not run:
+            return rows
+        try:
+            pending_rows = self.local_consents()
+        except Exception:
+            raise ChatError('CONSENT_UNAVAILABLE') from None
+        for pending in pending_rows:
+            payload = pending.payload
+            if pending.capability != 'local.files.write' or payload.get('thread_id') != thread['id'] or payload.get('run_id') != run['id']:
+                continue
+            args = payload.get('arguments', payload.get('args', payload))
+            if not isinstance(args, dict) or not isinstance(args.get('path'), str) or not isinstance(args.get('content'), str):
+                continue
+            row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                requestHash=pending.request_hash, path=args['path'], content=args['content'])
+            # The credential scrubber must remain active, but a scrubbed card
+            # cannot authorize bytes the user could not see. Check on both
+            # display and decision paths, before calling the local approver.
+            if session.token and (session.token in json.dumps(row) or any(session.token in str(value) for value in row.values())):
+                raise ChatError('CONSENT_CONTENT_REDACTED')
+            rows.append(row)
+        return rows
 
     def _reset(self, scope=''):
         self._generation += 1
@@ -378,7 +405,7 @@ class DesktopChat:
                 action = command.get('action') if isinstance(command, dict) else None
                 if action not in {'state', 'refresh'} and command.get('scope') != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
-                can_run = self._authorize(session) if action != 'state' else False
+                can_run = self._authorize(session) if action not in {'state', 'consent'} else False
                 if action in {'create', 'send', 'answer'} and not can_run:
                     raise ChatError('CHAT_FORBIDDEN')
                 if action == 'refresh':
@@ -409,6 +436,18 @@ class DesktopChat:
                     if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
                         raise ChatError('CHAT_THREAD_CHANGED')
                     self._load_thread(session, self._state['thread']['id'])
+                elif action == 'consent':
+                    expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'}
+                    if set(command) != expected or command.get('decision') not in {'allow', 'deny'} or self.decide_consent is None:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    pending = next((row for row in self._consents(session) if all(command.get(key) == row[key] for key in ('threadId', 'runId', 'taskId', 'requestHash'))), None)
+                    if pending is None:
+                        raise ChatError('CONSENT_MISMATCH')
+                    try:
+                        self.decide_consent(command['taskId'], command['requestHash'], command['decision'] == 'allow')
+                    except Exception:
+                        raise ChatError('CONSENT_UNAVAILABLE') from None
+                    self._state['error'] = ''
                 elif action != 'state':
                     raise ChatError('CHAT_COMMAND_INVALID')
                 if self._session().scope != session.scope:
@@ -422,6 +461,12 @@ class DesktopChat:
                 self._state['error'] = str(exc)
             except Exception:
                 self._state['error'] = 'CHAT_PROTOCOL_ERROR'
+            try:
+                self._state['localConsents'] = self._consents(session) if session and self._state['scope'] else []
+                if self._state['error'] in {'CONSENT_UNAVAILABLE', 'CONSENT_CONTENT_REDACTED'}:
+                    self._state['error'] = ''
+            except ChatError as exc:
+                self._state.update(localConsents=[], error=str(exc))
             encoded = json.dumps(self._state)
             if len(encoded) > MAX_RESPONSE:
                 result = empty_state(self._state['scope'])

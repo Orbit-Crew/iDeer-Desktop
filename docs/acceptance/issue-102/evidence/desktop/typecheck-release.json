@@ -1,0 +1,12 @@
+{
+  "command": [
+    "npm.cmd",
+    "run",
+    "typecheck"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\build-utf8",
+  "started": "2026-10-22T12:14:10.938160+00:00",
+  "finished": "2026-10-22T12:14:17.452554+00:00",
+  "seconds": 6.516,
+  "exitCode": 0
+}

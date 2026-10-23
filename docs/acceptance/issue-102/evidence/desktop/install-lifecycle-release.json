@@ -1,0 +1,21 @@
+{
+  "command": [
+    "C:/Users/Neo/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "scripts/acceptance/issue-101/install_lifecycle.ps1",
+    "-Installer",
+    "dist/ideer-desktop-0.1.0-windows-x64-setup.exe",
+    "-InstallDirectory",
+    "D:/software/iDeer Desktop/ideer-desktop",
+    "-EvidenceDirectory",
+    "artifacts/issue-102/lifecycle"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-22T12:15:03.829382+00:00",
+  "finished": "2026-10-22T12:15:48.513666+00:00",
+  "seconds": 44.687,
+  "exitCode": 0
+}

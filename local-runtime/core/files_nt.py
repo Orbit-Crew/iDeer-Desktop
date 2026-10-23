@@ -18,7 +18,10 @@ def pinned(path, *, root=None):
     handles = []
     try:
         for part in [*reversed(path.parents), path]:
-            handle = kernel.CreateFileW(str(part), 0x80000000 if part == path and not path.is_dir() else 0x80, 3, None, 3,
+            # Attribute-only handles do not enforce delete sharing on Windows.
+            # Request read access on directories too, so omitting
+            # FILE_SHARE_DELETE really prevents ancestor rename/replacement.
+            handle = kernel.CreateFileW(str(part), 0x80000000, 3, None, 3,
                                         0x02000000 | 0x00200000, None)
             if handle == wintypes.HANDLE(-1).value:
                 code = ctypes.get_last_error()

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
-from .platform_chat import DesktopChat
+from .platform_chat import DesktopChat, empty_state
 from .process_job import own_process_tree
 from .settings import load_settings
 from .file_service import WorkspaceSelection
@@ -84,7 +84,15 @@ def main() -> int:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
 
         workspace = WorkspaceSelection(args.config)
-        chat = DesktopChat(args.config, login.secure, login.status)
+        def local_consents():
+            return controller.pending_consents() if controller is not None else ()
+
+        def decide_consent(task_id, digest, approved):
+            if controller is None or login.status()['state'] != 'authenticated':
+                raise ValueError('CONSENT_UNAVAILABLE')
+            controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest)
+
+        chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents, decide_consent=decide_consent)
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
 
@@ -94,7 +102,11 @@ def main() -> int:
                     command = chat_commands.get(timeout=0.5)
                 except queue.Empty:
                     continue
-                result = chat.handle(command['command'])
+                try:
+                    result = chat.handle(command['command'])
+                except Exception:
+                    result = empty_state()
+                    result['error'] = 'CHAT_PROTOCOL_ERROR'
                 emit({'v': 1, 'type': 'chat', 'id': command['id'], 'result': result})
 
         threading.Thread(target=chat_control, daemon=True).start()
