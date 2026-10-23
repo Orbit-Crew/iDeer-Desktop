@@ -1,0 +1,67 @@
+{
+  "observedAt": "2026-10-22T23:39:29.192659+00:00",
+  "readOnly": true,
+  "run": {
+    "run_id": "0d70f1bc-b012-42c3-9b90-075f017396b3",
+    "thread_id": "e7ee5898-2d96-4705-ae05-539e2e2a065e",
+    "status": "success",
+    "stop_reason": null,
+    "message_count": 4,
+    "created_at": "2026-10-22 23:32:01.420818",
+    "updated_at": "2026-10-22 23:37:03.155746"
+  },
+  "events": [
+    {
+      "event_type": "run.start",
+      "category": "trace",
+      "seq": 1,
+      "created_at": "2026-10-22 23:32:01.739969"
+    },
+    {
+      "event_type": "llm.human.input",
+      "category": "message",
+      "seq": 2,
+      "created_at": "2026-10-22 23:32:01.787634"
+    },
+    {
+      "event_type": "llm.ai.response",
+      "category": "message",
+      "seq": 3,
+      "created_at": "2026-10-22 23:32:01.788226"
+    },
+    {
+      "event_type": "llm.tool.result",
+      "category": "message",
+      "seq": 4,
+      "created_at": "2026-10-22 23:37:03.064359"
+    },
+    {
+      "event_type": "llm.ai.response",
+      "category": "message",
+      "seq": 5,
+      "created_at": "2026-10-22 23:37:03.086803"
+    },
+    {
+      "event_type": "run.end",
+      "category": "outputs",
+      "seq": 6,
+      "created_at": "2026-10-22 23:37:03.135458"
+    },
+    {
+      "event_type": "run.delivery",
+      "category": "outputs",
+      "seq": 7,
+      "created_at": "2026-10-22 23:37:03.143697"
+    }
+  ],
+  "receiptStatusFieldsOnly": {
+    "task_id": "9333b93a-1ce1-41ef-a0a4-9978a812635a",
+    "receipt_id": "894e86a3-f83d-4cfe-b74f-b5ef3c375802",
+    "receipt_hash": "e8416479f3e378fa7104109a0707f99f8eeabeece55ffa38648886f96bbe17da",
+    "status": "denied",
+    "consent_decision": "denied",
+    "run_id": "0d70f1bc-b012-42c3-9b90-075f017396b3",
+    "request_hash": "e9343eaceb5632e3debedd167c4604d1bf0bf908f35ae8cf1588a95a4e5336e6",
+    "error_code": "DENIED"
+  }
+}

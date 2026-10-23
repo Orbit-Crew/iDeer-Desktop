@@ -23,7 +23,7 @@ def test_selected_workspace_is_read_only_bounded_and_bound_to_identity(tmp_path:
     assert read['source']['path'] == root + '/marker.py'
     found = service.execute('local.files.search', {'args': {'path': root, 'query': 'known_marker'}}).value
     assert found['matches'] == [{'path': root + '/marker.py', 'line': 1, 'text': 'known_marker = 100'}]
-    assert service.execute('local.files.write', {'path': root + '/marker.py', 'content': 'bad'}).decision.value == 'deny'
+    assert service.execute('local.files.write', {'path': root + '/marker.py', 'content': 'bad'}).decision.value == 'consent_required'
     assert WorkspaceSelection(config).status()['logicalRoot'] == root
     selection.select(str(work), confirmed=True)
     with pytest.raises(FileAccessError, match='outside allowed roots'):
@@ -47,6 +47,106 @@ def _workspace(tmp_path):
     selection = WorkspaceSelection(config)
     root = selection.select(str(work), confirmed=True)['logicalRoot']
     return config, work, selection, WorkspaceFileService(selection), root
+
+
+def test_workspace_write_requires_each_approval_and_preserves_exact_utf8_bytes(tmp_path):
+    import hashlib
+    config, work, selection, service, root = _workspace(tmp_path)
+    payload = {'operation': 'local.files.write', 'run_id': 'run-102',
+               'arguments': {'path': root + '/new.txt', 'content': 'AFTER\n中文\r\n'}}
+    assert service.execute('local.files.write', payload).decision.value == 'consent_required'
+    assert not (work / 'new.txt').exists()
+    result = service.execute('local.files.write', payload, consent=True)
+    expected = b'AFTER\n\xe4\xb8\xad\xe6\x96\x87\r\n'
+    assert (work / 'new.txt').read_bytes() == expected
+    assert result.value['sha256'] == hashlib.sha256(expected).hexdigest()
+    assert result.value['bytes'] == len(expected)
+    assert service.execute('local.files.write', payload).decision.value == 'consent_required'
+    settings = RuntimeSettings.from_dict(__import__('json').loads(config.read_text()))
+    settings.rules['local.files.write'] = 'allow'
+    settings.save(config)
+    assert service.execute('local.files.write', payload).decision.value == 'consent_required'
+    settings.rules['local.files.write'] = 'deny'
+    settings.save(config)
+    assert service.execute('local.files.write', payload, consent=True).decision.value == 'deny'
+
+
+@pytest.mark.parametrize('content,code', [('x' * 65537, 'FILE_TOO_LARGE'), ('\x00', 'NOT_UTF8_TEXT'), (1, 'NOT_UTF8_TEXT'), ('\ud800', 'NOT_UTF8_TEXT')], ids=['oversized', 'nul', 'not-string', 'surrogate'])
+def test_workspace_write_rejects_non_text_or_oversized_content_without_effect(tmp_path, content, code):
+    _, work, _, service, root = _workspace(tmp_path)
+    (work / 'target.txt').write_bytes(b'BEFORE')
+    with pytest.raises(FileAccessError) as rejected:
+        service.execute('local.files.write', {'path': root + '/target.txt', 'content': content}, consent=True)
+    assert rejected.value.code == code
+    assert (work / 'target.txt').read_bytes() == b'BEFORE'
+
+
+def test_workspace_write_readback_failure_reports_uncertain_after_real_effect(tmp_path, monkeypatch):
+    from core.file_service import WorkspaceFileStore
+    _, work, _, service, root = _workspace(tmp_path)
+    (work / 'target.txt').write_bytes(b'BEFORE')
+    def unavailable(*args, **kwargs):
+        raise FileAccessError('PERMISSION_DENIED')
+    monkeypatch.setattr(WorkspaceFileStore, 'read_bytes', unavailable)
+    with pytest.raises(FileAccessError) as uncertain:
+        service.execute('local.files.write', {'path': root + '/target.txt', 'content': 'AFTER'}, consent=True)
+    assert uncertain.value.code == 'RESULT_UNCERTAIN'
+    assert (work / 'target.txt').read_bytes() == b'AFTER'
+
+
+def test_workspace_write_cleanup_failure_reports_uncertain_after_real_effect(tmp_path, monkeypatch):
+    _, work, _, service, root = _workspace(tmp_path)
+    (work / 'target.txt').write_bytes(b'BEFORE')
+    original_unlink = os.unlink
+    def unavailable_cleanup(path, *args, **kwargs):
+        if str(path).split(os.sep)[-1].startswith('.local-write-'):
+            raise OSError('fixture cleanup unavailable')
+        return original_unlink(path, *args, **kwargs)
+    monkeypatch.setattr(os, 'unlink', unavailable_cleanup)
+    with pytest.raises(FileAccessError) as uncertain:
+        service.execute('local.files.write', {'path': root + '/target.txt', 'content': 'AFTER'}, consent=True)
+    assert uncertain.value.code == 'RESULT_UNCERTAIN'
+    assert (work / 'target.txt').read_bytes() == b'AFTER'
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows pinned ancestor contract')
+def test_workspace_write_pins_parent_against_rename_between_validation_and_replace(tmp_path, monkeypatch):
+    _, work, _, service, root = _workspace(tmp_path)
+    parent = work / 'inner'
+    parent.mkdir()
+    (parent / 'target.txt').write_bytes(b'BEFORE')
+    blocked = []
+    original_replace = os.replace
+    def replace(source, target, *args, **kwargs):
+        with pytest.raises(PermissionError):
+            parent.rename(tmp_path / 'escaped')
+        blocked.append(True)
+        return original_replace(source, target, *args, **kwargs)
+    monkeypatch.setattr(os, 'replace', replace)
+    result = service.execute('local.files.write', {'path': root + '/inner/target.txt', 'content': 'AFTER'}, consent=True)
+    assert result.value['written'] is True
+    assert blocked == [True]
+    assert (parent / 'target.txt').read_bytes() == b'AFTER'
+    assert not (tmp_path / 'escaped').exists()
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows junction contract')
+def test_workspace_write_rejects_junction_escape_without_touching_external_target(tmp_path):
+    import subprocess
+    _, work, _, service, root = _workspace(tmp_path)
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'target.txt').write_bytes(b'BEFORE')
+    link = work / 'link'
+    created = subprocess.run(['cmd.exe', '/c', 'mklink', '/J', str(link), str(outside)], capture_output=True)
+    assert created.returncode == 0
+    try:
+        with pytest.raises(FileAccessError) as rejected:
+            service.execute('local.files.write', {'path': root + '/link/target.txt', 'content': 'AFTER'}, consent=True)
+        assert rejected.value.code == 'OUTSIDE_ALLOWED_ROOTS'
+        assert (outside / 'target.txt').read_bytes() == b'BEFORE'
+    finally:
+        link.rmdir()
 
 
 def test_workspace_denies_local_policy_and_expired_or_changed_binding(tmp_path):

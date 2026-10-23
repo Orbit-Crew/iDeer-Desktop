@@ -1,0 +1,26 @@
+[
+  {
+    "test": "tests.test_files.test_symlink_escape_is_rejected",
+    "reason": "symlinks are unavailable on this platform"
+  },
+  {
+    "test": "tests.test_files.test_symlink_inside_allowed_root_is_rejected",
+    "reason": "symlinks are unavailable on this platform"
+  },
+  {
+    "test": "tests.test_mcp.test_stdio_close_reaps_grandchildren_of_the_server_process",
+    "reason": "process-group reaping is POSIX-specific"
+  },
+  {
+    "test": "tests.test_secrets.test_default_store_is_unavailable_without_an_os_backend",
+    "reason": "requires a non-Windows host"
+  },
+  {
+    "test": "tests.test_secrets.test_cli_auto_backend_reports_unavailability_as_a_stable_code",
+    "reason": "auto backend requires no OS store here"
+  },
+  {
+    "test": "tests.test_tray_actions.test_written_private_key_is_never_world_readable",
+    "reason": "POSIX mode bits do not exist on Windows"
+  }
+]

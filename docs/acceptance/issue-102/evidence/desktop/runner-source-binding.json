@@ -1,0 +1,52 @@
+{
+  "verifiedAt": "2026-10-23T05:28:53.180172+00:00",
+  "source": "actual selected development run candidate plus unchanged installed wrapper/validator/documentation",
+  "files": [
+    {
+      "path": "scripts/acceptance/issue-102/desktop.cjs",
+      "sha256": "78b6b4de633183a457affa45a930967df72e92aa2e251ce59671dac371e199de"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/profiles.py",
+      "sha256": "ab8c995c9d72cd2fc82500e0ce93fafecea7dbf92861c6c2719c1bc27f56c66e"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/profile_controls.py",
+      "sha256": "5784be225ba6e70e2943dc8e38348971f5b315e0192354f136dd7055157a7bfd"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/server_fixture.py",
+      "sha256": "6a6d7b656af8961cbf688b8b9ad012217e97c9307e1c0aa12b3cb3afdcbf3d8e"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/fixture_hooks.py",
+      "sha256": "70684bf1ba8a7e83ec150649af23aed28c6548e3dfd9a808fecd1cd9ba1e112c"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/profiles.py",
+      "sha256": "42de857d33f9ed11c6e82506b9328ef6ed7ce009337c5ae22c7385fb735ca327"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/server_fixture.py",
+      "sha256": "f3636d0b0e6994c617fd893320431ac4b2440c379463b18feab52f74a80f4868"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/source_binding.py",
+      "sha256": "452406ac8da404cf5c62b87ce9323ddb1ae08e423e96a6e284351233b3010453"
+    }
+  ],
+  "supportFiles": [
+    {
+      "path": "scripts/acceptance/issue-102/installed.ps1",
+      "sha256": "3fbd07d6b1747baa59373de443ecda0f82dee186e75f5a41ac4a89587058f44a"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/validate_evidence.py",
+      "sha256": "b45b47f8cc90e637f70e9ad3124537541a24e373e58a8c039ddcafa190599b34"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/README.md",
+      "sha256": "04bbd16c10343bcdc7347f4885edbed48332e14dfdaa48776cf19f15b22559a8"
+    }
+  ]
+}

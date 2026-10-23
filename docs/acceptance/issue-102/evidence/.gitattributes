@@ -1,0 +1,5 @@
+# Preserve the exact bytes recorded in manifest.json, including command output.
+# Windows command records retain CRLF; treat their CR as a line ending.
+* -text whitespace=cr-at-eol
+# Captured test output includes the runner's terminating blank line.
+*.log whitespace=cr-at-eol,-blank-at-eof

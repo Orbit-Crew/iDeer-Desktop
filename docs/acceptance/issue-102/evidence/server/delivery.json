@@ -1,0 +1,10 @@
+{
+  "branch": "feat/issue-102",
+  "commit": "6db05ea55d8482b3babea612a9dd9dcd695d952f",
+  "base": "aeeb9fb2c83c7a7364de0c989c7c011cb4d15ab8",
+  "sourceSHA256": "25f252b5667478435775e11ba2798cbaa14fc513d59dab7a0c35a8ee5f3779b4",
+  "workingTreeClean": true,
+  "pushed": false,
+  "patchSHA256": "6b7a8f35fcf41a339738880c28c38cbfbb0c1c078e5c6d38dcbb673920257313",
+  "reportSHA256": "d18748aa8b557d8c481068b27101d6084780a54918183c8006cb65ab585582ca"
+}

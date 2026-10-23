@@ -46,6 +46,7 @@ class VerifiedEnvelope:
     task_id: str | None
     payload: dict[str, Any]
     signature: str = ""
+    expires_at: datetime | None = None
 
 
 def _canonical(value: Any) -> bytes:
@@ -147,6 +148,7 @@ def verify_envelope(
             message.get("task_id"),
             payload,
             str(message["signature"]),
+            expires_at,
         )
     except ProtocolError:
         raise

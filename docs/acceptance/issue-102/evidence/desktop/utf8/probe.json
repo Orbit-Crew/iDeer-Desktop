@@ -1,0 +1,40 @@
+[
+  {
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\build-final\\.runtime\\python.exe",
+    "args": [
+      "-I",
+      "-u",
+      "-c",
+      "import json,sys; value=json.loads(sys.stdin.readline()); print(json.dumps({\"stdin\":sys.stdin.encoding,\"stdout\":sys.stdout.encoding,\"utf8mode\":sys.flags.utf8_mode,\"value\":value,\"has_surrogate\":any(0xd800<=ord(c)<=0xdfff for c in value)}))"
+    ],
+    "exitCode": 0,
+    "result": {
+      "stdin": "gbk",
+      "stdout": "gbk",
+      "utf8mode": 0,
+      "value": "涓\udcad鏂嘰r\n绗\udcac浜岃\udca1岎煓俓n",
+      "has_surrogate": true
+    },
+    "exact": false
+  },
+  {
+    "executable": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\artifacts\\issue-102\\build-final\\.runtime\\python.exe",
+    "args": [
+      "-I",
+      "-u",
+      "-X",
+      "utf8",
+      "-c",
+      "import json,sys; value=json.loads(sys.stdin.readline()); print(json.dumps({\"stdin\":sys.stdin.encoding,\"stdout\":sys.stdout.encoding,\"utf8mode\":sys.flags.utf8_mode,\"value\":value,\"has_surrogate\":any(0xd800<=ord(c)<=0xdfff for c in value)}))"
+    ],
+    "exitCode": 0,
+    "result": {
+      "stdin": "utf-8",
+      "stdout": "utf-8",
+      "utf8mode": 1,
+      "value": "中文\r\n第二行🙂\n",
+      "has_surrogate": false
+    },
+    "exact": true
+  }
+]

@@ -58,7 +58,9 @@ function ChatContents({ state, busy, onCommand }: {
       <Button onClick={() => void onCommand({ action: 'refresh' })} disabled={busy}>刷新资源与历史</Button>
       <Typography.Text type="secondary">由 Server 编排，凭证保留在系统安全存储中</Typography.Text>
     </Space>
-    {state.error && <Alert type="error" showIcon message={`平台聊天不可用：${state.error}`} description="请检查平台连接或重新登录。断线后不会自动重发旧提交，请恢复状态后核对原 Run。" />}
+    {state.error && <Alert type="error" showIcon message={`平台聊天不可用：${state.error}`} description={state.error === 'CONSENT_CONTENT_REDACTED'
+      ? '审批内容包含受保护凭证，无法完整显示原始内容，已阻止批准。请修改写入请求。'
+      : '请检查平台连接或重新登录。断线后不会自动重发旧提交，请恢复状态后核对原 Run。'} />}
     <Select aria-label="选择 Agent" placeholder="选择已发布 Agent" value={agentId} onChange={setAgentId}
       className="w-full" options={resourceOptions('agent')} disabled={busy} />
     <Select aria-label="选择 Skill" placeholder="可选：选择 Agent 已包含的 Skill" value={skillId} onChange={setSkillId}
@@ -74,6 +76,20 @@ function ChatContents({ state, busy, onCommand }: {
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
       {state.run && <Typography.Text>Run：{state.run.id} · {state.run.status} · {state.stream}</Typography.Text>}
       <Button disabled={busy || state.stream === 'streaming'} onClick={() => void onCommand({ action: 'reconnect', scope: state.scope, threadId })}>重新连接并恢复状态</Button>
+      {state.localConsents?.filter((request) => request.threadId === threadId && request.runId === state.run?.id).map((request) => <Card
+        key={`${request.taskId}-${request.requestHash}`} size="small" title="本机文件写入审批">
+        <Typography.Paragraph>新建或覆盖：{request.path}</Typography.Paragraph>
+        <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+        <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+        <Typography.Paragraph>以下内容将按原始 UTF-8 字节写入。批准只适用于本次请求。</Typography.Paragraph>
+        <Input.TextArea aria-label="审批写入内容" value={request.content} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
+        <Space className="mt-3">
+          <Button type="primary" disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
+            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow' })}>仅允许这一次</Button>
+          <Button danger disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
+            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'deny' })}>拒绝写入</Button>
+        </Space>
+      </Card>)}
       <div role="log" aria-label="平台聊天消息" className="space-y-3 max-h-[50vh] overflow-auto">
         {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>

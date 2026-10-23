@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "/mnt/c/Users/Neo/.codex/worktrees/f9fc/iDeer-Desktop/artifacts/issue-102/server-detect.mjs"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021",
+  "started": "2026-10-23T05:33:34.162812+00:00",
+  "finished": "2026-10-23T05:33:34.593967+00:00",
+  "seconds": 0.431,
+  "exitCode": 0
+}

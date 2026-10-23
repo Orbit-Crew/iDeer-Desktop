@@ -1,0 +1,34 @@
+{
+  "dev": {
+    "result": "result.json",
+    "resultSHA256": "5eb32460b2975b73f67d59e18dfd0c652f71575f8442ac3ae47b8b24ba75d53d",
+    "command": "functional-dev-20261023-0806-final.json",
+    "startedAt": "2026-10-23T00:06:22.802Z",
+    "finishedAt": "2026-10-23T00:13:03.705Z",
+    "seconds": 401.344,
+    "exitCode": 0,
+    "scenarios": {
+      "T102-01": 3,
+      "T102-02": 8,
+      "T102-03": 6,
+      "T102-04": 5
+    }
+  },
+  "installed": {
+    "result": "result.json",
+    "resultSHA256": "e5493ac981f09d5da575443f2977e8b8b61265f4eca10a781b5542fe82dad704",
+    "command": "functional-final-command.json",
+    "startedAt": "2026-10-23T05:24:32.855Z",
+    "finishedAt": "2026-10-23T05:31:17.789Z",
+    "seconds": 407.531,
+    "exitCode": 0,
+    "scenarios": {
+      "T102-01": 3,
+      "T102-02": 8,
+      "T102-03": 6,
+      "T102-04": 5
+    }
+  },
+  "status": "passed",
+  "serverSourceSHA256": "25f252b5667478435775e11ba2798cbaa14fc513d59dab7a0c35a8ee5f3779b4"
+}

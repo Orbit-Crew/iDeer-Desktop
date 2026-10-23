@@ -63,13 +63,13 @@ if (!app.requestSingleInstanceLock()) {
       requireMainFrame(event)
       if (runtime.status().login?.state !== 'authenticated') throw new Error('WORKSPACE_UNAVAILABLE')
       const binding = runtime.workspaceScope()
-      const chosen = await dialog.showOpenDialog(mainWindow!, { title: '选择只读工作目录', properties: ['openDirectory'] })
+      const chosen = await dialog.showOpenDialog(mainWindow!, { title: '选择工作目录', properties: ['openDirectory'] })
       if (chosen.canceled || chosen.filePaths.length !== 1) return
       const confirmation = await dialog.showMessageBox(mainWindow!, {
         type: 'question', title: '确认工作目录的数据边界',
-        message: '允许本次账号与设备持续只读访问此目录？',
+        message: '允许本次账号与设备读取此目录？写入需要在聊天中逐次确认。',
         detail: `${chosen.filePaths[0]}\n\n仅在会话请求列举、读取或搜索时，将所需文件名或文本发送到 Server 和模型。不会自动上传整个目录。模型仅能看到逻辑目录。目录不会登记为平台 Resource。授权保存在本机，同账号与设备重启后继续有效。切换目录将使旧路径失效。`,
-        buttons: ['取消', '确认只读授权'], defaultId: 0, cancelId: 0, noLink: true
+        buttons: ['取消', '确认目录授权'], defaultId: 0, cancelId: 0, noLink: true
       })
       if (runtime.workspaceScope() !== binding) throw new Error('WORKSPACE_BINDING_CHANGED')
       if (confirmation.response === 1) await runtime.selectWorkspace(chosen.filePaths[0], binding)

@@ -1,0 +1,52 @@
+[
+  {
+    "stage": "started",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 36556,
+    "login": {
+      "state": "unauthenticated",
+      "account": "",
+      "device": "",
+      "error": ""
+    },
+    "workspace": {
+      "state": "unavailable",
+      "logicalRoot": ""
+    },
+    "receiptStorageError": "",
+    "receiptScope": ""
+  },
+  {
+    "stage": "stopped",
+    "process": "stopped",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "crashed",
+    "process": "crashed",
+    "connection": "offline",
+    "tasks": []
+  },
+  {
+    "stage": "recovered",
+    "process": "running",
+    "connection": "not-configured",
+    "tasks": [],
+    "pid": 21388,
+    "login": {
+      "state": "unauthenticated",
+      "account": "",
+      "device": "",
+      "error": ""
+    },
+    "workspace": {
+      "state": "unavailable",
+      "logicalRoot": ""
+    },
+    "receiptStorageError": "",
+    "receiptScope": ""
+  }
+]

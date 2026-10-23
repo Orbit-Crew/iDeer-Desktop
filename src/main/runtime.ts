@@ -61,9 +61,11 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       send: ['action', 'scope', 'threadId', 'turnId', 'text'],
-      answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId']
+      answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
+      consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision']
     }
     const allowed = keys[command.action]
+    if (command.action === 'consent' && (Object.keys(command).length !== 7 || !['allow', 'deny'].includes(command.decision) || !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
     if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
@@ -121,7 +123,8 @@ export class RuntimeProcess {
     for (const key of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'APPDATA', 'LOCALAPPDATA', 'USERPROFILE']) {
       if (process.env[key]) env[key] = process.env[key]
     }
-    const child = spawn(executable, ['-I', '-u', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json')], {
+    // Both ends of the owned JSON pipe use UTF-8 regardless of the Windows code page.
+    const child = spawn(executable, ['-I', '-u', '-X', 'utf8', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json')], {
       cwd: this.directory, env, windowsHide: true, stdio: 'pipe', shell: false
     })
     this.child = child

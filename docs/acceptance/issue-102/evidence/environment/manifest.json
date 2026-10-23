@@ -1,0 +1,51 @@
+{
+  "recordedAt": "2026-10-21T22:20:10.0861847+08:00",
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "OSArchitecture": "64 位"
+  },
+  "node": "v22.23.3",
+  "git": "git version 2.41.0.windows.3",
+  "desktopBase": "9db5447c089ea835d1c20c3bf445f6f406468088",
+  "python": "Python 3.12.8",
+  "dependencies": {
+    "annotated-types": "0.8.0",
+    "cffi": "2.1.1",
+    "colorama": "0.4.6",
+    "cryptography": "43.0.3",
+    "hatchling": "1.27.0",
+    "iniconfig": "2.3.1",
+    "packaging": "26.3",
+    "pathspec": "1.1.1",
+    "pluggy": "1.7.0",
+    "pycparser": "3.11",
+    "pydantic": "2.10.6",
+    "pydantic_core": "2.27.2",
+    "pytest": "8.3.5",
+    "pytest-asyncio": "0.24.0",
+    "pytest-timeout": "2.3.1",
+    "ruff": "0.11.13",
+    "trove-classifiers": "2026.9.21.13",
+    "typing_extensions": "4.16.0",
+    "websockets": "13.1"
+  },
+  "hashes": [
+    {
+      "path": "package.json",
+      "sha256": "6c2208d42237477e1b83b539f0195bf3165f0ec3ca2b9dd319bac1bdcd6e4a24"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a"
+    },
+    {
+      "path": "local-runtime\\distribution.lock.json",
+      "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    {
+      "path": "local-runtime\\pyproject.toml",
+      "sha256": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a"
+    }
+  ]
+}

@@ -1,0 +1,352 @@
+{
+  "startedAt": "2026-10-22T12:16:17.486Z",
+  "installed": false,
+  "model": "deterministic Server model; real Gateway and Windows Runtime tools",
+  "constants": {
+    "BEFORE": {
+      "text": "BEFORE",
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3"
+    },
+    "AFTER": {
+      "text": "AFTER",
+      "bytes": 5,
+      "sha256": "94c3f1415d2061d05e4cce4d33e43e26a5ad7ebcf6e89acace6e8b84240a629c"
+    },
+    "NEWLINES": {
+      "text": "AFTER\r\n第二行\n",
+      "bytes": 17,
+      "sha256": "c1e898357fcb2824b595e53ac85efef2e4935c6a0c197791147c708fab47d91c"
+    }
+  },
+  "candidate": {
+    "serverHead": "aeeb9fb2c83c7a7364de0c989c7c011cb4d15ab8",
+    "serverSourceSHA256": "25f252b5667478435775e11ba2798cbaa14fc513d59dab7a0c35a8ee5f3779b4",
+    "acceptanceFiles": [
+      {
+        "path": "scripts/acceptance/issue-102/desktop.cjs",
+        "sha256": "53f5994f0920f39a4b1aad01983f1d2938551e43f5a9bf8ce6d48692e5042670"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/profiles.py",
+        "sha256": "ab8c995c9d72cd2fc82500e0ce93fafecea7dbf92861c6c2719c1bc27f56c66e"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/profile_controls.py",
+        "sha256": "5784be225ba6e70e2943dc8e38348971f5b315e0192354f136dd7055157a7bfd"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/server_fixture.py",
+        "sha256": "6a6d7b656af8961cbf688b8b9ad012217e97c9307e1c0aa12b3cb3afdcbf3d8e"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/fixture_hooks.py",
+        "sha256": "70684bf1ba8a7e83ec150649af23aed28c6548e3dfd9a808fecd1cd9ba1e112c"
+      },
+      {
+        "path": "scripts/acceptance/issue-100/profiles.py",
+        "sha256": "42de857d33f9ed11c6e82506b9328ef6ed7ce009337c5ae22c7385fb735ca327"
+      },
+      {
+        "path": "scripts/acceptance/issue-100/server_fixture.py",
+        "sha256": "f3636d0b0e6994c617fd893320431ac4b2440c379463b18feab52f74a80f4868"
+      },
+      {
+        "path": "scripts/acceptance/issue-101/source_binding.py",
+        "sha256": "452406ac8da404cf5c62b87ce9323ddb1ae08e423e96a6e284351233b3010453"
+      }
+    ],
+    "buildMirror": true,
+    "buildInputsSHA256": "d59a22ba801f2d7a4d96a9d4e7c7b4cde03acfd076334aac7508d3157a2c632c",
+    "runtimePythonSHA256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+    "runtimeCore": [
+      {
+        "path": "local-runtime/core/__init__.py",
+        "sha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46"
+      },
+      {
+        "path": "local-runtime/core/artifacts.py",
+        "sha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b"
+      },
+      {
+        "path": "local-runtime/core/audit.py",
+        "sha256": "08ae1aeaf041c3ba6cf6c647ad1364ce17b107efa6c27eda7d9ff668adc1f9bd"
+      },
+      {
+        "path": "local-runtime/core/browser_login.py",
+        "sha256": "34cfbdfaa125efc6443cb2b1eade1d8c62864c7d0885a477dbf0518fff7081d0"
+      },
+      {
+        "path": "local-runtime/core/capabilities.py",
+        "sha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc"
+      },
+      {
+        "path": "local-runtime/core/cli.py",
+        "sha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711"
+      },
+      {
+        "path": "local-runtime/core/compat.py",
+        "sha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c"
+      },
+      {
+        "path": "local-runtime/core/consent.py",
+        "sha256": "6ce1fb3680b52c03ccf91b584267faca654933fd7c0e38b6957d87a2351e3710"
+      },
+      {
+        "path": "local-runtime/core/consent_coord.py",
+        "sha256": "c4295742583d548e2ca9acc564b23f503c17c05e7a6f7256b1ef8b0600326380"
+      },
+      {
+        "path": "local-runtime/core/desktop.py",
+        "sha256": "c44aac4a2dc43a8084fecd33a263052424068a94e75eda215deb5c2b975ef4bf"
+      },
+      {
+        "path": "local-runtime/core/file_service.py",
+        "sha256": "c6158af8a71891a0ccb073ef03684fe110f98d2ebcdbddf64d0e47ab32bf4d6f"
+      },
+      {
+        "path": "local-runtime/core/files.py",
+        "sha256": "b67abe228574d576d6e1dd8c03e9b5bfc2819490f44d5612efbde265866c1049"
+      },
+      {
+        "path": "local-runtime/core/files_nt.py",
+        "sha256": "dd4283a3b99296fe71b40e80e54b525cc1161e5e8796cefddf3f8cc302b5dd44"
+      },
+      {
+        "path": "local-runtime/core/mcp.py",
+        "sha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a"
+      },
+      {
+        "path": "local-runtime/core/platform_chat.py",
+        "sha256": "12ca91facf847be6f03210b2aa5eee636f699a50bc8877d9c7b848214cc29cdb"
+      },
+      {
+        "path": "local-runtime/core/policy.py",
+        "sha256": "d022a61c5ddb3c5462ca96eacdaf8c695a48f004643bfc7bbf0e2f514f777282"
+      },
+      {
+        "path": "local-runtime/core/process_job.py",
+        "sha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea"
+      },
+      {
+        "path": "local-runtime/core/protocol.py",
+        "sha256": "71ddd254afdcef25fcd0f1b8e164141f430afc978042a55ef07a61d156386205"
+      },
+      {
+        "path": "local-runtime/core/python.py",
+        "sha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1"
+      },
+      {
+        "path": "local-runtime/core/receipt_ledger.py",
+        "sha256": "57ef7ae1205ed5b06f3ec927921a14be8c97cefa4ab7691cecbde565284e8aa5"
+      },
+      {
+        "path": "local-runtime/core/receipts.py",
+        "sha256": "1ccd4957072104feed176d66b2c9044cff37e6fa16eac2b79fca23be86c66ded"
+      },
+      {
+        "path": "local-runtime/core/secrets.py",
+        "sha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad"
+      },
+      {
+        "path": "local-runtime/core/settings.py",
+        "sha256": "443165805b023d5cf8280d1e68a530d7a6bd64512bcf077fe0feaa633a75f7c5"
+      },
+      {
+        "path": "local-runtime/core/task_guard.py",
+        "sha256": "3468280d3af6d76e9bae4adbbff6583a543a73a37e8db406afbb5c2c71737391"
+      },
+      {
+        "path": "local-runtime/core/transport.py",
+        "sha256": "27f86ec1cfa8b6930d036402eaf87d2c748f79fea8f870e4633e10117636bc64"
+      },
+      {
+        "path": "local-runtime/core/tray.py",
+        "sha256": "4a9a730a9d5ff051bb89d40cd1bd408ab5abbb1c885dd9075e1570978488592a"
+      }
+    ]
+  },
+  "scenarios": {
+    "T102-01": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T102-02": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T102-03": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T102-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "operations": [],
+  "stages": [],
+  "picker": "Actual Desktop selection button, synthetic path supplied through native dialog callback.",
+  "status": "failed",
+  "error": "Error: Timeout: business identity",
+  "errorStack": "Error: Timeout: business identity\n    at wait (<desktop-source>\\scripts\\acceptance\\issue-102\\desktop.cjs:71:9)\n    at async launch (<desktop-source>\\scripts\\acceptance\\issue-102\\desktop.cjs:106:3)\n    at async main (<desktop-source>\\scripts\\acceptance\\issue-102\\desktop.cjs:305:5)",
+  "finalFixtureFiles": {
+    "W/new.txt": {
+      "exists": false,
+      "bytes": 0,
+      "sha256": null
+    },
+    "W/target.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/unicode.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/reject.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/timeout.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/hash.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/web.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/deny.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/admission.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/completion.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/completion-blocked.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/health.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/before-submit.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/before-cancel.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/before-disconnect.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/after-cancel.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/after-disconnect.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "W/.git/config": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    },
+    "outside/secret.txt": {
+      "exists": true,
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3",
+      "text": "BEFORE"
+    }
+  },
+  "finalLocalHistory": {
+    "rows": [],
+    "total": 0,
+    "pending": 0,
+    "confirmed": 0,
+    "uncertain": 0,
+    "cleaned": 0,
+    "storageError": ""
+  },
+  "finalLocalAudit": {
+    "integrity": true,
+    "rows": []
+  },
+  "finalRuntimeStatus": {
+    "version": "22.3.27",
+    "server": "offline",
+    "runtime": {
+      "process": "running",
+      "connection": "offline",
+      "tasks": [],
+      "pid": 5276,
+      "login": {
+        "state": "error",
+        "account": "",
+        "device": "",
+        "error": "LOGIN_REAUTHENTICATION_REQUIRED"
+      },
+      "workspace": {
+        "state": "unavailable",
+        "logicalRoot": ""
+      },
+      "receiptStorageError": "",
+      "receiptScope": ""
+    }
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "fixtureCleanup": {
+    "removed": true,
+    "appClosed": true
+  },
+  "finishedAt": "2026-10-22T12:17:51.015Z"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "bash",
+    "scripts/run-test-lane.sh",
+    "pr-standard"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue102-server-20261021",
+  "started": "2026-10-22T04:05:56.440709+00:00",
+  "finished": "2026-10-22T04:37:39.579205+00:00",
+  "seconds": 1903.138,
+  "exitCode": 143
+}

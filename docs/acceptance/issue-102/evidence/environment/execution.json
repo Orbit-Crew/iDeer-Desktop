@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-10-22T23:36:38.821365+00:00",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "version": "10.0.26300",
+  "machine": "AMD64",
+  "node": "v22.23.3",
+  "testPython": "3.12.8",
+  "bundledPythonOwnedPipe": {
+    "python": "3.12.10",
+    "stdin": "utf-8",
+    "stdout": "utf-8",
+    "utf8_mode": 1
+  },
+  "testDependencies": {
+    "pytest": "8.3.5",
+    "pytest-asyncio": "0.24.0",
+    "cryptography": "43.0.3",
+    "cffi": "2.1.1",
+    "websockets": "13.1",
+    "pydantic": "2.10.6",
+    "ruff": "0.11.13"
+  },
+  "configuration": {
+    "approvalTimeoutSeconds": 300,
+    "signedWriteDeadlineSeconds": 305,
+    "maxWriteUtf8Bytes": 65536,
+    "approvalMode": "once per exact request in original Desktop chat",
+    "identity": "isolated synthetic A/B accounts and paired Runtime",
+    "model": "deterministic fixture; actual Server, SQLite, broker, Electron and Runtime",
+    "faults": "test-owned SQLite triggers and network drops only"
+  }
+}

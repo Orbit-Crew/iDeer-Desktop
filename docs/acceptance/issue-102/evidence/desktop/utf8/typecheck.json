@@ -1,0 +1,12 @@
+{
+  "command": [
+    ".cache/node22/node-v22.23.3-win-x64/npm.cmd",
+    "run",
+    "typecheck"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop",
+  "started": "2026-10-22T12:10:17.857408+00:00",
+  "finished": "2026-10-22T12:10:17.909962+00:00",
+  "seconds": 0.047,
+  "exitCode": 1
+}

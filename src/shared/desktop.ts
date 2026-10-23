@@ -51,6 +51,7 @@ export type ChatCommand =
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
+  | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string; decision: 'allow' | 'deny' }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -73,6 +74,7 @@ export interface ChatMessage {
   response?: { request_id: string } | null
 }
 export interface ChatSnapshot {
+  localConsents?: { taskId: string; runId: string; threadId: string; requestHash: string; path: string; content: string }[]
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]
   threads: { id: string; title: string; status: string }[]

@@ -49,17 +49,19 @@ export default function RuntimePanel(): JSX.Element {
       <Button disabled={!runtime || !['stopped', 'crashed'].includes(runtime.process)} onClick={() => void window.ideer.startRuntime().catch(() => setView(current => ({ ...current, failed: true })))}>启动 Runtime</Button>
       <Button disabled={!runtime || !['running', 'starting', 'unresponsive'].includes(runtime.process)} onClick={() => void controller.current?.stop()}>停止 Runtime</Button>
     </Space>
-    <Typography.Title level={5} className="mt-5">只读工作目录</Typography.Title>
+    <Typography.Title level={5} className="mt-5">工作目录</Typography.Title>
     <Typography.Paragraph>按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。</Typography.Paragraph>
     <Typography.Paragraph>{runtime?.workspace?.state === 'ready' ? runtime.workspace.logicalRoot : '尚未选择并确认目录'}</Typography.Paragraph>
     <Button disabled={login?.state !== 'authenticated'} onClick={() => {
       setWorkspaceError(false)
       void window.ideer.chooseWorkspace().catch(() => setWorkspaceError(true))
-    }}>选择并授权只读目录</Button>
+    }}>选择并授权目录</Button>
+    <Typography.Paragraph type="secondary">目录内的文本写入需要在原聊天中逐次批准。</Typography.Paragraph>
     {workspaceError && <Alert type="error" message="目录不可用或授权未完成，请选择普通工作目录" />}
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
-    {(runtime?.receiptStorageError || history?.storageError) && <Alert type="error" message="可靠记录存储不可用，已阻止新操作。已发生效果的任务请核实结果；修复本机存储后重试。" />}
+    {(runtime?.receiptStorageError || history?.storageError) && <Alert type="error" message="可靠记录存储不可用，已暂停新写入。已发生效果的任务请核实结果。"
+      description="修复本机存储后，请先在原会话读取目标文件核实。成功保存读取回执后才能恢复写入。" />}
     {historyError && <Alert type="error" message="无法读取回执历史，不能据此判断记录为空" />}
     {history && <Typography.Paragraph>共 {history.total} 条 · 待确认 {history.pending} · 已确认 {history.confirmed} · 结果待核实 {history.uncertain} · 已清理标记 {history.cleaned}</Typography.Paragraph>}
     <Button loading={clearing} disabled={!history?.confirmed || runtime?.process !== 'running'} onClick={() => void controller.current?.clearConfirmed(historyOffset)}>清理已确认回执</Button>

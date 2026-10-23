@@ -23,6 +23,7 @@ import os
 import threading
 import time
 import urllib.request
+from concurrent.futures import Future, TimeoutError as FutureTimeoutError
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -433,8 +434,8 @@ class TrayController:
         return WorkspaceFileService(WorkspaceSelection(self.settings.config_path))
 
     def _desktop_capabilities(self):
-        from .file_service import READ_CAPABILITIES, WorkspaceSelection
-        return READ_CAPABILITIES if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready' else ()
+        from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
+        return WORKSPACE_CAPABILITIES if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready' else ()
 
     def _save_connection_setting(self, name: str, value: str) -> None:
         # Selection and connection callbacks share this transaction. Loading
@@ -647,6 +648,10 @@ class TrayController:
             )
         recent = self.audit.recent(limit=1, kind=AuditKind.EXECUTION)
         integrity = self._verified_integrity()
+        try:
+            pending_count = len(self.pending_consents())
+        except TrayError:
+            pending_count = 0
         return TrayStatus(
             connection=connection,
             server_url=self.settings.server_url,
@@ -660,7 +665,7 @@ class TrayController:
             ),
             capabilities=client.current_capabilities(),
             mcp_servers=servers,
-            pending_consents=len(client.pending_consents()),
+            pending_consents=pending_count,
             recent_execution=(
                 f"{recent[0].capability} → {recent[0].action}" if recent else ""
             ),
@@ -861,7 +866,33 @@ class TrayController:
     # --- consent ---------------------------------------------------------
 
     def pending_consents(self) -> tuple[PendingConsent, ...]:
-        return self.client.pending_consents()
+        """Copy consent tables on their owning loop, never on the UI thread."""
+        loop = self._loop
+        if loop is None or self._stopping or not loop.is_running():
+            return ()
+        try:
+            current = asyncio.get_running_loop()
+        except RuntimeError:
+            current = None
+        if current is loop:
+            return self.client.pending_consents()
+        snapshot: Future = Future()
+
+        def read() -> None:
+            if not snapshot.set_running_or_notify_cancel():
+                return
+            try:
+                rows = self.client.pending_consents() if self._loop is loop and not self._stopping else ()
+                snapshot.set_result(rows)
+            except Exception as exc:
+                snapshot.set_exception(exc)
+
+        try:
+            loop.call_soon_threadsafe(read)
+            return snapshot.result(timeout=2)
+        except (FutureTimeoutError, RuntimeError) as exc:
+            snapshot.cancel()
+            raise TrayError('pending consent snapshot is unavailable') from exc
 
     def decide(
         self,
