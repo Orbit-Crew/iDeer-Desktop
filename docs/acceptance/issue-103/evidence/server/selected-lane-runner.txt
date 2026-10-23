@@ -1,0 +1,18 @@
+from pathlib import Path
+import os
+import subprocess
+import sys
+
+root = Path('/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023').resolve(strict=True)
+bin_dir = root / 'dev-log/issue-103/pinned-bin'
+bin_dir.mkdir(exist_ok=True)
+wrapper = bin_dir / 'pnpm'
+wrapper.write_text('#!/bin/sh\nexec /usr/bin/node /home/neowyh/.cache/node/corepack/v1/pnpm/10.26.2/bin/pnpm.cjs "$@"\n')
+wrapper.chmod(0o755)
+env = os.environ.copy()
+env.pop('TEST_PNPM_BIN', None)
+env['PATH'] = str(bin_dir) + os.pathsep + '/home/neowyh/.local/bin' + os.pathsep + env['PATH']
+env['PYTHON'] = str(root / 'backend/.venv/bin/python')
+env['UV_CACHE_DIR'] = '/tmp/deer-flow-uv-cache'
+env['TEST_LANE_ARTIFACT_DIR'] = str(root / 'dev-log/issue-103/selected-lanes')
+sys.exit(subprocess.run(['bash', str(root / 'scripts/run-test-lane.sh'), 'pr-standard'], cwd=root, env=env).returncode)

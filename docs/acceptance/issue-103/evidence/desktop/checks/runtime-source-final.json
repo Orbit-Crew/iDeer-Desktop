@@ -1,0 +1,11 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\f9fc\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "scripts/verify-runtime-source.py"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop",
+  "started": "2026-10-23T13:19:02.797733+00:00",
+  "finished": "2026-10-23T13:19:02.949022+00:00",
+  "seconds": 0.14,
+  "exitCode": 0
+}

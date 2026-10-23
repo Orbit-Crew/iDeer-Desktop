@@ -48,7 +48,7 @@ class BrowserLogin:
 
     def restore(self) -> None:
         settings = load_settings(self.config)
-        if not settings.business_token_ref:
+        if settings.signed_out or not settings.business_token_ref:
             return
         if (not settings.business_expires_at or datetime.fromisoformat(settings.business_expires_at)
                 <= datetime.now(timezone.utc)):
@@ -64,6 +64,13 @@ class BrowserLogin:
             account = json.loads(response.read(65537))
         if account.get("id") != settings.user_id:
             raise ValueError("LOGIN_OWNER_MISMATCH")
+        request = urllib.request.Request(origin + '/api/devices/' + urllib.parse.quote(settings.device_id, safe=''),
+            headers={'Cookie': 'access_token=' + token})
+        with opener.open(request, timeout=10) as response:
+            device = json.loads(response.read(65537))
+        if (device.get('id') != settings.device_id or device.get('owner_id') != settings.user_id
+                or device.get('status') not in {'pending', 'online', 'offline'}):
+            raise ValueError('DEVICE_BINDING_INVALID')
         self._status = {"state": "authenticated", "account": str(account["email"])[:256],
                         "device": settings.device_name, "error": ""}
 
@@ -106,6 +113,31 @@ class BrowserLogin:
     def fail(self, code: str) -> None:
         self._pending = None
         self._status = {"state": "error", "account": "", "device": "", "error": code}
+
+    def logout(self, *, forget_device=False):
+        from .settings import _SAVE_LOCK
+        with _SAVE_LOCK:
+            settings = load_settings(self.config)
+            references = [settings.business_token_ref, settings.session_token_ref]
+            settings.signed_out = True
+            settings.business_token_ref = settings.session_token_ref = ''
+            settings.business_expires_at = ''
+            if forget_device:
+                references.append(settings.device_key_ref)
+                settings.device_id = settings.device_name = settings.device_public_key = settings.device_key_ref = ''
+                settings.user_id = settings.user_name = settings.session_id = ''
+                settings.workspace = {}
+            # Commit the signed-out state before retiring credentials. A restart
+            # must stay offline even if secure-store cleanup fails.
+            settings.save(self.config)
+            self._pending = self._expires_at = None
+            self._status = dict(state='unauthenticated', account='', device='', error='')
+            for reference in references:
+                if reference:
+                    try:
+                        self.secure.delete(reference)
+                    except SecretStoreError:
+                        self._status['error'] = 'SECURE_STORAGE_FAILED'
 
     def poll(self) -> bool:
         if self._pending is None:
@@ -152,6 +184,7 @@ class BrowserLogin:
             settings.session_id = result["session_id"]
             settings.server_public_key = result["server_public_key"]
             settings.business_expires_at = result.get("business_expires_at", "")
+            settings.signed_out = False
             settings.save(self.config)
         except BaseException:
             for reference in stored:

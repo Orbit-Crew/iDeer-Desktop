@@ -1,0 +1,19 @@
+{
+  "command": [
+    "pwsh",
+    "-NoProfile",
+    "-File",
+    "scripts/acceptance/issue-101/install_lifecycle.ps1",
+    "-Installer",
+    "dist/ideer-desktop-0.1.0-windows-x64-setup.exe",
+    "-InstallDirectory",
+    "D:\\software\\iDeer Desktop\\ideer-desktop",
+    "-EvidenceDirectory",
+    "artifacts/issue-103/lifecycle-final"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop",
+  "started": "2026-10-23T07:12:08.120279+00:00",
+  "finished": "2026-10-23T07:12:47.130454+00:00",
+  "seconds": 39.016,
+  "exitCode": 0
+}

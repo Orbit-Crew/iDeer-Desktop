@@ -1,0 +1,51 @@
+[
+  {
+    "attempt": "functional-dev-01",
+    "status": "failed",
+    "error": "Error: Timeout: business identity",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T06:58:53.555Z"
+  },
+  {
+    "attempt": "functional-dev-02",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: explicit-directory-approval result in original chat",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T06:59:40.525Z"
+  },
+  {
+    "attempt": "functional-dev-03",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: deny-..-outside-secret.txt result in original chat",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T12:55:42.201Z"
+  },
+  {
+    "attempt": "functional-dev-04",
+    "status": "failed",
+    "error": "Error: Timeout: revoked grant",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T13:00:09.735Z"
+  },
+  {
+    "attempt": "functional-dev-06",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: pending-directory-switch result in original chat",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T13:07:30.712Z"
+  },
+  {
+    "attempt": "functional-dev-07",
+    "status": "failed",
+    "error": null,
+    "cleanupError": "AssertionError [ERR_ASSERTION]: lifecycle.py: Traceback (most recent call last):\r\n  File \"C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop\\scripts\\acceptance\\issue-103\\lifecycle.py\", line 79, in <module>\r\n    secure.delete(reference)\r\n  File \"C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop\\.runtime\\core\\secrets.py\", line 243, in delete\r\n    raise SecretNotFound(\r\ncore.secrets.SecretNotFound: secret 't100-5aedf46070314bd7801b37098d4cf224' is not stored on this device\r\n\n\n1 !== 0\n",
+    "finishedAt": "2026-10-23T13:10:47.460Z"
+  },
+  {
+    "attempt": "functional-dev-final",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: lifecycle.py: Traceback (most recent call last):\r\n  File \"C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop\\scripts\\acceptance\\issue-103\\lifecycle.py\", line 41, in <module>\r\n    with opener.open(request, timeout=30) as response:\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"urllib\\request.py\", line 515, in open\r\n  File \"urllib\\request.py\", line 532, in _open\r\n  File \"urllib\\request.py\", line 492, in _call_chain\r\n  File \"urllib\\request.py\", line 1373, in http_open\r\n  File \"urllib\\request.py\", line 1348, in do_open\r\n  File \"http\\client.py\", line 1430, in getresponse\r\n  File \"http\\client.py\", line 331, in begin\r\n  File \"http\\client.py\", line 292, in _read_status\r\n  File \"socket.py\", line 720, in readinto\r\nTimeoutError: timed out\r\n\n\n1 !== 0\n",
+    "cleanupError": null,
+    "finishedAt": "2026-10-23T13:13:31.322Z"
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-10-23T14:19:12.639974+00:00",
+  "timezone": "Asia/Shanghai",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "system": "10.0.26300",
+  "architecture": "AMD64",
+  "testPython": "3.12.8 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:48:34) [MSC v.1929 64 bit (AMD64)]",
+  "testDependencies": {
+    "annotated-types": "0.8.0",
+    "cffi": "2.1.1",
+    "colorama": "0.4.6",
+    "cryptography": "43.0.3",
+    "hatchling": "1.27.0",
+    "iniconfig": "2.3.1",
+    "packaging": "26.3",
+    "pathspec": "1.1.1",
+    "pluggy": "1.7.0",
+    "pycparser": "3.11",
+    "pydantic": "2.10.6",
+    "pydantic_core": "2.27.2",
+    "pytest": "8.3.5",
+    "pytest-asyncio": "0.24.0",
+    "pytest-timeout": "2.3.1",
+    "ruff": "0.11.13",
+    "trove-classifiers": "2026.9.21.13",
+    "typing_extensions": "4.16.0",
+    "websockets": "13.1"
+  },
+  "installerSHA256": "fda4a9266eac7853d06529243014b443e20b8d45de87332062d7ad84e388dca9",
+  "runtimeSourceFilesMatched": 26
+}

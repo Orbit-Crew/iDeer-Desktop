@@ -81,11 +81,14 @@ function ChatContents({ state, busy, onCommand }: {
         <Typography.Paragraph>新建或覆盖：{request.path}</Typography.Paragraph>
         <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
         <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
-        <Typography.Paragraph>以下内容将按原始 UTF-8 字节写入。批准只适用于本次请求。</Typography.Paragraph>
+        <Typography.Paragraph>以下内容将按原始 UTF-8 字节写入。一次允许仅批准本次请求。</Typography.Paragraph>
+        {request.directory && <Typography.Paragraph>持续授权范围：{request.directory} 及其子目录中的文本新建与覆盖。受保护路径和脚本仍受限制，可在设置撤销。</Typography.Paragraph>}
         <Input.TextArea aria-label="审批写入内容" value={request.content} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
         <Space className="mt-3">
           <Button type="primary" disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
             threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow' })}>仅允许这一次</Button>
+          {request.directory && <Button disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
+            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow-directory' })}>始终允许此目录的文本写入</Button>}
           <Button danger disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
             threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'deny' })}>拒绝写入</Button>
         </Space>

@@ -67,7 +67,7 @@ if (!app.requestSingleInstanceLock()) {
       if (chosen.canceled || chosen.filePaths.length !== 1) return
       const confirmation = await dialog.showMessageBox(mainWindow!, {
         type: 'question', title: '确认工作目录的数据边界',
-        message: '允许本次账号与设备读取此目录？写入需要在聊天中逐次确认。',
+        message: '允许本次账号与设备读取此目录？写入可在聊天中选择逐次或持续授权。',
         detail: `${chosen.filePaths[0]}\n\n仅在会话请求列举、读取或搜索时，将所需文件名或文本发送到 Server 和模型。不会自动上传整个目录。模型仅能看到逻辑目录。目录不会登记为平台 Resource。授权保存在本机，同账号与设备重启后继续有效。切换目录将使旧路径失效。`,
         buttons: ['取消', '确认目录授权'], defaultId: 0, cancelId: 0, noLink: true
       })
@@ -77,6 +77,10 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('desktop:chat', (event, command) => {
       requireMainFrame(event)
       return runtime.chat(command)
+    })
+    ipcMain.handle('desktop:manage', (event, action, grantId) => {
+      requireMainFrame(event)
+      return runtime.manage(action, grantId)
     })
     ipcMain.handle('desktop:receipts', async (event, action, offset = 0) => {
       requireMainFrame(event)

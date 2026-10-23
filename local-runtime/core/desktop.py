@@ -31,6 +31,7 @@ def main() -> int:
     commands: queue.Queue = queue.Queue(maxsize=1)
     workspace_commands: queue.Queue = queue.Queue(maxsize=1)
     receipt_commands: queue.Queue = queue.Queue(maxsize=1)
+    management_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     output_lock = threading.Lock()
 
@@ -46,6 +47,11 @@ def main() -> int:
                 if len(line) > 131072:
                     continue
                 command = json.loads(line)
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'grantId', 'scope'}
+                        and command['type'] == 'manage' and command['action'] in {'logout', 'switch-account', 'revoke'}
+                        and all(isinstance(command[key], str) and len(command[key]) <= 128 for key in ('id', 'grantId', 'scope'))):
+                    management_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'offset', 'scope'}
                         and command['type'] == 'receipts' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and command['action'] in {'history', 'clear-confirmed'}
@@ -84,13 +90,22 @@ def main() -> int:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
 
         workspace = WorkspaceSelection(args.config)
+        def stop_controller():
+            nonlocal controller
+            previous, controller = controller, None
+            if previous is not None:
+                # Fence the old service before a bounded thread join. A slow
+                # shutdown must never regain permission after a new login.
+                previous.client.file_service.available = lambda: False
+                previous.stop()
+
         def local_consents():
             return controller.pending_consents() if controller is not None else ()
 
-        def decide_consent(task_id, digest, approved):
+        def decide_consent(task_id, digest, approved, *, directory=False):
             if controller is None or login.status()['state'] != 'authenticated':
                 raise ValueError('CONSENT_UNAVAILABLE')
-            controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest)
+            controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest, directory=directory)
 
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents, decide_consent=decide_consent)
         args.config.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +156,10 @@ def main() -> int:
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
             controller.client.user_id = settings.user_id
-            controller.client.file_service.available = lambda: login.status()['state'] == 'authenticated'
+            owner = profile_binding(settings)
+            controller.client.file_service.available = lambda: (
+                login.status()['state'] == 'authenticated' and controller.client.connected
+                and profile_binding(load_settings(args.config)) == owner)
             controller.start()
             return controller
 
@@ -149,12 +167,32 @@ def main() -> int:
         while not stop.is_set():
             browser_url = None
             try:
+                management = management_commands.get_nowait()
+            except queue.Empty:
+                management = None
+            if management:
+                error = ''
+                try:
+                    if management['scope'] != workspace.scope():
+                        raise ValueError('IDENTITY_CHANGED')
+                    stop_controller()
+                    if management['action'] == 'revoke':
+                        if login.status()['state'] != 'authenticated':
+                            raise ValueError('LOGIN_REQUIRED')
+                        workspace.revoke(management['grantId'])
+                        controller = connect()
+                    else:
+                        login.logout(forget_device=management['action'] == 'switch-account')
+                except Exception:
+                    error = 'MANAGEMENT_FAILED'
+                emit({'v': 1, 'type': 'manage', 'id': management['id'], 'error': error})
+            try:
                 receipt_command = receipt_commands.get_nowait()
             except queue.Empty:
                 receipt_command = None
             if receipt_command:
                 error = ''
-                receipt_owner = profile_binding(load_settings(args.config))
+                receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
                 try:
                     if receipt_command['action'] == 'clear-confirmed':
                         if receipt_owner is None or receipt_command['scope'] != content_hash(receipt_owner):
@@ -173,9 +211,8 @@ def main() -> int:
                 try:
                     if login.status()['state'] != 'authenticated' or selection['scope'] != workspace.scope():
                         raise ValueError('WORKSPACE_UNAVAILABLE')
+                    stop_controller()
                     workspace.select(selection['path'], confirmed=True)
-                    if controller is not None:
-                        controller.stop()
                     controller = connect()
                     emit({'v': 1, 'type': 'workspace', 'id': selection['id'], 'error': ''})
                 except Exception:
@@ -197,9 +234,8 @@ def main() -> int:
                            "LOGIN_ORIGIN_INVALID", "LOGIN_IN_PROGRESS", "DEVICE_ALREADY_PAIRED"}
                 login.fail(str(exc) if str(exc) in allowed else "LOGIN_FAILED")
             if controller is not None and login.status()["state"] != "authenticated":
-                controller.stop()
-                controller = None
-            current_receipt_owner = profile_binding(load_settings(args.config))
+                stop_controller()
+            current_receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
             receipt_view = receipts.snapshot(current_receipt_owner)
             tasks = [{"taskId": row['task_id'][:256], "runId": row['run_id'][:256],
                       "state": (row['status'] if row['delivery_state'] != 'cleaned' else 'cleaned')[:256],
@@ -211,6 +247,9 @@ def main() -> int:
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "selectionScope": workspace.scope(),
+                      "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
+                          userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])
+                          for row in workspace.grants()] if login.status()['state'] == 'authenticated' else [],
                       "workspace": workspace.status() if login.status()["state"] == "authenticated" else {"state": "unavailable", "logicalRoot": ""}}
             if browser_url:
                 status["browserUrl"] = browser_url
@@ -223,7 +262,7 @@ def main() -> int:
         return 1
     finally:
         if controller is not None:
-            controller.stop()
+            stop_controller()
         _ = job  # Keep ownership until process exit.
 
 

@@ -15,12 +15,20 @@ from core.settings import RuntimeSettings, load_settings
 
 
 @contextmanager
-def platform():
+def platform(*, device_status='offline'):
     received = []
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
+
+        def do_GET(self):
+            result = {'id': 'user-A', 'email': 'Test A'} if self.path == '/api/v1/auth/me' else {
+                'id': 'D1', 'owner_id': 'user-A', 'status': device_status}
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode())
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -118,6 +126,48 @@ def test_business_session_expiry_is_visible_without_claiming_device_online(tmp_p
         monkeypatch.setattr(browser_login, 'datetime', FutureClock)
         assert login.status()['state'] == 'expired'
         assert login.status()['error'] == 'LOGIN_EXPIRED'
+
+
+def test_logout_persists_until_explicit_relogin_and_switch_uses_new_device(tmp_path):
+    secure = InMemorySecretStore()
+    config = tmp_path / 'settings.json'
+    with platform() as (origin, received):
+        login = BrowserLogin(config, secure)
+        login.begin(origin, 'D1')
+        login.poll()
+        device_key = load_settings(config).device_public_key
+        login.logout()
+        assert login.status()['state'] == 'unauthenticated'
+        assert load_settings(config).signed_out is True
+        reopened = BrowserLogin(config, secure)
+        reopened.restore()
+        assert reopened.status()['state'] == 'unauthenticated'
+        reopened.begin(origin, 'D1')
+        assert received[-1][1]['existing_device_id'] == 'D1'
+        assert received[-1][1]['public_key'] == device_key
+        assert reopened.poll()
+        assert not load_settings(config).signed_out
+        reopened.logout(forget_device=True)
+        reopened.begin(origin, 'D2')
+        assert received[-1][1]['existing_device_id'] is None
+        assert received[-1][1]['public_key'] != device_key
+
+
+@pytest.mark.parametrize('device_status', ['pending', 'offline', 'revoked', 'blocked'])
+def test_restore_requires_an_active_server_device_binding(tmp_path, device_status):
+    with platform(device_status=device_status) as (origin, _):
+        config, secure = tmp_path / 'settings.json', InMemorySecretStore()
+        login = BrowserLogin(config, secure)
+        login.begin(origin, 'D1')
+        login.poll()
+        reopened = BrowserLogin(config, secure)
+        if device_status in {'pending', 'offline'}:
+            reopened.restore()
+            assert reopened.status()['state'] == 'authenticated'
+        else:
+            with pytest.raises(ValueError, match='DEVICE_BINDING_INVALID'):
+                reopened.restore()
+            assert reopened.status()['state'] != 'authenticated'
 
 
 @pytest.mark.parametrize('business_ref,state', [('missing-business', 'expired'), ('', 'unauthenticated')])

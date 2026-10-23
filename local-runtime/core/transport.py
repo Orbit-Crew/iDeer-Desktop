@@ -658,7 +658,7 @@ class LocalRuntimeClient:
                     return
                 result = file_task.value
                 receipt = self._file_receipt(
-                    envelope, operation, result, consent_decision="always_allow"
+                    envelope, operation, result, consent_decision=result.get('authorization', 'always_allow')
                 )
             elif operation == "local.python":
                 if self.python_service is None:
@@ -736,6 +736,7 @@ class LocalRuntimeClient:
         except FileAccessError as exc:
             await self._send_error(
                 task_id, str(exc), exc.code, envelope.payload, operation,
+                consent_decision=getattr(exc, 'authorization', None),
                 status='result_not_verified' if exc.code == 'RESULT_UNCERTAIN' else 'failed'
             )
             return
@@ -918,10 +919,11 @@ class LocalRuntimeClient:
         actor_id: str = "local-user",
         always: bool = False,
         expected_hash: str | None = None,
+        directory: bool = False,
     ) -> None:
         """Answer a pending on-device request from the UI thread."""
         self.consent_coord.resolve_local_consent(
-            task_id, approved=approved, actor_id=actor_id, always=always, expected_hash=expected_hash
+            task_id, approved=approved, actor_id=actor_id, always=always, expected_hash=expected_hash, directory=directory
         )
 
     async def expire_consents(self, *, now: float | None = None) -> tuple[str, ...]:
