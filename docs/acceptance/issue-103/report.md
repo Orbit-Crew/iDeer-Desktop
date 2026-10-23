@@ -6,6 +6,16 @@ Desktop base: `0a26bdf`, branch `feat/issue-103` from `origin/develop`.
 Server base: `207b3926f`, verified against `github/develop`. Its implementation
 uses a separate WSL worktree on the same `feat/issue-103` branch name.
 
+Committed implementation candidates are Desktop
+[`2518333ae1dc71ad805e3907ab4de2dac3a42ccb`](https://github.com/Orbit-Crew/iDeer-Desktop/commit/2518333ae1dc71ad805e3907ab4de2dac3a42ccb)
+and Server
+[`1f7a52a3d0471083fbbb580e2d1e197983e751b0`](https://github.com/Orbit-Crew/iDeer/commit/1f7a52a3d0471083fbbb580e2d1e197983e751b0).
+Both were checked after committing against the source bindings below. Delivery
+documentation retains those product/test/build bytes. The
+[Server report](https://github.com/Orbit-Crew/iDeer/blob/1f7a52a3d0471083fbbb580e2d1e197983e751b0/docs/acceptance/issue-103/report.md)
+contains the matching Server gate evidence. Publication, CI, merge and final
+disposition are recorded in the [issue timeline](https://github.com/Orbit-Crew/iDeer/issues/103).
+
 T103-01 through T103-04 passed on modern Windows on 2026-10-23, Asia/Shanghai,
 in both the development application and the installed candidate. Each run
 executed 17 real operations with 15 grouped scenario assertions. The complete
