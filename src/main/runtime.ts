@@ -16,11 +16,26 @@ export class RuntimeProcess {
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
+  private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
   constructor(private readonly directory: string, private readonly profile: string) {}
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async manage(action: 'logout' | 'switch-account' | 'revoke', grantId = ''): Promise<void> {
+    if (!['logout', 'switch-account', 'revoke'].includes(action) || typeof grantId !== 'string' ||
+        (action === 'revoke' ? !/^[0-9a-f-]{36}$/.test(grantId) : grantId !== '')) throw new Error('MANAGEMENT_INVALID')
+    if (!this.child || this.stopping || this.managementRequest || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.managementRequest = null; reject(new Error('MANAGEMENT_TIMEOUT')) }, 30000)
+      this.managementRequest = { id,
+        resolve: () => { clearTimeout(timer); this.managementRequest = null; resolve() },
+        reject: (error) => { clearTimeout(timer); this.managementRequest = null; reject(error) } }
+      this.child!.stdin.write(JSON.stringify({ type: 'manage', id, action, grantId, scope: this.selectionScope }) + '\n')
+    })
   }
 
   async receipts(action: 'history' | 'clear-confirmed', offset = 0, expectedScope = this.receiptScope): Promise<ReceiptHistory> {
@@ -65,7 +80,7 @@ export class RuntimeProcess {
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision']
     }
     const allowed = keys[command.action]
-    if (command.action === 'consent' && (Object.keys(command).length !== 7 || !['allow', 'deny'].includes(command.decision) || !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
+    if (command.action === 'consent' && (Object.keys(command).length !== 7 || !['allow', 'allow-directory', 'deny'].includes(command.decision) || !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
     if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
@@ -147,6 +162,14 @@ export class RuntimeProcess {
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
+          if (value.v === 1 && value.type === 'manage') {
+            const pending = this.managementRequest
+            if (pending && value.id === pending.id) {
+              if (value.error) pending.reject(new Error('MANAGEMENT_FAILED'))
+              else pending.resolve()
+            }
+            continue
+          }
           if (value.v === 1 && value.type === 'receipts') {
             if (value.error) this.receiptRequests.get(value.id)?.reject(new Error(value.error === 'RECEIPT_BINDING_CHANGED' ? value.error : 'RECEIPT_STORAGE_UNAVAILABLE'))
             else if (value.result && Array.isArray(value.result.rows) && value.result.rows.length <= 20 &&
@@ -194,6 +217,7 @@ export class RuntimeProcess {
           this.receiptScope = typeof value.receiptScope === 'string' && /^[0-9a-f]{64}$/.test(value.receiptScope) ? value.receiptScope : ''
           lastStatus = Date.now()
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
+            directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
@@ -205,6 +229,7 @@ export class RuntimeProcess {
       this.snapshot = { process: 'crashed', connection: 'offline', tasks: [] }
     })
     child.on('close', () => {
+      this.managementRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.workspaceRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))

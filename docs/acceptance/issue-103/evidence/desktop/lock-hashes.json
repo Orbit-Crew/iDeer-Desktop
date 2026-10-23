@@ -1,0 +1,18 @@
+[
+  {
+    "path": "package.json",
+    "sha256": "6c2208d42237477e1b83b539f0195bf3165f0ec3ca2b9dd319bac1bdcd6e4a24"
+  },
+  {
+    "path": "package-lock.json",
+    "sha256": "38e20141bb06e8814177597d6164be854831e480783d38b4d41c2d1133ce857a"
+  },
+  {
+    "path": "local-runtime/pyproject.toml",
+    "sha256": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a"
+  },
+  {
+    "path": "local-runtime/distribution.lock.json",
+    "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  }
+]

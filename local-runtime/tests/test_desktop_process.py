@@ -51,9 +51,10 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path, desktop
             await socket.wait_closed()
 
         async def authenticated_account(connection, request):
-            if request.path == "/api/v1/auth/me":
+            if request.path in {"/api/v1/auth/me", '/api/devices/' + identity}:
                 assert request.headers.get("Cookie") == "access_token=business-" + identity
-                body = json.dumps({"id": identity, "email": "fixture@example.com"}).encode()
+                body = json.dumps({"id": identity, "email": "fixture@example.com"} if request.path == '/api/v1/auth/me'
+                    else {'id': identity, 'owner_id': identity, 'status': 'offline'}).encode()
                 return Response(200, "OK", Headers({"Content-Type": "application/json", "Content-Length": str(len(body))}), body)
 
         async def snapshot_reader(child):

@@ -17,6 +17,11 @@ describe('platform chat UI', () => {
     expect(html).toMatch(/<button[^>]*>.*?仅允许这一次/s)
     expect(html).toContain('拒绝写入')
     expect(html).not.toContain('始终允许')
+    state.localConsents![0].directory = 'C:\\work\\W1'
+    const directoryHtml = renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)
+    expect(directoryHtml).toContain('始终允许此目录的文本写入')
+    expect(directoryHtml).toContain('C:\\work\\W1')
+    expect(directoryHtml).toContain('受保护路径和脚本仍受限制')
   })
   it('shows canonical versions, history, server run state and an answerable clarification', () => {
     const state: ChatSnapshot = {

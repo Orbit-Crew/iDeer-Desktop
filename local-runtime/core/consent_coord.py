@@ -175,10 +175,16 @@ class LocalConsentCoordinator:
         return capability == 'local.files.write' and isinstance(self._wire.file_service, WorkspaceFileService)
 
     def _summary(self, request: ConsentRequest) -> dict[str, str]:
-
-        return render_consent_summary(
+        summary = render_consent_summary(
             request.capability, request.payload, request_hash=request.request_hash
         )
+        if self._desktop_write(request.capability):
+            try:
+                _, workspace = self._wire.file_service.selection.current()
+                summary['directory'] = workspace['physical_root']
+            except (FileAccessError, OSError):
+                pass
+        return summary
 
     def _audit(
         self,
@@ -287,6 +293,7 @@ class LocalConsentCoordinator:
             approved=bool(answer.get("approved")),
             actor_id=str(answer.get("actor_id", "local-user")),
             always=bool(answer.get("always")),
+            directory=answer.get("directory") is True,
             origin="tray",
         )
 
@@ -352,6 +359,7 @@ class LocalConsentCoordinator:
         actor_id: str = "local-user",
         always: bool = False,
         expected_hash: str | None = None,
+        directory: bool = False,
     ) -> None:
         """Answer a pending on-device request from the UI thread."""
         consent = self._local_consents.get(task_id)
@@ -367,6 +375,7 @@ class LocalConsentCoordinator:
             "approved": approved,
             "actor_id": actor_id,
             "always": always,
+            "directory": directory,
         }
 
         def settle() -> None:
@@ -446,6 +455,7 @@ class LocalConsentCoordinator:
         approved: bool,
         actor_id: str,
         always: bool = False,
+        directory: bool = False,
         origin: str,
     ) -> None:
         """Record the decision, then run or refuse exactly what was shown."""
@@ -457,6 +467,15 @@ class LocalConsentCoordinator:
             approved = False
         if self._desktop_write(request.capability):
             always = False
+        basis = 'approved'
+        if approved and directory and self._desktop_write(request.capability) and origin == 'tray':
+            try:
+                if wire.receipt_ledger is None or wire.receipt_ledger.error:
+                    raise FileAccessError('RECEIPT_STORAGE_UNAVAILABLE')
+                grant = wire.file_service.remember_consent(request.payload)
+                basis = 'directory:' + grant['id']
+            except (FileAccessError, OSError):
+                approved = False
         exchange = ConsentExchange(store)
         exchange.decide(request, approved=approved, actor_id=actor_id)
         if approved and always:
@@ -469,7 +488,7 @@ class LocalConsentCoordinator:
             run_id=str(request.payload.get("run_id", "")),
             digest=request.request_hash,
             actor_id=actor_id,
-            detail={"origin": origin, "binds_to_payload": True},
+            detail={"origin": origin, "binds_to_payload": True, "basis": basis},
         )
         if not approved or not exchange.authorize(request, request.payload):
             await wire._send_error(
@@ -483,7 +502,7 @@ class LocalConsentCoordinator:
                 consent_decision="denied",
             )
             return
-        await self._execute_consented(envelope, request)
+        await self._execute_consented(envelope, request, consent_decision=basis)
 
     async def expire_consents(self, *, now: float | None = None) -> tuple[str, ...]:
         """Auto-deny prompts nobody answered, so nothing hangs indefinitely.
@@ -628,19 +647,19 @@ class LocalConsentCoordinator:
             origin="server",
         )
 
-    async def _execute_consented(self, envelope: Any, request: ConsentRequest) -> None:
+    async def _execute_consented(self, envelope: Any, request: ConsentRequest, *, consent_decision='approved') -> None:
 
         wire = self._wire
         try:
             try:
-                await self._execute_consented_inner(envelope, request)
+                await self._execute_consented_inner(envelope, request, consent_decision=consent_decision)
             except FileAccessError as exc:
                 if exc.code == 'RESULT_UNCERTAIN':
                     if not hasattr(self, '_write_effects'):
                         self._write_effects = set()
                     self._write_effects.add(envelope.task_id)
                 await wire._send_error(envelope.task_id or '', str(exc), exc.code,
-                    request.payload, request.capability, consent_decision='approved',
+                    request.payload, request.capability, consent_decision=consent_decision,
                     status='result_not_verified' if exc.code == 'RESULT_UNCERTAIN' else 'failed')
         except asyncio.CancelledError:
             if envelope.task_id in getattr(self, '_write_effects', set()):
@@ -653,13 +672,13 @@ class LocalConsentCoordinator:
                 request.capability,
                 policy_decision=PolicyDecision.ALLOW.value,
                 status="cancelled",
-                consent_decision="approved",
+                consent_decision=consent_decision,
             )
         finally:
             getattr(self, '_write_effects', set()).discard(envelope.task_id)
 
     async def _execute_consented_inner(
-        self, envelope: Any, request: ConsentRequest
+        self, envelope: Any, request: ConsentRequest, *, consent_decision='approved'
     ) -> None:
         from .python import PythonResult
 
@@ -714,7 +733,7 @@ class LocalConsentCoordinator:
                 envelope,
                 request.capability,
                 value,
-                consent_decision="approved",
+                consent_decision=consent_decision,
                 payload=request.payload,
                 task_id=task_id,
             )
@@ -727,7 +746,7 @@ class LocalConsentCoordinator:
                 request.capability,
                 policy_decision=decision.value,
                 status="denied",
-                consent_decision="approved",
+                consent_decision=consent_decision,
             )
             return
         if receipt is None:

@@ -1,0 +1,6 @@
+lane=pr-standard
+command=/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\ pr-standard
+started=2026-10-23T13:38:30Z
+finished=2026-10-23T14:16:35Z
+status=0
+seconds=2285

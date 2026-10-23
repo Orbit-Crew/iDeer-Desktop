@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ChatCommand, DesktopBridge } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
+  manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
   chooseWorkspace: () => ipcRenderer.invoke('desktop:workspace:choose'),
   getStatus: () => ipcRenderer.invoke('desktop:status'),
   quit: () => ipcRenderer.invoke('desktop:quit'),

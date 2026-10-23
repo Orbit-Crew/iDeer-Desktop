@@ -1,0 +1,47 @@
+[
+  {
+    "attempt": "functional-dev-01",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "functional-dev-02",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "functional-dev-03",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "functional-dev-04",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "functional-dev-06",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "functional-dev-07",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 15
+  },
+  {
+    "attempt": "functional-dev-11",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 15
+  },
+  {
+    "attempt": "functional-dev-final",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  },
+  {
+    "attempt": "management-probe-05",
+    "removed": 0,
+    "alreadyRetiredByLogoutOrRotation": 6
+  }
+]

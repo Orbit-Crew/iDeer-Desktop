@@ -76,7 +76,8 @@ class WorkspaceSelection:
         import json
         from .settings import load_settings
         settings = load_settings(self.config)
-        return hashlib.sha256(json.dumps(self._binding(settings)).encode()).hexdigest()
+        return hashlib.sha256(json.dumps([self._binding(settings), settings.workspace.get('logical_root'),
+            settings.signed_out, settings.business_token_ref]).encode()).hexdigest()
 
     def current(self):
         from .settings import load_settings
@@ -86,10 +87,62 @@ class WorkspaceSelection:
         if settings.business_expires_at and datetime.fromisoformat(settings.business_expires_at) <= datetime.now(timezone.utc):
             raise FileAccessError('WORKSPACE_UNAVAILABLE')
         grant = settings.workspace
-        if (not settings.user_id or not settings.device_id or not grant
+        if (settings.signed_out or not settings.user_id or not settings.device_id or not grant
                 or grant.get('binding') != self._binding(settings)):
             raise FileAccessError('WORKSPACE_UNAVAILABLE')
         return settings, grant
+
+    def grants(self):
+        from .settings import load_settings
+        with self.lock:
+            settings = load_settings(self.config)
+            if settings.signed_out:
+                return []
+            return [dict(row) for row in settings.directory_grants
+                    if row.get('binding') == self._binding(settings) and not row.get('revoked_at')]
+
+    def matching_grant(self, operation):
+        import os
+        from pathlib import Path
+        _, workspace = self.current()
+        path = Path(workspace['physical_root'])
+        stat = path.stat()
+        if [stat.st_dev, stat.st_ino] != workspace['identity']:
+            return None
+        return next((row for row in self.grants() if row['operation'] == operation
+                     and row['directory'] == os.path.normcase(str(path.resolve(strict=True)))
+                     and row['identity'] == workspace['identity']), None)
+
+    def allow_write(self):
+        import os
+        from datetime import datetime, timezone
+        from pathlib import Path
+        from uuid import uuid4
+        with self.lock:
+            settings, workspace = self.current()
+            existing = self.matching_grant('local.files.write')
+            if existing:
+                return existing
+            row = dict(id=str(uuid4()), binding=self._binding(settings),
+                directory=os.path.normcase(str(Path(workspace['physical_root']).resolve(strict=True))),
+                identity=list(workspace['identity']), operation='local.files.write',
+                created_at=datetime.now(timezone.utc).isoformat(), revoked_at='')
+            settings.directory_grants.append(row)
+            settings.save(self.config)
+            return dict(row)
+
+    def revoke(self, grant_id):
+        from datetime import datetime, timezone
+        from .settings import load_settings
+        from .files import FileAccessError
+        with self.lock:
+            settings = load_settings(self.config)
+            for row in settings.directory_grants:
+                if row['id'] == grant_id and row['binding'] == self._binding(settings) and not settings.signed_out:
+                    row['revoked_at'] = datetime.now(timezone.utc).isoformat()
+                    settings.save(self.config)
+                    return
+            raise FileAccessError('WORKSPACE_UNAVAILABLE')
 
     def status(self):
         with self.lock:
@@ -248,7 +301,15 @@ class WorkspaceFileService(LocalFileService):
         self.selection = selection
         self.consent = ConsentStore()
 
-    def execute(self, capability, payload, *, consent=False):
+    def remember_consent(self, payload):
+        from .files import FileAccessError
+        with self.selection.lock:
+            checked = self.execute('local.files.write', payload, check_only=True)
+            if checked.decision is PolicyDecision.DENY:
+                raise FileAccessError('LOCAL_POLICY_DENIED')
+            return self.selection.allow_write()
+
+    def execute(self, capability, payload, *, consent=False, check_only=False):
         import hashlib
         from pathlib import Path
         from .files import FileAccessError, RootConfig
@@ -260,8 +321,9 @@ class WorkspaceFileService(LocalFileService):
             settings, grant = self.selection.current()
             policy = settings.policy()
             decision = policy.authorize(capability, payload, consent=consent)
+            directory_grant = self.selection.matching_grant(capability) if capability == 'local.files.write' else None
             if capability == 'local.files.write' and decision is not PolicyDecision.DENY:
-                decision = PolicyDecision.ALLOW if consent else PolicyDecision.CONSENT_REQUIRED
+                decision = PolicyDecision.ALLOW if consent or directory_grant else PolicyDecision.CONSENT_REQUIRED
             if decision is not PolicyDecision.ALLOW and (capability != 'local.files.write' or decision is PolicyDecision.DENY):
                 return FileTaskResult(decision)
             args = payload.get('arguments', payload.get('args', payload))
@@ -288,10 +350,19 @@ class WorkspaceFileService(LocalFileService):
                     raise FileAccessError('NOT_UTF8_TEXT') from None
                 if len(raw) > MAX_TEXT_BYTES:
                     raise FileAccessError('FILE_TOO_LARGE')
+                if check_only:
+                    return FileTaskResult(decision)
                 if decision is PolicyDecision.CONSENT_REQUIRED:
                     return FileTaskResult(decision)
-                files.write_verified(path, raw)
+                try:
+                    files.write_verified(path, raw)
+                except FileAccessError as error:
+                    if directory_grant and not consent:
+                        error.authorization = 'directory:' + directory_grant['id']
+                    raise
                 value = {'written': True, 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+                if directory_grant and not consent:
+                    value['authorization'] = 'directory:' + directory_grant['id']
             elif capability == 'local.files.list':
                 entries, scan_limited = files.list_with_limit(path)
                 value = {'entries': entries[:MAX_ENTRIES], 'truncated': scan_limited or len(entries) > MAX_ENTRIES}

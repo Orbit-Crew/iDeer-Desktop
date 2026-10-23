@@ -10,6 +10,13 @@ export default function RuntimePanel(): JSX.Element {
   const [loginError, setLoginError] = useState(false)
   const [opening, setOpening] = useState(false)
   const [workspaceError, setWorkspaceError] = useState(false)
+  const [managementError, setManagementError] = useState(false)
+  const [managing, setManaging] = useState(false)
+  const manage = (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => {
+    setManagementError(false); setManaging(true)
+    void window.ideer.manage(action, grantId).then(() => controller.current?.refresh(historyOffset))
+      .catch(() => setManagementError(true)).finally(() => setManaging(false))
+  }
   const [historyOffset, setHistoryOffset] = useState(0)
   const controller = useRef<RuntimePanelController | null>(null)
   useEffect(() => {
@@ -40,6 +47,12 @@ export default function RuntimePanel(): JSX.Element {
       {login?.error && <Alert type="error" message={`登录未完成：${login.error}`} />}
       <Typography.Text>桌面业务会话：{login?.state === 'authenticated' ? '已认证' : '未认证'}</Typography.Text>
       {login?.state === 'authenticated' && <Typography.Text>账号：{login.account} · 设备：{login.device}</Typography.Text>}
+      <Space>
+        <Button disabled={managing || login?.state !== 'authenticated'} onClick={() => manage('logout')}>退出账号</Button>
+        <Button disabled={managing || !runtime || runtime.process !== 'running' || login?.state === 'awaiting-confirmation'} onClick={() => manage('switch-account')}>切换账号或重新绑定设备</Button>
+      </Space>
+      <Typography.Text type="secondary">退出会停止任务并取消待审批，保留隔离记录。同账号原设备重登可恢复授权；切换账号将建立新的设备绑定。</Typography.Text>
+      {managementError && <Alert type="error" message="账号或授权操作未完成，请刷新状态后重试" />}
     </Space>
     {failed ? <Alert type="error" message="无法读取 Runtime 状态，当前不可执行任务" /> : <>
       <Typography.Paragraph>进程：{runtime ? processNames[runtime.process] : '读取中'} {runtime?.pid ? `（PID ${runtime.pid}）` : ''}</Typography.Paragraph>
@@ -56,8 +69,16 @@ export default function RuntimePanel(): JSX.Element {
       setWorkspaceError(false)
       void window.ideer.chooseWorkspace().catch(() => setWorkspaceError(true))
     }}>选择并授权目录</Button>
-    <Typography.Paragraph type="secondary">目录内的文本写入需要在原聊天中逐次批准。</Typography.Paragraph>
+    <Typography.Paragraph type="secondary">在原聊天中可选择仅允许一次，或持续允许所选目录及子目录的文本新建与覆盖。目录授权不允许执行脚本。</Typography.Paragraph>
     {workspaceError && <Alert type="error" message="目录不可用或授权未完成，请选择普通工作目录" />}
+    <Typography.Title level={5} className="mt-5">持续目录授权</Typography.Title>
+    {!runtime?.directoryGrants?.length && <Typography.Paragraph>当前账号与设备没有持续文本写入授权。</Typography.Paragraph>}
+    {runtime?.directoryGrants?.map(grant => <Card key={grant.id} size="small" className="mt-2">
+      <Typography.Paragraph>{grant.directory} 及子目录 · 文本新建与覆盖</Typography.Paragraph>
+      <Typography.Paragraph>账号 {grant.userId} · 设备 {grant.deviceId} · {grant.createdAt}</Typography.Paragraph>
+      <Typography.Paragraph copyable>授权 ID：{grant.id}</Typography.Paragraph>
+      <Button danger disabled={managing} onClick={() => manage('revoke', grant.id)}>撤销此目录授权</Button>
+    </Card>)}
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
     {(runtime?.receiptStorageError || history?.storageError) && <Alert type="error" message="可靠记录存储不可用，已暂停新写入。已发生效果的任务请核实结果。"

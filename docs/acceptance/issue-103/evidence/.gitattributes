@@ -1,0 +1,2 @@
+# Preserve the bytes recorded in manifest.json on Windows and Linux.
+* -text whitespace=cr-at-eol

@@ -145,6 +145,37 @@ File errors after approval retain the original approved consent basis in their
 receipts. Any filesystem error after replacement, including cleanup, is reported
 as an uncertain result because the write already occurred.
 
+Issue #103 adds explicit directory write grants in `settings.json`, separately
+from the legacy consent store. Each record has a UUID, user/device/public-key
+binding, normalized physical directory, directory identity, operation and
+creation/revocation timestamps. Selecting a directory still creates a fresh
+logical root. Reselecting the same physical directory can recover its matching
+grant; an old logical path never becomes valid again. Content changes do not
+invalidate a directory grant. Every write still checks local DENY, selected
+directory identity, protected paths, reparse points, size and receipt storage.
+Directory grants never enable Python, MCP or shell execution.
+
+The chat card offers one-time approval or explicit persistent text-write
+consent for the displayed directory and its children. One-time receipts retain
+`approved`; persistent-consent receipts carry `directory:<grant UUID>`. Server
+checks that form on live results and durable replay while retaining the
+original signed task, user/device identity, Run and tool-call binding.
+
+Settings lists and revokes the current identity's grants. Logout persists a
+signed-out flag before retiring business/session credentials; it keeps isolated
+grant and receipt records and the device key needed for same-device relogin.
+Switch-account/rebind detaches the old identity and uses a new pairing key.
+Ordinary session/token rotation does not change the grant binding. Startup
+checks the account and Server device state, then still requires the existing
+credential and pinned signed handshake. A paired device can remain `pending`
+until its first HELLO; revoked, blocked and unsupported states cannot restore
+an authenticated Desktop session.
+
+Controller changes first permanently fence the old file service, then stop
+its tasks and pending approvals. A slow shutdown cannot regain access after a
+new login. Signed-out status exposes no receipt owner, grant list or task
+history. Native window close remains a true exit; there is no tray-hide entry.
+
 ## Build and evidence
 
 `npm.cmd run dist:win` prepares the Runtime before NSIS packaging.

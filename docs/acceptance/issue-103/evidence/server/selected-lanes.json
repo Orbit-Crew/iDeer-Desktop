@@ -1,0 +1,47 @@
+[
+  {
+    "directory": "pr-standard-20261023T133830Z-538398",
+    "lane": "pr-standard",
+    "command": "/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\\ pr-standard",
+    "started": "2026-10-23T13:38:30Z",
+    "finished": "2026-10-23T14:16:35Z",
+    "status": "0",
+    "seconds": "2285"
+  },
+  {
+    "directory": "local-runtime-20261023T133838Z-538689",
+    "lane": "local-runtime",
+    "command": "/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\\ local-runtime",
+    "started": "2026-10-23T13:38:38Z",
+    "finished": "2026-10-23T13:38:55Z",
+    "status": "0",
+    "seconds": "17"
+  },
+  {
+    "directory": "backend-standard-20261023T133855Z-539214",
+    "lane": "backend-standard",
+    "command": "/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\\ backend-standard",
+    "started": "2026-10-23T13:38:55Z",
+    "finished": "2026-10-23T14:06:49Z",
+    "status": "0",
+    "seconds": "1674"
+  },
+  {
+    "directory": "frontend-standard-20261023T140649Z-588941",
+    "lane": "frontend-standard",
+    "command": "/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\\ frontend-standard",
+    "started": "2026-10-23T14:06:49Z",
+    "finished": "2026-10-23T14:14:50Z",
+    "status": "0",
+    "seconds": "481"
+  },
+  {
+    "directory": "frontend-smoke-20261023T141450Z-597667",
+    "lane": "frontend-smoke",
+    "command": "/home/neowyh/.codex-worktrees/ideer-issue103-server-20261023/scripts/run-test-lane.sh\\ frontend-smoke",
+    "started": "2026-10-23T14:14:50Z",
+    "finished": "2026-10-23T14:16:35Z",
+    "status": "0",
+    "seconds": "105"
+  }
+]

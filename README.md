@@ -9,10 +9,17 @@ The Server runs the Agent; Desktop never falls back to a local model.
 
 After selecting a workspace, text file creation and overwrite requests appear
 in the original chat as local approval cards. Each approval binds the exact
-path and content for one task. Writes require a reliable local receipt record;
+path and content for one task. Users can also explicitly allow text writes for
+the selected directory and its subdirectories. Settings lists these account
+and device-bound grants and can revoke them. Logout stops tasks and pending
+approvals; the same active device can recover grants after a valid login.
+Changing accounts or rebinding a device never imports another identity's grants.
+Writes require a reliable local receipt record;
 disconnects do not automatically repeat a write. See the
 [issue #102 acceptance report](docs/acceptance/issue-102/report.md) for scenario
 results and remaining verification.
+Persistent directory consent and account/device lifecycle results are in the
+[issue #103 acceptance report](docs/acceptance/issue-103/report.md).
 
 Use Node 22 and npm on the build machine:
 

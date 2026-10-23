@@ -71,6 +71,8 @@ class RuntimeSettings:
     session_token_ref: str = ""
     claim_token_ref: str = ""
     workspace: dict[str, Any] = field(default_factory=dict)
+    directory_grants: list[dict[str, Any]] = field(default_factory=list)
+    signed_out: bool = False
     roots: list[dict[str, str]] = field(default_factory=list)
     rules: dict[str, str] = field(default_factory=dict)
     #: Per-capability risk-tier overrides: ``{"local.python": "level_2"}``.

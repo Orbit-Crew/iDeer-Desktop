@@ -1,0 +1,12 @@
+{
+  "command": [
+    "npm.cmd",
+    "run",
+    "verify:provenance"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\1403\\iDeer-Desktop",
+  "started": "2026-10-23T07:07:27.455465+00:00",
+  "finished": "2026-10-23T07:07:28.129727+00:00",
+  "seconds": 0.672,
+  "exitCode": 0
+}

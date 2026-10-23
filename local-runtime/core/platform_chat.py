@@ -64,6 +64,7 @@ class DesktopChat:
                 continue
             row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
                 requestHash=pending.request_hash, path=args['path'], content=args['content'])
+            row['directory'] = pending.summary.get('directory', '')
             # The credential scrubber must remain active, but a scrubbed card
             # cannot authorize bytes the user could not see. Check on both
             # display and decision paths, before calling the local approver.
@@ -438,13 +439,16 @@ class DesktopChat:
                     self._load_thread(session, self._state['thread']['id'])
                 elif action == 'consent':
                     expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'}
-                    if set(command) != expected or command.get('decision') not in {'allow', 'deny'} or self.decide_consent is None:
+                    if set(command) != expected or command.get('decision') not in {'allow', 'allow-directory', 'deny'} or self.decide_consent is None:
                         raise ChatError('CHAT_COMMAND_INVALID')
                     pending = next((row for row in self._consents(session) if all(command.get(key) == row[key] for key in ('threadId', 'runId', 'taskId', 'requestHash'))), None)
                     if pending is None:
                         raise ChatError('CONSENT_MISMATCH')
                     try:
-                        self.decide_consent(command['taskId'], command['requestHash'], command['decision'] == 'allow')
+                        if command['decision'] == 'allow-directory':
+                            self.decide_consent(command['taskId'], command['requestHash'], True, directory=True)
+                        else:
+                            self.decide_consent(command['taskId'], command['requestHash'], command['decision'] == 'allow')
                     except Exception:
                         raise ChatError('CONSENT_UNAVAILABLE') from None
                     self._state['error'] = ''
