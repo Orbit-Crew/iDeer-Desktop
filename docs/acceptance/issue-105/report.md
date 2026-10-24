@@ -76,10 +76,14 @@ Electron bridge and UI in `src/main/runtime.ts`, `src/shared/desktop.ts`,
 packaged Runtime includes `local_results.py` via the assembled `.runtime`
 tree.
 
-## Dependencies on the Server workflow
+## Server workflow dependencies — delivered
 
-The artifact endpoint contract implemented and asserted here
-(`POST /api/threads/{thread_id}/artifacts` with `Idempotency-Key`, single-use
-grant, echo response) must be accepted by the Server repository's own gates
-and real cross-repository run before #105 can close org-wide. Win7 stays
-`unexecuted` per the ticket and is owned by [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
+The Server repository accepted the artifact contract this report asserted:
+Orbit-Crew/iDeer PR #143 (merged as `432b60930f499490dafde6e136b1cd2e036f227c`)
+implements `POST /api/threads/{thread_id}/artifacts` with digest and byte
+re-verification, hash idempotency (duplicate replays return the same
+artifact), grant and owner binding, and the same fixed rejection categories
+with no stored bytes on refusal. Payloads land in the owning thread's
+user-data outputs, so the existing artifact listing and access control apply.
+Win7 stays `unexecuted` per the ticket and is owned by
+[#131](https://github.com/Orbit-Crew/iDeer/issues/131).

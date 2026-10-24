@@ -65,12 +65,16 @@ The app ships only the pinned public key
 | `ruff check local-runtime --select E9,F63,F7,F82` | passed |
 | `make-update.cjs` sign → verify round trip | passed |
 
-## Dependencies and platform scope
+## Server workflow dependencies — delivered
 
-The controlled hosting (Nginx static directory reviewed by operations) and the
-Server-side controlled-address publication are delivered in the Server and
-deployment workflows; the Desktop consumes the documented fixed paths under
-the paired origin and reports `UPDATE_NOT_PUBLISHED` until they exist. Real
-Win7 remains `unexecuted` per the ticket and is owned by
-[#131](https://github.com/Orbit-Crew/iDeer/issues/131). Actual installation,
-drain coordination and restart are #108's scope by design.
+The Server repository now serves the controlled address: Orbit-Crew/iDeer PR
+#144 (merged as `169c17549facbe04096600c9b0c4e6359127dc53`) serves exactly
+`updates/desktop/manifest.json|.sig` and `updates/compatibility.json|.sig`
+from the operations-reviewed `UPDATES_CONTROLLED_DIR` (read-only, whitelisted
+names, `no-store`, honest 404 while unpublished); the operations workflow and
+file-name contract are recorded in the Server repo's
+`routers/UPDATES_ADDRESS.md`. The Desktop consumes those documented paths and
+keeps verifying every signature locally. Real Win7 remains `unexecuted` per
+the ticket and is owned by [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
+Actual installation, drain coordination and restart are #108's scope by
+design.
