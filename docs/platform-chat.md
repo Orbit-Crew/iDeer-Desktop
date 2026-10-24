@@ -10,7 +10,7 @@ resource closure and immutable version snapshots; the UI displays the actual
 
 The renderer calls one restricted `desktop:chat` IPC method. Its command union
 allows state, catalog refresh, Thread creation/open, send, human-input answer,
-reconnect and an exact local approval decision. It accepts no URL,
+reconnect, scoped Run stopping and an exact local approval decision. It accepts no URL,
 authentication header, executable, physical path or renderer-supplied write
 content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
@@ -142,3 +142,25 @@ The [issue #102 runners](../scripts/acceptance/issue-102/README.md) exercise
 approval, refusal, storage faults and disconnect/cancellation behavior. The
 [scenario report](acceptance/issue-102/report.md) records what was executed on
 the actual candidate and installation.
+
+## Stop and recover local work
+
+Stop first saves a device-bound Run fence and attempts to cancel current local
+tasks. Future deliveries for that Run cannot execute, including after Runtime
+restart. Desktop then requests Server interruption using the original Thread
+and Run. A requested stop is separate from an authoritative Run or task terminal
+state. An uncertain cancellation can be explicitly retried. Already committed
+file modifications remain in place.
+
+The original Thread displays Server task facts and local receipt/upload facts
+separately. Its owned, paginated Server history survives Server restarts; the
+local metadata ledger preserves Thread association independently of the signed
+receipt metadata. Unknown effects remain results needing verification. Late
+receipts reconcile historical tasks without submitting another Run or write.
+Clearing confirmed history cannot remove task admission or stopped Run fences.
+
+Background history polling does not hold the command queue during network
+requests. Identity and Thread generations reject obsolete responses. History
+errors label cached results as needing another check; they never imply success.
+See [issue #104 acceptance](acceptance/issue-104/report.md) and its
+[fault runners](../scripts/acceptance/issue-104/README.md).

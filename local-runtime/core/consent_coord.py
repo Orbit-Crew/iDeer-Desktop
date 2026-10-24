@@ -96,6 +96,7 @@ class _ConsentWire:
     mcp_service: LocalMCPService | None
     consent_prompt: ConsentPrompt | None
     _running_tasks: dict[str, asyncio.Task[None]]
+    _task_runs: dict[str, str]
     _cancelled_tasks: set[str]
     _task_finished: Callable[[str, asyncio.Task[None]], None]
 
@@ -631,6 +632,7 @@ class LocalConsentCoordinator:
                 )
             )
             wire._running_tasks[task_id] = task
+            wire._task_runs[task_id] = str(request.payload.get('run_id', ''))
             task.add_done_callback(
                 lambda finished, current_task_id=task_id: wire._task_finished(
                     current_task_id, finished

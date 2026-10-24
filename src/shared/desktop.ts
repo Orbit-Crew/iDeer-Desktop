@@ -51,6 +51,7 @@ export type ChatCommand =
   | { action: 'state' | 'refresh' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
+  | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string; decision: 'allow' | 'allow-directory' | 'deny' }
@@ -76,6 +77,12 @@ export interface ChatMessage {
   response?: { request_id: string } | null
 }
 export interface ChatSnapshot {
+  stop?: { runId: string; state: 'requested' | 'uncertain' } | null
+  taskError?: string
+  localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;
+    status: string; stop_requested?: boolean; receipt_pending?: boolean; error_code?: string;
+    receipt?: { status?: string; result_hash?: string; error_code?: string } | null;
+    local?: { status: string; delivery_state: string; error_code?: string; receipt_hash?: string } | null }[]
   localConsents?: { taskId: string; runId: string; threadId: string; requestHash: string; path: string; content: string; directory?: string }[]
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]

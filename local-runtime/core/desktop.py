@@ -107,9 +107,19 @@ def main() -> int:
                 raise ValueError('CONSENT_UNAVAILABLE')
             controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest, directory=directory)
 
-        chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents, decide_consent=decide_consent)
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        def local_receipts(thread_id, run_ids):
+            owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+            return receipts.thread_history(owner, thread_id, run_ids)
+        def stop_local(run_id):
+            if controller is not None:
+                controller.stop_run(run_id)
+            else:
+                settings = load_settings(args.config)
+                TaskGuard(args.config.with_name('tasks.db')).stop_run(settings.device_id, run_id)
+        chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
+            decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local)
 
         def chat_control():
             while not stop.is_set():

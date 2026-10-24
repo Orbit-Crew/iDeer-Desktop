@@ -1,0 +1,17 @@
+{
+  "command": [
+    ".venv/bin/python",
+    "/mnt/c/Users/Neo/.codex/worktrees/e7e5/iDeer-Desktop/scripts/acceptance/issue-104/server_fixture.py",
+    "--server-root",
+    "/home/neowyh/.codex-worktrees/ideer-issue104-server-20261023",
+    "--state",
+    "/tmp/ideer-t104-dev-20261024-10",
+    "--desktop-state",
+    "/mnt/c/Users/Neo/.codex/worktrees/e7e5/iDeer-Desktop/artifacts/issue-104/dev-10"
+  ],
+  "cwd": "/home/neowyh/.codex-worktrees/ideer-issue104-server-20261023/backend",
+  "started": "2026-10-24T01:56:36.908144+00:00",
+  "finished": "2026-10-24T01:58:45.200637+00:00",
+  "seconds": 124.762,
+  "exitCode": 0
+}

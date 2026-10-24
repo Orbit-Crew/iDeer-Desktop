@@ -1,0 +1,34 @@
+[
+  {
+    "path": "desktop-restart-restored.png",
+    "sha256": "590913a8398ed37faa0d943ef4ad2353ef17a9796350a218137d8e8899cb3bf6"
+  },
+  {
+    "path": "disconnect-after-pending-upload.png",
+    "sha256": "e7a97a7ead23aa9ed650955ce1ead1410eb2a652202103537954ae20a5ace4c3"
+  },
+  {
+    "path": "late-stop-pending-upload.png",
+    "sha256": "4304b1b56d90ce8e819a6a03413abe85bb5475e279d85042d1c870740543b044"
+  },
+  {
+    "path": "late-stop-stop.png",
+    "sha256": "eae8bd8053508f1dce572bb366f81c239a3f5543be31af7501a8e4181850febc"
+  },
+  {
+    "path": "runtime-restart-restored.png",
+    "sha256": "5900155845ffe546f571afd734e9e17daaf639a8635a2a57244c752fbfab4e88"
+  },
+  {
+    "path": "server-restart-restored.png",
+    "sha256": "49ef4e2057dc56acc44b84012fe225e88f15c4bc34bcd1ec86f129bcfee28afe"
+  },
+  {
+    "path": "stop-after-first-write-stop.png",
+    "sha256": "b7544037bccedb6ca8948e6fd0bba336662a188b2c63e3be58e95aab693d7dd4"
+  },
+  {
+    "path": "stop-pending-stop.png",
+    "sha256": "0e625b87e4c4f9a54e99dd5a880e66b4e1eac9efbed28838b37b6b1e43d9169f"
+  }
+]

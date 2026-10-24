@@ -4,6 +4,11 @@ import type { ChatCommand, ChatSnapshot, HumanInputRequest } from '../../../shar
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
+const taskStates: Record<string, string> = { unknown: '结果待核实', result_not_verified: '结果待核实',
+  dispatched: '已派发', acked: '已接收', progress: '执行中', consent_required: '待审批',
+  cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
+const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
+
 function Clarification({ request, disabled, onAnswer }: {
   request: HumanInputRequest; disabled: boolean; onAnswer: (text?: string, optionId?: string) => void
 }): JSX.Element {
@@ -75,8 +80,24 @@ function ChatContents({ state, busy, onCommand }: {
     {threadId && <>
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
       {state.run && <Typography.Text>Run：{state.run.id} · {state.run.status} · {state.stream}</Typography.Text>}
+      {state.run && ['pending', 'running'].includes(state.run.status) && state.stop?.state !== 'requested' && <Button danger disabled={busy}
+        onClick={() => void onCommand({ action: 'stop', scope: state.scope, threadId, runId: state.run!.id })}>{state.stop ? '重试停止请求' : '停止当前 Turn'}</Button>}
+      {state.stop && <Alert type="warning" showIcon message={state.stop.state === 'requested' ? '已请求停止，最终事实以任务回执为准' : '停止请求结果待核实，请恢复状态核对'}
+        description="已提交的文件修改不会回滚。断线和重启不会自动重派写操作，迟到回执只核实历史任务。" />}
       <Button disabled={busy || state.stream === 'streaming'} onClick={() => void onCommand({ action: 'reconnect', scope: state.scope, threadId })}>重新连接并恢复状态</Button>
-      {state.localConsents?.filter((request) => request.threadId === threadId && request.runId === state.run?.id).map((request) => <Card
+      {state.taskError && <Alert type="warning" message={`本地任务历史待核实：${state.taskError}`} description="当前显示的是上次核对结果，请恢复连接后再次核对。" />}
+      {!!state.localTasks?.length && <Card size="small" title="本会话的本地任务与回执">
+        <Typography.Paragraph type="secondary">进度与文件结果分别核对。已提交的文件修改不会回滚；结果待核实时不会自动重派。</Typography.Paragraph>
+        {state.localTasks.map((task) => <Card size="small" key={task.task_id}>
+          <Typography.Paragraph>Run：{task.run_id} · 任务：{task.task_id}</Typography.Paragraph>
+          <Typography.Paragraph>{task.capability} · {task.logical_target}</Typography.Paragraph>
+          <Typography.Paragraph>Server 任务：{taskStates[task.status] || task.status}{task.stop_requested ? ' · 已请求停止' : ''}</Typography.Paragraph>
+          {task.receipt && <Typography.Paragraph>Server 回执：{taskStates[task.receipt.status || 'unknown'] || task.receipt.status}</Typography.Paragraph>}
+          <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执'}</Typography.Paragraph>
+          {(task.error_code || task.local?.error_code) && <Typography.Text type="warning">{task.error_code || task.local?.error_code}</Typography.Text>}
+        </Card>)}
+      </Card>}
+      {state.localConsents?.filter((request) => !state.stop && request.threadId === threadId && request.runId === state.run?.id).map((request) => <Card
         key={`${request.taskId}-${request.requestHash}`} size="small" title="本机文件写入审批">
         <Typography.Paragraph>新建或覆盖：{request.path}</Typography.Paragraph>
         <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>

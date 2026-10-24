@@ -126,6 +126,7 @@ class LocalRuntimeClient:
         self.connected = False
         self._last_sent_capabilities: tuple[str, ...] | None = None
         self._running_tasks: dict[str, asyncio.Task[None]] = {}
+        self._task_runs: dict[str, str] = {}
         self._cancelled_tasks: set[str] = set()
         self._loop: asyncio.AbstractEventLoop | None = None
         # The consent state machine is its own object; the session hands itself
@@ -476,9 +477,13 @@ class LocalRuntimeClient:
                 if not claimed:
                     self._record(AuditKind.TASK, "rejected", task_id=task_id,
                                  run_id=str(envelope.payload.get("run_id", "")), detail={"error_code": "TASK_REPLAYED"})
-                    await self._send_error(task_id, "task already admitted", "TASK_REPLAYED", envelope.payload, str(envelope.payload.get("operation", "")), status="denied")
+                    # Duplicate delivery says nothing about the original effect.
+                    # Keep its immutable completion and replay evidence only.
+                    await self._storage_error(task_id, "TASK_REPLAYED")
+                    await self.replay_receipts()
                     continue
                 task = asyncio.create_task(self._handle_task(envelope))
+                self._task_runs[task_id] = str(envelope.payload.get('run_id', ''))
                 self._running_tasks[task_id] = task
                 task.add_done_callback(
                     lambda finished, current_task_id=task_id: self._task_finished(
@@ -523,11 +528,21 @@ class LocalRuntimeClient:
 
     def _task_finished(self, task_id: str, task: asyncio.Task[None]) -> None:
         self._running_tasks.pop(task_id, None)
+        self._task_runs.pop(task_id, None)
         # The cancel marker is only meaningful while the task can still run;
         # a finished task must not leave an entry behind (05-M9).
         self._cancelled_tasks.discard(task_id)
         if not task.cancelled():
             task.exception()
+
+    async def stop_run(self, run_id: str) -> None:
+        """Fence future deliveries durably before attempting current cancellation."""
+        self.task_guard.stop_run(self.device_id, run_id)
+        tasks = [task_id for task_id, owner in self._task_runs.items() if owner == run_id]
+        tasks.extend(task_id for task_id, pending in self.consent_coord._relayed_consents.items()
+            if pending.request.payload.get('run_id') == run_id and task_id not in tasks)
+        for task_id in tasks:
+            await self._handle_task_cancel(task_id)
 
     async def _handle_task_cancel(self, task_id: str) -> None:
         relayed = self.consent_coord._relayed_consents.pop(task_id, None)
@@ -562,13 +577,18 @@ class LocalRuntimeClient:
                     "tool_call_id": str(envelope.payload.get("tool_call_id", "")), "capability": operation,
                     "request_hash": content_hash(envelope.payload), "original_session_id": envelope.session_id,
                     "logical_target": safe_logical_target(envelope.payload),
-                    "task_signature": getattr(envelope, "signature", "")})
+                    "task_signature": getattr(envelope, "signature", "")},
+                    thread_id=str(envelope.payload.get('thread_id', '')))
             except ReceiptStorageError:
                 await self._storage_error(task_id, "RECEIPT_STORAGE_UNAVAILABLE")
                 return
             if not admitted:
                 await self._storage_error(task_id, "TASK_REPLAYED")
                 return
+        if self.task_guard.run_stopped(self.device_id, str(envelope.payload.get('run_id', ''))):
+            await self._send_error(task_id, 'Run stop was requested locally', 'CANCELLED', envelope.payload,
+                operation, status='cancelled')
+            return
         if self.restrict_capabilities and operation not in self._current_capabilities():
             await self._send_error(task_id, "capability unavailable", "CAPABILITY_UNAVAILABLE",
                                    dict(envelope.payload), operation,
