@@ -63,6 +63,12 @@ export interface UpdatePendingView {
   deletionCount: number
 }
 export interface UpdateCheckResult { ok: boolean; error: string; pending: UpdatePendingView | null }
+export interface RecoveryView {
+  state: 'applied-pending-verify' | 'updated' | 'rolled-back' | 'recovery-failed'
+  detail: string
+  desktopVersion: string
+  runtimePython: string
+}
 
 export interface DesktopBridge {
   manage(action: 'logout' | 'switch-account' | 'revoke', grantId?: string): Promise<void>
@@ -77,6 +83,7 @@ export interface DesktopBridge {
   checkUpdates(): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
+  recoveryState(): Promise<RecoveryView | null>
 }
 
 export interface InstallOutcome {

@@ -13,7 +13,8 @@ const bridge: DesktopBridge = Object.freeze({
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
   checkUpdates: () => ipcRenderer.invoke('desktop:updates:check'),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
-  installUpdate: () => ipcRenderer.invoke('desktop:updates:install')
+  installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),
+  recoveryState: () => ipcRenderer.invoke('desktop:updates:recovery')
 })
 
 contextBridge.exposeInMainWorld('ideer', bridge)

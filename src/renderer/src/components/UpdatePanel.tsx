@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button, Card, Space, Typography } from 'antd'
-import type { InstallOutcome, UpdateCheckResult } from '../../../shared/desktop'
+import type { InstallOutcome, RecoveryView, UpdateCheckResult } from '../../../shared/desktop'
 
 // Issue 107: one update entry. Checking and importing only verify and show
 // the staged, pending state; installation is a separate, later confirmation.
@@ -8,7 +8,9 @@ export default function UpdatePanel(): JSX.Element {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<UpdateCheckResult | null>(null)
   const [install, setInstall] = useState<InstallOutcome | null>(null)
+  const [recovery, setRecovery] = useState<RecoveryView | null>(null)
   const [failed, setFailed] = useState('')
+  useEffect(() => { void window.ideer.recoveryState().then((state) => { if (state) setRecovery(state) }).catch(() => {}) }, [])
 
   const run = async (kind: 'online' | 'offline'): Promise<void> => {
     setBusy(true); setFailed(''); setResult(null); setInstall(null)
@@ -50,5 +52,10 @@ export default function UpdatePanel(): JSX.Element {
     </Card>}
     {install && <Alert className="mt-4" type={install.installed ? 'success' : 'warning'} showIcon
       message={install.installed ? `更新已就绪：${install.detail}` : `安装未执行（${install.stage}）：${install.detail}`} />}
+    {recovery && <Alert className="mt-4" type={recovery.state === 'updated' ? 'success'
+      : recovery.state === 'recovery-failed' ? 'error' : 'warning'} showIcon
+      message={{ 'applied-pending-verify': '更新待重启核实', updated: '更新组合已核实',
+        'rolled-back': '已恢复到更新前程序；自动更新已暂停', 'recovery-failed': '自动恢复失败，已停止自动更新' }[recovery.state]}
+      description={`${recovery.detail}（Desktop ${recovery.desktopVersion} · Runtime Python ${recovery.runtimePython}）`} />}
   </Card>
 }
