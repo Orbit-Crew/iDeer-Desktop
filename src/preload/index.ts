@@ -10,7 +10,9 @@ const bridge: DesktopBridge = Object.freeze({
   stopRuntime: () => ipcRenderer.invoke('desktop:runtime:stop'),
   beginLogin: (server: string, deviceName: string) => ipcRenderer.invoke('desktop:login:begin', server, deviceName),
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
-  receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset)
+  receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
+  checkUpdates: () => ipcRenderer.invoke('desktop:updates:check'),
+  importUpdate: () => ipcRenderer.invoke('desktop:updates:import')
 })
 
 contextBridge.exposeInMainWorld('ideer', bridge)
