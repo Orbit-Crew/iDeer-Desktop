@@ -95,6 +95,9 @@ class LocalRuntimeClient:
         self.runtime_version = runtime_version
         self.task_guard = task_guard or TaskGuard()
         self.restrict_capabilities = restrict_capabilities
+        # Issue 108: while draining for a verified update, every newly
+        # dispatched task is refused without claim or execution.
+        self.install_draining = False
         self.receipt_ledger = receipt_ledger
         self.user_id = user_id
         # Registered local results are display metadata only: no capability is
@@ -274,6 +277,21 @@ class LocalRuntimeClient:
     def busy(self) -> bool:
         """Whether a task or consent round trip is still in flight."""
         return bool(self._running_tasks) or bool(self.consent_coord._local_consents)
+
+    def begin_install_drain(self) -> None:
+        """Stop admitting new dispatched tasks; in-flight work runs to its end.
+
+        Draining is observation-safe: nothing is cancelled and no timeout is
+        treated as an empty queue. The Desktop installer waits for
+        :meth:`active_task_count` to reach zero before it stops the process.
+        """
+        self.install_draining = True
+
+    def abort_install_drain(self) -> None:
+        self.install_draining = False
+
+    def active_task_count(self) -> int:
+        return len(self._running_tasks)
 
     # --- backward-compat aliases for tests that reach into the consent tables ---
     #
@@ -471,6 +489,14 @@ class LocalRuntimeClient:
                 task_id = envelope.task_id or ""
                 if not task_id or len(task_id) > 256:
                     await self._send_error(task_id[:256], "invalid task identity", "INVALID_TASK", {}, "")
+                    continue
+                if self.install_draining:
+                    self._record(AuditKind.TASK, "rejected", task_id=task_id,
+                                 run_id=str(envelope.payload.get("run_id", "")),
+                                 detail={"error_code": "UPDATE_DRAINING"})
+                    await self._send_error(task_id, "device is draining for a verified update",
+                                           "UPDATE_DRAINING", {}, "",
+                                           policy_decision="deny", status="denied")
                     continue
                 try:
                     claimed = self.task_guard.claim(self.device_id, task_id)

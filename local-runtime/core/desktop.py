@@ -33,6 +33,7 @@ def main() -> int:
     workspace_commands: queue.Queue = queue.Queue(maxsize=1)
     receipt_commands: queue.Queue = queue.Queue(maxsize=1)
     management_commands: queue.Queue = queue.Queue(maxsize=1)
+    drain_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     output_lock = threading.Lock()
 
@@ -52,6 +53,11 @@ def main() -> int:
                         and command['type'] == 'manage' and command['action'] in {'logout', 'switch-account', 'revoke'}
                         and all(isinstance(command[key], str) and len(command[key]) <= 128 for key in ('id', 'grantId', 'scope'))):
                     management_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'scope'}
+                        and command['type'] == 'install-drain' and command['action'] in {'begin', 'abort'}
+                        and all(isinstance(command[key], str) and len(command[key]) <= 128 for key in ('id', 'scope'))):
+                    drain_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'offset', 'scope'}
                         and command['type'] == 'receipts' and isinstance(command['id'], str)
@@ -184,6 +190,24 @@ def main() -> int:
         while not stop.is_set():
             browser_url = None
             try:
+                drain_command = drain_commands.get_nowait()
+            except queue.Empty:
+                drain_command = None
+            if drain_command:
+                error = ''
+                try:
+                    if controller is None:
+                        raise ValueError('RUNTIME_UNAVAILABLE')
+                    if drain_command['scope'] != workspace.scope():
+                        raise ValueError('IDENTITY_CHANGED')
+                    if drain_command['action'] == 'begin':
+                        controller.client.begin_install_drain()
+                    else:
+                        controller.client.abort_install_drain()
+                except Exception:
+                    error = 'DRAIN_FAILED'
+                emit({'v': 1, 'type': 'install-drain', 'id': drain_command['id'], 'error': error})
+            try:
                 management = management_commands.get_nowait()
             except queue.Empty:
                 management = None
@@ -261,6 +285,8 @@ def main() -> int:
             if controller is not None:
                 connection = controller.status().connection
             status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status(),
+                      "installDrain": bool(controller is not None and controller.client.install_draining),
+                      "activeTasks": (controller.client.active_task_count() if controller is not None else 0),
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "selectionScope": workspace.scope(),

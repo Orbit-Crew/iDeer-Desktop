@@ -47,6 +47,8 @@ export interface RuntimeStatus {
   receiptStorageError?: string
   receiptScope?: string
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
+  installDrain?: boolean
+  activeTasks?: number
 }
 
 export interface UpdatePendingView {
@@ -74,6 +76,13 @@ export interface DesktopBridge {
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
   checkUpdates(): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
+  installUpdate(): Promise<InstallOutcome>
+}
+
+export interface InstallOutcome {
+  installed: boolean
+  stage: 'confirmed' | 'draining' | 'ready' | 'stopped' | 'applied' | 'launched' | 'blocked' | 'canceled' | 'failed'
+  detail: string
 }
 
 export type ChatCommand =

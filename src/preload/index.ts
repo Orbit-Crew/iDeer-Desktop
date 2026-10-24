@@ -12,7 +12,8 @@ const bridge: DesktopBridge = Object.freeze({
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
   checkUpdates: () => ipcRenderer.invoke('desktop:updates:check'),
-  importUpdate: () => ipcRenderer.invoke('desktop:updates:import')
+  importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
+  installUpdate: () => ipcRenderer.invoke('desktop:updates:install')
 })
 
 contextBridge.exposeInMainWorld('ideer', bridge)

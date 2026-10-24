@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { Alert, Button, Card, Space, Typography } from 'antd'
-import type { UpdateCheckResult } from '../../../shared/desktop'
+import type { InstallOutcome, UpdateCheckResult } from '../../../shared/desktop'
 
 // Issue 107: one update entry. Checking and importing only verify and show
 // the staged, pending state; installation is a separate, later confirmation.
 export default function UpdatePanel(): JSX.Element {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<UpdateCheckResult | null>(null)
+  const [install, setInstall] = useState<InstallOutcome | null>(null)
   const [failed, setFailed] = useState('')
 
   const run = async (kind: 'online' | 'offline'): Promise<void> => {
-    setBusy(true); setFailed(''); setResult(null)
+    setBusy(true); setFailed(''); setResult(null); setInstall(null)
     try {
       setResult(kind === 'online' ? await window.ideer.checkUpdates() : await window.ideer.importUpdate())
     } catch (error) { setFailed(String(error).replace(/^Error:\s*/, '')) }
+    finally { setBusy(false) }
+  }
+
+  const installNow = async (): Promise<void> => {
+    setBusy(true); setFailed(''); setInstall(null)
+    try { setInstall(await window.ideer.installUpdate()) }
+    catch (error) { setFailed(String(error).replace(/^Error:\s*/, '')) }
     finally { setBusy(false) }
   }
 
@@ -38,6 +46,9 @@ export default function UpdatePanel(): JSX.Element {
         {pending.serverCompatibility.notes ? ` · ${pending.serverCompatibility.notes}` : ''}</Typography.Paragraph>
       <Typography.Paragraph>变更文件 {pending.fileCount} 个 · 删除项 {pending.deletionCount} 个 · 校验时间 {pending.verifiedAt}</Typography.Paragraph>
       <Typography.Paragraph type="warning">{pending.advice}</Typography.Paragraph>
+      <Button type="primary" disabled={busy} onClick={() => void installNow()}>确认并排空安装</Button>
     </Card>}
+    {install && <Alert className="mt-4" type={install.installed ? 'success' : 'warning'} showIcon
+      message={install.installed ? `更新已就绪：${install.detail}` : `安装未执行（${install.stage}）：${install.detail}`} />}
   </Card>
 }
