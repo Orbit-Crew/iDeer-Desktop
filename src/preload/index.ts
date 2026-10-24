@@ -14,7 +14,8 @@ const bridge: DesktopBridge = Object.freeze({
   checkUpdates: () => ipcRenderer.invoke('desktop:updates:check'),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
   installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),
-  recoveryState: () => ipcRenderer.invoke('desktop:updates:recovery')
+  recoveryState: () => ipcRenderer.invoke('desktop:updates:recovery'),
+  refreshCompatibility: () => ipcRenderer.invoke('desktop:compatibility:refresh')
 })
 
 contextBridge.exposeInMainWorld('ideer', bridge)

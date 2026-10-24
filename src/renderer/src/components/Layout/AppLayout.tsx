@@ -6,6 +6,7 @@ import Sidebar from './Sidebar'
 import RuntimePanel from '../RuntimePanel'
 import ChatPanel from '../ChatPanel'
 import UpdatePanel from '../UpdatePanel'
+import CompatibilityPanel from '../CompatibilityPanel'
 
 export default function AppLayout(): JSX.Element {
   const leftPanelOpen = useUIStore((state) => state.leftPanelOpen)
@@ -36,6 +37,7 @@ export default function AppLayout(): JSX.Element {
         <ChatPanel />
         <RuntimePanel />
         <UpdatePanel />
+        <CompatibilityPanel />
       </main>
     </div>
   )

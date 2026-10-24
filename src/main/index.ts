@@ -7,6 +7,7 @@ import type { DesktopStatus, InstallOutcome, UpdateCheckResult } from '../shared
 import { RuntimeProcess } from './runtime'
 import { checkOnline, verifyUpdate, type PendingUpdate, type UpdateVerification } from './updates'
 import { applyPatch, requestInstall } from './installer'
+import { blocksLocalTask, checkCompatibility, type CompatibilityDeclaration } from './compat'
 import { backupTargets, readRecoveryState, resolveRestart, writeRecoveryState, type RecoveryState } from './recovery'
 
 // Set before ready and before any session, store or window is created.
@@ -30,6 +31,8 @@ if (!app.requestSingleInstanceLock()) {
   let quitting = false
   // Issue 109: the recovery record survives restarts in the user-data area.
   let recovery: RecoveryState | null = null
+  // Issue 110: the signed compatibility gate for the running combination.
+  let compatibility: CompatibilityDeclaration | null = null
   app.on('before-quit', (event) => {
     if (quitting) return
     event.preventDefault()
@@ -81,7 +84,21 @@ if (!app.requestSingleInstanceLock()) {
     })
     ipcMain.handle('desktop:chat', (event, command) => {
       requireMainFrame(event)
+      // The gate stops new local work at the declared level; it never grants
+      // anything, and history, records and reads stay available throughout.
+      if (blocksLocalTask(compatibility, command)) throw new Error('COMPAT_TASK_STOPPED')
       return runtime.chat(command)
+    })
+    ipcMain.handle('desktop:compatibility:refresh', async (event) => {
+      requireMainFrame(event)
+      const origin = runtime.serverOrigin()
+      if (!origin) throw new Error('COMPAT_ORIGIN_UNKNOWN')
+      const evaluation = await checkCompatibility(origin, publicKeyPem, { protocolVersion: 1 })
+      compatibility = evaluation.declaration
+      return evaluation.declaration ? {
+        level: evaluation.declaration.level, disabledCapabilities: evaluation.declaration.disabledCapabilities,
+        notes: evaluation.declaration.notes, advice: evaluation.advice,
+        candidateCombo: evaluation.declaration.candidateCombo } : { error: evaluation.error }
     })
     ipcMain.handle('desktop:manage', (event, action, grantId) => {
       requireMainFrame(event)

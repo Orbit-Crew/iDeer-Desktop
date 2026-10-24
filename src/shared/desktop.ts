@@ -63,6 +63,13 @@ export interface UpdatePendingView {
   deletionCount: number
 }
 export interface UpdateCheckResult { ok: boolean; error: string; pending: UpdatePendingView | null }
+export interface CompatibilityView {
+  level: 'compatible' | 'capability' | 'core'
+  disabledCapabilities: string[]
+  notes: string
+  advice: string
+  candidateCombo: { desktop: string; runtime: string; server: string }
+}
 export interface RecoveryView {
   state: 'applied-pending-verify' | 'updated' | 'rolled-back' | 'recovery-failed'
   detail: string
@@ -84,6 +91,7 @@ export interface DesktopBridge {
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
   recoveryState(): Promise<RecoveryView | null>
+  refreshCompatibility(): Promise<CompatibilityView | { error: string }>
 }
 
 export interface InstallOutcome {
