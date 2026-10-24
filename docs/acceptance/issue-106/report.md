@@ -82,7 +82,9 @@ shrink tree: devices_router + auth-gate + unit/scripts + unit/device_control
 matrix above ran against the real Gateway started **from the shrink tree
 itself** (`--server-root /tmp/issue-106-shrink`), so the full matrix is
 proven against the post-shrink Server in one clean run — no Desktop file and
-no harness step references any deleted module.
+no harness step references any deleted module. The Server-side PR (#142)
+merged as `6a819f3a73dfc2bda5c097e82b47737c9c1058bc` after
+maintainer-authorized review with all required checks green.
 
 ## T106-04 — gate and entry-point reconciliation
 

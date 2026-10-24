@@ -52,11 +52,15 @@ same pinned public key and origin rules as the update manifests.
 | `npm.cmd run verify:provenance` / `scripts/verify-runtime-source.py` | passed |
 | `ruff check local-runtime --select E9,F63,F7,F82` | passed (no Runtime changes) |
 
-## Dependencies and platform scope
+## Server workflow dependencies — delivered
 
-Publishing the signed declaration from the Server's controlled address and the
-release coordination order (Server first, old clients, then new clients, with
-the candidate combination recorded above) are the Server/deployment workflow
-items; the Desktop consumes the documented fixed paths and reports
-`COMPAT_NOT_PUBLISHED` until they exist. Real Win7 remains `unexecuted` under
+The Server repository delivered the publication side: PR #144 (merged as
+`169c17549facbe04096600c9b0c4e6359127dc53`) serves the signed declaration at
+the controlled address, and PR #145 (merged as
+`591f80cf3579fcd3ec527d79fa9a867f6f4fc32d`) adds the maintainer signing tool
+with cross-side contract tests — a published declaration always parses on the
+Desktop, and all seven structural rejections are covered there. The release
+coordination order stands: publish the Server's own compatibility declaration
+first, verify old clients, then introduce new clients; combinations beyond the
+declared candidate remain unclaimed. Real Win7 remains `unexecuted` under
 [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
