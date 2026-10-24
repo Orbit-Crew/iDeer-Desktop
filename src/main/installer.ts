@@ -7,7 +7,7 @@
 // unconfirmed records intact.
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import type { InstallOutcome, UpdateCheckResult } from '../shared/desktop'
 import type { PendingUpdate } from './updates'
 
