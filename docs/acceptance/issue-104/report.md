@@ -2,9 +2,9 @@
 
 [iDeer #104](https://github.com/Orbit-Crew/iDeer/issues/104) adds scoped Turn
 stopping and recovery in the original Thread. T104-01 through T104-04 passed
-in development and in the final installed Windows package. Server full gates
-are running; combined delivery remains incomplete until their results and
-commit are recorded.
+in development and in the final installed Windows package. Server full gates,
+the selected Real E2E, final change-analysis and document checks passed, and
+the Server implementation is committed.
 
 Execution date: 2026-10-24, Asia/Shanghai. The final development flow ran
 09:57:08 through 09:58:41; the installed flow ran 10:00:10 through 10:01:40. Command records
@@ -24,13 +24,17 @@ Product/test/build source SHA-256:
 The [per-file binding](evidence/source-binding.json) records those bytes.
 Acceptance-runner hashes are recorded separately in each functional result.
 
-Server implementation commit: pending final gates and commit.
-Final functional candidate source SHA-256:
+Server implementation commit:
+`11393114575db39b92b3f10abd3a6dc7dd7b9fdf` on `feat/issue-104` from develop
+`14fcfef9894b72f19fb819d186c2d800e3862062`, committed with the [Server
+acceptance report](https://github.com/Orbit-Crew/iDeer/blob/feat/issue-104/docs/acceptance/issue-104/report.md)
+and its evidence. Final functional candidate source SHA-256:
 `715af6c8605e08354f203bca9f31031e8333704b9e4519de01bac8483305d307`.
 The [development](evidence/development/server-source-binding.json) and
 [installed](evidence/installed/server-source-binding.json) bindings contain the
 same Server bytes. Their `headAtBinding` is the develop base because tests
-preceded the commit; the delivery record must verify the committed source.
+preceded the commit; the committed tree was re-verified against all 3962
+bound files with zero mismatches.
 
 Windows 11 Pro 10.0.26300 x64; Node 22.23.3; test Python 3.12.8; bundled Python
 3.12.10; Electron 22.3.27. The host's default Node 24 was not used for final npm
@@ -130,11 +134,18 @@ deprecations. [Installation results](evidence/installation/lifecycle-results.jso
 and [restoration](evidence/installation/profile-restoration.json) cover actual
 startup/exit and preservation independently of authenticated functional flows.
 
-Server full backend `make lint`, frontend `pnpm check`, and inventory passed on final source. Related serial/
-nonserial tests passed 824 cases with 12 skips; the receipt-completion test
-passed 10 repeated runs. Full standard, `pr-standard`, selected Real
-E2E, document checks, graph audit and commit are pending. Final records must
-replace this paragraph.
+Server full backend `make lint`, frontend `pnpm check`, and inventory passed
+on final source. Related serial/nonserial tests passed 824 cases with 12 skips;
+the receipt-completion test passed 10 repeated runs. The complete `pr-standard`
+parent passed in 1485 seconds, exit 0: local-runtime 230 passed/4 skipped,
+backend 26935 passed/237 skipped, frontend Rstest 1270 and Vitest 10565 passed,
+and browser smoke 35 passed. The selected Real E2E passed 7 cases with 5
+environment skips, exit 0, 90.355 seconds. Final GitNexus all-scope
+detect-changes mapped 43 changed files, 88 changed symbols and 17 affected
+processes at critical risk with no partial, truncated or error flag; the
+document checker, upstream patch check against the develop base and
+agent-guidance mirror check passed with no findings. The Server
+implementation commit is `11393114575db39b92b3f10abd3a6dc7dd7b9fdf`.
 
 ## Review and diagnostic attempts
 
