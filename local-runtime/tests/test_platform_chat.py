@@ -16,8 +16,10 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 @contextmanager
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
              optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
-             cancel_status=202, local_tasks=None, history_gate=None, history_started=None):
+             cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
+             artifact_status=None, artifact_responder=None):
     records = []
+    artifacts = {}
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
                     lifecycle_status=lifecycle, latest_version=version)
 
@@ -96,6 +98,23 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                 if history_gate:
                     history_gate.wait(5)
                 data = {'tasks': local_tasks or [], 'has_more': False, 'next_offset': None}
+            elif self.path == '/api/threads/thread-A/artifacts':
+                # The Server-side artifact boundary contract for issue 105:
+                # upload is content-hash idempotent, thread-bound, and the
+                # response echoes what was stored so the device can verify it.
+                if artifact_status is not None:
+                    status, data = artifact_status, {}
+                elif artifact_responder is not None:
+                    status, data = artifact_responder(body)
+                else:
+                    existing = artifacts.get(body['handle'])
+                    if existing is not None and existing['sha256'] == body['sha256']:
+                        data = dict(existing, duplicate=True)
+                    else:
+                        data = dict(artifact_id=f"art-{len(artifacts) + 1}", thread_id='thread-A',
+                                    name=body['name'], sha256=body['sha256'], bytes=body['bytes'],
+                                    handle=body['handle'], duplicate=False)
+                        artifacts[body['handle']] = data
             elif self.path == '/api/threads/thread-A/runs/run-1/stream':
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream')
@@ -437,3 +456,196 @@ def test_unavailable_resources_are_disabled_and_forced_activation_fails(tmp_path
         forced = chat.handle({'action': 'create', 'scope': state['scope'], 'agentId': AGENT})
         assert forced['error'] == expected
         assert not any(path == '/api/threads' for path, _, _ in records)
+
+
+CONTENT = 'T105-UNIQUE-RESULT'
+UPLOAD_COMMAND = {'action': 'upload', 'threadId': 'thread-A', 'runId': 'run-105',
+                  'taskId': 'task-105', 'decision': 'allow'}
+
+
+def prepare_result(tmp_path, origin, *, mode='local', task_id='task-105'):
+    """A Desktop chat with one registered workspace result, mirroring desktop.py wiring."""
+    import hashlib as _hashlib
+    from core.local_results import LocalResultRegistry
+    from core.platform_chat import DesktopChat
+    secure = InMemorySecretStore()
+    secure.set('business-A', 'business-A')
+    config = tmp_path / 'profile' / 'settings.json'
+    work = tmp_path / 'work'
+    work.mkdir(exist_ok=True)
+    settings = RuntimeSettings(server_url=origin, user_id='A', device_id='D1',
+        device_public_key='device-key-105', server_public_key='broker-key-105',
+        business_token_ref='business-A', business_expires_at='2099-01-01T00:00:00+00:00')
+    if mode == 'policy-deny':
+        settings.rules['local.artifacts.upload'] = 'deny'
+    settings.save(config)
+    registry = LocalResultRegistry(config.with_name('local-results.db'))
+    from core.receipt_ledger import profile_binding
+    from core.file_service import WorkspaceSelection
+    root = WorkspaceSelection(config).select(str(work), confirmed=True)['logicalRoot']
+    target = work / 'result-105.txt'
+    if mode != 'missing-file':
+        target.write_text(CONTENT, encoding='utf-8')
+    if mode != 'no-record':
+        registry.record(profile_binding(settings), dict(task_id=task_id, run_id='run-105',
+            thread_id='other-thread' if mode == 'wrong-thread' else 'thread-A',
+            capability='local.files.write', logical_root=root, logical_path=f'{root}/result-105.txt',
+            name='result-105.txt', sha256=_hashlib.sha256(CONTENT.encode()).hexdigest(),
+            bytes=len(CONTENT.encode())))
+    chat = DesktopChat(config, secure, lambda: {'state': 'authenticated'}, local_results=registry)
+    return chat, registry, settings, config, work, target, root
+
+
+def upload_posts(records):
+    return [(path, body, headers) for path, body, headers in records
+            if path == '/api/threads/thread-A/artifacts' and body is not None]
+
+
+def test_upload_stays_explicit_idempotent_and_never_triggered_by_viewing(tmp_path):
+    import base64
+    import hashlib
+    with platform() as (origin, records):
+        chat, registry, _, _, _, _, _ = prepare_result(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        # Reading and displaying the thread never uploads anything.
+        assert upload_posts(records) == []
+        row = next(task for task in opened['localTasks'] if task['task_id'] == 'task-105')
+        assert row['localResult']['name'] == 'result-105.txt'
+        assert row['localResult']['artifact_ref'] == ''
+        uploaded = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert uploaded['error'] == ''
+        digest = hashlib.sha256(CONTENT.encode()).hexdigest()
+        path, body, headers = upload_posts(records)[0]
+        assert headers['Idempotency-Key'] == f'local://{digest}/result-105.txt'
+        assert body['version'] == 1 and body['kind'] == 'local_result'
+        assert body['task_id'] == 'task-105' and body['run_id'] == 'run-105'
+        assert body['sha256'] == digest and body['bytes'] == len(CONTENT.encode())
+        assert base64.b64decode(body['content']) == CONTENT.encode()
+        assert body['grant']['task_id'] == 'task-105' and body['grant']['thread_id'] == 'thread-A'
+        assert body['grant']['name'] == 'result-105.txt' and body['grant']['token']
+        row = next(task for task in uploaded['localTasks'] if task['task_id'] == 'task-105')
+        assert row['localResult']['artifact_ref'] == 'art-1'
+        assert row['localResult']['uploaded_at']
+        # A repeated explicit upload replays the same platform artifact: one
+        # POST total, no duplicate records, and no bytes read or staged again
+        # once the registered fact already carries the platform reference.
+        repeat = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert repeat['error'] == ''
+        assert len(upload_posts(records)) == 1
+        row = next(task for task in repeat['localTasks'] if task['task_id'] == 'task-105')
+        assert row['localResult']['artifact_ref'] == 'art-1'
+
+
+def test_upload_retry_after_server_failure_uses_a_new_grant_and_records_once(tmp_path):
+    attempts = []
+    def responder(body):
+        attempts.append(body)
+        if len(attempts) == 1:
+            return 503, {}
+        return 200, dict(artifact_id='art-1', thread_id='thread-A', name=body['name'],
+                         sha256=body['sha256'], bytes=body['bytes'], handle=body['handle'])
+    with platform(artifact_responder=responder) as (origin, records):
+        chat, registry, _, config, _, _, _ = prepare_result(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        failed = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert failed['error'] == 'CHAT_SERVER_ERROR'
+        from core.receipt_ledger import profile_binding
+        from core.settings import load_settings
+        assert registry.get(profile_binding(load_settings(config)), 'task-105')['artifact_ref'] == ''
+        recovered = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert recovered['error'] == ''
+        posts = upload_posts(records)
+        assert len(posts) == 2
+        # Each explicit attempt carries its own single-use grant token.
+        assert posts[0][1]['grant']['token'] != posts[1][1]['grant']['token']
+        row = next(task for task in recovered['localTasks'] if task['task_id'] == 'task-105')
+        assert row['localResult']['artifact_ref'] == 'art-1'
+
+
+@pytest.mark.parametrize('mode,options,expected,command_patch', [
+    ('no-record', {}, 'UPLOAD_RESULT_NOT_FOUND', {}),
+    ('policy-deny', {}, 'UPLOAD_POLICY_DENIED', {}),
+    ('missing-file', {}, 'UPLOAD_LOCAL_FILE_UNAVAILABLE', {}),
+    ('content-changed', {}, 'UPLOAD_CONTENT_CHANGED', {}),
+    ('workspace-changed', {}, 'UPLOAD_LOCAL_FILE_UNAVAILABLE', {}),
+    ('wrong-thread', {}, 'CHAT_THREAD_CHANGED', {'threadId': 'other-thread'}),
+    ('server-denied', {'artifact_status': 403}, 'CHAT_FORBIDDEN', {}),
+    ('server-error', {'artifact_status': 503}, 'CHAT_SERVER_ERROR', {}),
+    ('echo-mismatch', {'artifact_responder': 'mismatch'}, 'CHAT_PROTOCOL_ERROR', {}),
+])
+def test_upload_rejections_are_explicit_and_never_fake_success(tmp_path, mode, options, expected, command_patch):
+    if options.get('artifact_responder') == 'mismatch':
+        options = dict(options, artifact_responder=lambda body: (200, dict(artifact_id='art-9',
+            thread_id='thread-A', name=body['name'], sha256='0' * 64, bytes=body['bytes'], handle=body['handle'])))
+    with platform(**options) as (origin, records):
+        chat, registry, settings, config, work, target, root = prepare_result(tmp_path, origin, mode=mode)
+        if mode == 'content-changed':
+            target.write_text('TAMPERED', encoding='utf-8')
+        if mode == 'workspace-changed':
+            from core.file_service import WorkspaceSelection
+            WorkspaceSelection(config).select(str(work), confirmed=True)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        result = chat.handle({**UPLOAD_COMMAND, 'scope': scope, **command_patch})
+        assert result['error'] == expected, (mode, result['error'])
+        # A rejection only ever reached the Server as a complete, verified
+        # upload attempt; local policy, content and availability failures
+        # sent nothing at all.
+        posts = upload_posts(records)
+        if mode in {'no-record', 'policy-deny', 'missing-file', 'content-changed', 'workspace-changed', 'wrong-thread'}:
+            assert posts == [], mode
+        from core.receipt_ledger import profile_binding
+        from core.settings import load_settings
+        if mode != 'no-record':
+            binding = profile_binding(load_settings(config))
+            if mode == 'wrong-thread':
+                assert registry.get(binding, 'task-105')['artifact_ref'] == ''
+            else:
+                assert registry.get(binding, 'task-105')['artifact_ref'] == '', mode
+
+
+def test_upload_requires_authentication_and_the_current_identity(tmp_path):
+    with platform() as (origin, records):
+        chat, registry, settings, config, work, target, root = prepare_result(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        uploaded = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert uploaded['error'] == ''
+        assert len(upload_posts(records)) == 1
+        # A switched account cannot upload under the old identity: the stale
+        # scope is rejected first, and its own scope finds no registered result.
+        chat.secure.set('business-B', 'business-B')
+        settings.user_id, settings.business_token_ref = 'B', 'business-B'
+        settings.save(config)
+        stale = chat.handle({**UPLOAD_COMMAND, 'scope': scope})
+        assert stale['error'] == 'CHAT_IDENTITY_CHANGED'
+        current = chat.handle({'action': 'refresh'})
+        # The new identity starts from a reset state: no owned thread is open
+        # and the A-owned registry row is not reachable from B's binding.
+        switch = chat.handle({**UPLOAD_COMMAND, 'scope': current['scope']})
+        assert switch['error'] == 'CHAT_THREAD_CHANGED'
+        assert len(upload_posts(records)) == 1
+
+
+def test_thread_history_separates_local_results_from_platform_attachments(tmp_path):
+    task = dict(task_id='task-106', run_id='run-105', tool_call_id='call-106', capability='local.files.write',
+                status='completed', logical_target='/workspace/other/notes.md',
+                artifacts=[dict(artifact_id='art-7', name='notes.md', sha256='f' * 64, bytes=9)])
+    with platform(local_tasks=[task]) as (origin, records):
+        chat, _, _, _, _, _, _ = prepare_result(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        rows = {row['task_id']: row for row in opened['localTasks']}
+        # A platform attachment travels with the Server row; this device holds
+        # no local copy of it and no local-only marker is invented.
+        assert rows['task-106']['artifacts'] == task['artifacts']
+        assert rows['task-106']['localResult'] is None
+        # The locally registered result appears even without a Server task row,
+        # stays marked device-local, and never grows a fake download address.
+        local = rows['task-105']
+        assert local['status'] == 'unknown'
+        assert local['localResult']['sha256'] and not local['localResult']['artifact_ref']
+        assert 'artifacts' not in local
+        assert upload_posts(records) == []

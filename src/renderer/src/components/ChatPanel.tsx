@@ -87,13 +87,29 @@ function ChatContents({ state, busy, onCommand }: {
       <Button disabled={busy || state.stream === 'streaming'} onClick={() => void onCommand({ action: 'reconnect', scope: state.scope, threadId })}>重新连接并恢复状态</Button>
       {state.taskError && <Alert type="warning" message={`本地任务历史待核实：${state.taskError}`} description="当前显示的是上次核对结果，请恢复连接后再次核对。" />}
       {!!state.localTasks?.length && <Card size="small" title="本会话的本地任务与回执">
-        <Typography.Paragraph type="secondary">进度与文件结果分别核对。已提交的文件修改不会回滚；结果待核实时不会自动重派。</Typography.Paragraph>
+        <Typography.Paragraph type="secondary">进度与文件结果分别核对。已提交的文件修改不会回滚；结果待核实时不会自动重派。本地结果仅保存在生成它的设备上，不会自动上传；平台附件在 Server 端共享。</Typography.Paragraph>
         {state.localTasks.map((task) => <Card size="small" key={task.task_id}>
           <Typography.Paragraph>Run：{task.run_id} · 任务：{task.task_id}</Typography.Paragraph>
           <Typography.Paragraph>{task.capability} · {task.logical_target}</Typography.Paragraph>
           <Typography.Paragraph>Server 任务：{taskStates[task.status] || task.status}{task.stop_requested ? ' · 已请求停止' : ''}</Typography.Paragraph>
           {task.receipt && <Typography.Paragraph>Server 回执：{taskStates[task.receipt.status || 'unknown'] || task.receipt.status}</Typography.Paragraph>}
           <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执'}</Typography.Paragraph>
+          {task.localResult && <Card type="inner" size="small" title="本地生成结果（仅原设备可用）">
+            <Typography.Paragraph>文件：{task.localResult.name} · {task.localResult.bytes} 字节</Typography.Paragraph>
+            <Typography.Paragraph copyable style={{ overflowWrap: 'anywhere' }}>SHA-256：{task.localResult.sha256}</Typography.Paragraph>
+            {task.localResult.artifact_ref
+              ? <Typography.Paragraph>平台附件：{task.localResult.artifact_ref}（可在其他已授权设备下载）</Typography.Paragraph>
+              : <>
+                <Typography.Paragraph type="secondary">此结果尚未上传。查看或展示不会上传；上传需要你在此明确确认，并作为该 Thread 的附件受平台访问控制。</Typography.Paragraph>
+                <Button disabled={busy} onClick={() => void onCommand({ action: 'upload', scope: state.scope, threadId,
+                  runId: task.run_id, taskId: task.task_id, decision: 'allow' })}>明确授权上传为 Thread 附件</Button>
+              </>}
+          </Card>}
+          {!!task.artifacts?.length && <Card type="inner" size="small" title="平台附件">
+            {task.artifacts.map((artifact) => <Typography.Paragraph key={artifact.artifact_id} style={{ overflowWrap: 'anywhere' }}>
+              {artifact.name} · {artifact.bytes} 字节 · SHA-256 {artifact.sha256} · 附件 {artifact.artifact_id}
+            </Typography.Paragraph>)}
+          </Card>}
           {(task.error_code || task.local?.error_code) && <Typography.Text type="warning">{task.error_code || task.local?.error_code}</Typography.Text>}
         </Card>)}
       </Card>}

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
+from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .process_job import own_process_tree
 from .settings import load_settings
@@ -109,6 +110,10 @@ def main() -> int:
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        # Registered local results are display-only metadata for this identity;
+        # they reach a Thread artifact only through the explicit chat upload
+        # command, never through observation or task execution.
+        local_results = LocalResultRegistry(args.config.with_name('local-results.db'))
         def local_receipts(thread_id, run_ids):
             owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
             return receipts.thread_history(owner, thread_id, run_ids)
@@ -119,7 +124,8 @@ def main() -> int:
                 settings = load_settings(args.config)
                 TaskGuard(args.config.with_name('tasks.db')).stop_run(settings.device_id, run_id)
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
-            decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local)
+            decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
+            local_results=local_results)
 
         def chat_control():
             while not stop.is_set():
@@ -165,6 +171,7 @@ def main() -> int:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
+            controller.client.local_results = local_results
             controller.client.user_id = settings.user_id
             owner = profile_binding(settings)
             controller.client.file_service.available = lambda: (
