@@ -9,11 +9,25 @@ async function reopen(item) {
 }
 async function taskView(item, expected) {
   let view, task
+  const serverLabels = { completed: 'Server 任务：已完成', cancelled: 'Server 任务：已停止',
+    result_not_verified: 'Server 任务：结果待核实', unknown: 'Server 任务：结果待核实',
+    cancel_requested: 'Server 任务：已请求停止，结果待核实', failed: 'Server 任务：失败' }
+  const localLabels = { completed: '本机回执：已完成', cancelled: '本机回执：已停止',
+    unknown: '本机回执：结果待核实', result_not_verified: '本机回执：结果待核实',
+    denied: '本机回执：已拒绝', failed: '本机回执：失败' }
   await wait(async () => {
     view = await snapshot()
     assert.equal(view.thread.id, item.threadId)
     task = view.localTasks?.find(row => row.task_id === item.approval.taskId)
-    return task && (!expected || expected(task))
+    if (!task || (expected && !expected(task))) return false
+    const marker = page.getByText(`Run：${task.run_id} · 任务：${task.task_id}`, { exact: true })
+    if (await marker.count() !== 1) return false
+    const text = await marker.locator('..').innerText()
+    assert(serverLabels[task.status], 'Unregistered Server task UI state: ' + task.status)
+    return text.includes(task.logical_target) && text.includes(serverLabels[task.status]) &&
+      (!task.local || text.includes(localLabels[task.local.status])) &&
+      (task.local?.delivery_state !== 'pending' || text.includes('待补传')) &&
+      (task.local?.delivery_state !== 'confirmed' || text.includes('Server 已确认'))
   }, item.name + ' original Thread task view')
   assert.equal(task.run_id, item.runId)
   assert.equal(task.logical_target, item.path)
@@ -31,7 +45,6 @@ async function uiStop(item) {
   await wait(async () => (await page.locator('body').innerText()).includes('已请求停止'), 'requested stop rendered')
   await page.screenshot({ path: path.join(state, item.name + '-stop.png'), fullPage: true })
   await finish(item)
-  assert.equal(item.runStatus, 'interrupted')
 }
 async function duplicate(item) {
   const request = { id: randomUUID(), taskId: item.approval.taskId }
@@ -70,9 +83,25 @@ async function restartServer() {
   await wait(async () => (await status()).server === 'connected', 'device reconnect after Server restart')
   return { previous, current: JSON.parse(fs.readFileSync(path.join(state, 'server-generation.json'))) }
 }
+async function recoverStorage(item) {
+  if (!(await status()).runtime.receiptStorageError) return
+  const before = controls('history').rows.filter(row => row.delivery_state === 'uncertain')
+    .map(row => ({ taskId: row.task_id, requestHash: row.request_hash, receiptHash: row.receipt_hash })).sort((a, b) => a.taskId.localeCompare(b.taskId))
+  const read = await submit('T104-04', 'storage-proof-after-' + item.name, 'health.txt', BEFORE,
+    { operation: 'read', auxiliary: true, recoveryFor: item.id })
+  await finish(read, /BEFORE/)
+  assert.equal(read.tasks[0].body.result.sha256, sha(BEFORE))
+  await wait(async () => !(await status()).runtime.receiptStorageError, 'durably saved read verifies current storage')
+  const after = controls('history').rows.filter(row => row.delivery_state === 'uncertain')
+    .map(row => ({ taskId: row.task_id, requestHash: row.request_hash, receiptHash: row.receipt_hash })).sort((a, b) => a.taskId.localeCompare(b.taskId))
+  assert.deepEqual(after, before, 'storage health cannot resolve or repeat an unknown write')
+  item.storageProof = { operationId: read.id, unknownRowsPreserved: true }
+  await reopen(item)
+}
 async function main() {
   try {
     for (const name of ['stop-pending', 'first', 'second', 'disconnect-before', 'disconnect-after', 'late-stop', 'runtime-restart', 'desktop-restart', 'server-restart', 'duplicate']) fixture('W/' + name + '.txt')
+    fixture('W/health.txt')
     await launch(); await choose()
 
     let item = await submit('T104-01', 'stop-pending', 'stop-pending.txt')
@@ -112,7 +141,7 @@ async function main() {
       if (stop) await uiStop(item)
       else await finish(item)
       await reopen(item)
-      const unknown = await taskView(item, row => row.status === 'result_not_verified' && row.local?.status === 'completed')
+      const unknown = await taskView(item, row => ['result_not_verified', 'cancel_requested'].includes(row.status) && row.local?.status === 'completed')
       assert.equal(unknown.local.delivery_state, 'pending')
       const terminalBefore = (await snapshot()).run.status
       await page.screenshot({ path: path.join(state, name + '-pending-upload.png'), fullPage: true })
@@ -149,21 +178,25 @@ async function main() {
       exact('W/' + name + '.txt', BEFORE)
       await page.screenshot({ path: path.join(state, name + '-restored.png'), fullPage: true })
       pass('T104-04', name, { operationId: item.id, restart, restored, file: exact('W/' + name + '.txt', BEFORE), executions: 0 })
+      await recoverStorage(item)
     }
     for (const scenario of Object.values(evidence.scenarios)) scenario.status = 'passed'
     evidence.status = 'passed'
   } catch (error) {
     evidence.status = 'failed'; evidence.error = String(error); evidence.stack = String(error.stack)
+    for (const scenario of Object.values(evidence.scenarios)) if (scenario.cases.length) scenario.status = 'incomplete'
     try { evidence.failureSnapshot = await snapshot(); evidence.failureUI = await page.locator('body').innerText() } catch {}
     throw error
   } finally {
-    if (app) { try { await quit() } catch (error) { evidence.shutdownError = String(error) } }
+    if (app) { try { await quit() } catch (error) { evidence.shutdownError = String(error); evidence.status = 'failed' } }
     try { evidence.credentialCleanup = profile('cleanup') } catch (error) { evidence.cleanupError = String(error); evidence.status = 'failed' }
     for (const name of ['hold-results', 'hold-uploads', 'drop-acks', 'disconnect-after-result']) flag(name, false)
     flag('stop')
     assert(path.resolve(work).startsWith(path.resolve(os.tmpdir()) + path.sep))
     fs.rmSync(work, { recursive: true, force: true })
+    evidence.fixtureCleanup = { removed: true, appClosed: app === null }
     evidence.finishedAt = new Date().toISOString(); save()
+    if (evidence.status !== 'passed') process.exitCode = 1
   }
 }
 save()

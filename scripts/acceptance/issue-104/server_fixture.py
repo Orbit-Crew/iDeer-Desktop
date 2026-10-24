@@ -41,10 +41,15 @@ worker = threading.Thread""")
         subprocess.run([sys.executable, str(binding_script), '--root', str(root), '--base', 'HEAD',
             '--kind', 'server', '--output', str(state / 'server-source-binding.json')], check=True, stdout=subprocess.DEVNULL)
         server_binding = json.loads((state / 'server-source-binding.json').read_text())
+        (desktop / 'server-source-binding.json').write_text(json.dumps(server_binding, indent=2))
         manifest = json.loads((desktop / 'ready.json').read_text())
         manifest['serverSourceSHA256'] = server_binding['sourceSHA256']
-        (desktop / 'ready.json').write_text(json.dumps(manifest, indent=2))
-        (desktop / 'server-generation.json').write_text(json.dumps({'pid': os.getpid(), 'started': time.time()}))
+        manifest_next = desktop / 'ready.next.json'
+        manifest_next.write_text(json.dumps(manifest, indent=2))
+        manifest_next.replace(desktop / 'ready.json')
+        generation_next = desktop / 'server-generation.next.json'
+        generation_next.write_text(json.dumps({'pid': os.getpid(), 'started': time.time()}))
+        generation_next.replace(desktop / 'server-generation.json')
 """
     source = source[:start] + block + source[end:]
     source = replace(source, "while not (desktop / 'stop').exists():", "while not (desktop / 'stop').exists() and not (desktop / 'restart-server').exists():")

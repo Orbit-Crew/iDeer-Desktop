@@ -6,7 +6,7 @@ type CommandHandler = (command: ChatCommand) => Promise<void>
 
 const taskStates: Record<string, string> = { unknown: '结果待核实', result_not_verified: '结果待核实',
   dispatched: '已派发', acked: '已接收', progress: '执行中', consent_required: '待审批',
-  cancel_requested: '已请求停止', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
+  cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
 const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
 
 function Clarification({ request, disabled, onAnswer }: {

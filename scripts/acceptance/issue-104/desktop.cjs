@@ -10,7 +10,8 @@ function replace(old, next) {
 }
 replace("['T102-01', 'T102-02', 'T102-03', 'T102-04']", "['T104-01', 'T104-02', 'T104-03', 'T104-04']")
 replace("...(options.hold ? { hold: true } : {})", "...(options.hold ? { hold: true } : {}), ...(options.next ? {next: options.next} : {})")
-source += "\nevidence.candidate.acceptanceFiles.push(...['desktop.cjs','flow.cjs','server_fixture.py','fixture_hooks.py'].map(name => ({path:'scripts/acceptance/issue-104/'+name,sha256:sha(fs.readFileSync(path.join(__dirname,'../issue-104',name)))})))\n"
+source += "\nevidence.candidate.acceptanceFiles.push(...['desktop.cjs','flow.cjs','server_fixture.py','fixture_hooks.py','installed.ps1'].map(name => ({path:'scripts/acceptance/issue-104/'+name,sha256:sha(fs.readFileSync(path.join(__dirname,'../issue-104',name)))})))\n"
+source += "\nevidence.candidate.desktopSourceSHA256 = JSON.parse(fs.readFileSync(path.join(sourceRoot,'artifacts/issue-104/source-binding.json'),'utf8')).sourceSHA256\n"
 source += fs.readFileSync(path.join(__dirname, 'flow.cjs'), 'utf8')
 const candidate = new Module(filename, module)
 candidate.filename = filename

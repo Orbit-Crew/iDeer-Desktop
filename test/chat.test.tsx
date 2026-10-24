@@ -20,6 +20,8 @@ describe('platform chat UI', () => {
     expect(html).toContain('task-104')
     expect(html).toContain('/workspace/test/target.txt')
     expect(html).not.toContain('停止当前 Turn')
+    state.localTasks![0].status = 'cancel_requested'
+    expect(renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)).toContain('Server 任务：已请求停止，结果待核实')
     state.stop = null
     state.run!.status = 'running'
     state.stream = 'disconnected'
