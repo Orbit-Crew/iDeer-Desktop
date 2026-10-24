@@ -1,10 +1,11 @@
 // Node 16 compatibility runs in the build banner before any imports.
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus } from '../shared/desktop'
+import type { DesktopStatus, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
+import { checkOnline, verifyUpdate, type UpdateVerification } from './updates'
 
 // Set before ready and before any session, store or window is created.
 app.setName('iDeer Desktop')
@@ -109,6 +110,43 @@ if (!app.requestSingleInstanceLock()) {
       requireMainFrame(event)
       const url = await runtime.beginLogin(server, deviceName)
       await shell.openExternal(url)
+    })
+    // Issue 107: online check and offline import only verify and stage a
+    // pending update in memory. Neither path installs anything, touches the
+    // program directory, or needs any secret.
+    const bundledRuntimePython = (): string => {
+      try {
+        const runtimeDirectory = app.isPackaged ? join(process.resourcesPath, 'runtime') : join(app.getAppPath(), '.runtime')
+        return JSON.parse(readFileSync(join(runtimeDirectory, 'distribution.lock.json'), 'utf8')).python || ''
+      } catch { return '' }
+    }
+    const updateCurrent = () => ({ desktopVersion: app.getVersion(), runtimePython: bundledRuntimePython(), protocolVersion: 1 })
+    // The pinned verification key ships inside the app; production rotates it.
+    const publicKeyPem = readFileSync(app.isPackaged
+      ? join(process.resourcesPath, 'updates/updates-public-key.pem')
+      : join(app.getAppPath(), 'resources/updates/updates-public-key.pem'), 'utf8')
+    const toView = (result: UpdateVerification): UpdateCheckResult => result.pending ? { ok: true, error: '', pending: {
+      kind: result.pending.kind, source: result.pending.source, verifiedAt: result.pending.verifiedAt,
+      advice: result.pending.advice, desktopVersion: result.pending.manifest.desktop.version,
+      runtimePython: result.pending.manifest.runtime.python,
+      serverCompatibility: result.pending.manifest.serverCompatibility,
+      fileCount: result.pending.manifest.files.length, deletionCount: result.pending.manifest.deletions.length } }
+      : { ok: result.ok, error: result.error, pending: null }
+    ipcMain.handle('desktop:updates:check', async (event): Promise<UpdateCheckResult> => {
+      requireMainFrame(event)
+      const origin = runtime.serverOrigin()
+      if (!origin) throw new Error('UPDATE_ORIGIN_UNKNOWN')
+      return toView(await checkOnline(origin, updateCurrent(), publicKeyPem))
+    })
+    ipcMain.handle('desktop:updates:import', async (event): Promise<UpdateCheckResult> => {
+      requireMainFrame(event)
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '导入离线更新清单', filters: [{ name: '更新清单 (manifest.json)', extensions: ['json'] }], properties: ['openFile'] })
+      if (chosen.canceled || chosen.filePaths.length !== 1) return { ok: false, error: 'UPDATE_IMPORT_CANCELED', pending: null }
+      const manifestPath = chosen.filePaths[0]
+      const manifestText = readFileSync(manifestPath, 'utf8')
+      const signatureHex = readFileSync(manifestPath + '.sig', 'utf8').trim()
+      return toView(verifyUpdate(manifestText, signatureHex, publicKeyPem, updateCurrent(), 'offline'))
     })
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)

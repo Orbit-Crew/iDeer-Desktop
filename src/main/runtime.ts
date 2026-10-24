@@ -13,6 +13,9 @@ export class RuntimeProcess {
   private workspaceRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private stopping: Promise<void> | null = null
   private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
+  private loginOrigin = ''
+  /** Origin of the paired Server, remembered for the controlled update address. */
+  serverOrigin(): string { return this.loginOrigin }
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
@@ -126,7 +129,7 @@ export class RuntimeProcess {
         reject(new Error('LOGIN_START_TIMEOUT'))
       }, 15000)
       this.loginRequest = { origin: origin.origin,
-        resolve: (url) => { clearTimeout(timer); this.loginRequest = null; resolve(url) },
+        resolve: (url) => { clearTimeout(timer); this.loginRequest = null; this.loginOrigin = origin.origin; resolve(url) },
         reject: (error) => { clearTimeout(timer); this.loginRequest = null; reject(error) } }
       this.child!.stdin.write(JSON.stringify({ type: 'login', serverUrl: origin.origin, deviceName: deviceName.trim() }) + '\n')
     })

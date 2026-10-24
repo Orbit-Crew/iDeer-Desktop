@@ -49,6 +49,19 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
 }
 
+export interface UpdatePendingView {
+  kind: 'patch' | 'full'
+  source: 'online' | 'offline'
+  verifiedAt: string
+  advice: string
+  desktopVersion: string
+  runtimePython: string
+  serverCompatibility: { minProtocol: number; notes: string }
+  fileCount: number
+  deletionCount: number
+}
+export interface UpdateCheckResult { ok: boolean; error: string; pending: UpdatePendingView | null }
+
 export interface DesktopBridge {
   manage(action: 'logout' | 'switch-account' | 'revoke', grantId?: string): Promise<void>
   chooseWorkspace(): Promise<void>
@@ -59,6 +72,8 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
+  checkUpdates(): Promise<UpdateCheckResult>
+  importUpdate(): Promise<UpdateCheckResult>
 }
 
 export type ChatCommand =

@@ -5,6 +5,7 @@ import { useUIStore } from '../../stores/uiStore'
 import Sidebar from './Sidebar'
 import RuntimePanel from '../RuntimePanel'
 import ChatPanel from '../ChatPanel'
+import UpdatePanel from '../UpdatePanel'
 
 export default function AppLayout(): JSX.Element {
   const leftPanelOpen = useUIStore((state) => state.leftPanelOpen)
@@ -34,6 +35,7 @@ export default function AppLayout(): JSX.Element {
         </Card>
         <ChatPanel />
         <RuntimePanel />
+        <UpdatePanel />
       </main>
     </div>
   )
