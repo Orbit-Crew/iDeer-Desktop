@@ -1,12 +1,13 @@
 // Node 16 compatibility runs in the build banner before any imports.
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
-import { mkdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createMainWindow } from './window'
 import type { DesktopStatus, InstallOutcome, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { checkOnline, verifyUpdate, type PendingUpdate, type UpdateVerification } from './updates'
 import { applyPatch, requestInstall } from './installer'
+import { backupTargets, readRecoveryState, resolveRestart, writeRecoveryState, type RecoveryState } from './recovery'
 
 // Set before ready and before any session, store or window is created.
 app.setName('iDeer Desktop')
@@ -27,6 +28,8 @@ if (!app.requestSingleInstanceLock()) {
     join(userData, 'Runtime')
   )
   let quitting = false
+  // Issue 109: the recovery record survives restarts in the user-data area.
+  let recovery: RecoveryState | null = null
   app.on('before-quit', (event) => {
     if (quitting) return
     event.preventDefault()
@@ -163,8 +166,17 @@ if (!app.requestSingleInstanceLock()) {
     })
     // Issue 108: the only install entry. It requires the verified pending
     // state, an explicit user confirmation, and the drain coordinator.
+    // Issue 109: a failed or rolled-back recovery disables further automatic
+    // installs until manual repair; user data is never a recovery target.
+    recovery = readRecoveryState(userData)
+    const recoveryBlocked = (): boolean => recovery?.state === 'recovery-failed'
+    ipcMain.handle('desktop:updates:recovery', (event): RecoveryState | null => {
+      requireMainFrame(event)
+      return recovery
+    })
     ipcMain.handle('desktop:updates:install', async (event): Promise<InstallOutcome> => {
       requireMainFrame(event)
+      if (recoveryBlocked()) throw new Error('UPDATE_RECOVERY_LOCKED')
       if (!lastPending) throw new Error('UPDATE_NOT_STAGED')
       const outcome = await requestInstall(lastPending, {
         status: () => runtime.status(),
@@ -181,8 +193,14 @@ if (!app.requestSingleInstanceLock()) {
             buttons: ['取消', '确认并排空安装'], defaultId: 0, cancelId: 0, noLink: true })
           return confirmation.response === 1
         },
-        apply: (files, deletions) => applyPatch({ manifest: { files, deletions } } as PendingUpdate,
-          lastPendingManifestPath ? join(lastPendingManifestPath, '..') : '', programRoot()),
+        apply: (files, deletions) => {
+          // Issue 109: every overwritten or deleted file is backed up first so
+          // a failed restart verification can restore the exact prior bytes.
+          const stamp = String(Date.now())
+          backupTargets({ manifest: { files, deletions } } as PendingUpdate, programRoot(), stamp)
+          return applyPatch({ manifest: { files, deletions } } as PendingUpdate,
+            lastPendingManifestPath ? join(lastPendingManifestPath, '..') : '', programRoot())
+        },
         launch: async (installerPath) => {
           const { spawn } = await import('node:child_process')
           if (!installerPath) throw new Error('UPDATE_FULL_INSTALLER_UNAVAILABLE')
@@ -190,8 +208,21 @@ if (!app.requestSingleInstanceLock()) {
         },
         quit: () => new Promise(resolveQuit => { setImmediate(() => { app.quit(); resolveQuit() }) })
       }, { programRoot: programRoot() })
+      if (outcome.installed && lastPending) {
+        recovery = { state: 'applied-pending-verify', stamp: String(Date.now()), programRoot: programRoot(),
+          desktopVersion: lastPending.manifest.desktop.version, runtimePython: lastPending.manifest.runtime.python,
+          detail: 'waiting for the restart to verify the installed combination' }
+        writeRecoveryState(userData, recovery)
+      }
       return outcome
     })
+    // Issue 109: one-shot restart verification of a previously applied update.
+    recovery = readRecoveryState(userData)
+    if (recovery?.state === 'applied-pending-verify') {
+      const backupDir = join(recovery.programRoot, 'resources', 'updates', `backup-${recovery.stamp}`)
+      recovery = resolveRestart(recovery, lastPending, existsSync(join(backupDir, 'backup-manifest.json')) ? backupDir : null,
+        userData, { desktopVersion: app.getVersion(), runtimePython: bundledRuntimePython() })
+    }
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)
       // Let invoke resolve before destroying its renderer.
