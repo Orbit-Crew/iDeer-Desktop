@@ -3,9 +3,10 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, UpdateCheckResult } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
-import { checkOnline, verifyUpdate, type UpdateVerification } from './updates'
+import { checkOnline, verifyUpdate, type PendingUpdate, type UpdateVerification } from './updates'
+import { applyPatch, requestInstall } from './installer'
 
 // Set before ready and before any session, store or window is created.
 app.setName('iDeer Desktop')
@@ -125,6 +126,13 @@ if (!app.requestSingleInstanceLock()) {
     const publicKeyPem = readFileSync(app.isPackaged
       ? join(process.resourcesPath, 'updates/updates-public-key.pem')
       : join(app.getAppPath(), 'resources/updates/updates-public-key.pem'), 'utf8')
+    let lastPending: PendingUpdate | null = null
+    let lastPendingManifestPath = ''
+    // Patches apply inside the installed program directory only; a dev checkout refuses.
+    const programRoot = (): string => {
+      if (!app.isPackaged) throw new Error('UPDATE_PACKAGED_ONLY')
+      return join(process.resourcesPath)
+    }
     const toView = (result: UpdateVerification): UpdateCheckResult => result.pending ? { ok: true, error: '', pending: {
       kind: result.pending.kind, source: result.pending.source, verifiedAt: result.pending.verifiedAt,
       advice: result.pending.advice, desktopVersion: result.pending.manifest.desktop.version,
@@ -146,7 +154,43 @@ if (!app.requestSingleInstanceLock()) {
       const manifestPath = chosen.filePaths[0]
       const manifestText = readFileSync(manifestPath, 'utf8')
       const signatureHex = readFileSync(manifestPath + '.sig', 'utf8').trim()
-      return toView(verifyUpdate(manifestText, signatureHex, publicKeyPem, updateCurrent(), 'offline'))
+      const verification = verifyUpdate(manifestText, signatureHex, publicKeyPem, updateCurrent(), 'offline')
+      // The full verified manifest is kept in memory for the installer; the
+      // renderer only ever sees the summary view.
+      lastPending = verification.pending
+      lastPendingManifestPath = verification.pending ? manifestPath : ''
+      return toView(verification)
+    })
+    // Issue 108: the only install entry. It requires the verified pending
+    // state, an explicit user confirmation, and the drain coordinator.
+    ipcMain.handle('desktop:updates:install', async (event): Promise<InstallOutcome> => {
+      requireMainFrame(event)
+      if (!lastPending) throw new Error('UPDATE_NOT_STAGED')
+      const outcome = await requestInstall(lastPending, {
+        status: () => runtime.status(),
+        drain: (action) => runtime.installDrain(action),
+        confirm: async (pending) => {
+          const confirmation = await dialog.showMessageBox(mainWindow!, {
+            type: 'question', title: '确认安装更新',
+            message: pending.kind === 'full'
+              ? '已验证的更新要求完整安装包。排空任务并停止本程序后,将运行安装包。'
+              : '已验证的补丁将在此设备应用。排空任务并停止本程序后,写入程序目录并重启。',
+            detail: `目标组合:Desktop ${pending.manifest.desktop.version} · Runtime Python ${pending.manifest.runtime.python}\n` +
+              `文件 ${pending.manifest.files.length} 个,删除 ${pending.manifest.deletions.length} 项。\n` +
+              '在途任务会等待其终态;超时不视为排空完成,未确认回执会保留。',
+            buttons: ['取消', '确认并排空安装'], defaultId: 0, cancelId: 0, noLink: true })
+          return confirmation.response === 1
+        },
+        apply: (files, deletions) => applyPatch({ manifest: { files, deletions } } as PendingUpdate,
+          lastPendingManifestPath ? join(lastPendingManifestPath, '..') : '', programRoot()),
+        launch: async (installerPath) => {
+          const { spawn } = await import('node:child_process')
+          if (!installerPath) throw new Error('UPDATE_FULL_INSTALLER_UNAVAILABLE')
+          spawn(installerPath, ['/S'], { detached: true, stdio: 'ignore', shell: false }).unref()
+        },
+        quit: () => new Promise(resolveQuit => { setImmediate(() => { app.quit(); resolveQuit() }) })
+      }, { programRoot: programRoot() })
+      return outcome
     })
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)

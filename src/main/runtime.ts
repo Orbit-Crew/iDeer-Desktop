@@ -21,6 +21,20 @@ export class RuntimeProcess {
   private receiptScope = ''
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
+
+  /** Issue 108: begin or abort the update drain on the owned Runtime. */
+  async installDrain(action: 'begin' | 'abort'): Promise<void> {
+    if (!['begin', 'abort'].includes(action)) throw new Error('DRAIN_ACTION_INVALID')
+    if (!this.child || this.stopping || this.managementRequest || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.managementRequest = null; reject(new Error('DRAIN_TIMEOUT')) }, 30000)
+      this.managementRequest = { id,
+        resolve: () => { clearTimeout(timer); this.managementRequest = null; resolve() },
+        reject: (error) => { clearTimeout(timer); this.managementRequest = null; reject(error) } }
+      this.child!.stdin.write(JSON.stringify({ type: 'install-drain', id, action, scope: this.selectionScope }) + '\n')
+    })
+  }
   constructor(private readonly directory: string, private readonly profile: string) {}
 
   status(): RuntimeStatus {
@@ -171,10 +185,10 @@ export class RuntimeProcess {
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
-          if (value.v === 1 && value.type === 'manage') {
+          if (value.v === 1 && (value.type === 'manage' || value.type === 'install-drain')) {
             const pending = this.managementRequest
             if (pending && value.id === pending.id) {
-              if (value.error) pending.reject(new Error('MANAGEMENT_FAILED'))
+              if (value.error) pending.reject(new Error(value.type === 'install-drain' ? 'DRAIN_FAILED' : 'MANAGEMENT_FAILED'))
               else pending.resolve()
             }
             continue
@@ -225,7 +239,9 @@ export class RuntimeProcess {
           if (typeof value.selectionScope === 'string' && /^[0-9a-f]{64}$/.test(value.selectionScope)) this.selectionScope = value.selectionScope
           this.receiptScope = typeof value.receiptScope === 'string' && /^[0-9a-f]{64}$/.test(value.receiptScope) ? value.receiptScope : ''
           lastStatus = Date.now()
+          if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks)) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
+            installDrain: value.installDrain, activeTasks: value.activeTasks,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
