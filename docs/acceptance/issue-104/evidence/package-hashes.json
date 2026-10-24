@@ -1,6 +1,6 @@
 {
-  "installerSHA256": "d2ece2ab57c55aca6faf18dfb187825a11a19502da2dc3a611785ce9100d003a",
-  "appASARSHA256": "19576b229f0ef0567a28cc136064a81168decd3060113a223ba2ffaa2c5f0374",
+  "installerSHA256": "89128b82a2857e637d686cf09ce4a2d79c5b6e0506a5f5525042c5125d8ca2f9",
+  "appASARSHA256": "f2e7c8d3a7bd9b7c855d88ad4d619336da050eb32cdf26402caaecc3831c0047",
   "pythonSHA256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
   "installedPath": "D:\\software\\iDeer Desktop\\ideer-desktop",
   "runtimeCore": [
@@ -109,5 +109,5 @@
       "sha256": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d"
     }
   ],
-  "sourceBindingSHA256": "6952aeecc86c3813e453bdb09b6f6141b8baf841b0081c51644b8930dea1573b"
+  "sourceBindingSHA256": "2f3045a14fdc7b9fb059cddd31cc4bf00323dbf875fd50fb3e13dc535511c3b1"
 }

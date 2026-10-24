@@ -5,13 +5,13 @@
     "pytest",
     "local-runtime/tests",
     "-q",
-    "--basetemp=C:/Users/Neo/AppData/Local/Temp/ideer-t104-final-explicit",
+    "--basetemp=C:/Users/Neo/AppData/Local/Temp/ideer-t104-delivery",
     "--tb=short",
     "--junitxml=artifacts/issue-104/checks/runtime-final.xml"
   ],
   "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\e7e5\\iDeer-Desktop",
-  "started": "2026-10-23T20:29:56.817260+00:00",
-  "finished": "2026-10-23T20:31:22.760448+00:00",
-  "seconds": 85.938,
+  "started": "2026-10-23T23:53:07.100221+00:00",
+  "finished": "2026-10-23T23:54:32.187621+00:00",
+  "seconds": 85.078,
   "exitCode": 0
 }

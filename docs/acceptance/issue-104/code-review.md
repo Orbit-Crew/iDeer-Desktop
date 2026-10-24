@@ -35,3 +35,10 @@ the parent agent; the reviewer verified the source.
 
 Standards: 0 open findings. Spec: 0 open findings after 3 fixes.
 This review does not substitute for the real scenario evidence in report.md.
+
+Both reviewers also checked the final follow-up in `b84abf1`: the Server's
+`cancel_requested` state explicitly says its result is unverified; the fault
+runner waits for each original task card's rendered Server/local/delivery
+facts; storage-health reads preserve unknown write records; fixture manifests
+publish atomically; cleanup failure makes the run fail. Both reviews returned
+0 additional findings. The final real runs are bound separately in report.md.

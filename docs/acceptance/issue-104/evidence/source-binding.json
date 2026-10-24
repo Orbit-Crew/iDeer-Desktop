@@ -1,10 +1,10 @@
 {
-  "recordedAt": "2026-10-23T20:30:26.546856+00:00",
+  "recordedAt": "2026-10-24T01:29:47.820229+00:00",
   "kind": "desktop",
   "base": "8901c170c02afbb10adee994ed2058c90d9045bb",
-  "headAtBinding": "8901c170c02afbb10adee994ed2058c90d9045bb",
+  "headAtBinding": "b84abf1d40f0b90bcc68d546f9cc58e40dbf897d",
   "branch": "feat/issue-104",
-  "sourceSHA256": "95cfa02cea3b7a110ac07fa07444fcfca2baa52296a2c24b686daf8746eaf891",
+  "sourceSHA256": "3d55ead215f80025dbc4ac6059b6bcca3f3e33ac6ce01c18a0edcdbd6a6df46b",
   "algorithm": "SHA256 of UTF-8 canonical sorted path/hash records; product/test/build inputs; acceptance scripts and generated evidence excluded",
   "files": [
     {
@@ -389,7 +389,7 @@
     },
     {
       "path": "src/renderer/src/components/ChatPanel.tsx",
-      "sha256": "8def6e96eddfa7a282b38a2768317d060138d6aec876aaba867af54955054f7f"
+      "sha256": "a25838430ab566569987bd379bb30725b3b8b6f8ef6438f1eac0dc5caca17b46"
     },
     {
       "path": "src/renderer/src/components/ErrorBoundary.tsx",
@@ -433,7 +433,7 @@
     },
     {
       "path": "test/chat.test.tsx",
-      "sha256": "e5eec317d7cc1c3ab062b775e4833aa7aca14959207ddba64f8950da0da54c16"
+      "sha256": "0c35d711de142fd3cdf92335b6c01b80e4c241dd32bdb830314c515d79229f8c"
     },
     {
       "path": "test/compat.test.ts",

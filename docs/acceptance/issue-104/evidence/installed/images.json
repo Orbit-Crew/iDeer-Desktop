@@ -1,0 +1,34 @@
+[
+  {
+    "path": "desktop-restart-restored.png",
+    "sha256": "a351a9457dc935d4446b2f4fcddc942d65059746d8c015cccf4a992a90d0f04e"
+  },
+  {
+    "path": "disconnect-after-pending-upload.png",
+    "sha256": "42b7b32b15e231a8749e11085ae4a6c76f016c5e2c5adf55db0ffd493be05cc9"
+  },
+  {
+    "path": "late-stop-pending-upload.png",
+    "sha256": "98a656db97ae63a107c5166dbef6f20e49b705807be26ee5f6b3b9cd874cab26"
+  },
+  {
+    "path": "late-stop-stop.png",
+    "sha256": "e219815a4a6b702ce4b8f2cff45249aae5a5b422f44271d82c8e302f23ebb308"
+  },
+  {
+    "path": "runtime-restart-restored.png",
+    "sha256": "f53e65530192f6b2f7b5b876d39f2fd243286f73b40dbd67fb698e6b487932e8"
+  },
+  {
+    "path": "server-restart-restored.png",
+    "sha256": "8d2e4c0d6c5c2031bb769734daf395ccd7a8bb35bbb482d8d6c35dbbd72772a6"
+  },
+  {
+    "path": "stop-after-first-write-stop.png",
+    "sha256": "147bc16f432f63a55a655b365a483918b9032120661c56b8c3528684c3183136"
+  },
+  {
+    "path": "stop-pending-stop.png",
+    "sha256": "87fdbeb513ffa6b78ac50b4e376d4ecd02ce0844348c58e889bbcae5786bb71b"
+  }
+]
