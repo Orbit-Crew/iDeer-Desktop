@@ -82,6 +82,7 @@ class LocalRuntimeClient:
         restrict_capabilities: bool = False,
         receipt_ledger: ReceiptLedger | None = None,
         user_id: str = "",
+        local_results: Any | None = None,
     ) -> None:
         self.server_url = server_url
         self.device_id = device_id
@@ -96,6 +97,10 @@ class LocalRuntimeClient:
         self.restrict_capabilities = restrict_capabilities
         self.receipt_ledger = receipt_ledger
         self.user_id = user_id
+        # Registered local results are display metadata only: no capability is
+        # announced for them and no upload ever happens without an explicit,
+        # separately authorized Desktop command.
+        self.local_results = local_results
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
@@ -521,10 +526,48 @@ class LocalRuntimeClient:
                 message_type=MessageType.RECEIPT_UPLOAD, device_id=self.device_id,
                 session_id=self.session_id or "", task_id=item["task"]["task_id"], payload=item), separators=(",", ":")))
 
-    def persist_receipt(self, receipt):
+    def persist_receipt(self, receipt, *, payload: dict[str, Any] | None = None, result: Any = None):
         if self.receipt_ledger is not None:
             self.receipt_ledger.complete(self.receipt_binding(), receipt.as_dict())
+        self._register_local_result(receipt, payload, result)
         self._record_execution(receipt)
+
+    def _register_local_result(self, receipt, payload: dict[str, Any] | None, result: Any) -> None:
+        """Register a completed workspace write locally; display metadata only.
+
+        Registration happens only after the durable receipt exists, keeps the
+        logical view and hashes (never bytes or physical paths), and can never
+        fail the task that already completed. Replay-protected by task identity.
+        """
+        from .local_results import LocalResultError
+
+        if (self.local_results is None or receipt.capability != "local.files.write"
+                or receipt.status != "completed"):
+            return
+        arguments = (payload or {}).get("arguments", (payload or {}).get("args", payload or {}))
+        path = arguments.get("path") if isinstance(arguments, dict) else None
+        source = result.get("source", {}) if isinstance(result, dict) else {}
+        if (not isinstance(path, str) or not isinstance(result, dict)
+                or not isinstance(result.get("sha256"), str) or not result["sha256"]):
+            return
+        from pathlib import PurePosixPath
+
+        try:
+            self.local_results.record(self.receipt_binding(), {
+                "thread_id": str((payload or {}).get("thread_id", "")),
+                "run_id": receipt.run_id,
+                "task_id": receipt.task_id,
+                "capability": receipt.capability,
+                "logical_root": str(source.get("logicalRoot", "")),
+                "logical_path": path,
+                "name": PurePosixPath(path).name,
+                "sha256": result["sha256"],
+                "bytes": result.get("bytes", 0),
+            })
+        except (LocalResultError, TypeError, ValueError):
+            self._record(AuditKind.TASK, "local_result_unavailable", capability=receipt.capability,
+                         task_id=receipt.task_id, run_id=receipt.run_id,
+                         detail={"error_code": "RESULT_STORAGE_UNAVAILABLE"})
 
     def _task_finished(self, task_id: str, task: asyncio.Task[None]) -> None:
         self._running_tasks.pop(task_id, None)
@@ -773,7 +816,7 @@ class LocalRuntimeClient:
             )
             return
         try:
-            self.persist_receipt(receipt)
+            self.persist_receipt(receipt, payload=dict(envelope.payload), result=result)
         except ReceiptStorageError:
             await self._storage_error(task_id, "RESULT_UNCERTAIN")
             return

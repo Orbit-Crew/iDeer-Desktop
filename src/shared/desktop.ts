@@ -23,6 +23,20 @@ export interface LoginStatus {
   error: string
   verification?: string
 }
+export interface LocalResultView {
+  task_id: string
+  run_id: string
+  thread_id: string
+  capability: string
+  logical_root: string
+  logical_path: string
+  name: string
+  sha256: string
+  bytes: number
+  artifact_ref: string
+  uploaded_at: string
+}
+export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -55,6 +69,7 @@ export type ChatCommand =
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string; decision: 'allow' | 'allow-directory' | 'deny' }
+  | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -82,7 +97,9 @@ export interface ChatSnapshot {
   localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;
     status: string; stop_requested?: boolean; receipt_pending?: boolean; error_code?: string;
     receipt?: { status?: string; result_hash?: string; error_code?: string } | null;
-    local?: { status: string; delivery_state: string; error_code?: string; receipt_hash?: string } | null }[]
+    local?: { status: string; delivery_state: string; error_code?: string; receipt_hash?: string } | null;
+    artifacts?: PlatformArtifact[];
+    localResult?: LocalResultView | null }[]
   localConsents?: { taskId: string; runId: string; threadId: string; requestHash: string; path: string; content: string; directory?: string }[]
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]

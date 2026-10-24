@@ -755,7 +755,7 @@ class LocalConsentCoordinator:
             raise RuntimeError("local execution did not produce a receipt")
         from .receipt_ledger import ReceiptStorageError
         try:
-            wire.persist_receipt(receipt)
+            wire.persist_receipt(receipt, payload=request.payload, result=value)
         except ReceiptStorageError:
             await wire._storage_error(task_id, "RESULT_UNCERTAIN")
             return

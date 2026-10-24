@@ -1,6 +1,7 @@
 """Authenticated Desktop chat. All orchestration and durable history belong to Server."""
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import secrets
@@ -14,11 +15,18 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .artifacts import ArtifactUploadError, FileArtifactUploader, SingleUseUploadGrant
 from .browser_login import _NoRedirect, platform_origin
+from .local_results import LocalResultError
+from .policy import PolicyDecision
+from .receipt_ledger import profile_binding
 from .secrets import SecretStore, SecretStoreError
 from .settings import load_settings
 
 MAX_RESPONSE = 2 * 1024 * 1024
+# The workspace write boundary already caps a single result at MAX_TEXT_BYTES;
+# the explicit upload path enforces the same bound before staging anything.
+MAX_RESULT_BYTES = 65536
 
 
 class ChatError(Exception):
@@ -41,7 +49,7 @@ def empty_state(scope=""):
 
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
-                 local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None):
+                 local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -50,6 +58,7 @@ class DesktopChat:
         self.local_consents, self.decide_consent = local_consents, decide_consent
         self.local_receipts = local_receipts
         self.stop_local = stop_local
+        self.local_results = local_results
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -252,9 +261,32 @@ class DesktopChat:
                 merged.append({**task, 'local': row})
             merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),
                 logical_target=row.get('logical_target', ''), status='unknown', local=row) for row in local.values())
-            return merged, error
+            return self._merge_local_results(thread_id, merged), error
         except Exception:
             return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE'
+
+    def _merge_local_results(self, thread_id, merged):
+        """Attach the device-local result registry view; failures hide nothing else.
+
+        Registry rows stay metadata-only and identity-bound: another device (or
+        another account on this one) sees the Server's task rows and platform
+        attachments, never this device's registered local results.
+        """
+        results = {}
+        if self.local_results is not None:
+            try:
+                binding = profile_binding(load_settings(self.config))
+                if binding is not None:
+                    results = {row['task_id']: row for row in self.local_results.view(
+                        binding, thread_id, {row['run_id'] for row in merged})}
+            except Exception:
+                results = {}
+            for row in merged:
+                row['localResult'] = results.pop(row['task_id'], None)
+            merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),
+                logical_target=row.get('logical_path', ''), status='unknown', local=None, localResult=row)
+                for row in results.values())
+        return merged
 
     def _poll_tasks(self, session):
         """Network observations cannot hold up a user's local Stop command."""
@@ -318,6 +350,91 @@ class DesktopChat:
                 raise ChatError('CHAT_PROTOCOL_ERROR')
         self._state['stop']['state'] = 'requested'
         self._state['error'] = ''
+
+    def _upload(self, session, command):
+        """Turn one registered local result into a Thread artifact, explicitly.
+
+        Every rejection is a fixed error category and leaves the registry
+        unmarked: a failed upload never displays as success, and nothing is
+        sent while local policy, identity, ownership or content verification
+        fails. The Server stays the authority on artifact visibility.
+        """
+        thread, thread_id = self._state['thread'], self._id(command['threadId'])
+        task_id, run_id = self._id(command['taskId']), self._id(command['runId'])
+        if not thread or thread['id'] != thread_id:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        settings = load_settings(self.config)
+        binding = profile_binding(settings)
+        if binding is None:
+            raise ChatError('UPLOAD_RESULT_NOT_FOUND')
+        try:
+            row = self.local_results.get(binding, task_id)
+        except LocalResultError:
+            raise ChatError('UPLOAD_STORAGE_UNAVAILABLE') from None
+        if row is None:
+            raise ChatError('UPLOAD_RESULT_NOT_FOUND')
+        if row['thread_id'] != thread_id or row['run_id'] != run_id:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        if row['artifact_ref']:
+            # Idempotent replay: the registered fact already carries the
+            # platform reference, so no new request, grant or record is made.
+            self._load_tasks(session)
+            self._state['error'] = ''
+            return
+        upload_basis = {'task_id': task_id, 'run_id': run_id, 'thread_id': thread_id,
+                        'name': row['name'], 'sha256': row['sha256']}
+        decision = settings.policy().authorize('local.artifacts.upload', upload_basis, consent=True)
+        if decision is not PolicyDecision.ALLOW:
+            raise ChatError('UPLOAD_POLICY_DENIED')
+        raw = self._read_local_result(row)
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != row['sha256']:
+            raise ChatError('UPLOAD_CONTENT_CHANGED')
+        try:
+            handle = FileArtifactUploader(Path(self.config.parent) / 'artifact-staging',
+                                          max_bytes=MAX_RESULT_BYTES).upload(row['name'], raw)
+            grant = SingleUseUploadGrant(run_id=run_id, task_id=task_id, thread_id=thread_id,
+                                         artifact_name=row['name'])
+            token = grant.consume(run_id=run_id, task_id=task_id, thread_id=thread_id, name=row['name'])
+        except ArtifactUploadError:
+            raise ChatError('UPLOAD_STAGING_FAILED') from None
+        if handle != f'local://{digest}/{row["name"]}':
+            raise ChatError('UPLOAD_STAGING_FAILED')
+        body = {'version': 1, 'kind': 'local_result', 'task_id': task_id, 'run_id': run_id,
+                'name': row['name'], 'sha256': digest, 'bytes': len(raw),
+                'content': base64.b64encode(raw).decode('ascii'), 'handle': handle,
+                'grant': {'run_id': run_id, 'task_id': task_id, 'thread_id': thread_id,
+                          'name': row['name'], 'token': token}}
+        created = self._json(session, f'/api/threads/{thread_id}/artifacts', body, {'Idempotency-Key': handle})
+        artifact_id = created.get('artifact_id') if isinstance(created, dict) else None
+        if (not isinstance(artifact_id, str) or not 1 <= len(artifact_id) <= 128
+                or created.get('name') != row['name'] or created.get('sha256') != digest):
+            # The Server must confirm exactly what was uploaded before the
+            # local fact can claim a platform artifact.
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        try:
+            self.local_results.mark_uploaded(binding, task_id, artifact_id)
+        except LocalResultError as exc:
+            code = 'UPLOAD_STORAGE_UNAVAILABLE' if 'STORAGE' in str(exc) else 'RESULT_UPLOAD_CONFLICT'
+            raise ChatError(code) from None
+        self._load_tasks(session)
+        self._state['error'] = ''
+
+    def _read_local_result(self, row) -> bytes:
+        """Read the registered bytes through the current workspace grant only."""
+        from .file_service import MAX_TEXT_BYTES, WorkspaceFileStore, WorkspaceSelection
+        from .files import FileAccessError, RootConfig
+        selection = WorkspaceSelection(self.config)
+        try:
+            _, grant = selection.current()
+            files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(self.config.parent,))
+            raw = files.read_bytes(row['logical_path'], max_bytes=MAX_TEXT_BYTES + 1)
+        except (FileAccessError, OSError, ValueError, TypeError):
+            raise ChatError('UPLOAD_LOCAL_FILE_UNAVAILABLE') from None
+        if len(raw) > MAX_RESULT_BYTES or grant['logical_root'] != row['logical_root']:
+            raise ChatError('UPLOAD_LOCAL_FILE_UNAVAILABLE')
+        return raw
 
     def _observe(self, session):
         if self._state['stream'] == 'streaming':
@@ -571,6 +688,16 @@ class DesktopChat:
                     except Exception:
                         raise ChatError('CONSENT_UNAVAILABLE') from None
                     self._state['error'] = ''
+                elif action == 'upload':
+                    # Issue 105: the only path from a registered local result to a
+                    # platform artifact. It exists solely behind this explicit,
+                    # user-authorized command; every observation path above is
+                    # upload-free by construction.
+                    expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'decision'}
+                    if (set(command) != expected or command.get('decision') != 'allow'
+                            or self.local_results is None):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    self._upload(session, command)
                 elif action != 'state':
                     raise ChatError('CHAT_COMMAND_INVALID')
                 if self._session().scope != session.scope:
