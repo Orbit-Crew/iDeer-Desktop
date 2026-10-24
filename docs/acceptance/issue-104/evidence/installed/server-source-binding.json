@@ -1,10 +1,10 @@
 {
-  "recordedAt": "2026-10-24T01:36:26.388718+00:00",
+  "recordedAt": "2026-10-24T02:01:27.725889+00:00",
   "kind": "server",
   "base": "14fcfef9894b72f19fb819d186c2d800e3862062",
   "headAtBinding": "14fcfef9894b72f19fb819d186c2d800e3862062",
   "branch": "feat/issue-104",
-  "sourceSHA256": "21d632b0de5149b00ff4395eb88967b75ebc502f968578eef7fdd6fc85c0870f",
+  "sourceSHA256": "715af6c8605e08354f203bca9f31031e8333704b9e4519de01bac8483305d307",
   "algorithm": "SHA256 of UTF-8 canonical sorted path/hash records; product/test/build inputs; acceptance scripts and generated evidence excluded",
   "files": [
     {
@@ -5045,7 +5045,7 @@
     },
     {
       "path": "backend/tests/integration/api/test_devices_router.py",
-      "sha256": "12e805b2d8695edd14398384610a7e4048600cc41989501e3ed1bc3177eca95e"
+      "sha256": "92f1d120e5ee98af5fc36c6a9996ca4775238e798b47ef91eeb6fb6995808a01"
     },
     {
       "path": "backend/tests/integration/api/test_devices_router_auth_gate.py",
@@ -5285,7 +5285,7 @@
     },
     {
       "path": "backend/tests/integration/persistence/test_migration_schema.py",
-      "sha256": "355058a49845c92d9d6d15d478701b30792516c1c116187123831ef9df312d65"
+      "sha256": "78e851b840de1d6b4cf9cbfeee5a2f0f1ba15cd4ebfd8f408e028af514e1ac9b"
     },
     {
       "path": "backend/tests/integration/persistence/test_persistence_bootstrap_url.py",

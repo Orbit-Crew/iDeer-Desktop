@@ -7,9 +7,9 @@ are running; combined delivery remains incomplete until their results and
 commit are recorded.
 
 Execution date: 2026-10-24, Asia/Shanghai. The final development flow ran
-09:32:03–09:33:37; the installed flow ran 09:35:07–09:36:30. Command records
+09:57:08 through 09:58:41; the installed flow ran 10:00:10 through 10:01:40. Command records
 retain UTC timestamps. Codex performed automated execution and UI inspection.
-Human execution/sign-off is unexecuted and is not claimed. Prerequisite #102
+The specified UI steps were automated; no human sign-off is claimed. Prerequisite #102
 was verified closed/completed on 2026-10-23.
 
 ## Candidate and environment
@@ -26,7 +26,7 @@ Acceptance-runner hashes are recorded separately in each functional result.
 
 Server implementation commit: pending final gates and commit.
 Final functional candidate source SHA-256:
-`21d632b0de5149b00ff4395eb88967b75ebc502f968578eef7fdd6fc85c0870f`.
+`715af6c8605e08354f203bca9f31031e8333704b9e4519de01bac8483305d307`.
 The [development](evidence/development/server-source-binding.json) and
 [installed](evidence/installed/server-source-binding.json) bindings contain the
 same Server bytes. Their `headAtBinding` is the develop base because tests
@@ -117,10 +117,10 @@ and exit code. Its adjacent `.log.gz` contains complete command output.
 | explicit Python `scripts/verify-runtime-source.py` | passed | 0.250 | [record](evidence/checks/runtime-source-final.json) |
 | `npm.cmd run dist:win` | Windows x64 NSIS built | 55.969 | [record](evidence/checks/dist-win-final.json) |
 | `issue-101/install_lifecycle.ps1`, final installer | install, sandbox/UI/IPC, quit/close, uninstall preservation, reinstall passed | 37.516 | [record](evidence/checks/install-final.json) |
-| Node 22 `issue-104/desktop.cjs`, dev-08 | T104-01 through 04 passed, exit 0 | 93.765 | [record](evidence/checks/functional-dev-08.json) |
-| `issue-104/installed.ps1`, installed-09 | T104-01 through 04 passed, exit 0 | 84.453 | [record](evidence/checks/functional-installed-09.json) |
-| WSL Python `issue-104/server_fixture.py`, dev-08 | actual Gateway/restart/cleanup, exit 0 | 117.528 | [record](evidence/checks/server-dev-08.json) |
-| same Server fixture, installed-09 | actual Gateway/restart/cleanup, exit 0 | 157.083 | [record](evidence/checks/server-installed-09.json) |
+| Node 22 `issue-104/desktop.cjs`, dev-10 | T104-01 through 04 passed, exit 0 | 93.515 | [record](evidence/checks/functional-dev-10.json) |
+| `issue-104/installed.ps1`, installed-11 | T104-01 through 04 passed, exit 0 | 90.765 | [record](evidence/checks/functional-installed-11.json) |
+| WSL Python `issue-104/server_fixture.py`, dev-10 | actual Gateway/restart/cleanup, exit 0 | 124.762 | [record](evidence/checks/server-dev-10.json) |
+| same Server fixture, installed-11 | actual Gateway/restart/cleanup, exit 0 | 147.444 | [record](evidence/checks/server-installed-11.json) |
 
 The six Runtime skips are 2 unavailable symlink-creation cases, 2 non-Windows
 secret-backend cases, POSIX process-group and mode-bit cases.
@@ -130,8 +130,9 @@ deprecations. [Installation results](evidence/installation/lifecycle-results.jso
 and [restoration](evidence/installation/profile-restoration.json) cover actual
 startup/exit and preservation independently of authenticated functional flows.
 
-Server full backend `make lint`, frontend `pnpm check`, 192 focused tests and
-inventory passed on final source. Full standard, `pr-standard`, selected Real
+Server full backend `make lint`, frontend `pnpm check`, and inventory passed on final source. Related serial/
+nonserial tests passed 824 cases with 12 skips; the receipt-completion test
+passed 10 repeated runs. Full standard, `pr-standard`, selected Real
 E2E, document checks, graph audit and commit are pending. Final records must
 replace this paragraph.
 
@@ -151,11 +152,15 @@ WSL became unresponsive; the user approved shutdown/restart, then work resumed.
 
 An early real runner timed out by accepting only `result_not_verified`, omitting
 the valid `cancel_requested` state. It now accepts both, and the UI labels the
-latter unverified. Passing dev-04/dev-06 used superseded Server fingerprints and
-are diagnostic only. Final dev-08/installed-09 use identical frozen source.
-Server's first full standard attempt had environment/route-test failures; its
-final report must retain those failures and complete rerun. Two Server formatting
-fixes preserved the AST and were followed by full lint and fresh functional runs.
+latter unverified. Passing dev-04/dev-06/dev-08/installed-09 used superseded Server fingerprints
+and are diagnostic only. Final dev-10/installed-11 use identical frozen source.
+Server's first full standard attempt had environment/route-test failures; a later
+backend run exposed an HTTP assertion racing WebSocket receipt processing.
+The bounded completion synchronization retains the real handler and exact final
+assertions. A related serial migration test also needed its ancestry updated.
+Both fixes affect tests only; all production hashes match the prior candidate.
+Server formatting fixes preserved the AST and preceded fresh functional runs.
+The Server gate report retains failed attempts and the complete final rerun.
 
 ## Platform scope
 
