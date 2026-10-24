@@ -101,5 +101,9 @@ describe('drain-and-install coordinator (issue 108)', () => {
     escape.manifest.files = []
     escape.manifest.deletions = ['../outside/keep.txt']
     await expect(applyPatch(escape, payload, program)).rejects.toThrow('UPDATE_TARGET_OUTSIDE_PROGRAM_DIRECTORY')
+    // An escaping payload path is refused before any byte is read.
+    const outsidePayload = pending('patch')
+    outsidePayload.manifest.files = [{ path: '../outside/secret.txt', sha256: 'c'.repeat(64), bytes: 1 }]
+    await expect(applyPatch(outsidePayload, payload, program)).rejects.toThrow('UPDATE_PAYLOAD_OUTSIDE_PROGRAM_DIRECTORY')
   })
 })

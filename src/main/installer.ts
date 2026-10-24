@@ -7,7 +7,7 @@
 // unconfirmed records intact.
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
-import { join, resolve, sep } from 'node:path'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import type { InstallOutcome, UpdateCheckResult } from '../shared/desktop'
 import type { PendingUpdate } from './updates'
 
@@ -31,15 +31,21 @@ export function planDrain(status: DrainView): 'ready' | 'draining' | 'blocked' {
   return 'ready'
 }
 
+/** A resolved target stays inside its base on every platform. */
+export function contained(base: string, target: string): boolean {
+  const rel = relative(resolve(base), resolve(target))
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+}
+
 /** Apply a verified patch payload into the program directory. */
 export async function applyPatch(pending: PendingUpdate, payloadRoot: string,
     programRoot: string): Promise<void> {
   const manifest = pending.manifest
+  // Static hazards (absolute paths, drive letters, dot segments) are already
+  // rejected by the manifest parser; these containment checks hold per platform.
   for (const file of manifest.files) {
     const source = resolve(payloadRoot, file.path)
-    if (!source.startsWith(resolve(payloadRoot) + '\\') && source !== resolve(payloadRoot)) {
-      throw new Error('UPDATE_PAYLOAD_OUTSIDE_PROGRAM_DIRECTORY')
-    }
+    if (!contained(payloadRoot, source)) throw new Error('UPDATE_PAYLOAD_OUTSIDE_PROGRAM_DIRECTORY')
     if (!existsSync(source) || statSync(source).size !== file.bytes) throw new Error('UPDATE_PAYLOAD_FILE_UNAVAILABLE')
     const digest = createHash('sha256').update(readFileSync(source)).digest('hex')
     if (digest !== file.sha256) throw new Error('UPDATE_PAYLOAD_HASH_MISMATCH')
@@ -47,13 +53,13 @@ export async function applyPatch(pending: PendingUpdate, payloadRoot: string,
   mkdirSync(programRoot, { recursive: true })
   for (const file of manifest.files) {
     const target = resolve(programRoot, file.path)
-    if (!target.startsWith(resolve(programRoot) + '\\')) throw new Error('UPDATE_TARGET_OUTSIDE_PROGRAM_DIRECTORY')
+    if (!contained(programRoot, target)) throw new Error('UPDATE_TARGET_OUTSIDE_PROGRAM_DIRECTORY')
     mkdirSync(join(target, '..'), { recursive: true })
     copyFileSync(resolve(payloadRoot, file.path), target)
   }
   for (const deletion of manifest.deletions) {
     const target = resolve(programRoot, deletion)
-    if (!target.startsWith(resolve(programRoot) + '\\')) throw new Error('UPDATE_TARGET_OUTSIDE_PROGRAM_DIRECTORY')
+    if (!contained(programRoot, target)) throw new Error('UPDATE_TARGET_OUTSIDE_PROGRAM_DIRECTORY')
     if (existsSync(target)) unlinkSync(target)
   }
 }
