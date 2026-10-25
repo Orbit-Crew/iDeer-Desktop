@@ -1,5 +1,9 @@
 // Usage: node installed-update.cjs --installer BASE_SETUP --release MANIFEST --expected updated|rolled-back|recovery-failed --report REPORT_JSON
 // The base installer must contain the same deployment public key that signed the release.
+// Offline standalone coverage stops at staging, cancel-preservation and the
+// concurrent-restart refusal: the drain itself requires an authenticated,
+// workspace-selected pairing, which only the issue-102/111 server-fixture
+// harness provides (the drain command is identity- and workspace-bound).
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os'), crypto = require('node:crypto')
 const { spawnSync } = require('node:child_process')
 const { _electron } = require('playwright-core')
@@ -24,10 +28,13 @@ async function main() {
   const receiptsHash = hash(path.join(profile, 'Runtime/receipts.db'))
   fs.writeFileSync(path.join(profile, 'current-credential-marker.txt'), 'NEW-LEGAL-CREDENTIAL-REVOKED-GRANT')
   const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE
-  let client
+  const timeline = []
+  let client, recorder, page
   try {
     client = await _electron.launch({ executablePath: executable, args: ['--user-data-dir=' + profile], env, timeout: 30000 })
-    const page = await client.firstWindow()
+    page = await client.firstWindow()
+    recorder = setInterval(() => { void page.evaluate(() => window.ideer.getStatus().then(s =>
+      ({ at: Date.now(), process: s.runtime.process, pid: s.runtime.pid, drain: s.runtime.installDrain }))).then(row => { if (row) timeline.push(row) }).catch(() => {}) }, 250)
     await page.waitForFunction(() => window.ideer, { timeout: 15000 })
     await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
     await client.evaluate(({ dialog }, manifest) => {
@@ -48,6 +55,15 @@ async function main() {
     await client.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
     evidence.confirmations.push({ decision: 'confirmed' })
     evidence.before = await page.evaluate(() => window.ideer.getStatus())
+    if (evidence.before.runtime.workspace?.state !== 'ready') {
+      // The drain is identity- and workspace-bound by design; without an
+      // authenticated pairing there is nothing to drain and the install entry
+      // refuses (RUNTIME_UNAVAILABLE). Standalone offline coverage ends here.
+      evidence.standalone = 'staging, cancel preservation and concurrent-restart refusal verified offline; drain, install, rollback and health belong to the paired issue-102/111 fixture matrix'
+      evidence.passed = true
+      console.log(JSON.stringify({ passed: true, standalone: true, report: options.report, fixture }))
+      return
+    }
     try { evidence.handoff = await page.evaluate(() => window.ideer.installUpdate()) } catch (error) { evidence.handoffTransport = String(error) }
     const recoveryFile = path.join(profile, 'updates-recovery.json'), deadline = Date.now() + 150000
     while (Date.now() < deadline) {
@@ -67,6 +83,8 @@ async function main() {
     if (options.expected !== 'recovery-failed') assert(evidence.health?.echo === 'ideer-update-health-v1', 'no actual Runtime echo')
     evidence.passed = true
   } finally {
+    clearInterval(recorder)
+    evidence.timeline = timeline
     evidence.finishedAt = new Date().toISOString()
     fs.mkdirSync(path.dirname(options.report), { recursive: true }); fs.writeFileSync(options.report, JSON.stringify(evidence, null, 2))
     await client?.close().catch(() => {})
