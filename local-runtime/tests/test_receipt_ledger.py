@@ -19,6 +19,19 @@ RECEIPT = {"task_id": "task-101", "run_id": "run-101", "capability": "local.file
            "policy_decision": "allow", "policy_version": "1", "result_hash": "b" * 64}
 
 
+def test_update_drain_distinguishes_unknown_writes_from_terminal_unacknowledged_receipts(tmp_path):
+    ledger = ReceiptLedger(tmp_path / 'receipts.db')
+    ledger.admit(BINDING, {**TASK, 'capability': 'local.files.write'})
+    assert ledger.unknown_write_effects(BINDING) == 1
+    ledger.complete(BINDING, {**RECEIPT, 'capability': 'local.files.write'})
+    assert ledger.unknown_write_effects(BINDING) == 0
+    ledger.admit(BINDING, {**TASK, 'task_id': 'unknown', 'capability': 'local.files.write'})
+    ledger.complete(BINDING, {**RECEIPT, 'task_id': 'unknown', 'capability': 'local.files.write',
+                             'status': 'result_not_verified', 'error_code': 'RESULT_UNCERTAIN'})
+    assert ledger.unknown_write_effects(BINDING) == 1
+    assert ledger.unknown_write_effects({**BINDING, 'user_id': 'another'}) == 0
+
+
 def test_thread_history_survives_restart_and_keeps_signed_upload_metadata_unchanged(tmp_path):
     path = tmp_path / 'receipts.db'
     ledger = ReceiptLedger(path)
