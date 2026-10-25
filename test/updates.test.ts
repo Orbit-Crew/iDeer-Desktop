@@ -2,6 +2,7 @@ import { generateKeyPairSync, createPrivateKey, sign } from 'node:crypto'
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createServer } from 'node:http'
 import { describe, expect, it, afterEach } from 'vitest'
 import { checkOnline, verifySignature, verifyUpdate } from '../src/main/updates'
 import type { UpdateManifest } from '../src/main/updates'
@@ -10,17 +11,19 @@ const { publicKey, privateKey } = generateKeyPairSync('ed25519')
 const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
 const PRIVATE_PEM = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
 
-const CURRENT = { desktopVersion: '0.1.0', runtimePython: '3.12.10', protocolVersion: 1 }
+const CURRENT = { desktopVersion: '0.1.0', electronVersion: '22.3.27', runtimePython: '3.12.10', protocolVersion: 1, dataFormat: 1, readableFormats: [1] }
 
 function manifest(overrides: Partial<UpdateManifest> = {}): UpdateManifest {
   return {
     version: 1, kind: 'patch', publishedAt: '2026-10-24T00:00:00.000Z',
-    desktop: { version: '0.2.0', asarSHA256: 'a'.repeat(64) },
+    desktop: { version: '0.2.0', electron: '22.3.27', asarSHA256: 'c'.repeat(64) },
     runtime: { python: '3.12.10', lockSHA256: 'b'.repeat(64) },
     serverCompatibility: { minProtocol: 1, notes: 'Server 3e728cd6a or newer' },
-    baseline: { desktopVersion: '0.1.0', runtimePython: '3.12.10' },
-    deletions: ['out/main/old.js'],
-    files: [{ path: 'out/main/index.js', sha256: 'c'.repeat(64), bytes: 123 }]
+    baseline: { desktopVersion: '0.1.0', electronVersion: '22.3.27', runtimePython: '3.12.10', dataFormat: 1 },
+    dataCompatibility: { targetFormat: 1, readableFormats: [1] },
+    deletions: ['resources/runtime/core/old.py'],
+    files: [{ path: 'resources/app.asar', sha256: 'c'.repeat(64), bytes: 123 }],
+    ...overrides
   }
 }
 
@@ -43,6 +46,45 @@ function freshDir(): string {
 }
 
 describe('signed update verification (issue 107)', () => {
+  it('rejects legacy metadata, NTFS aliases and intersecting file/deletion entries', () => {
+    const legacy = { ...manifest() }
+    delete legacy.dataCompatibility
+    const legacySigned = signed(legacy)
+    expect(verifyUpdate(legacySigned.text, legacySigned.signature, publicKeyPem, CURRENT, 'offline').error).toBe('UPDATE_MANIFEST_MALFORMED')
+    for (const path of ['resources/APP.asar', 'resources/runtime/core/aux.py', 'resources/runtime/core/a.py.',
+      'resources/runtime/core/a.py:stream', 'resources/runtime/core~1/a.py', 'resources/runtime/core/con/a.py']) {
+      const invalid = signed(manifest({ files: [{ path, sha256: 'c'.repeat(64), bytes: 1 }] }))
+      expect(verifyUpdate(invalid.text, invalid.signature, publicKeyPem, CURRENT, 'offline').ok).toBe(false)
+    }
+    const intersection = signed(manifest({ deletions: ['resources/app.asar'] }))
+    expect(verifyUpdate(intersection.text, intersection.signature, publicKeyPem, CURRENT, 'offline').error).toBe('UPDATE_PATH_CONFLICT')
+  })
+  it('rejects a patch that changes Electron or Python and requires a signed full installer', () => {
+    for (const value of [
+      manifest({ desktop: { version: '0.2.0', electron: '23.0.0', asarSHA256: 'c'.repeat(64) } }),
+      manifest({ runtime: { python: '3.13.1', lockSHA256: 'b'.repeat(64) } })
+    ]) {
+      const release = signed(value)
+      expect(verifyUpdate(release.text, release.signature, publicKeyPem, CURRENT, 'offline').error).toBe('UPDATE_REQUIRES_FULL_INSTALLER')
+    }
+  })
+  it('checks a published update over HTTP when Electron provides no global fetch', async () => {
+    const release = signed(manifest())
+    const server = createServer((request, response) => {
+      response.end(request.url === '/updates/desktop/manifest.json' ? release.text : release.signature)
+    })
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address() as { port: number }
+    const savedFetch = globalThis.fetch
+    try {
+      globalThis.fetch = undefined as typeof fetch
+      const result = await checkOnline(`http://127.0.0.1:${address.port}`, CURRENT, publicKeyPem)
+      expect(result.pending?.source).toBe('online')
+    } finally {
+      globalThis.fetch = savedFetch
+      await new Promise<void>(resolve => server.close(() => resolve()))
+    }
+  })
   it('verifies a genuine patch and stages it without touching the disk', () => {
     const dir = freshDir()
     const before = readdirSync(dir)
@@ -74,8 +116,8 @@ describe('signed update verification (issue 107)', () => {
   })
   it('rejects baseline, combination and server-compatibility mismatches', () => {
     for (const overrides of [
-      { baseline: { desktopVersion: '0.9.0', runtimePython: '3.12.10' } },
-      { baseline: { desktopVersion: '0.1.0', runtimePython: '3.13.1' } },
+      { baseline: { ...manifest().baseline, desktopVersion: '0.9.0' } },
+      { baseline: { ...manifest().baseline, runtimePython: '3.13.1' } },
       { serverCompatibility: { minProtocol: 2, notes: '' } }
     ]) {
       const { text, signature } = signed({ ...manifest(), ...overrides })
@@ -97,7 +139,7 @@ describe('signed update verification (issue 107)', () => {
       expect(verifyUpdate(text, signature, publicKeyPem, CURRENT, 'offline').error).toBe('UPDATE_FILE_OUTSIDE_PROGRAM_DIRECTORY')
     }
     // A duplicated path is a list defect rather than a boundary escape.
-    const duplicated = signed({ ...manifest(), files: [{ path: 'out/a.js', sha256: 'c'.repeat(64), bytes: 1 }, { path: 'out/a.js', sha256: 'c'.repeat(64), bytes: 2 }] })
+    const duplicated = signed({ ...manifest(), files: [{ path: 'resources/runtime/core/a.py', sha256: 'c'.repeat(64), bytes: 1 }, { path: 'resources/runtime/core/a.py', sha256: 'c'.repeat(64), bytes: 2 }] })
     expect(verifyUpdate(duplicated.text, duplicated.signature, publicKeyPem, CURRENT, 'offline').error).toBe('UPDATE_FILE_LIST_INVALID')
     for (const deletions of [['../user/keep.txt'], ['resources/../../x'], ['C:/x']]) {
       const { text, signature } = signed({ ...manifest(), deletions })
@@ -105,7 +147,7 @@ describe('signed update verification (issue 107)', () => {
     }
   })
   it('advises a full installer for low-level component changes and keeps patch advice separate', () => {
-    const full = signed({ ...manifest(), kind: 'full', files: [], deletions: [] })
+    const full = signed({ ...manifest(), kind: 'full', files: [], deletions: [], installer: { path: 'installer.exe', sha256: 'd'.repeat(64), bytes: 123 } })
     const result = verifyUpdate(full.text, full.signature, publicKeyPem, CURRENT, 'offline')
     expect(result.ok).toBe(true)
     expect(result.pending?.kind).toBe('full')
