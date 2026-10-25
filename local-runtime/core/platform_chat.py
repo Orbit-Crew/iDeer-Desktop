@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .artifacts import ArtifactUploadError, FileArtifactUploader, SingleUseUploadGrant
+from .artifacts import ArtifactUploadError, FileArtifactUploader
 from .browser_login import _NoRedirect, platform_origin
 from .local_results import LocalResultError
 from .policy import PolicyDecision
@@ -44,12 +44,13 @@ class ChatSession:
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
-                localTasks=[], taskError='')
+                localTasks=[], taskError='', artifacts=[])
 
 
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
-                 local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None):
+                 local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
+                 compatibility_gate=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -59,6 +60,7 @@ class DesktopChat:
         self.local_receipts = local_receipts
         self.stop_local = stop_local
         self.local_results = local_results
+        self.compatibility_gate = compatibility_gate
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -217,7 +219,7 @@ class DesktopChat:
         self._state.update(thread=dict(id=thread_id, status=thread['status'],
             agentId=agent_id, skillId=skill_id),
             messages=[], events=[], run=self._run(latest) if latest else None,
-            stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='')
+            stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='', artifacts=[])
         self._messages(messages)
         self._load_tasks(session)
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
@@ -227,11 +229,40 @@ class DesktopChat:
         """Observation only. A recovered task can never submit a new Turn."""
         self._tasks_checked = time.monotonic()
         thread_id = self._state['thread']['id']
-        tasks, error = self._task_history(session, thread_id, self._state['localTasks'])
-        self._state.update(localTasks=tasks, taskError=error)
+        tasks, error, artifacts = self._task_history(session, thread_id, self._state['localTasks'])
+        self._state.update(localTasks=tasks, taskError=error, artifacts=artifacts)
+
+    def _artifacts(self, session, thread_id):
+        """Read Server-owned attachments independently of device-local history."""
+        artifacts, offset, size = [], 0, 0
+        while True:
+            page = self._json(session, f'/api/threads/{thread_id}/artifacts?limit=50&offset={offset}')
+            if not isinstance(page, dict) or not isinstance(page.get('artifacts'), list):
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            size += len(json.dumps(page))
+            if size > MAX_RESPONSE:
+                raise ChatError('CHAT_RESPONSE_TOO_LARGE')
+            for row in page['artifacts']:
+                if (not isinstance(row, dict) or row.get('thread_id') != thread_id
+                        or not isinstance(row.get('name'), str) or not 1 <= len(row['name']) <= 255
+                        or any(c in row['name'] for c in '/\\\x00\r\n')
+                        or not isinstance(row.get('sha256'), str) or len(row['sha256']) != 64
+                        or any(c not in '0123456789abcdef' for c in row['sha256'])
+                        or type(row.get('bytes')) is not int or not 0 <= row['bytes'] <= MAX_RESULT_BYTES):
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+                self._id(row.get('artifact_id'))
+                artifacts.append({key: row.get(key, '') for key in
+                    ('artifact_id', 'thread_id', 'name', 'sha256', 'bytes', 'task_id', 'run_id')})
+            if not page.get('has_more'):
+                return artifacts
+            cursor = page.get('next_offset')
+            if type(cursor) is not int or cursor <= offset:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            offset = cursor
 
     def _task_history(self, session, thread_id, tasks):
         error = ''
+        artifacts = []
         try:
             loaded, offset, size = [], 0, 0
             while True:
@@ -254,6 +285,12 @@ class DesktopChat:
         except Exception:
             error = 'CHAT_TASK_HISTORY_UNAVAILABLE'
         try:
+            artifacts = self._artifacts(session, thread_id)
+        except ChatError as exc:
+            if str(exc) in {'CHAT_UNAUTHENTICATED', 'CHAT_IDENTITY_CHANGED'}:
+                raise
+            error = str(exc)
+        try:
             local = {row['task_id']: row for row in self.local_receipts(thread_id, {row['run_id'] for row in tasks})}
             merged = []
             for task in tasks:
@@ -261,9 +298,9 @@ class DesktopChat:
                 merged.append({**task, 'local': row})
             merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),
                 logical_target=row.get('logical_target', ''), status='unknown', local=row) for row in local.values())
-            return self._merge_local_results(thread_id, merged), error
+            return self._merge_local_results(thread_id, merged), error, artifacts
         except Exception:
-            return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE'
+            return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE', artifacts
 
     def _merge_local_results(self, thread_id, merged):
         """Attach the device-local result registry view; failures hide nothing else.
@@ -303,14 +340,14 @@ class DesktopChat:
 
         def refresh():
             try:
-                rows, error = self._task_history(session, thread_id, tasks)
+                rows, error, artifacts = self._task_history(session, thread_id, tasks)
                 run = self._json(session, f"/api/threads/{thread_id}/runs/{stopped['runId']}") if stopped and active else None
                 with self._lock:
                     if generation != self._generation:
                         return
                     if self._session().scope != session.scope:
                         raise ChatError('CHAT_IDENTITY_CHANGED')
-                    self._state.update(localTasks=rows, taskError=error)
+                    self._state.update(localTasks=rows, taskError=error, artifacts=artifacts)
                     if run:
                         self._state['run'] = self._run(run)
                         if run['status'] not in {'pending', 'running'}:
@@ -381,6 +418,7 @@ class DesktopChat:
             self._load_tasks(session)
             self._state['error'] = ''
             return
+        self._check_compatibility('local.artifacts.upload')
         upload_basis = {'task_id': task_id, 'run_id': run_id, 'thread_id': thread_id,
                         'name': row['name'], 'sha256': row['sha256']}
         decision = settings.policy().authorize('local.artifacts.upload', upload_basis, consent=True)
@@ -393,22 +431,42 @@ class DesktopChat:
         try:
             handle = FileArtifactUploader(Path(self.config.parent) / 'artifact-staging',
                                           max_bytes=MAX_RESULT_BYTES).upload(row['name'], raw)
-            grant = SingleUseUploadGrant(run_id=run_id, task_id=task_id, thread_id=thread_id,
-                                         artifact_name=row['name'])
-            token = grant.consume(run_id=run_id, task_id=task_id, thread_id=thread_id, name=row['name'])
         except ArtifactUploadError:
             raise ChatError('UPLOAD_STAGING_FAILED') from None
         if handle != f'local://{digest}/{row["name"]}':
             raise ChatError('UPLOAD_STAGING_FAILED')
+        grant_basis = {key: value for key, value in upload_basis.items() if key != 'thread_id'}
+        grant_basis.update(device_id=settings.device_id, bytes=len(raw))
+        issued = self._json(session, f'/api/threads/{thread_id}/artifacts/grant', grant_basis,
+                            self._device_headers(session, binding))
+        if (not isinstance(issued, dict) or not isinstance(issued.get('token'), str)
+                or not 16 <= len(issued['token']) <= 512
+                or any(issued.get(key) != value for key, value in
+                       {'run_id': run_id, 'task_id': task_id, 'thread_id': thread_id,
+                        'name': row['name'], 'device_id': settings.device_id}.items())):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        # A slow grant response cannot authorize bytes from a retired account,
+        # device binding, or a newly denied policy. Re-read through the current
+        # workspace grant before sending content to the Server.
+        headers = self._device_headers(session, binding)
+        self._check_compatibility('local.artifacts.upload')
+        current = load_settings(self.config)
+        if current.policy().authorize('local.artifacts.upload', upload_basis, consent=True) is not PolicyDecision.ALLOW:
+            raise ChatError('UPLOAD_POLICY_DENIED')
+        if self._read_local_result(row) != raw:
+            raise ChatError('UPLOAD_CONTENT_CHANGED')
         body = {'version': 1, 'kind': 'local_result', 'task_id': task_id, 'run_id': run_id,
                 'name': row['name'], 'sha256': digest, 'bytes': len(raw),
                 'content': base64.b64encode(raw).decode('ascii'), 'handle': handle,
                 'grant': {'run_id': run_id, 'task_id': task_id, 'thread_id': thread_id,
-                          'name': row['name'], 'token': token}}
-        created = self._json(session, f'/api/threads/{thread_id}/artifacts', body, {'Idempotency-Key': handle})
+                          'name': row['name'], 'token': issued['token']}}
+        created = self._json(session, f'/api/threads/{thread_id}/artifacts', body,
+                             {**headers, 'Idempotency-Key': handle})
+        self._device_headers(session, binding)
         artifact_id = created.get('artifact_id') if isinstance(created, dict) else None
         if (not isinstance(artifact_id, str) or not 1 <= len(artifact_id) <= 128
-                or created.get('name') != row['name'] or created.get('sha256') != digest):
+                or created.get('name') != row['name'] or created.get('sha256') != digest
+                or created.get('bytes') != len(raw) or created.get('thread_id') != thread_id):
             # The Server must confirm exactly what was uploaded before the
             # local fact can claim a platform artifact.
             raise ChatError('CHAT_PROTOCOL_ERROR')
@@ -419,6 +477,45 @@ class DesktopChat:
             raise ChatError(code) from None
         self._load_tasks(session)
         self._state['error'] = ''
+
+    def _device_headers(self, session, binding):
+        settings = load_settings(self.config)
+        if self._session().scope != session.scope or profile_binding(settings) != binding:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        if not settings.session_token_ref:
+            raise ChatError('UPLOAD_DEVICE_UNAVAILABLE')
+        token = self.secure.get(settings.session_token_ref)
+        if not token:
+            raise ChatError('UPLOAD_DEVICE_UNAVAILABLE')
+        return {'X-Device-Session': token}
+
+    def _check_compatibility(self, operation):
+        if self.compatibility_gate is not None:
+            code = self.compatibility_gate.authorize(operation)
+            if code:
+                raise ChatError(code)
+
+    def _download(self, session, command):
+        if set(command) != {'action', 'scope', 'threadId', 'artifactId'}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        thread_id, artifact_id = self._id(command['threadId']), self._id(command['artifactId'])
+        if not self._state['thread'] or self._state['thread']['id'] != thread_id:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        # Fetch owner-authorized metadata again. A download never uses a
+        # renderer URL, a local workspace, or this device's result registry.
+        artifact = next((row for row in self._artifacts(session, thread_id)
+                         if row['artifact_id'] == artifact_id), None)
+        if artifact is None:
+            raise ChatError('CHAT_ARTIFACT_NOT_FOUND')
+        with self._request(session, f'/api/threads/{thread_id}/artifacts/{artifact_id}/download') as response:
+            raw = response.read(MAX_RESULT_BYTES + 1)
+            echoed_hash = response.headers.get('X-Content-SHA256')
+        if (len(raw) != artifact['bytes'] or hashlib.sha256(raw).hexdigest() != artifact['sha256']
+                or echoed_hash != artifact['sha256']):
+            raise ChatError('CHAT_ARTIFACT_INTEGRITY')
+        if self._session().scope != session.scope:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        return {**artifact, 'content': base64.b64encode(raw).decode('ascii')}
 
     def _read_local_result(self, row) -> bytes:
         """Read the registered bytes through the current workspace grant only."""
@@ -569,7 +666,8 @@ class DesktopChat:
                 <= datetime.now(timezone.utc)):
             raise ChatError('CHAT_UNAUTHENTICATED')
         origin = platform_origin(settings.server_url)
-        scope = hashlib.sha256(f'{origin}\n{settings.user_id}\n{settings.business_token_ref}'.encode()).hexdigest()
+        scope = hashlib.sha256(json.dumps([origin, settings.user_id, settings.business_token_ref,
+                                           profile_binding(settings)], sort_keys=True).encode()).hexdigest()
         return ChatSession(scope, origin, settings.user_id, self.secure.get(settings.business_token_ref))
 
     def _request(self, session, path, body=None, headers=None):
@@ -633,12 +731,13 @@ class DesktopChat:
     def handle(self, command):
         with self._lock:
             session = None
+            download = None
             try:
                 session = self._session()
                 if session.scope != self._state['scope']:
                     self._reset(session.scope)
                 action = command.get('action') if isinstance(command, dict) else None
-                if action not in {'state', 'refresh'} and command.get('scope') != session.scope:
+                if action not in {'state', 'refresh', 'compatibility'} and command.get('scope') != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
                 can_run = self._authorize(session) if action not in {'state', 'consent', 'stop'} else False
                 if action in {'create', 'send', 'answer'} and not can_run:
@@ -698,6 +797,14 @@ class DesktopChat:
                             or self.local_results is None):
                         raise ChatError('CHAT_COMMAND_INVALID')
                     self._upload(session, command)
+                elif action == 'download':
+                    download = self._download(session, command)
+                    self._state['error'] = ''
+                elif action == 'compatibility':
+                    if set(command) != {'action'} or self.compatibility_gate is None:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    self._state['compatibility'] = self.compatibility_gate.refresh()
+                    self._state['error'] = ''
                 elif action != 'state':
                     raise ChatError('CHAT_COMMAND_INVALID')
                 if self._session().scope != session.scope:
@@ -728,4 +835,11 @@ class DesktopChat:
                 return result
             if session:
                 encoded = encoded.replace(session.token, '[REDACTED]')
-            return json.loads(encoded)
+            result = json.loads(encoded)
+            if self.compatibility_gate is not None:
+                result['compatibility'] = self.compatibility_gate.snapshot()
+            if download is not None and not result['error']:
+                # Only the requesting main-process call receives bytes; no
+                # polling snapshot or persisted history retains the payload.
+                result['download'] = download
+            return result
