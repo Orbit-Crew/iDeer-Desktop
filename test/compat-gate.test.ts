@@ -52,10 +52,21 @@ describe('compatibility gate (issue 110)', () => {
     expect(blocksLocalTask(capability, { action: 'open' })).toBe(false)
     // Core incompatibility stops creating and dispatching, but reads, history,
     // consents, stops and receipts stay available.
-    for (const action of ['create', 'send']) expect(blocksLocalTask(core, { action })).toBe(true)
-    for (const action of ['state', 'refresh', 'open', 'reconnect', 'stop', 'answer', 'consent', 'upload']) {
+    for (const action of ['create', 'send', 'upload']) expect(blocksLocalTask(core, { action })).toBe(true)
+    for (const action of ['state', 'refresh', 'open', 'reconnect', 'stop', 'answer', 'consent']) {
       expect(blocksLocalTask(core, { action })).toBe(false)
     }
+  })
+  it('keeps protocol and combination refusals as effective core gates', () => {
+    const current = { protocolVersion: 1, desktopVersion: '0.2.0', runtimePython: '3.12.10', serverVersion: '3e728cd6a' }
+    const protocol = signed(declaration({ minProtocol: 2 }))
+    const refused = evaluate(protocol.text, protocol.signature, publicKeyPem, current)
+    expect(refused.error).toBe('COMPAT_PROTOCOL_INCOMPATIBLE')
+    expect(refused.declaration?.level).toBe('core')
+    const genuine = signed(declaration())
+    const wrong = evaluate(genuine.text, genuine.signature, publicKeyPem, { ...current, desktopVersion: '9.9.9' })
+    expect(wrong.error).toBe('COMPAT_COMBINATION_UNSUPPORTED')
+    expect(wrong.declaration?.level).toBe('core')
   })
   it('reads the controlled address with honest failures', async () => {
     await expect(checkCompatibility('https://server.invalid/path?x=1', publicKeyPem, { protocolVersion: 1 })).rejects.toThrow('COMPAT_ORIGIN_INVALID')

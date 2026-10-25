@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import platform
 from dataclasses import replace
 from typing import Any
 from urllib.parse import urlsplit
@@ -83,6 +84,7 @@ class LocalRuntimeClient:
         receipt_ledger: ReceiptLedger | None = None,
         user_id: str = "",
         local_results: Any | None = None,
+        compatibility_gate: Any | None = None,
     ) -> None:
         self.server_url = server_url
         self.device_id = device_id
@@ -104,6 +106,7 @@ class LocalRuntimeClient:
         # announced for them and no upload ever happens without an explicit,
         # separately authorized Desktop command.
         self.local_results = local_results
+        self.compatibility_gate = compatibility_gate
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
@@ -340,6 +343,8 @@ class LocalRuntimeClient:
                 "public_key": public_key_text(self.private_key),
                 "protocol_version": self.protocol_version,
                 "runtime_version": self.runtime_version,
+                "desktop_version": self.compatibility_gate.desktop_version if self.compatibility_gate is not None else '',
+                "runtime_python": platform.python_version(),
                 "capabilities": list(self._current_capabilities()),
                 "policy_hash": self.policy_hash,
                 "tool_descriptors": self.current_tool_descriptors(),
@@ -433,6 +438,10 @@ class LocalRuntimeClient:
                 expected_session_id=self.session_id or "",
             )
             self.server_public_key = configured_key
+            if self.compatibility_gate is not None:
+                self.compatibility_gate.set_server_version(server_hello.get('payload', {}).get('server_version', ''),
+                                                           self.receipt_binding())
+                await asyncio.to_thread(self.compatibility_gate.refresh)
             self.connected = True
             self.receipt_replay_enabled = server_hello.get("payload", {}).get("receipt_replay") == 1
             # Drain ACKs concurrently with the outbox: a full socket must not
@@ -658,6 +667,12 @@ class LocalRuntimeClient:
             await self._send_error(task_id, 'Run stop was requested locally', 'CANCELLED', envelope.payload,
                 operation, status='cancelled')
             return
+        if self.compatibility_gate is not None:
+            code = await asyncio.to_thread(self.compatibility_gate.authorize, operation)
+            if code:
+                await self._send_error(task_id, 'local combination is incompatible', code,
+                    dict(envelope.payload), operation, policy_decision=PolicyDecision.DENY.value, status='denied')
+                return
         if self.restrict_capabilities and operation not in self._current_capabilities():
             await self._send_error(task_id, "capability unavailable", "CAPABILITY_UNAVAILABLE",
                                    dict(envelope.payload), operation,

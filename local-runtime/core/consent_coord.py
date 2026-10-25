@@ -686,6 +686,13 @@ class LocalConsentCoordinator:
 
         wire = self._wire
         task_id = envelope.task_id or ""
+        if wire.compatibility_gate is not None:
+            code = await asyncio.to_thread(wire.compatibility_gate.authorize, request.capability)
+            if code:
+                await wire._send_error(task_id, 'local combination is incompatible', code,
+                    request.payload, request.capability, policy_decision=PolicyDecision.DENY.value,
+                    status='denied', consent_decision=consent_decision)
+                return
         if self._desktop_write(request.capability) and (wire.receipt_ledger is None or wire.receipt_ledger.error):
             await wire._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
             return

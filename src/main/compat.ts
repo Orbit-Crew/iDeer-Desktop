@@ -5,6 +5,7 @@
 // switch never grants anything: Server authorization and local policy still
 // decide every request, and all records stay readable in every level.
 import { createPublicKey, verify as cryptoVerify } from 'node:crypto'
+import { controlledBytes } from './controlled-http'
 
 export type CompatibilityLevel = 'compatible' | 'capability' | 'core'
 
@@ -15,7 +16,9 @@ export interface CompatibilityDeclaration {
   minProtocol: number
   notes: string
   candidateCombo: { desktop: string; runtime: string; server: string }
+  supportedCombos?: { desktop: string; runtime: string; server: string; level?: CompatibilityLevel; disabledCapabilities?: string[] }[]
 }
+interface CompatibilityCurrent { protocolVersion: number; desktopVersion?: string; runtimePython?: string; serverVersion?: string }
 
 export interface CompatibilityEvaluation {
   ok: boolean
@@ -26,7 +29,9 @@ export interface CompatibilityEvaluation {
 }
 
 const MAX_BYTES = 512 * 1024
-const KNOWN_CAPABILITIES = ['local.files.read', 'local.files.write', 'local.files.list', 'local.files.search', 'local.python', 'local.artifacts.upload']
+const KNOWN_CAPABILITIES = ['echo', 'local.files.read', 'local.files.write', 'local.files.list', 'local.files.search', 'local.python', 'local.artifacts.upload']
+const validCapability = (cap: unknown): boolean => typeof cap === 'string' &&
+  (KNOWN_CAPABILITIES.includes(cap) || /^local\.mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(cap))
 
 function parse(text: string): CompatibilityDeclaration {
   if (Buffer.byteLength(text, 'utf8') > MAX_BYTES) throw new Error('COMPAT_MANIFEST_TOO_LARGE')
@@ -37,7 +42,7 @@ function parse(text: string): CompatibilityDeclaration {
   if (d.version !== 1) throw new Error('COMPAT_MANIFEST_VERSION_UNSUPPORTED')
   if (!['compatible', 'capability', 'core'].includes(d.level)) throw new Error('COMPAT_MANIFEST_LEVEL_INVALID')
   if (!Array.isArray(d.disabledCapabilities) ||
-      d.disabledCapabilities.some(cap => !KNOWN_CAPABILITIES.includes(cap)) ||
+      d.disabledCapabilities.some(cap => !validCapability(cap)) ||
       new Set(d.disabledCapabilities).size !== d.disabledCapabilities.length) throw new Error('COMPAT_MANIFEST_CAPABILITY_INVALID')
   if (d.level === 'compatible' && d.disabledCapabilities.length) throw new Error('COMPAT_MANIFEST_CAPABILITY_INVALID')
   if (d.level === 'core' && d.disabledCapabilities.length) throw new Error('COMPAT_MANIFEST_CAPABILITY_INVALID')
@@ -46,6 +51,20 @@ function parse(text: string): CompatibilityDeclaration {
   if (!d.candidateCombo || typeof d.candidateCombo !== 'object' ||
       [d.candidateCombo.desktop, d.candidateCombo.runtime, d.candidateCombo.server]
         .some(field => typeof field !== 'string' || !field || field.length > 128)) throw new Error('COMPAT_MANIFEST_MALFORMED')
+  if (d.supportedCombos !== undefined) {
+    if (!Array.isArray(d.supportedCombos) || d.supportedCombos.length > 128) throw new Error('COMPAT_MANIFEST_MALFORMED')
+    const combos = new Set([JSON.stringify({ desktop: d.candidateCombo.desktop, runtime: d.candidateCombo.runtime, server: d.candidateCombo.server })])
+    for (const row of d.supportedCombos) {
+      if (!row || [row.desktop, row.runtime, row.server].some(value => typeof value !== 'string' || !value || value.length > 128)) throw new Error('COMPAT_MANIFEST_MALFORMED')
+      const key = JSON.stringify({ desktop: row.desktop, runtime: row.runtime, server: row.server })
+      if (combos.has(key)) throw new Error('COMPAT_MANIFEST_MALFORMED')
+      combos.add(key)
+      const level = row.level ?? d.level, disabled = row.disabledCapabilities ?? d.disabledCapabilities
+      if (!['compatible', 'capability', 'core'].includes(level) || !Array.isArray(disabled) ||
+          disabled.some(cap => !validCapability(cap)) || new Set(disabled).size !== disabled.length ||
+          (level !== 'capability' && disabled.length)) throw new Error('COMPAT_MANIFEST_MALFORMED')
+    }
+  }
   return d
 }
 
@@ -58,11 +77,21 @@ export function verifySignature(text: string, signatureHex: string, publicKeyPem
 }
 
 export function evaluate(text: string, signatureHex: string, publicKeyPem: string,
-    current: { protocolVersion: number }): CompatibilityEvaluation {
+    current: CompatibilityCurrent): CompatibilityEvaluation {
   try {
     if (!verifySignature(text, signatureHex, publicKeyPem)) throw new Error('COMPAT_SIGNATURE_INVALID')
     const declaration = parse(text)
     if (declaration.minProtocol > current.protocolVersion) throw new Error('COMPAT_PROTOCOL_INCOMPATIBLE')
+    if (current.desktopVersion !== undefined || current.runtimePython !== undefined || current.serverVersion !== undefined) {
+      const matches = (combo: { desktop: string; runtime: string; server: string }): boolean =>
+        combo.desktop === current.desktopVersion && combo.runtime === current.runtimePython && combo.server === current.serverVersion
+      if (!matches(declaration.candidateCombo)) {
+        const selected = declaration.supportedCombos?.find(matches)
+        if (!selected) throw new Error('COMPAT_COMBINATION_UNSUPPORTED')
+        declaration.level = selected.level ?? declaration.level
+        declaration.disabledCapabilities = selected.disabledCapabilities ?? declaration.disabledCapabilities
+      }
+    }
     const advice = declaration.level === 'compatible'
       ? '组合兼容，全部能力可用。'
       : declaration.level === 'capability'
@@ -70,14 +99,18 @@ export function evaluate(text: string, signatureHex: string, publicKeyPem: strin
         : '核心通信/安全不兼容：已停止新的本地任务。历史与未确认执行记录完整保留，未知任务不会当作未执行。请升级桌面组合。'
     return { ok: true, error: '', declaration, advice }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'COMPAT_REJECTED', declaration: null, advice: '' }
+    const reason = error instanceof Error ? error.message : 'COMPAT_REJECTED'
+    return { ok: false, error: reason, declaration: { version: 1, level: 'core', disabledCapabilities: [], minProtocol: 1,
+      notes: reason, candidateCombo: { desktop: current.desktopVersion || 'unknown', runtime: current.runtimePython || 'unknown', server: current.serverVersion || 'unknown' } },
+      advice: '兼容声明无法核验，已停止新的本地任务。历史和未确认执行记录保留。' }
   }
 }
 
 /** Hard stop: does this request create or dispatch local work at this level? */
 export function blocksLocalTask(declaration: CompatibilityDeclaration | null, command: { action: string; capability?: string }): boolean {
   if (!declaration) return false
-  if (declaration.level === 'core') return ['create', 'send'].includes(command.action)
+  if (declaration.level === 'core') return ['create', 'send', 'upload'].includes(command.action)
+  if (declaration.level === 'capability' && command.action === 'upload') return declaration.disabledCapabilities.includes('local.artifacts.upload')
   if (declaration.level === 'capability' && command.action === 'send') {
     return command.capability ? declaration.disabledCapabilities.includes(command.capability) : false
   }
@@ -86,20 +119,16 @@ export function blocksLocalTask(declaration: CompatibilityDeclaration | null, co
 
 /** Controlled-address fetch, mirroring the update manifest origin rules. */
 export async function checkCompatibility(origin: string, publicKeyPem: string,
-    current: { protocolVersion: number }): Promise<CompatibilityEvaluation> {
+    current: CompatibilityCurrent): Promise<CompatibilityEvaluation> {
   let base: URL
   try {
     base = new URL(origin)
     if (!['https:', 'http:'].includes(base.protocol)) throw new Error()
     if (base.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)) throw new Error()
-    if (base.username || base.password || base.search || base.hash) throw new Error()
+    if (base.username || base.password || base.search || base.hash || base.pathname !== '/') throw new Error()
   } catch { throw new Error('COMPAT_ORIGIN_INVALID') }
   const fetchText = async (path: string): Promise<string> => {
-    const response = await fetch(new URL(path, base), { signal: AbortSignal.timeout(15000) })
-    if (!response.ok) throw new Error(response.status === 404 ? 'COMPAT_NOT_PUBLISHED' : 'COMPAT_SERVER_ERROR')
-    const body = await response.text()
-    if (Buffer.byteLength(body, 'utf8') > MAX_BYTES) throw new Error('COMPAT_MANIFEST_TOO_LARGE')
-    return body
+    return (await controlledBytes(base.origin, '/' + path, { maxBytes: MAX_BYTES, timeoutMs: 15000 })).toString('utf8')
   }
   const text = await fetchText('updates/compatibility.json')
   const signatureHex = (await fetchText('updates/compatibility.sig')).trim()
