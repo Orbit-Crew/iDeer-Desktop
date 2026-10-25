@@ -7,6 +7,28 @@ import { RuntimeProcess } from '../src/main/runtime'
 
 describe.skipIf(process.platform !== 'win32')('owned Runtime process', () => {
   const directory = process.env.IDEER_TEST_PYTHON ? dirname(process.env.IDEER_TEST_PYTHON) : resolve('.runtime')
+  it('starts a fenced maintenance Runtime, verifies real interpreter echo, and confirms graceful process exit', async () => {
+    const profile = mkdtempSync(join(tmpdir(), 'ideer maintenance runtime '))
+    const runtime = new RuntimeProcess(directory, profile, true)
+    try {
+      await runtime.start()
+      await vi.waitFor(() => expect(runtime.status().process).toBe('running'), { timeout: 10000 })
+      expect(runtime.status()).toMatchObject({ installDrain: true, activeTasks: 0, unknownWriteEffects: 0 })
+      const health = await runtime.health()
+      expect(health).toEqual({ v: 1, type: 'health', id: expect.any(String), echo: 'ideer-update-health-v1', python: '3.12.10', pid: runtime.status().pid })
+      const pid = health.pid
+      await runtime.installDrain('abort')
+      await vi.waitFor(() => expect(runtime.status().installDrain).toBe(false))
+      await runtime.installDrain('begin')
+      await vi.waitFor(() => expect(runtime.status().installDrain).toBe(true))
+      await runtime.stopForInstall()
+      expect(runtime.status().process).toBe('stopped')
+      expect(() => process.kill(pid, 0)).toThrow()
+      await runtime.start()
+      await vi.waitFor(() => expect(runtime.status().process).toBe('running'), { timeout: 10000 })
+      expect(runtime.status().installDrain).toBe(false)
+    } finally { await runtime.stop(); rmSync(profile, { recursive: true, force: true }) }
+  }, 25000)
   it('starts the bundled interpreter in a spaced path and stops without a child', async () => {
     const profile = mkdtempSync(join(tmpdir(), 'ideer runtime test '))
     const runtime = new RuntimeProcess(directory, profile)
