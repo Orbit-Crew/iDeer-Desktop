@@ -1,6 +1,8 @@
 appId: com.orbitcrew.ideer.desktop
 productName: iDeer Desktop
 electronVersion: 22.3.27
+afterPack: scripts/release/issue-107/after-pack.cjs
+artifactBuildCompleted: scripts/release/issue-107/artifact-completed.cjs
 directories:
   buildResources: resources
   output: dist

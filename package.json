@@ -1,6 +1,6 @@
 {
   "name": "ideer-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "iDeer Desktop Windows entry",
   "main": "./out/main/index.js",
   "author": "Orbit-Crew",
@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "electron-vite build && node scripts/build-update-helper.cjs",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
