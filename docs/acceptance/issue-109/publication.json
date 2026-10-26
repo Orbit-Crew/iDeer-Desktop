@@ -1,0 +1,857 @@
+{
+  "recordedAt": "2026-10-26T12:27:19.432344+00:00",
+  "acceptanceCommit": "a30258315b23215c6659adc2ea12d9846d88e86f",
+  "productCommit": "d17721cb6950ba4eb2457c4d2ccc3c0fae5c4a17",
+  "executionBaseCommit": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "productSourceSHA256": "8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a",
+  "installer": {
+    "name": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "bytes": 92395057,
+    "sha256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d"
+  },
+  "comparison": "passed: tested raw file SHA-256 checked first, then committed bytes compared after CRLF-to-LF normalization",
+  "filesVerified": 168,
+  "sources": [
+    {
+      "path": "electron-builder.yml",
+      "testedBytesSHA256": "d96372b2a318846e84ddf75766e852e7dfc4105e3db3c711cf7f7211f2591235",
+      "gitBlobSHA256": "3988f53d9dc5045d6b78acf204463aabeef195d0dec70bbf494ec685ab69b15c"
+    },
+    {
+      "path": "local-runtime/LICENSE.upstream",
+      "testedBytesSHA256": "a98b7d471f6e69fc010f79bc4645059900d1d3c2f5f496061fb7f2b80a1b17cd",
+      "gitBlobSHA256": "5a8f56d1015fae3f11bee83ded416a94d796e4575224ffa5d527fea3d93dfd5a"
+    },
+    {
+      "path": "local-runtime/README.md",
+      "testedBytesSHA256": "6537a163d2b2a66217096713898b9ce574e16655b4a157f5d85989f2f94fa4c9",
+      "gitBlobSHA256": "b8438a62b775576998dc8e2a078afac9e0f9392f103835118c66c1cdb4f64046"
+    },
+    {
+      "path": "local-runtime/core/__init__.py",
+      "testedBytesSHA256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46",
+      "gitBlobSHA256": "171df3402f9958074c4f6ba5d2da274cd9c569b25e9ecfd50384067f6f133adc"
+    },
+    {
+      "path": "local-runtime/core/artifacts.py",
+      "testedBytesSHA256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b",
+      "gitBlobSHA256": "e10bc4969b2af8ce93bbfdb448e71ea820f08245faf7ebfb41d307ea99c1894c"
+    },
+    {
+      "path": "local-runtime/core/audit.py",
+      "testedBytesSHA256": "0bc8ce02155386fce16708f03d7f18b7277e7e7c85419b7a942bff5a19b6fc2c",
+      "gitBlobSHA256": "76c17cdd7be701372b1cfa118cc69b59e45f6f84267e421074e8fd162b60d413"
+    },
+    {
+      "path": "local-runtime/core/browser_login.py",
+      "testedBytesSHA256": "0ddd50ec755db143aa06d3cad9dec1d0a8d6d6c21563344e9cfcdde0cece62be",
+      "gitBlobSHA256": "abe54f80eec77f49d69708056333319a70b0517bad86969c40391c2b37bf8471"
+    },
+    {
+      "path": "local-runtime/core/capabilities.py",
+      "testedBytesSHA256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc",
+      "gitBlobSHA256": "69ddd5be20f8facd3f00fc0640824de9894afbbd2b0653b726b6e14170b39db1"
+    },
+    {
+      "path": "local-runtime/core/cli.py",
+      "testedBytesSHA256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711",
+      "gitBlobSHA256": "7528672ebfafa1d49a5994343dffb99f4e6d4d5316070819302ab4fa50bdff00"
+    },
+    {
+      "path": "local-runtime/core/compat.py",
+      "testedBytesSHA256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c",
+      "gitBlobSHA256": "516bbe7abd29ea21e2cfdc72950a03b6a7001b22a19c51497886041dd072aba0"
+    },
+    {
+      "path": "local-runtime/core/compatibility.py",
+      "testedBytesSHA256": "8fa8944003005104610f3864408a5b660fb07ba9e71423d980b30b813655bb92",
+      "gitBlobSHA256": "c71cf1598d7833cc61376d0be0f6d15603667a91ee77a5c8e9ecc7838d3ef506"
+    },
+    {
+      "path": "local-runtime/core/consent.py",
+      "testedBytesSHA256": "6ce1fb3680b52c03ccf91b584267faca654933fd7c0e38b6957d87a2351e3710",
+      "gitBlobSHA256": "83c6da72f70f1783dcf4bbf170e14c15ce816d9d74b33f6aa223d4a3ccf2754d"
+    },
+    {
+      "path": "local-runtime/core/consent_coord.py",
+      "testedBytesSHA256": "2daaad881e7b0cc9942215b18455ebb00cbad2af8cd470b32c45832b763aa6c8",
+      "gitBlobSHA256": "02e2de36e5024058536cfbd321fb741c1feecefc249c054d2395cc1bfee5b7a4"
+    },
+    {
+      "path": "local-runtime/core/desktop.py",
+      "testedBytesSHA256": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939",
+      "gitBlobSHA256": "32b0316506723e13afb77ead5b05fd7adee562ed36e878bdcfb136d4c764bd19"
+    },
+    {
+      "path": "local-runtime/core/file_service.py",
+      "testedBytesSHA256": "f2ec5eef43ae97a48d5252421359d4e5c416be4debcd321befa66793eeb3fda6",
+      "gitBlobSHA256": "31a7b4c0f727702b07dcc90d7c7291736bc18d9cead661d6e0120f40161c55c5"
+    },
+    {
+      "path": "local-runtime/core/files.py",
+      "testedBytesSHA256": "b67abe228574d576d6e1dd8c03e9b5bfc2819490f44d5612efbde265866c1049",
+      "gitBlobSHA256": "1614958f83763c5c11298ccd0488a1c41f357bfacc787ffd966b882bff17b4e4"
+    },
+    {
+      "path": "local-runtime/core/files_nt.py",
+      "testedBytesSHA256": "dd4283a3b99296fe71b40e80e54b525cc1161e5e8796cefddf3f8cc302b5dd44",
+      "gitBlobSHA256": "a14b1482ff026036ae5db507c96fee350d2dc9b5ee86049d7ead90ebf0b864ea"
+    },
+    {
+      "path": "local-runtime/core/local_results.py",
+      "testedBytesSHA256": "1e28c906b55075bd3d3a2c79f60ff6e290eb034e7c72e400b470c8e98fdc0f0b",
+      "gitBlobSHA256": "38fa8511b8dd13df0cc0cbe84c975b30a5ab53420440676c4425d6845432d6f2"
+    },
+    {
+      "path": "local-runtime/core/mcp.py",
+      "testedBytesSHA256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a",
+      "gitBlobSHA256": "8eab09f1cb1b5b339a67ab7acc2103b8ce627fd90bde2378fa86f065242d05ee"
+    },
+    {
+      "path": "local-runtime/core/platform_chat.py",
+      "testedBytesSHA256": "bcc879eaf2e2b0396df41794ee7ca7211a44cc31723155330446f7480fa16c4d",
+      "gitBlobSHA256": "06c1759b64db262c977d4fc3ed424419477a80060042ca0c57e1e3376dd47223"
+    },
+    {
+      "path": "local-runtime/core/policy.py",
+      "testedBytesSHA256": "d022a61c5ddb3c5462ca96eacdaf8c695a48f004643bfc7bbf0e2f514f777282",
+      "gitBlobSHA256": "f945b59e772217e32c37a175770cb9521608f8fb3c452bc8be2176250924828f"
+    },
+    {
+      "path": "local-runtime/core/process_job.py",
+      "testedBytesSHA256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea",
+      "gitBlobSHA256": "9eca428af53d352b2d0e62bbaf0c02b51ab26b3a115f6846b7a77131959fba5a"
+    },
+    {
+      "path": "local-runtime/core/protocol.py",
+      "testedBytesSHA256": "71ddd254afdcef25fcd0f1b8e164141f430afc978042a55ef07a61d156386205",
+      "gitBlobSHA256": "24648683dac42a4f04673302ea2fc037589e8a6e9389a4658e39941f3c336722"
+    },
+    {
+      "path": "local-runtime/core/python.py",
+      "testedBytesSHA256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1",
+      "gitBlobSHA256": "089b7a8a5bdf417a855a6b9897c80dce8181be95933e254c5322e049a556c4e4"
+    },
+    {
+      "path": "local-runtime/core/receipt_ledger.py",
+      "testedBytesSHA256": "1f13fcb5713c533fca2d5f1e7acbc8b08e046b59d7118092026a3adb0b74eb9f",
+      "gitBlobSHA256": "f9c69949f5ee02e16edba7694ccdc09339b7beeec0e40a40857484e41144ccd4"
+    },
+    {
+      "path": "local-runtime/core/receipts.py",
+      "testedBytesSHA256": "1ccd4957072104feed176d66b2c9044cff37e6fa16eac2b79fca23be86c66ded",
+      "gitBlobSHA256": "1d1274b11c4b331631de43acaddc7a555c21dc989f7b762902ec85775566463a"
+    },
+    {
+      "path": "local-runtime/core/secrets.py",
+      "testedBytesSHA256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad",
+      "gitBlobSHA256": "0ed3567ac6d806d2c9e9f62bbcb24efc019da99e7d1cf601bb649570b3a483bd"
+    },
+    {
+      "path": "local-runtime/core/settings.py",
+      "testedBytesSHA256": "319af4af23cdaeef215f9dada030b35b473b514f7256fe930d5b5c4b5b057d8b",
+      "gitBlobSHA256": "b398f035a09523d0358ff3bf3f603bda3c09036bc608b3145b9ffd292b9b7ff4"
+    },
+    {
+      "path": "local-runtime/core/task_guard.py",
+      "testedBytesSHA256": "6dfaa7f4916040fef88975362601efc3956a82ca1205fe1dbde38edfc7750f00",
+      "gitBlobSHA256": "3a11948336c7b9ceb0b48d2bc295e0ed595160bf780e21e0ceada3cc7f017fb4"
+    },
+    {
+      "path": "local-runtime/core/transport.py",
+      "testedBytesSHA256": "f43b091a92e374f2e33e36e58a1f4043fdab3dd708283b0009a33e4c0f71130f",
+      "gitBlobSHA256": "60639c7ea43c3d8f202501f5d758bfa676bac74f0d0a7aa95ebfa75a0c16e551"
+    },
+    {
+      "path": "local-runtime/core/tray.py",
+      "testedBytesSHA256": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d",
+      "gitBlobSHA256": "3f95768bc972b8722cb18fb798dd8b871c3beb48e1bbf2d3504fe251fcdabf9c"
+    },
+    {
+      "path": "local-runtime/distribution.lock.json",
+      "testedBytesSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+      "gitBlobSHA256": "3d58cea530908d45bd170586470a1572cfb2ae74e94a153b318c2e5f84288137"
+    },
+    {
+      "path": "local-runtime/pyproject.toml",
+      "testedBytesSHA256": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a",
+      "gitBlobSHA256": "27fad9c0946952a5e66836742d476916e6f7cb736286b69167f548e611ef7eaa"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/counting_mcp_server.py",
+      "testedBytesSHA256": "2066de3a76ce882df70bc63e93f12cf40631d359b682a449bd07ac4499b624a5",
+      "gitBlobSHA256": "d5d6cb16636c9df97db8f4b908d51276ec69f26d200c4d0e34fabc1be8379676"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/filesystem_mcp_server.py",
+      "testedBytesSHA256": "b998951588e0b9a10eff80fb23d3257e1e70f2e2f0de9f0895e460359d9549a9",
+      "gitBlobSHA256": "a7ec12c8e506bcd15736c813d38b638620f8d57a4d7d3db041b8da9693596ad3"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/legacy_runtime_process.py",
+      "testedBytesSHA256": "d06f84f376d3b9ac1ecd8ec4588a329498b25af7ae31aee3cb47c86829b6f57d",
+      "gitBlobSHA256": "c86a9cc23313c44542a165024d1acbe81db7127ec79b5b8d30623e298c10cdfd"
+    },
+    {
+      "path": "local-runtime/tests/helpers_fake_broker.py",
+      "testedBytesSHA256": "ee632d95511df6bc7b28fd56646549e6aad52b16981dd55bc6ab1f805c2e1564",
+      "gitBlobSHA256": "8a4ace90f5ed84fce9786c356ad5289cebd9d337278c50066343de3626a7748e"
+    },
+    {
+      "path": "local-runtime/tests/server_protocol.py",
+      "testedBytesSHA256": "fd8ea7d1070349f3df81c855592d70650fbb0e8ba283fc3164b76d882c864147",
+      "gitBlobSHA256": "03f37443074ea301ef43a9d3c727241fb3c9319673ac3759b59f38172a6c5a9c"
+    },
+    {
+      "path": "local-runtime/tests/test_audit.py",
+      "testedBytesSHA256": "6aff5901ab734740583ceabb473747c12f29e4456c71a665cfd5213764319eb7",
+      "gitBlobSHA256": "f8fa15e9e4478886840d92c48f7c06c1b7d9e8bd7ee2c1b52608ecf8c64b4248"
+    },
+    {
+      "path": "local-runtime/tests/test_audit_resource_release.py",
+      "testedBytesSHA256": "60bfbfb987c9a82fa3820510eb0a447ec222b23226409cef3d60618f618d109b",
+      "gitBlobSHA256": "3bc9d3a5aa59e1341cd93e94bb41873d239565314936597947bf069044b288be"
+    },
+    {
+      "path": "local-runtime/tests/test_broker_key_binding.py",
+      "testedBytesSHA256": "4ed71fb52439e41205c4d4e3821b8a37be7c57716c6a55f9e78ca5da2c1f31e8",
+      "gitBlobSHA256": "fed151d713964eaae7b7bad1faf834b4a4e22f71a78acfb63dd79c5e21c59ea4"
+    },
+    {
+      "path": "local-runtime/tests/test_browser_login.py",
+      "testedBytesSHA256": "a8eef1fbf3c17d9c8510425b8e693d2878d6c70d476cddfe8e9128d145489f22",
+      "gitBlobSHA256": "d2c5436af8bcf92efcdf65b75a25eaa5a2b730057bd37f914b4016a0719263eb"
+    },
+    {
+      "path": "local-runtime/tests/test_capabilities.py",
+      "testedBytesSHA256": "ac1e5881bf859064412bd99992efe1c6e2b89f83c48d35bfc587ec181e4dba39",
+      "gitBlobSHA256": "77bb3abd850f1037c5e12680ea958653ac7bb5a67950868fa1f0db4d554997f2"
+    },
+    {
+      "path": "local-runtime/tests/test_cli.py",
+      "testedBytesSHA256": "e9d1bbbfb9456fe8f6860c233cf416b8957ca7da7255614afdae3170cfd85c9d",
+      "gitBlobSHA256": "1815a1a056e6ffb4380458a7b35874d02346a2c44bc423e3b1ec95f642212e4b"
+    },
+    {
+      "path": "local-runtime/tests/test_compatibility_protocol.py",
+      "testedBytesSHA256": "d0101b1988ab9a3b585cdc232520708c9e96309cf91fc04a599e81405abea1b3",
+      "gitBlobSHA256": "080297b753a7cde3d4e40b6d82574c5a2e7ac5a029e50d82d85d88f012e700d6"
+    },
+    {
+      "path": "local-runtime/tests/test_consent.py",
+      "testedBytesSHA256": "d804608b77048bd2c83993abcc79780a4e4ceebe71870bf8be494a92aafc7f57",
+      "gitBlobSHA256": "431ec6a7f9461eba74cf78fa5180d0f19941825efa80a48d9b623e154bcfe387"
+    },
+    {
+      "path": "local-runtime/tests/test_consent_summary.py",
+      "testedBytesSHA256": "1efa3e9c82811addd41ba0d50e265b7acbded51f578275e932541bd8c9f8d5de",
+      "gitBlobSHA256": "42630f18a28b05d23ddb9b731f73c9c4966f60e1d8e3d551160b89b27d292a4b"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_drain_snapshot.py",
+      "testedBytesSHA256": "d09b33abe27c87491510e6f02e5e7b962a05007c132e4e812eb5488fe1658d57",
+      "gitBlobSHA256": "d09b33abe27c87491510e6f02e5e7b962a05007c132e4e812eb5488fe1658d57"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_process.py",
+      "testedBytesSHA256": "b7e2f1e2ee2eb9ad709098cd096914fab58756b027487966fe45e9994e92f1c1",
+      "gitBlobSHA256": "75f75556a556ad1495a006db31ef803871f7325bdae2b09e699825841ecb8025"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_protocol.py",
+      "testedBytesSHA256": "ba7f5ba1610a973a16d01d7a60f3a263b52d5639ceb0f3b9aeaff4e571f44f90",
+      "gitBlobSHA256": "9b5363de7f1bab2072ef505e97f749d5d4481f263fd2bee76c3da3618a9268ef"
+    },
+    {
+      "path": "local-runtime/tests/test_directory_grants.py",
+      "testedBytesSHA256": "cdef2c89e18a21d8cf8538c3a2ff895bc69d7f7983bcda872dd8ccdbd506e66f",
+      "gitBlobSHA256": "02dde0836c9e66721e5ad3566687e8fb21a05c5b7543eaedb707003008c28cd9"
+    },
+    {
+      "path": "local-runtime/tests/test_file_service.py",
+      "testedBytesSHA256": "76e4f6a642e87e13adbf4ed5e837e91516781f74da5bd8732896e8bb63a2f35c",
+      "gitBlobSHA256": "cb25e14115557dca97be64437913feca77d9422f7f2bcfc341e7ca46a4d91ec1"
+    },
+    {
+      "path": "local-runtime/tests/test_files.py",
+      "testedBytesSHA256": "b3af9c15f844f47dd6048b7075ada56c16247a46374be47150a69e5bf87eb65e",
+      "gitBlobSHA256": "0c03c46c8de4a6eb8ac68a5dc66105abae207e469209606cfbd61e18aba9e17d"
+    },
+    {
+      "path": "local-runtime/tests/test_install_drain.py",
+      "testedBytesSHA256": "867124e184de823f7980d29fdbf455813f21d2d9b821654e4136838d018df157",
+      "gitBlobSHA256": "8dafa7835f5a6424041d42b47d49f3a93a53101a754e854f12fe30f5de9f4742"
+    },
+    {
+      "path": "local-runtime/tests/test_local_results.py",
+      "testedBytesSHA256": "823b14f5cc90c30fa2e1bfc5c28eeea133a76ecb93db4941b667eb8b8107d43f",
+      "gitBlobSHA256": "9cca9dd670e3c01a684d8949ab2302bad7649d6dd6dfb939e14104fdfad39339"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp.py",
+      "testedBytesSHA256": "fd6117434be668b4e10a0730445985dd77939b98908cd5cebfdc6ec63700b263",
+      "gitBlobSHA256": "1d7bb817cbcc7f399a1879f969fe111bacb61cb6a637b095a6db500623ba8efe"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp_secrets.py",
+      "testedBytesSHA256": "534f6545794eaa408b245a40c1a5e1d27ff85d7a3225b8d26a0e4889553699bf",
+      "gitBlobSHA256": "ca6c8397122f18057049993bd28db5a4e933e6c318892c7a76f3e30ab1e725bb"
+    },
+    {
+      "path": "local-runtime/tests/test_platform_artifacts.py",
+      "testedBytesSHA256": "8849a91a385ffd66cdc78225ada6005d196c6900e0fa311153c49a82374f8af5",
+      "gitBlobSHA256": "f474c7fc87ec7d9b90042d62f752624a27620c7b57f9cd40cdbe272d6bfec794"
+    },
+    {
+      "path": "local-runtime/tests/test_platform_chat.py",
+      "testedBytesSHA256": "ee55118ef337a7db41ece7afbe9f6fd9c246bda6c7361bb1cae766ab9ed23ac4",
+      "gitBlobSHA256": "cec7faca8f1d055fe5925b774caddf7c4fbe8c79d1eeb695553fad0e6afaf0e2"
+    },
+    {
+      "path": "local-runtime/tests/test_policy.py",
+      "testedBytesSHA256": "bf3e0c39ca91aaf3a76d1a53b84ccf4cc013c0b1d8f4fcc08d040dbd0c787ade",
+      "gitBlobSHA256": "eb398d8dfe2885dd49b6566b8f0e0bf63449ae89d6c8d5e0b599f13e50b022f9"
+    },
+    {
+      "path": "local-runtime/tests/test_policy_denial.py",
+      "testedBytesSHA256": "8fc72f7326c01a78b49dcf14787b4b5a3bf2c53baeb0e2f71280d8d5c56b0e48",
+      "gitBlobSHA256": "bf0a9bf4c8e4485138a4eb7d18ebfcb1af5e4d99e7ef28dfea12660a1a29338d"
+    },
+    {
+      "path": "local-runtime/tests/test_protocol.py",
+      "testedBytesSHA256": "fa723596b51f8baf84268ccc9d928ef7610e24838d7310cbd2dd2d352697139d",
+      "gitBlobSHA256": "2ed293f230b986b42300775e91a2c8144576ae7b6c04b6e42f53061f996b251c"
+    },
+    {
+      "path": "local-runtime/tests/test_python.py",
+      "testedBytesSHA256": "9960040db4219979d3484af653e25e741ba1501cd49a7e74d578c17e5d4ccf4f",
+      "gitBlobSHA256": "574ac3067f4ba673a2d6d2e1a06d64230585785018a47a6515369f46937979d1"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_ledger.py",
+      "testedBytesSHA256": "04b9c504d20e7b849254011c445c37878a3c83e23ce87db1a76847eb82c1aaec",
+      "gitBlobSHA256": "3b889dafadcc59ab33fdfb5458574be09ceabd254780527c235787df627951cc"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_replay.py",
+      "testedBytesSHA256": "b9bf7b404894d6ce37617a7b4b31b02c5899f95cc3b8bc91ca8f65b0a56fbdb4",
+      "gitBlobSHA256": "3b67d8ee777c8d6c85f27f31be992b87c4e16e096b28e218b32372f8a3cddb65"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_transport.py",
+      "testedBytesSHA256": "2f0d7e77a2465ba7f763230bdd8c09ab14c9cf0851b7a5919b6c12c8b20ffc6c",
+      "gitBlobSHA256": "2246f64c334f3ca233ebc0934887c1068a775a0900e621350c73e19dbcc4d835"
+    },
+    {
+      "path": "local-runtime/tests/test_receipts.py",
+      "testedBytesSHA256": "a29a805417b5e6460803abf102790fb72c7f589a19ae587d476b56a8c2b392b2",
+      "gitBlobSHA256": "151a44d67ac506b525b2d4ce7e919811d7a9692e3f08cbacad858dedf1865097"
+    },
+    {
+      "path": "local-runtime/tests/test_secrets.py",
+      "testedBytesSHA256": "10d7f4d911cd93b13194d50dce5a3bbfbd70232b498da7f7021aa6340936d245",
+      "gitBlobSHA256": "e23961b1c104da40547f893a652bdc188cb79085b2256dcbb5ab00709cbda9c0"
+    },
+    {
+      "path": "local-runtime/tests/test_settings.py",
+      "testedBytesSHA256": "0b2db01976aee59b4f09c2e2bb97d73617b8344e7ffa22562841d73be0b29680",
+      "gitBlobSHA256": "ed8370f3300b24c2cd565155c1c9101d67d7c05bc40c699933b4592b691afb8b"
+    },
+    {
+      "path": "local-runtime/tests/test_transport.py",
+      "testedBytesSHA256": "c40c6fb5f5b883941c0171d271d9f46f7229e31727a92715adc787556a0106d4",
+      "gitBlobSHA256": "8f02b04145773c4370e3d4df57b8df9debd5b0c625b13a918ba92914174f7e77"
+    },
+    {
+      "path": "local-runtime/tests/test_transport_split.py",
+      "testedBytesSHA256": "da06e8edb8affb6234880c732fad821a67d282a9b7cf711429932eaaf7b7d5af",
+      "gitBlobSHA256": "42c3ffbfbbfb0e84108fa9f9b05184cf6f10277468a94476309c9bce2b77a978"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_actions.py",
+      "testedBytesSHA256": "b49a36f961ae89e7e2f05931372a18cf1dfe7b6b1ea3763de30c7a54446ab3cd",
+      "gitBlobSHA256": "6479db0bcaabdb70908f3a4f35f68c23971853770551928c3b06ebfc56b99ad6"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_consent.py",
+      "testedBytesSHA256": "f9403c80c2ef30254f23175ae161c252d2452f60861fab5f52ca99555fc92810",
+      "gitBlobSHA256": "ec5fd09ab100c54390df8d03d9121e21bf3b67bb92284d09a402159c432890ec"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_lifecycle.py",
+      "testedBytesSHA256": "3e8307a9750f610523792a3b7961936489b43905c11108fd749ac20636ab4adc",
+      "gitBlobSHA256": "c8d8cf7def199c6b8b6c77733a2b1d078f39525ecef374251fdf8104c563a232"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_transport.py",
+      "testedBytesSHA256": "1c08a709cdf8b314cd6029f89ebed9d28851b58fc7f0453f3ff41875a722050d",
+      "gitBlobSHA256": "dc9d3d52099e444aef2f676b60d68baf6a4a629315802afdbccf4e4a3f3d9bfe"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_files.py",
+      "testedBytesSHA256": "11f2b44199981fbd73ea74396dc1955c54da2549faab7ee1e7c829acbb0cf28f",
+      "gitBlobSHA256": "ecf052254e80c67108ad63e46dab745375c9422a0c1d194dac316baa8adc6c06"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_lifecycle.py",
+      "testedBytesSHA256": "1c409670864743e9c2ba41613cfbf86e432491ca5cb5f58792f1f54513fb71a8",
+      "gitBlobSHA256": "35b238b754e9baf29c813a54da6a9353b1143f45a20822c1d105bdddbf8c97c2"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_writes.py",
+      "testedBytesSHA256": "cc7224b661cd6e3c6556cf0f5bb8ebe10b49398b90d9e1a2a298d36eb4a5a81a",
+      "gitBlobSHA256": "913672428f5da5d0e964b1ddc7f70246b4b48f8e627cc4e817122423db292f65"
+    },
+    {
+      "path": "package-lock.json",
+      "testedBytesSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+      "gitBlobSHA256": "845a1465510b77eba48b14a1907c4bbfb51610bee79093416c0fe905da44665d"
+    },
+    {
+      "path": "package.json",
+      "testedBytesSHA256": "7c91b958d9db7590a5a5a9803a777a94c5af73b1eaca16851410a47b2e3117dd",
+      "gitBlobSHA256": "bfab22e69b49127f203822ce9612109b4b2d6363ae8cf98fbd6096ae1f05b5f6"
+    },
+    {
+      "path": "resources/compat/node16-banner.cjs",
+      "testedBytesSHA256": "4170c04def9bc287cd685241be775b8f132412af3115e5e6fdef24353141894f",
+      "gitBlobSHA256": "e5c32f1609f52cf80ca4470c3ada7f3a0c79da82ecb4f462500c181223e30acb"
+    },
+    {
+      "path": "resources/nsis/command.cjs",
+      "testedBytesSHA256": "837839c16facd7eb258dd486501d92a78c7ae6ed86dc1b9f9e520dc80549774c",
+      "gitBlobSHA256": "c17aa14eff7a9d05693ee886337022de80cbdfe8c27166c87ad4234081839a38"
+    },
+    {
+      "path": "resources/nsis/command.d.cts",
+      "testedBytesSHA256": "aed138da12d6f6980d939521ab90f0b1c06f42a2772e705072856b673bae200a",
+      "gitBlobSHA256": "0bc5a572261b415d17583cee72ef05754e96816b44c90e9ab9834a6bee233f2a"
+    },
+    {
+      "path": "resources/nsis/process-guard.nsh",
+      "testedBytesSHA256": "d4c5939bf2d37cb1531c3425ced7da908092c574a9094d414eaa3e531ef0f958",
+      "gitBlobSHA256": "5be13db01dfbd7260538807e5fbafe55d73d4f8b6d5b37c8f5290da5c7f3117a"
+    },
+    {
+      "path": "resources/provenance/linz-package-lock.json",
+      "testedBytesSHA256": "e3e948bf231158a8773d766456c2a959442c742c7766c0eb59e00e3a7d4f6101",
+      "gitBlobSHA256": "e3e948bf231158a8773d766456c2a959442c742c7766c0eb59e00e3a7d4f6101"
+    },
+    {
+      "path": "resources/provenance/linz-package.json",
+      "testedBytesSHA256": "4705d1bb0c58033b70e4e66a32c637e8e57ced220560dad15d9354d3299e6e7c",
+      "gitBlobSHA256": "4705d1bb0c58033b70e4e66a32c637e8e57ced220560dad15d9354d3299e6e7c"
+    },
+    {
+      "path": "resources/provenance/linz-source.json",
+      "testedBytesSHA256": "cd1359af00ec9802aba279f49d3337e7ed48b18972aee7a3b9ce367b3223d3cf",
+      "gitBlobSHA256": "371ba35e1d6b7ea9ab0a00fd0e7ee2295d914705d1bc7a6e8bfa6c7fea0856c3"
+    },
+    {
+      "path": "resources/provenance/runtime-source.json",
+      "testedBytesSHA256": "0f4089f9d4e7ce2136d6af1d610377f88673503efde5072aca8276d5ee9aba76",
+      "gitBlobSHA256": "f3b10dd146e18d589abd4606570c3ba47c425966127164f59e84db41ea742a1b"
+    },
+    {
+      "path": "resources/updates/updates-public-key.pem",
+      "testedBytesSHA256": "b056e0bab221d079ec27297daa04fa7ce7ad1828804c854aae83c84ab03c8754",
+      "gitBlobSHA256": "41cf3a5130922e6280807116ccb831c836e7202ae9ef73ce78cec870af0dab34"
+    },
+    {
+      "path": "scripts/acceptance-graph.cjs",
+      "testedBytesSHA256": "74c57c9cb8200ef49cddf5d0d6089506e85e22fbdf6a50315d4151ed29a9b80d",
+      "gitBlobSHA256": "52e6c2e6e3a20720f496f15e757edc08e480bfeaf16988c07dd352378a34a6b6"
+    },
+    {
+      "path": "scripts/build-update-helper.cjs",
+      "testedBytesSHA256": "94928eca76d215228873859a70e34ea50e7ab64878b0380774984bcc5b61235b",
+      "gitBlobSHA256": "240ddffa72a9d286b459edda5a83bfefaeaa3b2253c7a1173fef5bc1b4619197"
+    },
+    {
+      "path": "scripts/desktop-smoke.cjs",
+      "testedBytesSHA256": "7b5e941286742f12e6c69445cb16de5a820a2dcd3ec5ce8489b83253ec62a501",
+      "gitBlobSHA256": "65ab79dd1e5886a05b64056906ff7ecc27c9e1a7764cd93e144b744c6e279a13"
+    },
+    {
+      "path": "scripts/prepare-runtime.py",
+      "testedBytesSHA256": "368f5a98ba59a5cd289bdfd883f7dcadfbf36aeee8a647e4c35f5631927bccb9",
+      "gitBlobSHA256": "444d1caa58097c4dc2d40ceb1072f36669c09534b87c9ad3cba23faa77bfa2fa"
+    },
+    {
+      "path": "scripts/release/issue-107/README.md",
+      "testedBytesSHA256": "15ccdd98f3be5e24e523755d7c94a052dcb65177fc79d2d3b584bd704f4b5585",
+      "gitBlobSHA256": "d292f12737bddd67a5127cde583e0f50671cdc4ddc7ac4e4018b3a1da86a5a40"
+    },
+    {
+      "path": "scripts/release/issue-107/after-pack.cjs",
+      "testedBytesSHA256": "cf263da0cca31edd1562a72fc3fefef2e303699c2199964b7674893f11c0936b",
+      "gitBlobSHA256": "092bd91953810adaaa7fadbe9d749ebbe60ecf6d0c35251758bde1e2f2355f49"
+    },
+    {
+      "path": "scripts/release/issue-107/artifact-completed.cjs",
+      "testedBytesSHA256": "6783e01ea7dca9a7ea49af15d325e27d50b416df1ede807eda5f6120ac4ebc90",
+      "gitBlobSHA256": "b8fe6365f7dee3309efea0ac81faa613e8c0405ef055c6bb7f23d355a26ac4d1"
+    },
+    {
+      "path": "scripts/release/issue-107/make-update.cjs",
+      "testedBytesSHA256": "6ca689f587fd1784a8354abc6ba610e369d267650f30b5e12a42704607b21df9",
+      "gitBlobSHA256": "35b21815275b3f5c14c559503b26671248ddcd7dc39bb07b854542f09e876390"
+    },
+    {
+      "path": "scripts/release/issue-110/README.md",
+      "testedBytesSHA256": "95b0167d0499af58d1e423f7802b634243710829968787f4b1796c4e7ff9563a",
+      "gitBlobSHA256": "7d75c16f02888f0f3a33a141882f1ca7bac423a98f62ec17c6a076ca32e39505"
+    },
+    {
+      "path": "scripts/release/issue-110/make-compatibility.cjs",
+      "testedBytesSHA256": "632f2d0f9a21907e99157b79e0efe21de2d3a927c10951d262ab2008442b9139",
+      "gitBlobSHA256": "db1384bfde128155cd3bb8224e338f977faac40b6930ebc3a9b895086e1283e1"
+    },
+    {
+      "path": "scripts/verify-issue-97.ps1",
+      "testedBytesSHA256": "0dafc0bbf2c31a6f541e4333faf2d07863bd9bf31e87965a11d76f361229af54",
+      "gitBlobSHA256": "080ed526f68ecba42d957f0b61192020b55763546787110a98951f27f6529c9a"
+    },
+    {
+      "path": "scripts/verify-provenance.cjs",
+      "testedBytesSHA256": "556b63b76774cfb7bf401d02052de7e82330ebb00e9577621d5e2f59e74c3aa3",
+      "gitBlobSHA256": "c8af62f1d2ad65a7b245ae38de87843c52b0ca92700cd93a655b90d000d18059"
+    },
+    {
+      "path": "scripts/verify-runtime-source.py",
+      "testedBytesSHA256": "d13f840dbfc34167bc8275f9024dc529ee807504e6f8d9e42138adb7a5651ce2",
+      "gitBlobSHA256": "c57d1619c7a7f903e69b417755ced0304d169a75a7d1734149c5a6238c363cbf"
+    },
+    {
+      "path": "scripts/windows-acceptance-baseline.ps1",
+      "testedBytesSHA256": "afa7e0570ce9dfa5e5cd8a8644fa7874c551c228e4b91533fc97c1100a0185c4",
+      "gitBlobSHA256": "57e424eaf78badb20be90329890c33c10c23b8fea6f4f479eb33fdecf6d4d44a"
+    },
+    {
+      "path": "scripts/windows-install-smoke.ps1",
+      "testedBytesSHA256": "87d10133e49c4a3c7721bda1ccb48dfb1ed19fa07a248c5e2e48465ba2ae4611",
+      "gitBlobSHA256": "ce4b5c14ba76c4093228e139b5b734839023b0f8e4b36d804c20b8b5189a6db9"
+    },
+    {
+      "path": "scripts/windows-local-acceptance.ps1",
+      "testedBytesSHA256": "d901f7858eff1b83a2f4cb31a251f509ad25e61999c0ac43f5458c2b8d077d99",
+      "gitBlobSHA256": "20f4287cc3fc18938772246d5d497b8d0e4dca85fb24065d0dbc27f0b56e6330"
+    },
+    {
+      "path": "scripts/windows-runtime-acceptance.ps1",
+      "testedBytesSHA256": "7840dbcf5fd5ee31ba68e131ea784176fe5aef53179d43bf9328dfd21338cedf",
+      "gitBlobSHA256": "4d7bbec2597458404d58159e98f70ed0cc4ffdab1d1fa296c5492d67b55b0b15"
+    },
+    {
+      "path": "src/main/artifact-download.ts",
+      "testedBytesSHA256": "07fcb3de6cad84a9c0a44ef240da623d7d3418f7bf45c825a050846351a92ef3",
+      "gitBlobSHA256": "616ee3f1f61c33d53a8451bf1cb6a354b418069c328075077d217f1f5a99d315"
+    },
+    {
+      "path": "src/main/compat.ts",
+      "testedBytesSHA256": "34dca1ebf1894a5fde1e57a1cfec0886f741f7c1f9f47de5abe510530f6e0aa6",
+      "gitBlobSHA256": "42282b292198d45660c5575f5bdb1c89d655295a88e1433c7c22dfdc20578ee4"
+    },
+    {
+      "path": "src/main/controlled-http.ts",
+      "testedBytesSHA256": "6029e0b95d725aed76b0f1079f2b9e2646795963eb90b9a015ce7dd51102ed62",
+      "gitBlobSHA256": "c3ec04499b45f2799ce7f36577d0369473ac4faf70ff06a19e77aee5a2718eaf"
+    },
+    {
+      "path": "src/main/index.ts",
+      "testedBytesSHA256": "ee3f0f43a5254d11b335549640dfeb80287f82e07a7c3944ab29d32313accad2",
+      "gitBlobSHA256": "6968d0f70b0998c024a2d49f8af5d42273b33b2bb0238ce40a1691e3009a5326"
+    },
+    {
+      "path": "src/main/installer.ts",
+      "testedBytesSHA256": "373b11d4ef6705a515b6d70153b1b9fd7467ca5f79ae3392fdbf8e67a1bd0195",
+      "gitBlobSHA256": "d62d58fad99fb0428f75525acab5ba20c3c315fbae76fc12e003fa03168ffd02"
+    },
+    {
+      "path": "src/main/maintenance-health.ts",
+      "testedBytesSHA256": "4cce5a198b1362219783b0d271f7703e31afa3ff1fd0d107073b6568dc6abd2a",
+      "gitBlobSHA256": "1f0a3e091d0102e481e42d43aa0dcd086002b65c02b047521e195e4deef0d573"
+    },
+    {
+      "path": "src/main/maintenance.ts",
+      "testedBytesSHA256": "0c36edffd64e43fa633cda82bf265a4ee8c2b8c39353e47de644a7b89c4cc94d",
+      "gitBlobSHA256": "4f1683abd5ce394072f41c437b3dbf38daecc185a27e2fc2e24ebfe7997e83fe"
+    },
+    {
+      "path": "src/main/recovery.ts",
+      "testedBytesSHA256": "bb7726cf3dccbc8a12d4f95b971fa04a9ab45f9dd16ea68ece7eb3ff1efe8e08",
+      "gitBlobSHA256": "d2a30555a56f750dc2aee6be62add18a820ee793b8d25b4b95f0bd7d1193df60"
+    },
+    {
+      "path": "src/main/runtime.ts",
+      "testedBytesSHA256": "002fce381988b8c2297e86ea1f9c09250c5c4d8319169b991c8284e7227ef287",
+      "gitBlobSHA256": "313f20adccbf14f093bd966ad269ee216448549d045a309f20df341d823b951b"
+    },
+    {
+      "path": "src/main/update-filesystem.ts",
+      "testedBytesSHA256": "cfb6d62a6ca97eb3adbd9f9eaf73d3dcc35cc2a34df45672c205f75c8906d45d",
+      "gitBlobSHA256": "328f10b9258ff72fb75a381853d3bdfa9b0c484c205b063b363ebd662ddbc696"
+    },
+    {
+      "path": "src/main/update-helper.ts",
+      "testedBytesSHA256": "458519b4914d88844f6c225868cd0eeebbfdbd9c1448a10a4b3dba9cc7e636b2",
+      "gitBlobSHA256": "5b0eee79fd5eb7e09a7b8cc93c028f8f742dbad953bf2b55ab5e23b7b76b3912"
+    },
+    {
+      "path": "src/main/update-stage.ts",
+      "testedBytesSHA256": "e37d64bcfc39ab5e95581baf55a84c95fbac3d74c4632f8d6bed42f1ed507576",
+      "gitBlobSHA256": "f4b323ea05b951359b811d3c24c0d08940c18adc20cea65ca49efd5977d943dc"
+    },
+    {
+      "path": "src/main/updates.ts",
+      "testedBytesSHA256": "36e0fb9fd36c574e8dbc1f767f557bf3c6f8e6f5a3ea4d4a2a92e335d63e97a5",
+      "gitBlobSHA256": "6d5dd14b90f630a56488c5cc0b5632020f09ed532b002801dda4611283886abc"
+    },
+    {
+      "path": "src/main/window.ts",
+      "testedBytesSHA256": "b07f3a3ac7bfe8f185b6464f2cc3d1d9f26134883a281fde3696737f44115f75",
+      "gitBlobSHA256": "e00f8fb1ed3db93994ba51ed2afbcc4bbe054fc08f0fb78a74a69cc877e619ce"
+    },
+    {
+      "path": "src/preload/index.d.ts",
+      "testedBytesSHA256": "fc765891524157fb090e5391c9621b8aa5a309a44f92499eaaef38cdff0d8b3e",
+      "gitBlobSHA256": "5b711c55fab68230a4d383e9c513289276d7c808eba2e39003dae3d08074f695"
+    },
+    {
+      "path": "src/preload/index.ts",
+      "testedBytesSHA256": "dc46063d57c78dc0d1619e3bfcacd34b2c0e29deca75af5aec70cd87e6f84879",
+      "gitBlobSHA256": "129e682a435f5458f80cc48e3c078c295b9452ca8b65c0cec606275886876466"
+    },
+    {
+      "path": "src/renderer/index.html",
+      "testedBytesSHA256": "16773b5ebce6dd00b52618f77aa292f6a8c5a3e4089ed05c8e56bc1c3efe1557",
+      "gitBlobSHA256": "7d084e58d9586c7ba01d29d02cbfcfff25d622ca8dfc77e3ed118b044cff3031"
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "testedBytesSHA256": "03ef47656fd00891cbd5848efca7f7799db2fd0875863632d74f4b75d3b14ac8",
+      "gitBlobSHA256": "648288cca8fd6aa4048b1091774c38ccd5e1d27f2b17c184f1f92cf0bd6582b7"
+    },
+    {
+      "path": "src/renderer/src/assets/styles/globals.css",
+      "testedBytesSHA256": "d868b6209ea2c2233a785c631af83e4e1283eee5d533bb2edc6f3c71540bdcdb",
+      "gitBlobSHA256": "56a8b416e58f3b4777264f84bf0d4c7f603f1ec6d921f7f0cc1f42a3eb4c19a0"
+    },
+    {
+      "path": "src/renderer/src/components/ChatPanel.tsx",
+      "testedBytesSHA256": "f4527bd58d8488fa7c0dce0e854974cdf350924e2c736cba983d2800905d6b04",
+      "gitBlobSHA256": "bcdf70465716bc33e9196d04c870eee61d2e1146936c1195585d3bfb935311c1"
+    },
+    {
+      "path": "src/renderer/src/components/CompatibilityPanel.tsx",
+      "testedBytesSHA256": "96d7bca3dad062d4b39eaef5551db50c2a6b987424fcff2cea2e431c0662c7a8",
+      "gitBlobSHA256": "668584750f7f2e74c8aa53ff8482e902fa582aea27493420d1c31b34e5c6344f"
+    },
+    {
+      "path": "src/renderer/src/components/ErrorBoundary.tsx",
+      "testedBytesSHA256": "fe80454e0ddfa8b6ed604921031502199f303ef7cd6530cd1db9299acf66d781",
+      "gitBlobSHA256": "e83108e9ecb76465775eda311debdab9af89d19ee59e93ec95aef8cacfe7d9a2"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/AppLayout.tsx",
+      "testedBytesSHA256": "b92b7f6820c8112f2b97b52eac21c74067363c61222bf0699b2b243d96fdf1af",
+      "gitBlobSHA256": "40e357f068b229116a66a758ba143d2e47590722b7770cd2ae42817b58ac1214"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/Sidebar.tsx",
+      "testedBytesSHA256": "3d4e0b687c89469b8e96a68c922933594a263725e27542da811ccbb53cc9667d",
+      "gitBlobSHA256": "2d146641d0750e4a736613aaae41ee19cab71670660adeadb256f804a5e6d694"
+    },
+    {
+      "path": "src/renderer/src/components/RuntimePanel.tsx",
+      "testedBytesSHA256": "6dad6153f9fdf25c7b05e0e6c46fa88c8d305430b4733d4f2be708c9b6143889",
+      "gitBlobSHA256": "369860a1bd90b375f03bf2cfaf0a81c171f99c60af3ee4392ace6ab6b180ff93"
+    },
+    {
+      "path": "src/renderer/src/components/UpdatePanel.tsx",
+      "testedBytesSHA256": "56289d089f992b4f62eb811e0307aa40102380bb5919da915c19e0e80092ffb7",
+      "gitBlobSHA256": "ca0a47817a12da7e9e791dea372454b30794a648b9042bbd759e023edd80ed45"
+    },
+    {
+      "path": "src/renderer/src/main.tsx",
+      "testedBytesSHA256": "bee274bec9a7655a71511d2409ad205b8df4d02a6eb4ee01909f23bd4b6242d1",
+      "gitBlobSHA256": "7014b34be967f4e883f9e15f4980e484eb7ee28625c26199f3a05647047af60a"
+    },
+    {
+      "path": "src/renderer/src/stores/receiptHistory.ts",
+      "testedBytesSHA256": "07c70d74c3be5404b9fc1a934108a72c4250966d98cbbef17eaa215041c130d8",
+      "gitBlobSHA256": "00f2abd8a1d7bdca1f2ceeed2aacd65221cce8d2043b3e6c83c85808d094aad6"
+    },
+    {
+      "path": "src/renderer/src/stores/runtimePanel.ts",
+      "testedBytesSHA256": "8069132361217b2262cb34e64cce16ab5ff838bb587c24ef7ad721be8241abcd",
+      "gitBlobSHA256": "6910ab30b39a4d5894d17e1e2953ac626603f44e4eea98cea2e9c61ba7ee47ad"
+    },
+    {
+      "path": "src/renderer/src/stores/uiStore.ts",
+      "testedBytesSHA256": "a7d45669bcf1c61e98541867acaab834c5470c828d1a0b28e80596d11687d698",
+      "gitBlobSHA256": "efb25ffc31ed23a4b8586ffafb2337f6380da365cb436fc6b4c1ba81fe8a6f8c"
+    },
+    {
+      "path": "src/shared/desktop.ts",
+      "testedBytesSHA256": "f5ade200034f5b87a5a5d80666c8c58cd4a12b6419fcaeb27aa03912e69bf2bf",
+      "gitBlobSHA256": "2f55996df57c76b6b469ba6eb16f0841b6faef877878765113c217fcf00fb787"
+    },
+    {
+      "path": "test/artifact-download.test.ts",
+      "testedBytesSHA256": "dc51c17ea283ab178c7e4c80bc024e0183ccef50cb8e575799505b54c1324c46",
+      "gitBlobSHA256": "959c9674f1e68da05d8c1b698ce21f4c27f379042f21fd9ca69a3368993d1b67"
+    },
+    {
+      "path": "test/chat-bridge.test.ts",
+      "testedBytesSHA256": "5d190a8e9d196aab24d33ef59c6198de8af9897221c4b37be6752e40251da8b5",
+      "gitBlobSHA256": "8d7f948a941775cd8cb92d849aa480e27c8ce1b76479d94d559d203c4598e47f"
+    },
+    {
+      "path": "test/chat.test.tsx",
+      "testedBytesSHA256": "0c35d711de142fd3cdf92335b6c01b80e4c241dd32bdb830314c515d79229f8c",
+      "gitBlobSHA256": "08ddcd1c4de3a961d59f17d9989c27e0cd354de2cd53fd866dfe952439fe67f6"
+    },
+    {
+      "path": "test/compat-gate.test.ts",
+      "testedBytesSHA256": "8fdb3d3e8b5b1b8a8c17c365e71d655c04bd792c786ae02ceb98c60ba4d8fdcd",
+      "gitBlobSHA256": "e18de1fe15792be5436245e09cddaa308219e42ba24cf6f4066ece43fbbd7421"
+    },
+    {
+      "path": "test/compat-release.test.ts",
+      "testedBytesSHA256": "521fd54b0e238c916886a3f2372e2e35c7e17cb5617b2d535617f0e33c08f0bd",
+      "gitBlobSHA256": "8235dbf739fd31421b6e580c27da5e5392be0a4734b24c5a4c70cc8e8362093d"
+    },
+    {
+      "path": "test/compat.test.ts",
+      "testedBytesSHA256": "a8e9c31735b0609881b89cd10f5b0b942acad9b91639e4fd3dde7be368ba195a",
+      "gitBlobSHA256": "7f2b41043bfa80a3eb075c8d73eb3af7662c5fa4e30c7abd6e223513f1d2783f"
+    },
+    {
+      "path": "test/controlled-http.test.ts",
+      "testedBytesSHA256": "a9608973b4a88978c86583ed7e9c9f9276685168d0ebc5467d28570f38b8f41d",
+      "gitBlobSHA256": "a83bc6fed4884192213b6d0b178c81c359398e118a840641ffa9394142e3706e"
+    },
+    {
+      "path": "test/fixtures/artifact-profile.py",
+      "testedBytesSHA256": "f39f7b9ee95308c8c4c523111908a223c6f20a500cba918dde71d9b8cb01ccd3",
+      "gitBlobSHA256": "a41dbebc5e9a18489c7d6eadc6a9c8f7e3f68e3e2c2c3befbfe6421387657ac4"
+    },
+    {
+      "path": "test/grant-management.test.ts",
+      "testedBytesSHA256": "9ad4807b667d1509fe410e09576e4fa971ceefb15efa3ab7940184c7e70ead3e",
+      "gitBlobSHA256": "980468b24bebad11032f9494bb0b0e699c13cf2007a79e3d9b483002c718339b"
+    },
+    {
+      "path": "test/install-coordinator.test.ts",
+      "testedBytesSHA256": "2452a25c9e6d163066115cbf29a32bdb6fafaeef37fca745f597893e27abf895",
+      "gitBlobSHA256": "f765d10ef0b47b8fb1ab9a3cc93d4eb06155ca2c1c3d564879c0510423768ce0"
+    },
+    {
+      "path": "test/local-result-upload.test.ts",
+      "testedBytesSHA256": "23c4a327e2fa422e7b82dab407cd7d65311a9eb74ef9484ac56def99d8d60ddb",
+      "gitBlobSHA256": "3b6ddc3a72f088937fa073c31e3401ad7e25bbbce2868fa2b4a4dedea37fe9a0"
+    },
+    {
+      "path": "test/login.test.ts",
+      "testedBytesSHA256": "b2511e3098a84f10707195a4a2a2dfdd362f121922426fdd7c14383b80f8ea26",
+      "gitBlobSHA256": "987babb0942a4ed90a7e89e366ca8b10403d487a0542e8a10911ef1d4fb95b29"
+    },
+    {
+      "path": "test/nsis-process-guard.test.ts",
+      "testedBytesSHA256": "33addcefcb3e78b6624b137ee6dc93bf530fcfe9e7849763e7e5623f773b1ba4",
+      "gitBlobSHA256": "a3d205d14069566103a946b3c81bd2234f26d9c7af5d28da0a442ebb4e3eb8f3"
+    },
+    {
+      "path": "test/receipt-history-view.test.ts",
+      "testedBytesSHA256": "f07324bae2a5253b76fa3e53b754dde7998ad2fae1d6ab472cc9b7ac6b43d596",
+      "gitBlobSHA256": "3898fab5537d3333606f8976a4eac0dc159b2e372615472d37c60503b6a222e2"
+    },
+    {
+      "path": "test/receipt-history.test.ts",
+      "testedBytesSHA256": "5d69f1e18b91a0377bd96a153fc5b97aebe93ad37c0551409c386cffecb3fb48",
+      "gitBlobSHA256": "5373644e0cc3a092e0ab0648c878e722892ef3da9d51e645f2772a27df65200b"
+    },
+    {
+      "path": "test/recovery.test.ts",
+      "testedBytesSHA256": "6ad406366dee09cc9229c47dfca1ec058b81b9c4b77f3522b534837dbae8b185",
+      "gitBlobSHA256": "65abb21fb5615987a570d0d52100d0b07e8165553fdad281da0bd0d0c0da1a67"
+    },
+    {
+      "path": "test/runtime-panel-controller.test.ts",
+      "testedBytesSHA256": "ad886832dd5059ea5bd1f3b16a7db633aa3ac05d6202c3d578bedac446be9c48",
+      "gitBlobSHA256": "4ba65a62e862233e1ebda6b2b40035b007242f93ebee1fab9c23167e832139c3"
+    },
+    {
+      "path": "test/runtime.test.ts",
+      "testedBytesSHA256": "914fbf4a54c717d608ca61b7468e76faf28ed41660c90f95743d891efa355305",
+      "gitBlobSHA256": "60da7e85659a8dd2b005bd5c9d9efb61a1dbbfdfd95aa87c537803b385380239"
+    },
+    {
+      "path": "test/security.test.ts",
+      "testedBytesSHA256": "7070e89feda66082fa0f092d91f5e71db6e25cdb088179ad6a3e0c1b96fbbc83",
+      "gitBlobSHA256": "be13beeeea04be42db7a8074f2ea6188f69134b99e22571be0c6341abd84a30e"
+    },
+    {
+      "path": "test/startup.test.tsx",
+      "testedBytesSHA256": "8dc9aeaea83cdb3ad9dbc646a295d431d9981c8b4d9a07035465b956bcaec2ae",
+      "gitBlobSHA256": "636eab092777399cb82a7b21e0f40236b7aeeb9d014fab8a0f44ce57f9748fbc"
+    },
+    {
+      "path": "test/updates-release.test.ts",
+      "testedBytesSHA256": "a23b2504b425aaf93920f680bcac8bbb5716f99c8a9625c23641dae4f15bf7c5",
+      "gitBlobSHA256": "1535dc5c007f259a9f8beac5d56bd3666e18ad265f935454aab568ca3b6ac90d"
+    },
+    {
+      "path": "test/updates-stage.test.ts",
+      "testedBytesSHA256": "3888ce4a230fe172eb7a6cc3ac0e0722eb6db9d6cb1ba05162c55e09e0a2f591",
+      "gitBlobSHA256": "95d1e17fd9ebdd7d105c583552c9fd263c4030e9effe264a0ddb1df66354355a"
+    },
+    {
+      "path": "test/updates.test.ts",
+      "testedBytesSHA256": "f0c3faca5b5dc567032dfdf2c235584e989d8d6b5b453e7ea1da2e1a7c698826",
+      "gitBlobSHA256": "6924a6366d0d54fa6ae7a25080e945da212231bf2d4b6c8b7ef207bb0ed58b9b"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/fixture.cjs",
+      "testedBytesSHA256": "60b99475e89a70091cda7543504ecf0ae059b1e4c07906b477d2d9ca02c0d972",
+      "gitBlobSHA256": "60b99475e89a70091cda7543504ecf0ae059b1e4c07906b477d2d9ca02c0d972"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/native.cjs",
+      "testedBytesSHA256": "483ed29983ab6d18b284588a1607cec080f75085e1843241fd4bd704cd724820",
+      "gitBlobSHA256": "483ed29983ab6d18b284588a1607cec080f75085e1843241fd4bd704cd724820"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired-flow.cjs",
+      "testedBytesSHA256": "85cba4e16b37d23a9aa299ef77552e0cd696f4203a916097e93d91def334e119",
+      "gitBlobSHA256": "85cba4e16b37d23a9aa299ef77552e0cd696f4203a916097e93d91def334e119"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired.cjs",
+      "testedBytesSHA256": "d1e02ac386a8a8e120b3333aa7c550da43c04b492c5f9ad89b91ea443fee7a5f",
+      "gitBlobSHA256": "d1e02ac386a8a8e120b3333aa7c550da43c04b492c5f9ad89b91ea443fee7a5f"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/private-proxy.cjs",
+      "testedBytesSHA256": "4a5aa906980dcc3dad6ea7d556dc98709ccf51c093019a18a8e7b794855ee984",
+      "gitBlobSHA256": "4a5aa906980dcc3dad6ea7d556dc98709ccf51c093019a18a8e7b794855ee984"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/README.md",
+      "testedBytesSHA256": "e980ff9a2aecb29b961eabe4bc1f07bc77cd9443ca9d0834d10ed1c87aa1a935",
+      "gitBlobSHA256": "e980ff9a2aecb29b961eabe4bc1f07bc77cd9443ca9d0834d10ed1c87aa1a935"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/run-paired.ps1",
+      "testedBytesSHA256": "bd83f2435b0306a5a844c3c16fa854d2abdd37b47505e75548b7fd983a536f8d",
+      "gitBlobSHA256": "bd83f2435b0306a5a844c3c16fa854d2abdd37b47505e75548b7fd983a536f8d"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/server-private.py",
+      "testedBytesSHA256": "ebeac6cf11235f20c721435836412205c7a1d2139aca5ad2453b5410d298c9a7",
+      "gitBlobSHA256": "ebeac6cf11235f20c721435836412205c7a1d2139aca5ad2453b5410d298c9a7"
+    }
+  ],
+  "scope": "The following documentation commit records publication metadata only; it is not a rebuild or a rerun."
+}

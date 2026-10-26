@@ -6,6 +6,8 @@
 
 Desktop 执行基线为 `a30ec98134600fea97bd4745b8a280d9573c5261`，包含 #108 修复提交 `d17721cb6950ba4eb2457c4d2ccc3c0fae5c4a17`。本轮分支为 `codex/issues-109-111-acceptance`。验收驱动执行时尚未提交，完整逐文件记录在 [candidate-binding.json](evidence/supplement-20261026/candidate-binding.json)。
 
+验收驱动和报告随后提交为 `a30258315b23215c6659adc2ea12d9846d88e86f`。与实际执行字节的 168 项核对及 Git 换行说明见 [publication.json](publication.json)。后续文档提交只记录发布对应关系。
+
 - 安装包为 `ideer-desktop-0.2.0-windows-x64-setup.exe`，92,395,057 字节，SHA-256 `b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d`。
 - 160 个产品、测试及构建文件的执行指纹仍为 `8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a`，与 #108 最终候选一致。源清单见 [desktop-source-binding.json](evidence/supplement-20261026/desktop-source-binding.json)。新增内容是验收驱动及文档，没有重建或替换该安装包。
 - Server 为 `99cd9b8961be2a9ee079a06b9dede0f0dd3c86bf` 的真实 Gateway，产品源指纹 `3d85edf53ecbb35db5c0969428258e312b01f0786a91405f0c19148ebd8a78cc`。模型确定性选择实际工具，没有外部模型调用。
