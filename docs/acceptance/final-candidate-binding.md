@@ -49,3 +49,9 @@ preserves the pending stage and program bytes, concurrent runtime start
 refused with `UPDATE_INSTALL_BUSY`.
 
 Win7 remains `unexecuted` under issue #131 in every ticket.
+
+Post-run note: the branch advanced to `2fc8411` after the runs — two
+test-only commits (a Linux-CI platform guard and its chaining fix) plus the
+acceptance docs; no product, runtime or packaging bytes changed after the
+installer build, so `d89450a0…` remains the bound artifact for the final
+tree.
