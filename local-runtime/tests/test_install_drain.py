@@ -8,6 +8,7 @@ from websockets.asyncio.server import serve
 
 from core.file_service import WorkspaceFileService, WorkspaceSelection
 from core.protocol import MessageType, public_key_text, sign_envelope
+from core.receipts import content_hash
 from core.receipt_ledger import ReceiptLedger
 from core.settings import RuntimeSettings
 from core.task_guard import TaskGuard
@@ -95,6 +96,15 @@ def test_drain_gate_controls_task_admission(tmp_path, mode):
         assert first['payload']['receipt']['status'] == 'completed'
         assert (work / 'out.txt').read_text(encoding='utf-8') == 'T108-PAYLOAD'
         assert during['payload']['error_code'] == 'UPDATE_DRAINING'
+        # The real Server validates every write refusal against its signed
+        # request, even when Runtime correctly refuses before admission.
+        refused_receipt = during['payload']['receipt']
+        refused_payload = json.loads(task_frame(broker_key, 'unused', 'task-108-during', logical_root))['payload']
+        assert refused_receipt['run_id'] == 'run-task-108-during'
+        assert refused_receipt['capability'] == 'local.files.write'
+        assert refused_receipt['request_hash'] == content_hash(refused_payload)
+        assert refused_receipt['payload_hash'] == content_hash(refused_payload)
+        assert refused_receipt['status'] == 'denied'
         if mode == 'drain-rejects-new-task':
             assert client.task_guard.claim('device-108', 'task-108-during') is True, \
                 'a drained refusal must not consume the task identity'
