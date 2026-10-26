@@ -1,0 +1,27 @@
+{
+  "resources": [
+    {
+      "path": "/_next/static/chunks/main-app.js?v=1793023885956",
+      "bytes": 13482223,
+      "status": 200
+    },
+    {
+      "path": "/_next/static/chunks/app-pages-internals.js",
+      "bytes": 302917,
+      "status": 200
+    },
+    {
+      "path": "/_next/static/chunks/app/layout.js",
+      "bytes": 74577,
+      "status": 200
+    },
+    {
+      "path": "/_next/static/chunks/app/(auth)/login/page.js",
+      "bytes": 2193898,
+      "status": 200
+    }
+  ],
+  "pageStatus": 200,
+  "method": "Actual GET with proxied browser Origin and Referer",
+  "origin": "http://127.0.0.1:14303"
+}

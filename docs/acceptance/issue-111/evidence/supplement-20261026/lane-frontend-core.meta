@@ -1,0 +1,6 @@
+lane=frontend-core
+command=/home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/scripts/run-test-lane.sh\ frontend-core
+started=2026-10-26T13:48:22Z
+finished=2026-10-26T14:01:45Z
+status=0
+seconds=802

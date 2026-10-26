@@ -1,0 +1,6 @@
+lane=core-full
+command=scripts/run-test-lane.sh\ core-full
+started=2026-10-26T13:28:25Z
+finished=2026-10-26T14:17:38Z
+status=0
+seconds=2953

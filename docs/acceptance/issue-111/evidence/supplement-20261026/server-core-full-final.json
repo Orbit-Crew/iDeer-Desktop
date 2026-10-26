@@ -1,0 +1,13 @@
+{
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "/mnt/c/Users/Neo/.codex/worktrees/15aa/iDeer-Desktop/artifacts/issues-109-111/run_full_fixed.sh"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T13:28:25.901799+00:00",
+  "finished": "2026-10-26T14:17:35.824265+00:00",
+  "seconds": 2949.921,
+  "exitCode": 0
+}

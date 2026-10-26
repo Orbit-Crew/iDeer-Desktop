@@ -1,0 +1,27 @@
+{
+  "candidate_commit": "dc5383266516438c3edfab0bcecff8b968cd3edc",
+  "command": "/home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/scripts/run-test-lane.sh frontend-mock-e2e",
+  "dependency_config_fingerprint_sha256": "7affb8ee00eaa9f311b9f0a2e12d615346b15b94eaf8d7dd65405d65a6763f43",
+  "diff_fingerprint_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+  "duration_seconds": 952,
+  "environment": {
+    "CI": "1",
+    "UV_CACHE_DIR": "/tmp/deer-flow-uv-cache",
+    "credential_presence": {
+      "DEER_FLOW_RUN_LIVE_TESTS": false,
+      "OPENAI_API_KEY": false,
+      "OPENAI_BASE_URL": false
+    },
+    "node": "v22.23.2",
+    "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pnpm": "10.26.2",
+    "python": "3.12.3",
+    "uv": "uv 0.12.9 (x86_64-unknown-linux-gnu)"
+  },
+  "fingerprint_source": "git-diff-and-untracked",
+  "finished_at": "2026-10-26T14:17:38.042859+00:00",
+  "lane": "frontend-mock-e2e",
+  "outcome": "passed",
+  "started_at": "2026-10-26T14:01:45.332661+00:00",
+  "status": 0
+}

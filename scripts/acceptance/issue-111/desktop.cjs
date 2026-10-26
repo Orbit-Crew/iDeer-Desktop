@@ -15,6 +15,7 @@ replace("installed ? process.env.APPDATA : path.join(state, 'appdata')", "path.j
 replace("if (!installed) fs.writeFileSync(owner, 'isolated issue102 fixture')", "fs.writeFileSync(owner, 'isolated issue102 fixture')")
 replace("executablePath: installed, args: []", "executablePath: installed, args: ['--user-data-dir=' + path.join(appData, 'iDeer Desktop')]")
 replace("args: [entry]", "args: [root, '--user-data-dir=' + path.join(appData, 'iDeer Desktop')]")
+replace("...(operationName === 'write' ? { content } : {})", "...(operationName === 'write' ? { content } : operationName === 'search' ? { query: content } : {})")
 source += "\nevidence.candidate.acceptanceFiles.push(...['desktop.cjs','flow.cjs'].map(name => ({path:'scripts/acceptance/issue-111/'+name,sha256:sha(fs.readFileSync(path.join(__dirname,'../issue-111',name)))})))\n"
 source += fs.readFileSync(path.join(__dirname, 'flow.cjs'), 'utf8')
 const candidate = new Module(filename, module)

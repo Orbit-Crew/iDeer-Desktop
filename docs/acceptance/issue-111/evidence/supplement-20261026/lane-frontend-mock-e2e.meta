@@ -1,0 +1,6 @@
+lane=frontend-mock-e2e
+command=/home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/scripts/run-test-lane.sh\ frontend-mock-e2e
+started=2026-10-26T14:01:45Z
+finished=2026-10-26T14:17:38Z
+status=0
+seconds=952

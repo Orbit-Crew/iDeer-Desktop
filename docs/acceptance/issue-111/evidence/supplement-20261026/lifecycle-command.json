@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:/Users/Neo/.codex/worktrees/5435/iDeer-Desktop/.cache/toolchains/node-v22.14.0-win-x64/node.exe",
+    "scripts/acceptance/issue-111/lifecycle.cjs",
+    "C:/Users/Neo/.codex/worktrees/15aa/iDeer-Desktop/dist/ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "C:/Users/Neo/.codex/worktrees/15aa/iDeer-Desktop/artifacts/issue-111/recheck-lifecycle.json"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T12:39:45.936336+00:00",
+  "finished": "2026-10-26T12:40:25.669562+00:00",
+  "seconds": 39.734,
+  "exitCode": 0
+}

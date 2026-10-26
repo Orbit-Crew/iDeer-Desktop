@@ -1,0 +1,14 @@
+{
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "-lc",
+    "cd /home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026 && env -u TEST_PNPM_BIN PATH=/tmp/ideer111-tools-15aa:$PATH UV_CACHE_DIR=/tmp/deer-flow-uv-cache PYTHON=/home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/backend/.venv/bin/python TEST_LANE_ARTIFACT_DIR=/tmp/ideer111-lanes-fixed-15aa CI=1 PLAYWRIGHT_HTML_OPEN=never PLAYWRIGHT_BASE_URL=http://127.0.0.1:13111 PORT=13111 bash scripts/run-test-lane.sh core-full"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T13:26:14.962112+00:00",
+  "finished": "2026-10-26T13:26:15.189595+00:00",
+  "seconds": 0.219,
+  "exitCode": 127
+}

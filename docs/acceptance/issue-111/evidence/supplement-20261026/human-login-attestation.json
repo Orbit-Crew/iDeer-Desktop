@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "actor": "Current conversation user; no personal real name asserted",
+  "source": "Direct human answer to the second isolated-login request in this conversation",
+  "answer": "已完成登录和设备确认",
+  "applicationAuthenticatedAt": "2026-10-26T14:20:29.770Z",
+  "confirmationRecordedAt": "2026-10-26T14:22:50Z",
+  "deviceName": "T111 Human 15aa",
+  "syntheticAccount": "t99-provider-a@test.com",
+  "scope": "Human browser login and own-device confirmation only; final report approval is separate"
+}

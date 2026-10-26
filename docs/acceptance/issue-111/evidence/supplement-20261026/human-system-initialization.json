@@ -1,0 +1,14 @@
+{
+  "before": {
+    "needs_setup": true,
+    "registration_enabled": true
+  },
+  "after": {
+    "needs_setup": false,
+    "registration_enabled": true
+  },
+  "status": 201,
+  "fixtureOnly": true,
+  "sessionCookiesDiscarded": true,
+  "note": "Official initialize API creates separate bootstrap admin; A/B remain regular users; no human login session prepared."
+}
