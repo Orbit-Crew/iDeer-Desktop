@@ -1,0 +1,23 @@
+{
+  "command": [
+    "pwsh",
+    "-NoProfile",
+    "-File",
+    "scripts/acceptance/issue-109/run-paired.ps1",
+    "-State",
+    "C:/Users/Neo/.codex/worktrees/15aa/iDeer-Desktop/artifacts/issue-109/paired-connected",
+    "-Node",
+    "C:/Users/Neo/.codex/worktrees/5435/iDeer-Desktop/.cache/toolchains/node-v22.14.0-win-x64/node.exe",
+    "-Python",
+    "C:/Users/Neo/.codex/worktrees/5435/iDeer-Desktop/.venv/Scripts/python.exe",
+    "-Installer",
+    "C:/Users/Neo/.codex/worktrees/15aa/iDeer-Desktop/dist/ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "-PrivateKey",
+    "C:/Users/Neo/.ideer-acceptance/release-keys/private.pem"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T12:18:00.895726+00:00",
+  "finished": "2026-10-26T12:19:46.257770+00:00",
+  "seconds": 105.375,
+  "exitCode": 1
+}

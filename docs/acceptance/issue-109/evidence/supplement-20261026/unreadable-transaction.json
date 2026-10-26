@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "49d640db-8711-4a6d-a599-fc32429b4c13",
+  "state": "recovery-failed",
+  "programRoot": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\installed",
+  "userData": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile",
+  "executable": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\installed\\ideer-desktop.exe",
+  "stageRoot": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13",
+  "payloadRoot": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13\\payload",
+  "parentPid": 0,
+  "relatedPids": [],
+  "current": {
+    "desktopVersion": "0.2.0",
+    "electronVersion": "22.3.27",
+    "runtimePython": "3.12.10",
+    "protocolVersion": 1,
+    "dataFormat": 1,
+    "readableFormats": [
+      1
+    ]
+  },
+  "manifest": {
+    "version": 1,
+    "kind": "patch",
+    "publishedAt": "2026-10-26T00:00:00Z",
+    "desktop": {
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "asarSHA256": "107a76d3324a47142de07779e19197d685b88efa4fac50583db16ddcf9e827cb"
+    },
+    "runtime": {
+      "python": "3.12.10",
+      "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    "baseline": {
+      "desktopVersion": "0.2.0",
+      "electronVersion": "22.3.27",
+      "runtimePython": "3.12.10",
+      "dataFormat": 1
+    },
+    "dataCompatibility": {
+      "targetFormat": 1,
+      "readableFormats": [
+        1
+      ]
+    },
+    "serverCompatibility": {
+      "minProtocol": 1,
+      "notes": "T109 isolated failure candidate"
+    },
+    "files": [
+      {
+        "path": "resources/runtime/core/tray.py",
+        "bytes": 60923,
+        "sha256": "00ed1012f9af6ab85ad6b064cd24e7d002d900dea38be59fa3c35472f152b105"
+      },
+      {
+        "path": "resources/app.asar",
+        "bytes": 75137128,
+        "sha256": "107a76d3324a47142de07779e19197d685b88efa4fac50583db16ddcf9e827cb"
+      }
+    ],
+    "deletions": []
+  },
+  "source": "offline",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAmcVHlAMW3J0FlbwYRrDgaPd3vLCH6DcGYSetDvCyAAA=\n-----END PUBLIC KEY-----\n",
+  "backup": [
+    {
+      "path": "resources/runtime/core/tray.py",
+      "sha256": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d"
+    },
+    {
+      "path": "resources/app.asar",
+      "sha256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+    }
+  ],
+  "oldAsarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+  "oldLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "detail": "Automatic updates disabled. Preserve data and backup; run manual repair. Error: UPDATE_APPLICATION_START_FAILED; Error: RECOVERY_DATA_FORMAT_UNREADABLE"
+}

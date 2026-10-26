@@ -37,6 +37,6 @@ These links locate existing records; this index does not change their verdicts.
 | #105 | [Report](issue-105/report.md) |
 | #106 | [Report](issue-106/report.md) |
 | #107 | [Report](issue-107/report.md) |
-| #109 | [Report](issue-109/report.md) |
+| #109 | [Report](issue-109/report.md), [2026-10-26 installed recovery re-acceptance](issue-109/supplement-20261026.md) |
 | #110 | [Report](issue-110/report.md) |
 | #111 | [Report](issue-111/report.md) |

@@ -1,0 +1,9 @@
+// Task-only raw TCP forwarding to this fixture's private WSL address.
+const fs=require('node:fs'),path=require('node:path'),net=require('node:net'),assert=require('node:assert/strict');
+const state=path.resolve(process.argv[2]),file=path.join(state,'ready.json'),manifest=JSON.parse(fs.readFileSync(file,'utf8'));
+assert(!manifest.gatewayTransport);const target=new URL(manifest.origin);
+assert.equal(target.protocol,'http:');assert(/^172\.(1[6-9]|2\d|3[01])\./.test(target.hostname)||/^192\.168\./.test(target.hostname)||/^10\./.test(target.hostname));assert(target.port);
+const sockets=new Set();
+const server=net.createServer(local=>{const remote=net.connect({host:target.hostname,port:Number(target.port)});sockets.add(local);sockets.add(remote);local.on('error',()=>remote.destroy());remote.on('error',()=>local.destroy());local.on('close',()=>{sockets.delete(local);remote.destroy()});remote.on('close',()=>{sockets.delete(remote);local.destroy()});local.pipe(remote);remote.pipe(local)});
+server.listen(0,'127.0.0.1',()=>{const transport={kind:'loopback-tcp-to-private-wsl',serverOrigin:manifest.origin,publicOrigin:'http://127.0.0.1:'+server.address().port};manifest.origin=transport.publicOrigin;manifest.gatewayTransport=transport;fs.writeFileSync(file+'.next',JSON.stringify(manifest,null,2));fs.renameSync(file+'.next',file);fs.writeFileSync(path.join(state,'proxy-ready.json'),JSON.stringify(transport,null,2));console.log(JSON.stringify({kind:transport.kind,publicOrigin:transport.publicOrigin}))});
+const watch=setInterval(()=>{if(!fs.existsSync(path.join(state,'stop')))return;clearInterval(watch);for(const socket of sockets)socket.destroy();server.close(()=>fs.writeFileSync(path.join(state,'proxy-cleanup.json'),JSON.stringify({closed:true,remainingSockets:sockets.size})))},200);

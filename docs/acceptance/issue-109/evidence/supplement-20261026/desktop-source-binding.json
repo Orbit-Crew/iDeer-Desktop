@@ -1,0 +1,651 @@
+{
+  "recordedAt": "2026-10-26T12:18:49.858734+00:00",
+  "kind": "desktop",
+  "base": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "headAtBinding": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "branch": "codex/issues-109-111-acceptance",
+  "sourceSHA256": "8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a",
+  "algorithm": "SHA256 of UTF-8 canonical sorted path/hash records; product/test/build inputs; acceptance scripts and generated evidence excluded",
+  "files": [
+    {
+      "path": "electron-builder.yml",
+      "sha256": "d96372b2a318846e84ddf75766e852e7dfc4105e3db3c711cf7f7211f2591235"
+    },
+    {
+      "path": "local-runtime/LICENSE.upstream",
+      "sha256": "a98b7d471f6e69fc010f79bc4645059900d1d3c2f5f496061fb7f2b80a1b17cd"
+    },
+    {
+      "path": "local-runtime/README.md",
+      "sha256": "6537a163d2b2a66217096713898b9ce574e16655b4a157f5d85989f2f94fa4c9"
+    },
+    {
+      "path": "local-runtime/core/__init__.py",
+      "sha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46"
+    },
+    {
+      "path": "local-runtime/core/artifacts.py",
+      "sha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b"
+    },
+    {
+      "path": "local-runtime/core/audit.py",
+      "sha256": "0bc8ce02155386fce16708f03d7f18b7277e7e7c85419b7a942bff5a19b6fc2c"
+    },
+    {
+      "path": "local-runtime/core/browser_login.py",
+      "sha256": "0ddd50ec755db143aa06d3cad9dec1d0a8d6d6c21563344e9cfcdde0cece62be"
+    },
+    {
+      "path": "local-runtime/core/capabilities.py",
+      "sha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc"
+    },
+    {
+      "path": "local-runtime/core/cli.py",
+      "sha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711"
+    },
+    {
+      "path": "local-runtime/core/compat.py",
+      "sha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c"
+    },
+    {
+      "path": "local-runtime/core/compatibility.py",
+      "sha256": "8fa8944003005104610f3864408a5b660fb07ba9e71423d980b30b813655bb92"
+    },
+    {
+      "path": "local-runtime/core/consent.py",
+      "sha256": "6ce1fb3680b52c03ccf91b584267faca654933fd7c0e38b6957d87a2351e3710"
+    },
+    {
+      "path": "local-runtime/core/consent_coord.py",
+      "sha256": "2daaad881e7b0cc9942215b18455ebb00cbad2af8cd470b32c45832b763aa6c8"
+    },
+    {
+      "path": "local-runtime/core/desktop.py",
+      "sha256": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939"
+    },
+    {
+      "path": "local-runtime/core/file_service.py",
+      "sha256": "f2ec5eef43ae97a48d5252421359d4e5c416be4debcd321befa66793eeb3fda6"
+    },
+    {
+      "path": "local-runtime/core/files.py",
+      "sha256": "b67abe228574d576d6e1dd8c03e9b5bfc2819490f44d5612efbde265866c1049"
+    },
+    {
+      "path": "local-runtime/core/files_nt.py",
+      "sha256": "dd4283a3b99296fe71b40e80e54b525cc1161e5e8796cefddf3f8cc302b5dd44"
+    },
+    {
+      "path": "local-runtime/core/local_results.py",
+      "sha256": "1e28c906b55075bd3d3a2c79f60ff6e290eb034e7c72e400b470c8e98fdc0f0b"
+    },
+    {
+      "path": "local-runtime/core/mcp.py",
+      "sha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a"
+    },
+    {
+      "path": "local-runtime/core/platform_chat.py",
+      "sha256": "bcc879eaf2e2b0396df41794ee7ca7211a44cc31723155330446f7480fa16c4d"
+    },
+    {
+      "path": "local-runtime/core/policy.py",
+      "sha256": "d022a61c5ddb3c5462ca96eacdaf8c695a48f004643bfc7bbf0e2f514f777282"
+    },
+    {
+      "path": "local-runtime/core/process_job.py",
+      "sha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea"
+    },
+    {
+      "path": "local-runtime/core/protocol.py",
+      "sha256": "71ddd254afdcef25fcd0f1b8e164141f430afc978042a55ef07a61d156386205"
+    },
+    {
+      "path": "local-runtime/core/python.py",
+      "sha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1"
+    },
+    {
+      "path": "local-runtime/core/receipt_ledger.py",
+      "sha256": "1f13fcb5713c533fca2d5f1e7acbc8b08e046b59d7118092026a3adb0b74eb9f"
+    },
+    {
+      "path": "local-runtime/core/receipts.py",
+      "sha256": "1ccd4957072104feed176d66b2c9044cff37e6fa16eac2b79fca23be86c66ded"
+    },
+    {
+      "path": "local-runtime/core/secrets.py",
+      "sha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad"
+    },
+    {
+      "path": "local-runtime/core/settings.py",
+      "sha256": "319af4af23cdaeef215f9dada030b35b473b514f7256fe930d5b5c4b5b057d8b"
+    },
+    {
+      "path": "local-runtime/core/task_guard.py",
+      "sha256": "6dfaa7f4916040fef88975362601efc3956a82ca1205fe1dbde38edfc7750f00"
+    },
+    {
+      "path": "local-runtime/core/transport.py",
+      "sha256": "f43b091a92e374f2e33e36e58a1f4043fdab3dd708283b0009a33e4c0f71130f"
+    },
+    {
+      "path": "local-runtime/core/tray.py",
+      "sha256": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d"
+    },
+    {
+      "path": "local-runtime/distribution.lock.json",
+      "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    {
+      "path": "local-runtime/pyproject.toml",
+      "sha256": "e2d92c03227c227dc2bedb6e3bb259f36a13c8f39169067be824e39dec7c655a"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/counting_mcp_server.py",
+      "sha256": "2066de3a76ce882df70bc63e93f12cf40631d359b682a449bd07ac4499b624a5"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/filesystem_mcp_server.py",
+      "sha256": "b998951588e0b9a10eff80fb23d3257e1e70f2e2f0de9f0895e460359d9549a9"
+    },
+    {
+      "path": "local-runtime/tests/fixtures/legacy_runtime_process.py",
+      "sha256": "d06f84f376d3b9ac1ecd8ec4588a329498b25af7ae31aee3cb47c86829b6f57d"
+    },
+    {
+      "path": "local-runtime/tests/helpers_fake_broker.py",
+      "sha256": "ee632d95511df6bc7b28fd56646549e6aad52b16981dd55bc6ab1f805c2e1564"
+    },
+    {
+      "path": "local-runtime/tests/server_protocol.py",
+      "sha256": "fd8ea7d1070349f3df81c855592d70650fbb0e8ba283fc3164b76d882c864147"
+    },
+    {
+      "path": "local-runtime/tests/test_audit.py",
+      "sha256": "6aff5901ab734740583ceabb473747c12f29e4456c71a665cfd5213764319eb7"
+    },
+    {
+      "path": "local-runtime/tests/test_audit_resource_release.py",
+      "sha256": "60bfbfb987c9a82fa3820510eb0a447ec222b23226409cef3d60618f618d109b"
+    },
+    {
+      "path": "local-runtime/tests/test_broker_key_binding.py",
+      "sha256": "4ed71fb52439e41205c4d4e3821b8a37be7c57716c6a55f9e78ca5da2c1f31e8"
+    },
+    {
+      "path": "local-runtime/tests/test_browser_login.py",
+      "sha256": "a8eef1fbf3c17d9c8510425b8e693d2878d6c70d476cddfe8e9128d145489f22"
+    },
+    {
+      "path": "local-runtime/tests/test_capabilities.py",
+      "sha256": "ac1e5881bf859064412bd99992efe1c6e2b89f83c48d35bfc587ec181e4dba39"
+    },
+    {
+      "path": "local-runtime/tests/test_cli.py",
+      "sha256": "e9d1bbbfb9456fe8f6860c233cf416b8957ca7da7255614afdae3170cfd85c9d"
+    },
+    {
+      "path": "local-runtime/tests/test_compatibility_protocol.py",
+      "sha256": "d0101b1988ab9a3b585cdc232520708c9e96309cf91fc04a599e81405abea1b3"
+    },
+    {
+      "path": "local-runtime/tests/test_consent.py",
+      "sha256": "d804608b77048bd2c83993abcc79780a4e4ceebe71870bf8be494a92aafc7f57"
+    },
+    {
+      "path": "local-runtime/tests/test_consent_summary.py",
+      "sha256": "1efa3e9c82811addd41ba0d50e265b7acbded51f578275e932541bd8c9f8d5de"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_drain_snapshot.py",
+      "sha256": "d09b33abe27c87491510e6f02e5e7b962a05007c132e4e812eb5488fe1658d57"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_process.py",
+      "sha256": "b7e2f1e2ee2eb9ad709098cd096914fab58756b027487966fe45e9994e92f1c1"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_protocol.py",
+      "sha256": "ba7f5ba1610a973a16d01d7a60f3a263b52d5639ceb0f3b9aeaff4e571f44f90"
+    },
+    {
+      "path": "local-runtime/tests/test_directory_grants.py",
+      "sha256": "cdef2c89e18a21d8cf8538c3a2ff895bc69d7f7983bcda872dd8ccdbd506e66f"
+    },
+    {
+      "path": "local-runtime/tests/test_file_service.py",
+      "sha256": "76e4f6a642e87e13adbf4ed5e837e91516781f74da5bd8732896e8bb63a2f35c"
+    },
+    {
+      "path": "local-runtime/tests/test_files.py",
+      "sha256": "b3af9c15f844f47dd6048b7075ada56c16247a46374be47150a69e5bf87eb65e"
+    },
+    {
+      "path": "local-runtime/tests/test_install_drain.py",
+      "sha256": "867124e184de823f7980d29fdbf455813f21d2d9b821654e4136838d018df157"
+    },
+    {
+      "path": "local-runtime/tests/test_local_results.py",
+      "sha256": "823b14f5cc90c30fa2e1bfc5c28eeea133a76ecb93db4941b667eb8b8107d43f"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp.py",
+      "sha256": "fd6117434be668b4e10a0730445985dd77939b98908cd5cebfdc6ec63700b263"
+    },
+    {
+      "path": "local-runtime/tests/test_mcp_secrets.py",
+      "sha256": "534f6545794eaa408b245a40c1a5e1d27ff85d7a3225b8d26a0e4889553699bf"
+    },
+    {
+      "path": "local-runtime/tests/test_platform_artifacts.py",
+      "sha256": "8849a91a385ffd66cdc78225ada6005d196c6900e0fa311153c49a82374f8af5"
+    },
+    {
+      "path": "local-runtime/tests/test_platform_chat.py",
+      "sha256": "ee55118ef337a7db41ece7afbe9f6fd9c246bda6c7361bb1cae766ab9ed23ac4"
+    },
+    {
+      "path": "local-runtime/tests/test_policy.py",
+      "sha256": "bf3e0c39ca91aaf3a76d1a53b84ccf4cc013c0b1d8f4fcc08d040dbd0c787ade"
+    },
+    {
+      "path": "local-runtime/tests/test_policy_denial.py",
+      "sha256": "8fc72f7326c01a78b49dcf14787b4b5a3bf2c53baeb0e2f71280d8d5c56b0e48"
+    },
+    {
+      "path": "local-runtime/tests/test_protocol.py",
+      "sha256": "fa723596b51f8baf84268ccc9d928ef7610e24838d7310cbd2dd2d352697139d"
+    },
+    {
+      "path": "local-runtime/tests/test_python.py",
+      "sha256": "9960040db4219979d3484af653e25e741ba1501cd49a7e74d578c17e5d4ccf4f"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_ledger.py",
+      "sha256": "04b9c504d20e7b849254011c445c37878a3c83e23ce87db1a76847eb82c1aaec"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_replay.py",
+      "sha256": "b9bf7b404894d6ce37617a7b4b31b02c5899f95cc3b8bc91ca8f65b0a56fbdb4"
+    },
+    {
+      "path": "local-runtime/tests/test_receipt_transport.py",
+      "sha256": "2f0d7e77a2465ba7f763230bdd8c09ab14c9cf0851b7a5919b6c12c8b20ffc6c"
+    },
+    {
+      "path": "local-runtime/tests/test_receipts.py",
+      "sha256": "a29a805417b5e6460803abf102790fb72c7f589a19ae587d476b56a8c2b392b2"
+    },
+    {
+      "path": "local-runtime/tests/test_secrets.py",
+      "sha256": "10d7f4d911cd93b13194d50dce5a3bbfbd70232b498da7f7021aa6340936d245"
+    },
+    {
+      "path": "local-runtime/tests/test_settings.py",
+      "sha256": "0b2db01976aee59b4f09c2e2bb97d73617b8344e7ffa22562841d73be0b29680"
+    },
+    {
+      "path": "local-runtime/tests/test_transport.py",
+      "sha256": "c40c6fb5f5b883941c0171d271d9f46f7229e31727a92715adc787556a0106d4"
+    },
+    {
+      "path": "local-runtime/tests/test_transport_split.py",
+      "sha256": "da06e8edb8affb6234880c732fad821a67d282a9b7cf711429932eaaf7b7d5af"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_actions.py",
+      "sha256": "b49a36f961ae89e7e2f05931372a18cf1dfe7b6b1ea3763de30c7a54446ab3cd"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_consent.py",
+      "sha256": "f9403c80c2ef30254f23175ae161c252d2452f60861fab5f52ca99555fc92810"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_lifecycle.py",
+      "sha256": "3e8307a9750f610523792a3b7961936489b43905c11108fd749ac20636ab4adc"
+    },
+    {
+      "path": "local-runtime/tests/test_tray_transport.py",
+      "sha256": "1c08a709cdf8b314cd6029f89ebed9d28851b58fc7f0453f3ff41875a722050d"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_files.py",
+      "sha256": "11f2b44199981fbd73ea74396dc1955c54da2549faab7ee1e7c829acbb0cf28f"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_lifecycle.py",
+      "sha256": "1c409670864743e9c2ba41613cfbf86e432491ca5cb5f58792f1f54513fb71a8"
+    },
+    {
+      "path": "local-runtime/tests/test_workspace_writes.py",
+      "sha256": "cc7224b661cd6e3c6556cf0f5bb8ebe10b49398b90d9e1a2a298d36eb4a5a81a"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e"
+    },
+    {
+      "path": "package.json",
+      "sha256": "7c91b958d9db7590a5a5a9803a777a94c5af73b1eaca16851410a47b2e3117dd"
+    },
+    {
+      "path": "resources/compat/node16-banner.cjs",
+      "sha256": "4170c04def9bc287cd685241be775b8f132412af3115e5e6fdef24353141894f"
+    },
+    {
+      "path": "resources/nsis/command.cjs",
+      "sha256": "837839c16facd7eb258dd486501d92a78c7ae6ed86dc1b9f9e520dc80549774c"
+    },
+    {
+      "path": "resources/nsis/command.d.cts",
+      "sha256": "aed138da12d6f6980d939521ab90f0b1c06f42a2772e705072856b673bae200a"
+    },
+    {
+      "path": "resources/nsis/process-guard.nsh",
+      "sha256": "d4c5939bf2d37cb1531c3425ced7da908092c574a9094d414eaa3e531ef0f958"
+    },
+    {
+      "path": "resources/provenance/linz-package-lock.json",
+      "sha256": "e3e948bf231158a8773d766456c2a959442c742c7766c0eb59e00e3a7d4f6101"
+    },
+    {
+      "path": "resources/provenance/linz-package.json",
+      "sha256": "4705d1bb0c58033b70e4e66a32c637e8e57ced220560dad15d9354d3299e6e7c"
+    },
+    {
+      "path": "resources/provenance/linz-source.json",
+      "sha256": "cd1359af00ec9802aba279f49d3337e7ed48b18972aee7a3b9ce367b3223d3cf"
+    },
+    {
+      "path": "resources/provenance/runtime-source.json",
+      "sha256": "0f4089f9d4e7ce2136d6af1d610377f88673503efde5072aca8276d5ee9aba76"
+    },
+    {
+      "path": "resources/updates/updates-public-key.pem",
+      "sha256": "b056e0bab221d079ec27297daa04fa7ce7ad1828804c854aae83c84ab03c8754"
+    },
+    {
+      "path": "scripts/acceptance-graph.cjs",
+      "sha256": "74c57c9cb8200ef49cddf5d0d6089506e85e22fbdf6a50315d4151ed29a9b80d"
+    },
+    {
+      "path": "scripts/build-update-helper.cjs",
+      "sha256": "94928eca76d215228873859a70e34ea50e7ab64878b0380774984bcc5b61235b"
+    },
+    {
+      "path": "scripts/desktop-smoke.cjs",
+      "sha256": "7b5e941286742f12e6c69445cb16de5a820a2dcd3ec5ce8489b83253ec62a501"
+    },
+    {
+      "path": "scripts/prepare-runtime.py",
+      "sha256": "368f5a98ba59a5cd289bdfd883f7dcadfbf36aeee8a647e4c35f5631927bccb9"
+    },
+    {
+      "path": "scripts/release/issue-107/README.md",
+      "sha256": "15ccdd98f3be5e24e523755d7c94a052dcb65177fc79d2d3b584bd704f4b5585"
+    },
+    {
+      "path": "scripts/release/issue-107/after-pack.cjs",
+      "sha256": "cf263da0cca31edd1562a72fc3fefef2e303699c2199964b7674893f11c0936b"
+    },
+    {
+      "path": "scripts/release/issue-107/artifact-completed.cjs",
+      "sha256": "6783e01ea7dca9a7ea49af15d325e27d50b416df1ede807eda5f6120ac4ebc90"
+    },
+    {
+      "path": "scripts/release/issue-107/make-update.cjs",
+      "sha256": "6ca689f587fd1784a8354abc6ba610e369d267650f30b5e12a42704607b21df9"
+    },
+    {
+      "path": "scripts/release/issue-110/README.md",
+      "sha256": "95b0167d0499af58d1e423f7802b634243710829968787f4b1796c4e7ff9563a"
+    },
+    {
+      "path": "scripts/release/issue-110/make-compatibility.cjs",
+      "sha256": "632f2d0f9a21907e99157b79e0efe21de2d3a927c10951d262ab2008442b9139"
+    },
+    {
+      "path": "scripts/verify-issue-97.ps1",
+      "sha256": "0dafc0bbf2c31a6f541e4333faf2d07863bd9bf31e87965a11d76f361229af54"
+    },
+    {
+      "path": "scripts/verify-provenance.cjs",
+      "sha256": "556b63b76774cfb7bf401d02052de7e82330ebb00e9577621d5e2f59e74c3aa3"
+    },
+    {
+      "path": "scripts/verify-runtime-source.py",
+      "sha256": "d13f840dbfc34167bc8275f9024dc529ee807504e6f8d9e42138adb7a5651ce2"
+    },
+    {
+      "path": "scripts/windows-acceptance-baseline.ps1",
+      "sha256": "afa7e0570ce9dfa5e5cd8a8644fa7874c551c228e4b91533fc97c1100a0185c4"
+    },
+    {
+      "path": "scripts/windows-install-smoke.ps1",
+      "sha256": "87d10133e49c4a3c7721bda1ccb48dfb1ed19fa07a248c5e2e48465ba2ae4611"
+    },
+    {
+      "path": "scripts/windows-local-acceptance.ps1",
+      "sha256": "d901f7858eff1b83a2f4cb31a251f509ad25e61999c0ac43f5458c2b8d077d99"
+    },
+    {
+      "path": "scripts/windows-runtime-acceptance.ps1",
+      "sha256": "7840dbcf5fd5ee31ba68e131ea784176fe5aef53179d43bf9328dfd21338cedf"
+    },
+    {
+      "path": "src/main/artifact-download.ts",
+      "sha256": "07fcb3de6cad84a9c0a44ef240da623d7d3418f7bf45c825a050846351a92ef3"
+    },
+    {
+      "path": "src/main/compat.ts",
+      "sha256": "34dca1ebf1894a5fde1e57a1cfec0886f741f7c1f9f47de5abe510530f6e0aa6"
+    },
+    {
+      "path": "src/main/controlled-http.ts",
+      "sha256": "6029e0b95d725aed76b0f1079f2b9e2646795963eb90b9a015ce7dd51102ed62"
+    },
+    {
+      "path": "src/main/index.ts",
+      "sha256": "ee3f0f43a5254d11b335549640dfeb80287f82e07a7c3944ab29d32313accad2"
+    },
+    {
+      "path": "src/main/installer.ts",
+      "sha256": "373b11d4ef6705a515b6d70153b1b9fd7467ca5f79ae3392fdbf8e67a1bd0195"
+    },
+    {
+      "path": "src/main/maintenance-health.ts",
+      "sha256": "4cce5a198b1362219783b0d271f7703e31afa3ff1fd0d107073b6568dc6abd2a"
+    },
+    {
+      "path": "src/main/maintenance.ts",
+      "sha256": "0c36edffd64e43fa633cda82bf265a4ee8c2b8c39353e47de644a7b89c4cc94d"
+    },
+    {
+      "path": "src/main/recovery.ts",
+      "sha256": "bb7726cf3dccbc8a12d4f95b971fa04a9ab45f9dd16ea68ece7eb3ff1efe8e08"
+    },
+    {
+      "path": "src/main/runtime.ts",
+      "sha256": "002fce381988b8c2297e86ea1f9c09250c5c4d8319169b991c8284e7227ef287"
+    },
+    {
+      "path": "src/main/update-filesystem.ts",
+      "sha256": "cfb6d62a6ca97eb3adbd9f9eaf73d3dcc35cc2a34df45672c205f75c8906d45d"
+    },
+    {
+      "path": "src/main/update-helper.ts",
+      "sha256": "458519b4914d88844f6c225868cd0eeebbfdbd9c1448a10a4b3dba9cc7e636b2"
+    },
+    {
+      "path": "src/main/update-stage.ts",
+      "sha256": "e37d64bcfc39ab5e95581baf55a84c95fbac3d74c4632f8d6bed42f1ed507576"
+    },
+    {
+      "path": "src/main/updates.ts",
+      "sha256": "36e0fb9fd36c574e8dbc1f767f557bf3c6f8e6f5a3ea4d4a2a92e335d63e97a5"
+    },
+    {
+      "path": "src/main/window.ts",
+      "sha256": "b07f3a3ac7bfe8f185b6464f2cc3d1d9f26134883a281fde3696737f44115f75"
+    },
+    {
+      "path": "src/preload/index.d.ts",
+      "sha256": "fc765891524157fb090e5391c9621b8aa5a309a44f92499eaaef38cdff0d8b3e"
+    },
+    {
+      "path": "src/preload/index.ts",
+      "sha256": "dc46063d57c78dc0d1619e3bfcacd34b2c0e29deca75af5aec70cd87e6f84879"
+    },
+    {
+      "path": "src/renderer/index.html",
+      "sha256": "16773b5ebce6dd00b52618f77aa292f6a8c5a3e4089ed05c8e56bc1c3efe1557"
+    },
+    {
+      "path": "src/renderer/src/App.tsx",
+      "sha256": "03ef47656fd00891cbd5848efca7f7799db2fd0875863632d74f4b75d3b14ac8"
+    },
+    {
+      "path": "src/renderer/src/assets/styles/globals.css",
+      "sha256": "d868b6209ea2c2233a785c631af83e4e1283eee5d533bb2edc6f3c71540bdcdb"
+    },
+    {
+      "path": "src/renderer/src/components/ChatPanel.tsx",
+      "sha256": "f4527bd58d8488fa7c0dce0e854974cdf350924e2c736cba983d2800905d6b04"
+    },
+    {
+      "path": "src/renderer/src/components/CompatibilityPanel.tsx",
+      "sha256": "96d7bca3dad062d4b39eaef5551db50c2a6b987424fcff2cea2e431c0662c7a8"
+    },
+    {
+      "path": "src/renderer/src/components/ErrorBoundary.tsx",
+      "sha256": "fe80454e0ddfa8b6ed604921031502199f303ef7cd6530cd1db9299acf66d781"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/AppLayout.tsx",
+      "sha256": "b92b7f6820c8112f2b97b52eac21c74067363c61222bf0699b2b243d96fdf1af"
+    },
+    {
+      "path": "src/renderer/src/components/Layout/Sidebar.tsx",
+      "sha256": "3d4e0b687c89469b8e96a68c922933594a263725e27542da811ccbb53cc9667d"
+    },
+    {
+      "path": "src/renderer/src/components/RuntimePanel.tsx",
+      "sha256": "6dad6153f9fdf25c7b05e0e6c46fa88c8d305430b4733d4f2be708c9b6143889"
+    },
+    {
+      "path": "src/renderer/src/components/UpdatePanel.tsx",
+      "sha256": "56289d089f992b4f62eb811e0307aa40102380bb5919da915c19e0e80092ffb7"
+    },
+    {
+      "path": "src/renderer/src/main.tsx",
+      "sha256": "bee274bec9a7655a71511d2409ad205b8df4d02a6eb4ee01909f23bd4b6242d1"
+    },
+    {
+      "path": "src/renderer/src/stores/receiptHistory.ts",
+      "sha256": "07c70d74c3be5404b9fc1a934108a72c4250966d98cbbef17eaa215041c130d8"
+    },
+    {
+      "path": "src/renderer/src/stores/runtimePanel.ts",
+      "sha256": "8069132361217b2262cb34e64cce16ab5ff838bb587c24ef7ad721be8241abcd"
+    },
+    {
+      "path": "src/renderer/src/stores/uiStore.ts",
+      "sha256": "a7d45669bcf1c61e98541867acaab834c5470c828d1a0b28e80596d11687d698"
+    },
+    {
+      "path": "src/shared/desktop.ts",
+      "sha256": "f5ade200034f5b87a5a5d80666c8c58cd4a12b6419fcaeb27aa03912e69bf2bf"
+    },
+    {
+      "path": "test/artifact-download.test.ts",
+      "sha256": "dc51c17ea283ab178c7e4c80bc024e0183ccef50cb8e575799505b54c1324c46"
+    },
+    {
+      "path": "test/chat-bridge.test.ts",
+      "sha256": "5d190a8e9d196aab24d33ef59c6198de8af9897221c4b37be6752e40251da8b5"
+    },
+    {
+      "path": "test/chat.test.tsx",
+      "sha256": "0c35d711de142fd3cdf92335b6c01b80e4c241dd32bdb830314c515d79229f8c"
+    },
+    {
+      "path": "test/compat-gate.test.ts",
+      "sha256": "8fdb3d3e8b5b1b8a8c17c365e71d655c04bd792c786ae02ceb98c60ba4d8fdcd"
+    },
+    {
+      "path": "test/compat-release.test.ts",
+      "sha256": "521fd54b0e238c916886a3f2372e2e35c7e17cb5617b2d535617f0e33c08f0bd"
+    },
+    {
+      "path": "test/compat.test.ts",
+      "sha256": "a8e9c31735b0609881b89cd10f5b0b942acad9b91639e4fd3dde7be368ba195a"
+    },
+    {
+      "path": "test/controlled-http.test.ts",
+      "sha256": "a9608973b4a88978c86583ed7e9c9f9276685168d0ebc5467d28570f38b8f41d"
+    },
+    {
+      "path": "test/fixtures/artifact-profile.py",
+      "sha256": "f39f7b9ee95308c8c4c523111908a223c6f20a500cba918dde71d9b8cb01ccd3"
+    },
+    {
+      "path": "test/grant-management.test.ts",
+      "sha256": "9ad4807b667d1509fe410e09576e4fa971ceefb15efa3ab7940184c7e70ead3e"
+    },
+    {
+      "path": "test/install-coordinator.test.ts",
+      "sha256": "2452a25c9e6d163066115cbf29a32bdb6fafaeef37fca745f597893e27abf895"
+    },
+    {
+      "path": "test/local-result-upload.test.ts",
+      "sha256": "23c4a327e2fa422e7b82dab407cd7d65311a9eb74ef9484ac56def99d8d60ddb"
+    },
+    {
+      "path": "test/login.test.ts",
+      "sha256": "b2511e3098a84f10707195a4a2a2dfdd362f121922426fdd7c14383b80f8ea26"
+    },
+    {
+      "path": "test/nsis-process-guard.test.ts",
+      "sha256": "33addcefcb3e78b6624b137ee6dc93bf530fcfe9e7849763e7e5623f773b1ba4"
+    },
+    {
+      "path": "test/receipt-history-view.test.ts",
+      "sha256": "f07324bae2a5253b76fa3e53b754dde7998ad2fae1d6ab472cc9b7ac6b43d596"
+    },
+    {
+      "path": "test/receipt-history.test.ts",
+      "sha256": "5d69f1e18b91a0377bd96a153fc5b97aebe93ad37c0551409c386cffecb3fb48"
+    },
+    {
+      "path": "test/recovery.test.ts",
+      "sha256": "6ad406366dee09cc9229c47dfca1ec058b81b9c4b77f3522b534837dbae8b185"
+    },
+    {
+      "path": "test/runtime-panel-controller.test.ts",
+      "sha256": "ad886832dd5059ea5bd1f3b16a7db633aa3ac05d6202c3d578bedac446be9c48"
+    },
+    {
+      "path": "test/runtime.test.ts",
+      "sha256": "914fbf4a54c717d608ca61b7468e76faf28ed41660c90f95743d891efa355305"
+    },
+    {
+      "path": "test/security.test.ts",
+      "sha256": "7070e89feda66082fa0f092d91f5e71db6e25cdb088179ad6a3e0c1b96fbbc83"
+    },
+    {
+      "path": "test/startup.test.tsx",
+      "sha256": "8dc9aeaea83cdb3ad9dbc646a295d431d9981c8b4d9a07035465b956bcaec2ae"
+    },
+    {
+      "path": "test/updates-release.test.ts",
+      "sha256": "a23b2504b425aaf93920f680bcac8bbb5716f99c8a9625c23641dae4f15bf7c5"
+    },
+    {
+      "path": "test/updates-stage.test.ts",
+      "sha256": "3888ce4a230fe172eb7a6cc3ac0e0722eb6db9d6cb1ba05162c55e09e0a2f591"
+    },
+    {
+      "path": "test/updates.test.ts",
+      "sha256": "f0c3faca5b5dc567032dfdf2c235584e989d8d6b5b453e7ea1da2e1a7c698826"
+    }
+  ]
+}

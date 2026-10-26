@@ -1,0 +1,14 @@
+{
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "-lc",
+    "cd /home/neowyh/.codex-worktrees/ideer-complete-105-110-20261025/backend && PYTHONPATH=.:tests UV_CACHE_DIR=/tmp/deer-flow-uv-cache uv run --no-sync pytest -q tests/unit/device_control tests/unit/gateway/test_local_runtime_context.py tests/unit/agentplatform/test_local_runtime_extension.py tests/unit/agentplatform/test_local_runtime_mcp_integration.py tests/integration/api/test_desktop_artifacts.py tests/integration/api/test_desktop_artifact_authorization.py tests/integration/api/test_updates_address.py"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T09:05:55.294159+00:00",
+  "finished": "2026-10-26T09:06:15.379937+00:00",
+  "seconds": 20.078,
+  "exitCode": 0
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "C:/Users/Neo/.codex/worktrees/5435/iDeer-Desktop/.cache/toolchains/node-v22.14.0-win-x64/node.exe",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "test/recovery.test.ts",
+    "--reporter=json",
+    "--outputFile=artifacts/issue-109/recovery-contract-results.json"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T09:17:17.923689+00:00",
+  "finished": "2026-10-26T09:17:39.855855+00:00",
+  "seconds": 21.938,
+  "exitCode": 0
+}

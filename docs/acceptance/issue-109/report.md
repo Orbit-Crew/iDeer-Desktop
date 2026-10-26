@@ -1,5 +1,11 @@
 # Issue 109 acceptance
 
+Current result: [2026-10-26 installed recovery re-acceptance](supplement-20261026.md)
+records six native NSIS/helper fault cases and a real paired rollback followed
+by file operations, original receipt replay, revoked-grant checks and KB metadata
+access checks. Read its candidate binding and coverage limits first. The older
+report below remains evidence for its original candidate.
+
 [iDeer #109](https://github.com/Orbit-Crew/iDeer/issues/109) protects data and
 recovers a compatible program when a drain-and-install update fails: every
 overwritten or deleted file is backed up before the patch applies, the restart

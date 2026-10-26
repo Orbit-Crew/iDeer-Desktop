@@ -1,0 +1,207 @@
+{
+  "mode": "startup-failure",
+  "startedAt": "2026-10-26T09:20:14.759Z",
+  "fixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP",
+  "driverSHA256": "483ed29983ab6d18b284588a1607cec080f75085e1843241fd4bd704cd724820",
+  "installerSHA256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d",
+  "sourceHead": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "injection": "External isolated filesystem/process fault; shipped helper and installed Desktop/Runtime execute unchanged.",
+  "scenarios": {},
+  "timeline": [
+    {
+      "at": "2026-10-26T09:20:33.779Z",
+      "state": "applying",
+      "detail": "backup committed; awaiting process exit"
+    },
+    {
+      "at": "2026-10-26T09:20:34.269Z",
+      "state": "verifying",
+      "detail": "program hashes verified; awaiting actual Desktop and Runtime health"
+    },
+    {
+      "at": "2026-10-26T09:20:53.166Z",
+      "state": "restoring",
+      "detail": "Error: UPDATE_APPLICATION_START_FAILED"
+    },
+    {
+      "at": "2026-10-26T09:20:56.263Z",
+      "state": "rolled-back",
+      "detail": "Previous program hashes, Desktop and Runtime startup verified after Error: UPDATE_APPLICATION_START_FAILED. Automatic updates paused; run manual repair before retrying."
+    }
+  ],
+  "installed": {
+    "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+    "appASARSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+  },
+  "shippedHelperSHA256": "a7e11aa8a923af5006eea1ea0f0eb3c944d32a2a4d5b217598e262f15c2ddf64",
+  "release": {
+    "manifest": {
+      "version": 1,
+      "kind": "patch",
+      "publishedAt": "2026-10-26T00:00:00Z",
+      "desktop": {
+        "version": "0.2.0",
+        "electron": "22.3.27",
+        "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+      },
+      "runtime": {
+        "python": "3.12.10",
+        "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+      },
+      "baseline": {
+        "desktopVersion": "0.2.0",
+        "electronVersion": "22.3.27",
+        "runtimePython": "3.12.10",
+        "dataFormat": 1
+      },
+      "dataCompatibility": {
+        "targetFormat": 1,
+        "readableFormats": [
+          1
+        ]
+      },
+      "serverCompatibility": {
+        "minProtocol": 1,
+        "notes": "T109 isolated failure candidate"
+      },
+      "files": [
+        {
+          "path": "resources/runtime/core/tray.py",
+          "bytes": 60923,
+          "sha256": "00ed1012f9af6ab85ad6b064cd24e7d002d900dea38be59fa3c35472f152b105"
+        },
+        {
+          "path": "resources/runtime/core/desktop.py",
+          "bytes": 23,
+          "sha256": "aa00a59d786eec453b1c4f57d2e76270746b7e0c5a2d65ce1b40e44d996c139b"
+        }
+      ],
+      "deletions": []
+    },
+    "sha256": "a97d37348002e7b41ecec04e4b91459b5353b9546911236d0ca9d0034a32e5e4",
+    "signature": "20789f0af84b49effdd12530947b199ddf71da849762bdfee306d624b655e0804e6cec2382e08c182ddc57fc551db31bb390d38012035578579d7bd1f8f81402"
+  },
+  "staging": {
+    "ok": true,
+    "error": "",
+    "pending": {
+      "kind": "patch",
+      "source": "offline",
+      "manifest": {
+        "version": 1,
+        "kind": "patch",
+        "publishedAt": "2026-10-26T00:00:00Z",
+        "desktop": {
+          "version": "0.2.0",
+          "electron": "22.3.27",
+          "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+        },
+        "runtime": {
+          "python": "3.12.10",
+          "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+        },
+        "baseline": {
+          "desktopVersion": "0.2.0",
+          "electronVersion": "22.3.27",
+          "runtimePython": "3.12.10",
+          "dataFormat": 1
+        },
+        "dataCompatibility": {
+          "targetFormat": 1,
+          "readableFormats": [
+            1
+          ]
+        },
+        "serverCompatibility": {
+          "minProtocol": 1,
+          "notes": "T109 isolated failure candidate"
+        },
+        "files": [
+          {
+            "path": "resources/runtime/core/tray.py",
+            "bytes": 60923,
+            "sha256": "00ed1012f9af6ab85ad6b064cd24e7d002d900dea38be59fa3c35472f152b105"
+          },
+          {
+            "path": "resources/runtime/core/desktop.py",
+            "bytes": 23,
+            "sha256": "aa00a59d786eec453b1c4f57d2e76270746b7e0c5a2d65ce1b40e44d996c139b"
+          }
+        ],
+        "deletions": []
+      },
+      "verifiedAt": "2026-10-26T09:20:31.240Z",
+      "advice": "校验通过，补丁已就绪；安装需要你在任务排空后单独确认。"
+    }
+  },
+  "expected": "rolled-back",
+  "protectedBefore": {
+    "documents/current.txt": "97f1322b824d2d4c97d74d74dc794bb63ddee1e19cdf7503b0844d5b1b9efa45",
+    "kb/current.json": "2bdabf5bfc6f412d8e5c9e32172b0433365626827b2629583afbbe8a55dac42c",
+    "current-credential-ref.txt": "6e83d936ee68f4da6b29d8a134e370179fde7b2e79e76892fa530548213646d0",
+    "revoked-grant.txt": "7b845187e5b956481e81375516ca88900a0f09239238339d0b695d11357308d3",
+    "Runtime/receipts.db": "fd01aafdffdef253539359bd01f488b76fa84b59dda27bc12789bfcfa9bea98f"
+  },
+  "recovery": {
+    "state": "rolled-back",
+    "stamp": "27ac2a62-00a4-4edf-9a74-cbf59aa9e594",
+    "programRoot": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\installed",
+    "journalPath": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\transaction.json",
+    "desktopVersion": "0.2.0",
+    "runtimePython": "3.12.10",
+    "detail": "Previous program hashes, Desktop and Runtime startup verified after Error: UPDATE_APPLICATION_START_FAILED. Automatic updates paused; run manual repair before retrying.; diagnostics: C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\transaction.json"
+  },
+  "protectedAfter": {
+    "documents/current.txt": "97f1322b824d2d4c97d74d74dc794bb63ddee1e19cdf7503b0844d5b1b9efa45",
+    "kb/current.json": "2bdabf5bfc6f412d8e5c9e32172b0433365626827b2629583afbbe8a55dac42c",
+    "current-credential-ref.txt": "6e83d936ee68f4da6b29d8a134e370179fde7b2e79e76892fa530548213646d0",
+    "revoked-grant.txt": "7b845187e5b956481e81375516ca88900a0f09239238339d0b695d11357308d3",
+    "Runtime/receipts.db": "fd01aafdffdef253539359bd01f488b76fa84b59dda27bc12789bfcfa9bea98f"
+  },
+  "programAfter": {
+    "resources/app.asar": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "resources/runtime/core/tray.py": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d",
+    "resources/runtime/core/desktop.py": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939",
+    "resources/runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "programBefore": {
+    "resources/app.asar": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "resources/runtime/core/tray.py": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d",
+    "resources/runtime/core/desktop.py": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939",
+    "resources/runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "repairInstructions": {
+    "profileToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile",
+    "backupToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\backup",
+    "resumeCommand": "$env:ELECTRON_RUN_AS_NODE='1'; & 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\helper\\ideer-desktop.exe' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\helper\\update-helper.cjs' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\transaction.json'",
+    "fullRepair": "If automatic recovery cannot safely finish, reinstall a verified complete installer into C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\installed. Preserve the profile and backup above. Do not uninstall or copy old credentials, authorizations or receipts over the current profile."
+  },
+  "health": {
+    "nonce": "41e114ba-719a-44b1-9cc1-b4a4b60f6056",
+    "pid": 186156,
+    "executable": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\installed\\ideer-desktop.exe",
+    "desktopVersion": "0.2.0",
+    "electronVersion": "22.3.27",
+    "runtimePython": "3.12.10",
+    "runtimePid": 188188,
+    "echo": "ideer-update-health-v1",
+    "dataFormat": 1,
+    "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "usable": {
+    "nonce": "41e114ba-719a-44b1-9cc1-b4a4b60f6056",
+    "pid": 186156,
+    "runtimePid": 188188,
+    "desktopVersion": "0.2.0",
+    "windowLoaded": true,
+    "rendererReady": true,
+    "ipcReady": true,
+    "runtimeUnfenced": true,
+    "echo": "ideer-update-health-v1"
+  },
+  "restartUI": "iDeer Desktop\n平台连接\n\n在本机 Runtime 面板查看设备连接与任务状态。\n\n版本 0.1.0\n\n退出应用\n平台连接\n平台登录与设备连接\n登录后可选择平台已有 Agent/Skill，继续平台聊天与历史\n配对后的设备可通过 Runtime 接收 Server 签名任务。尚未配置设备时，任务不可用。\n原 linz 安装和数据保留在原位置，可继续通过原应用查阅。\n平台聊天与历史\nRuntime 或 Server 不可用，请检查连接后恢复状态；旧提交不会自动重发\n请先在系统浏览器登录并绑定设备，再选择平台已有 Agent/Skill 聊天\n本机 Runtime\n平台账号与设备绑定\n在系统浏览器登录已有账号或 SSO，核对设备后确认绑定。完成交换前，桌面业务会话为未认证。\n在浏览器登录并绑定此设备\n桌面业务会话：未认证\n退出账号\n切换账号或重新绑定设备\n退出会停止任务并取消待审批，保留隔离记录。同账号原设备重登可恢复授权；切换账号将建立新的设备绑定。\n进程：启动中 （PID 184460）\n设备连接：未连接\n启动 Runtime\n停止 Runtime\n工作目录\n按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。\n尚未选择并确认目录\n选择并授权目录\n在原聊天中可选择仅允许一次，或持续允许所选目录及子目录的文本新建与覆盖。目录授权不允许执行脚本。\n持续目录授权\n当前账号与设备没有持续文本写入授权。\n执行回执历史\n重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。\n清理已确认回执\n较新回执\n较早回执\n近期任务\n暂无任务记录\n更新检查与离线导入\n在线检查使用已配对 Server 提供的受控地址；离线导入选择 manifest.json（同目录需有 manifest.sig）。 两条路径都只做签名、完整性与兼容性校验，并停在待安装状态——检查或导入不等于安装同意，也不会修改任何文件。\n检查更新（在线）\n导入离线补丁清单\n已恢复到更新前程序；自动更新已暂停\nPrevious program hashes, Desktop and Runtime startup verified after Error: UPDATE_APPLICATION_START_FAILED. Automatic updates paused; run manual repair before retrying.; diagnostics: C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-6kCWeP\\profile\\Updates\\stage-27ac2a62-00a4-4edf-9a74-cbf59aa9e594\\transaction.json（Desktop 0.2.0 · Runtime Python 3.12.10）\n组合兼容状态\n兼容声明由已配对 Server 的受控地址提供并验签。单项不兼容只停该能力；核心不兼容停止新的本地任务， 历史与未确认执行记录完整保留，未知任务不会当作未执行。功能开关不替代权限：Server 授权与本地策略仍决定每个请求。\n刷新兼容声明\n兼容声明不可用：Error invoking remote method 'desktop:compatibility:refresh': Error: COMPAT_ORIGIN_UNKNOWN\n无法核验现有兼容声明时停止新的本地任务；记录与历史保留。首次未发布声明仅保留旧协议 1 行为。",
+  "secondInstall": "Error: Error invoking remote method 'desktop:updates:install': Error: UPDATE_RECOVERY_LOCKED",
+  "status": "passed",
+  "finishedAt": "2026-10-26T09:21:06.203Z"
+}

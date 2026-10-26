@@ -1,0 +1,158 @@
+{
+  "mode": "copy-failure",
+  "startedAt": "2026-10-26T09:02:12.907Z",
+  "fixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq",
+  "installerSHA256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d",
+  "sourceHead": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "injection": "External isolated filesystem/process fault; shipped helper and installed Desktop/Runtime execute unchanged.",
+  "scenarios": {},
+  "timeline": [
+    {
+      "at": "2026-10-26T09:02:30.444Z",
+      "state": "prepared",
+      "detail": "backup committed; awaiting process exit"
+    },
+    {
+      "at": "2026-10-26T09:02:30.504Z",
+      "state": "applying",
+      "detail": "backup committed; awaiting process exit"
+    },
+    {
+      "at": "2026-10-26T09:02:35.578Z",
+      "state": "restoring",
+      "detail": "Error: EPERM: operation not permitted, rename 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py.20bc53c1-71fb-4e5b-858a-d2ca0961e6f8.update-tmp' -> 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py'"
+    },
+    {
+      "at": "2026-10-26T09:02:39.118Z",
+      "state": "rolled-back",
+      "detail": "Previous program hashes, Desktop and Runtime startup verified after Error: EPERM: operation not permitted, rename 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py.20bc53c1-71fb-4e5b-858a-d2ca0961e6f8.update-tmp' -> 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py'. Automatic updates paused; run manual repair before retrying."
+    }
+  ],
+  "installed": {
+    "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+    "appASARSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+  },
+  "shippedHelperSHA256": "a7e11aa8a923af5006eea1ea0f0eb3c944d32a2a4d5b217598e262f15c2ddf64",
+  "release": {
+    "manifest": {
+      "version": 1,
+      "kind": "patch",
+      "publishedAt": "2026-10-26T00:00:00Z",
+      "desktop": {
+        "version": "0.2.0",
+        "electron": "22.3.27",
+        "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+      },
+      "runtime": {
+        "python": "3.12.10",
+        "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+      },
+      "baseline": {
+        "desktopVersion": "0.2.0",
+        "electronVersion": "22.3.27",
+        "runtimePython": "3.12.10",
+        "dataFormat": 1
+      },
+      "dataCompatibility": {
+        "targetFormat": 1,
+        "readableFormats": [
+          1
+        ]
+      },
+      "serverCompatibility": {
+        "minProtocol": 1,
+        "notes": "T109 isolated failure candidate"
+      },
+      "files": [
+        {
+          "path": "resources/runtime/core/tray.py",
+          "bytes": 60923,
+          "sha256": "00ed1012f9af6ab85ad6b064cd24e7d002d900dea38be59fa3c35472f152b105"
+        },
+        {
+          "path": "resources/runtime/core/desktop.py",
+          "bytes": 19148,
+          "sha256": "1eb91b978d64223175125403baed8b7d0637d01f7ca4a57ad7884b700a3cbd62"
+        }
+      ],
+      "deletions": []
+    },
+    "sha256": "3af9f1ed471dc649620970eb36bfd21c259146a4fe3993adf38c7a394466ab9d",
+    "signature": "c779757f7597f2816a01c607ede6bb2d6ebafeb97630f28d65106057e047dbb7ac845622320a0f44086f0e4b9f06fb290269a434ad5c689f4f827420b2dfe007"
+  },
+  "expected": "rolled-back",
+  "protectedBefore": {
+    "documents/current.txt": "97f1322b824d2d4c97d74d74dc794bb63ddee1e19cdf7503b0844d5b1b9efa45",
+    "kb/current.json": "2bdabf5bfc6f412d8e5c9e32172b0433365626827b2629583afbbe8a55dac42c",
+    "current-credential-ref.txt": "6e83d936ee68f4da6b29d8a134e370179fde7b2e79e76892fa530548213646d0",
+    "revoked-grant.txt": "7b845187e5b956481e81375516ca88900a0f09239238339d0b695d11357308d3",
+    "Runtime/receipts.db": "5aba7eaae13b8561aae0b1a4596eb063cd9c52201605fc16b2486e83d38b6c4a"
+  },
+  "fault": {
+    "point": "second destination is an empty directory after durable backup",
+    "affected": "resources/runtime/core/desktop.py"
+  },
+  "recovery": {
+    "state": "rolled-back",
+    "stamp": "4258bdce-7410-4d64-b4ad-664c44a5676f",
+    "programRoot": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed",
+    "journalPath": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\transaction.json",
+    "desktopVersion": "0.2.0",
+    "runtimePython": "3.12.10",
+    "detail": "Previous program hashes, Desktop and Runtime startup verified after Error: EPERM: operation not permitted, rename 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py.20bc53c1-71fb-4e5b-858a-d2ca0961e6f8.update-tmp' -> 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\resources\\runtime\\core\\desktop.py'. Automatic updates paused; run manual repair before retrying.; diagnostics: C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\transaction.json"
+  },
+  "protectedAfter": {
+    "documents/current.txt": "97f1322b824d2d4c97d74d74dc794bb63ddee1e19cdf7503b0844d5b1b9efa45",
+    "kb/current.json": "2bdabf5bfc6f412d8e5c9e32172b0433365626827b2629583afbbe8a55dac42c",
+    "current-credential-ref.txt": "6e83d936ee68f4da6b29d8a134e370179fde7b2e79e76892fa530548213646d0",
+    "revoked-grant.txt": "7b845187e5b956481e81375516ca88900a0f09239238339d0b695d11357308d3",
+    "Runtime/receipts.db": "5aba7eaae13b8561aae0b1a4596eb063cd9c52201605fc16b2486e83d38b6c4a"
+  },
+  "programAfter": {
+    "resources/app.asar": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "resources/runtime/core/tray.py": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d",
+    "resources/runtime/core/desktop.py": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939",
+    "resources/runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "programBefore": {
+    "resources/app.asar": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "resources/runtime/core/tray.py": "00dc56f5f5f0ae3404f7c5f3ebe13fdcddc784b9d320889f45ac9528538a7a6d",
+    "resources/runtime/core/desktop.py": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939",
+    "resources/runtime/distribution.lock.json": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "repairInstructions": {
+    "profileToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile",
+    "backupToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\backup",
+    "resumeCommand": "$env:ELECTRON_RUN_AS_NODE='1'; & 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\helper\\ideer-desktop.exe' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\helper\\update-helper.cjs' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\profile\\Updates\\stage-4258bdce-7410-4d64-b4ad-664c44a5676f\\transaction.json'",
+    "fullRepair": "If automatic recovery cannot safely finish, reinstall a verified complete installer into C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed. Preserve the profile and backup above. Do not uninstall or copy old credentials, authorizations or receipts over the current profile."
+  },
+  "health": {
+    "nonce": "30a30c5c-e865-4309-a850-055a07ae094b",
+    "pid": 181180,
+    "executable": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-17Dugq\\installed\\ideer-desktop.exe",
+    "desktopVersion": "0.2.0",
+    "electronVersion": "22.3.27",
+    "runtimePython": "3.12.10",
+    "runtimePid": 185676,
+    "echo": "ideer-update-health-v1",
+    "dataFormat": 1,
+    "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "usable": {
+    "nonce": "30a30c5c-e865-4309-a850-055a07ae094b",
+    "pid": 181180,
+    "runtimePid": 185676,
+    "desktopVersion": "0.2.0",
+    "windowLoaded": true,
+    "rendererReady": true,
+    "ipcReady": true,
+    "runtimeUnfenced": true,
+    "echo": "ideer-update-health-v1"
+  },
+  "status": "failed",
+  "error": "Error: Timeout: owned launched processes stop",
+  "stack": "Error: Timeout: owned launched processes stop\n    at wait (C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-109\\native.cjs:21:9)\n    at async stopLaunched (C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-109\\native.cjs:39:3)\n    at async main (C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-109\\native.cjs:158:3)",
+  "cleanupError": "Error: Timeout: owned launched processes stop",
+  "finishedAt": "2026-10-26T09:03:29.306Z"
+}

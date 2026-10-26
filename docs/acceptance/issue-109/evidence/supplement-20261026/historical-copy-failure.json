@@ -1,0 +1,18 @@
+{
+  "mode": "copy-failure",
+  "startedAt": "2026-10-26T09:00:47.883Z",
+  "fixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-jfijfR",
+  "installerSHA256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d",
+  "sourceHead": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "injection": "External isolated filesystem/process fault; shipped helper and installed Desktop/Runtime execute unchanged.",
+  "scenarios": {},
+  "timeline": [],
+  "installed": {
+    "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+    "appASARSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+  },
+  "status": "failed",
+  "error": "Error: \"out/main/update-helper.cjs\" was not found in this archive",
+  "stack": "Error: \"out/main/update-helper.cjs\" was not found in this archive\n    at Filesystem.getFile (C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\node_modules\\@electron\\asar\\lib\\filesystem.js:187:19)\n    at Object.extractFile (C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\node_modules\\@electron\\asar\\lib\\asar.js:256:33)\n    at main (C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-109\\native.cjs:52:33)\n    at Object.<anonymous> (C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-109\\native.cjs:174:1)\n    at Module._compile (node:internal/modules/cjs/loader:1554:14)\n    at Object..js (node:internal/modules/cjs/loader:1706:10)\n    at Module.load (node:internal/modules/cjs/loader:1289:32)\n    at Function._load (node:internal/modules/cjs/loader:1108:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)",
+  "finishedAt": "2026-10-26T09:01:03.501Z"
+}
