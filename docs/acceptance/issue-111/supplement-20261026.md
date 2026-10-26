@@ -1,10 +1,12 @@
 # #111 最终安装包逐场景复验
 
-本轮执行日期为 2026-10-26，Asia/Shanghai。自动执行人为 Codex，人工登录执行人为本会话用户。自动验收、完整 Server 门禁及人工浏览器登录均已完成；当前阶段状态仍为 incomplete，仅等待最终人工签核。首次人工尝试遇到临时前端配置问题，修复后在全新安装和隔离环境中复验通过。签核前不放行，不依据本页早期记录关闭工单。
+本轮执行日期为 2026-10-26，Asia/Shanghai。自动执行人为 Codex，人工登录及签核人为本会话用户。自动验收、完整 Server 门禁、人工浏览器登录及最终人工签核均已完成，本候选的现代 Windows 一期文件范围验收为 passed。首次人工尝试遇到临时前端配置问题，修复后在全新安装和隔离环境中复验通过。结论不扩展到真实 Win7，也不表示相关 PR 已合并。
 
 ## 候选、环境与复用条件
 
 Desktop 执行基线为 `8d17d16e816456096bb8f37ddb496b8a7ac84443`，本轮分支 `codex/issue-111-acceptance`，包含 #108 产品修复 `d17721cb6950ba4eb2457c4d2ccc3c0fae5c4a17`。本轮仅补验收驱动和记录，没有产品源码修改或重建安装包。逐文件记录见 [candidate-binding.json](evidence/supplement-20261026/candidate-binding.json)。
+
+验收驱动及报告提交为 `92b82557bd994f196f3147dfd9c9a12b739d8527`。237 个实际源文件/驱动与提交字节的核对及 Git 换行说明见 [publication.json](publication.json)；后续提交仅补发布与人工签核记录。
 
 - 最终安装包 `ideer-desktop-0.2.0-windows-x64-setup.exe`，92,395,057 字节，SHA-256 `b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d`。各组均实际 NSIS 安装到新的 TEMP 目录，并使用独立 `--user-data-dir`。
 - Desktop 的 160 个产品、测试和构建文件指纹为 `8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a`，与 [#108 最终候选](../issue-108/timeout-resolution-20261026.md)一致。typecheck、94 个 Vitest、400 个 Runtime 测试及 6 个 skip、ruff、provenance、实际 Windows 打包采用该完全相同输入和包的已有记录，不宣称本轮重新运行这些公共门禁。
@@ -23,7 +25,7 @@ Desktop 执行基线为 `8d17d16e816456096bb8f37ddb496b8a7ac84443`，本轮分�
 | T111-02 | 实际读取和搜索、新建/覆盖；批准、拒绝、真实 300 秒超时；持续目录授权与逐次审批区分；账号切换、登出、会话轮换、设备撤销、用户和设备越界拒绝；实际文件 hash、错误类别、授权与回执核对。 | passed |
 | T111-03 | 写入中停止、断线、重启、存储故障与未知副作用不重派；显式上传、幂等、D2 下载 hash、B 用户拒绝和生产设备撤销；真实在线/离线组合更新与失败回滚，原 pending 回执补传、当前合法身份与撤销事实保持，恢复后实际读写。 | passed |
 | T111-04 自动段 | Desktop 相同候选公共门禁复用；Server 完整 core-full 重新运行，保留父子 lane、命令、退出码、耗时；受保护路径 Real E2E 的实际选择及历史运行记录单独核对。 | passed，浏览器组含 1 项重试通过的 flaky，见下文 |
-| T111-04 人工段 | 用户审阅本轮最终报告及必需项，明确验收人和阶段结论。 | unexecuted，最终报告齐备后提交审阅 |
+| T111-04 人工段 | 用户审阅本轮最终报告及必需项，明确验收人和阶段结论。 | passed，本会话用户明确同意现代 Windows 一期验收通过，签核绑定所审报告 hash |
 
 KB 仅覆盖 canonical 资源元数据、归属、provider-binding 与另一用户拒绝。隔离环境没有配置检索提供方，初始化失败基线如实保持，不据此声称 KB 检索能力通过。应用实际版本来自 Electron app.getVersion；旧 renderer 静态页脚显示 0.1.0 不作为版本判据。
 
@@ -71,6 +73,8 @@ flaky 为 `tests/e2e/chat.spec.ts:1843` 的 `shows structured upload errors as r
 
 本轮 `7079f760..dc538326` 的真实选择器命令为 `backend/.venv/bin/python scripts/select_test_lanes.py --base 7079f760de39d946babaca0c0ef72c865e86a2de --head dc5383266516438c3edfab0bcecff8b968cd3edc --plan-file ...`，实际只选择 governance、docs_only=true，未选择 Real E2E。完整 core-full 是本次阶段验收主动执行的门禁，不把文档差异选择说成受保护代码变更。
 
+Server PR #151 的当前 GitHub Actions 中 Test Lane Shadow、Migration Tests、Real E2E Tests 工作流成功；其中 Real E2E 的选择和汇总 job 成功，实际 `real_e2e_tests` job 为 skipped，与文档差异选择一致，不当作又执行了一轮真实 E2E。
+
 ## 驱动问题与重试
 
 保留 `historical-*` 命令和结果。早期 writes 在 WSL 启动超时后未进入 Desktop 场景；任务级 Gateway supervisor 后续避免反复启动 WSL。早期 identity 的 NSIS 等待超时未进入场景，之后功能断言通过但外层重复删除已清理凭据，正确记为退出 1；修正 launcher 的清理记账后重新安装、完整复验退出 0。早期真实模型固定件仅持业务会话而缺少当前恢复契约要求的设备绑定，未到模型调用；补真实设备配对后复验通过。没有把这些固定件失败归咎于产品，也没有据一次通过抹去失败。
@@ -83,6 +87,6 @@ flaky 为 `tests/e2e/chat.spec.ts:1843` 的 `shows structured upload errors as r
 
 隔离测试账号仅存在本轮数据库，浏览器和 Desktop 使用独立目录。OS 打开浏览器的调用由验收适配器转至独立 Edge 数据目录，真实 Next 登录页、Gateway、CSRF 和设备一次性交换不替换。前端副本逐文件核对原提交字节，并保留绑定记录。人工段通过后，真实 BrowserLogin.logout 清理 3 个新凭据引用；Gateway、Next、代理和 supervisor 均已退出，两次独立测试 Edge 也已关闭。代理停止瞬间的原记录仍计有 2 个正在销毁的 socket，保留该原值；进程结束后的独立检查为 0 个实际安装目录进程、0 个活动 TCP 连接，见 `human-final-cleanup-check.json`。
 
-最终人工验收人和审阅时间尚未填写。签核应确认 T111-01/02/03 的必需项及两仓门禁与本候选匹配。签核前本票保持 incomplete，不合并 PR 或关闭 issue。
+最终人工验收人为本会话用户，明确回复“已审阅，同意现代 Windows 一期验收通过”，记录于 `2026-10-26T14:28:56Z`。签核及所审报告 SHA-256 见 [human-signoff.json](evidence/supplement-20261026/human-signoff.json)，原报告完整文本快照见 [reviewed-report.txt](evidence/supplement-20261026/reviewed-report.txt)。所审范围包含上述 flaky 记录及平台边界。本页随后补记该确认，原快照仍保留签核前状态，便于核对用户实际审阅内容。各 PR 仍待正常审查合并。
 
 真实 Win7 单独为 unexecuted，仅后置到 [#131](https://github.com/Orbit-Crew/iDeer/issues/131)。需在真实 Win7 验安装/启动、Electron 22/Node、Python 与兼容补丁、浏览器配对、安全存储、文件工具和组合更新恢复；由 #131 的平台验收负责人领取执行，本轮未指定具体个人。现代 Windows 结论不能扩展为 Win7 兼容或 linz 退役结论。

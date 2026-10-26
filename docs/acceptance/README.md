@@ -39,4 +39,4 @@ These links locate existing records; this index does not change their verdicts.
 | #107 | [Report](issue-107/report.md) |
 | #109 | [Report](issue-109/report.md), [2026-10-26 installed recovery re-acceptance](issue-109/supplement-20261026.md) |
 | #110 | [Report](issue-110/report.md) |
-| #111 | [Report](issue-111/report.md), [2026-10-26 final-package re-acceptance and human steps](issue-111/supplement-20261026.md) |
+| #111 | [Report](issue-111/report.md), [2026-10-26 modern Windows acceptance with human signoff](issue-111/supplement-20261026.md) |
