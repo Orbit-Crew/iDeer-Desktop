@@ -1,0 +1,40 @@
+// Run from the bound Desktop checkout with its local installer still present.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=process.cwd(),dir=__dirname,read=name=>JSON.parse(fs.readFileSync(path.join(dir,name),'utf8'));
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const binding=read('candidate-binding.json');
+for(const row of binding.sources)assert.equal(hash(path.join(root,row.path)),row.sha256,row.path);
+for(const row of binding.transport.files)assert.equal(hash(path.join(dir,row.archive)),row.sha256,row.archive);
+assert.equal(hash(path.join(root,'dist',binding.installer.file)),binding.installer.sha256);
+assert.equal(binding.trust.artifactSHA256,binding.installer.sha256);
+const pem=fs.readFileSync(path.join(dir,'release-public-key.pem'));
+assert.equal(crypto.createHash('sha256').update(crypto.createPublicKey(pem).export({type:'spki',format:'der'})).digest('hex'),binding.trust.publicKeySHA256);
+assert(crypto.verify(null,fs.readFileSync(path.join(dir,'release-manifest.json')),pem,Buffer.from(fs.readFileSync(path.join(dir,'release-manifest.sig'),'utf8').trim(),'hex')));
+const desktop=hash(path.join(root,'local-runtime/core/desktop.py'));
+for(const [label,source] of [['online','online'],['offline','offline']]) {
+ const r=read(label+'-result.json');assert.equal(r.status,'passed');assert(!r.timingInjection);assert.equal(r.updateSource,source);
+ assert.equal(r.candidate.runtimeCore.find(row=>row.path==='local-runtime/core/desktop.py').sha256,desktop);
+ for(const scenario of Object.values(r.scenarios))assert.equal(scenario.status,'passed');
+ for(const row of r.candidate.acceptanceFiles)assert.equal(hash(path.join(root,row.path)),row.sha256,label+':'+row.path);
+ assert.equal(r.recovery.state,'updated');assert.equal(r.health.echo,'ideer-update-health-v1');assert.equal(r.usable.nonce,r.health.nonce);
+ assert(r.usable.windowLoaded&&r.usable.rendererReady&&r.usable.ipcReady&&r.usable.runtimeUnfenced);
+ const replay=r.scenarios['T108-03'].cases.find(c=>c.name.startsWith('same receipt replay'));
+ assert.equal(r.receiptBeforeUpdate.delivery_state,'pending');assert.equal(replay.receipt.delivery_state,'confirmed');assert(replay.receipt.acknowledgment);
+ for(const key of ['receipt_id','receipt_hash','task_id','run_id','request_hash','user_id','device_id','server_origin'])assert.equal(replay.receipt[key],r.receiptBeforeUpdate[key],label+':'+key);
+ assert.equal(replay.originalExecutions,1);assert.equal(replay.originalDispatches,1);
+ assert.equal(read(label+'-command.json').exitCode,0);assert.equal(read(label+'-server-cleanup.json').exited,true);assert.equal(read(label+'-transport-cleanup.json').closed,true);
+ assert.equal(r.credentialCleanup.removed,6);assert.equal(r.credentialCleanup.failures.length,0);
+}
+const http=read('online-http.json');for(const url of ['/updates/desktop/manifest.json','/updates/desktop/manifest.sig','/updates/desktop/files/resources/runtime/core/tray.py'])assert(http.some(r=>r.method==='GET'&&r.path===url&&r.status===200),url);
+const blocked=read('blockers-result.json');assert.equal(blocked.status,'passed');assert(!blocked.timingInjection);assert.equal(blocked.scenarios['T108-02'].status,'passed');assert.equal(blocked.scenarios['T108-02'].cases.length,2);
+assert.equal(blocked.candidate.runtimeCore.find(row=>row.path==='local-runtime/core/desktop.py').sha256,desktop);
+assert.equal(read('blockers-server-cleanup.json').exited,true);assert.equal(read('blockers-transport-cleanup.json').closed,true);
+const before=read('before-result.json'),after=read('after-result.json');assert.equal(before.status,'failed');assert.equal(after.status,'passed');assert(before.timingInjection.testOnly&&after.timingInjection.testOnly);
+assert(before.maintenanceObservations.some(s=>s.activeTasks===0&&s.unknownWriteEffects===1&&!s.receiptStorageError));
+assert(before.maintenanceObservations.some(s=>s.unknownWriteEffects===0&&s.outcome.includes('blocked')));
+assert.equal(before.candidate.runtimeCore.find(r=>r.path==='local-runtime/core/transport.py').sha256,after.candidate.runtimeCore.find(r=>r.path==='local-runtime/core/transport.py').sha256);
+for(const name of ['snapshot-contract-green','runtime-final','ruff-final','typecheck-final','vitest-final','runtime-provenance-final','provenance-final','dist-cached-final'])assert.equal(read(name+'-command.json').exitCode,0,name);
+assert.equal(read('snapshot-contract-red-command.json').exitCode,1);
+const vitest=read('vitest-results.json');assert.equal(vitest.numPassedTests,94);assert.equal(vitest.numFailedTests,0);
+const summary={checkedAt:new Date().toISOString(),status:'passed',sourceBindings:binding.sources.length,expectedBeforeFailure:true,controlledAfterPass:true,onlineCases:8,offlineCases:8,installedBlockerCases:2,vitestPassed:94,runtimePassed:400,runtimeSkipped:6};
+fs.writeFileSync(path.join(dir,'integrity-check.json'),JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));

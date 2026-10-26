@@ -1,0 +1,12 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.cache\\toolchains\\node-v22.14.0-win-x64\\node.exe",
+    "scripts\\acceptance\\issue-108\\blockers.cjs",
+    "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\artifacts\\issue-108\\timeout\\clean-blockers"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T07:21:54.422684+00:00",
+  "finished": "2026-10-26T07:22:25.173286+00:00",
+  "seconds": 30.75,
+  "exitCode": 0
+}

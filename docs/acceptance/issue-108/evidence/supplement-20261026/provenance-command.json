@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "scripts\\verify-provenance.cjs"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T05:52:32.782235+00:00",
+  "finished": "2026-10-26T05:52:32.977999+00:00",
+  "seconds": 0.203,
+  "exitCode": 0
+}

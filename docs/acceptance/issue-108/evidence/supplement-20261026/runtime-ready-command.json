@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests",
+    "-q",
+    "--basetemp",
+    "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer108-pytest-9c2f0d4a2fa541b0b813e5d3b2ea4bd9"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T05:43:00.351210+00:00",
+  "finished": "2026-10-26T05:45:03.687285+00:00",
+  "seconds": 123.344,
+  "exitCode": 0
+}

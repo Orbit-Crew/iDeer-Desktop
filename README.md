@@ -1,5 +1,9 @@
 # iDeer Desktop
 
+For issue completion reviews or acceptance evidence, start with the
+[acceptance index](docs/acceptance/README.md). It links #108's current report,
+historical attempts, candidate bindings and reproducible drivers.
+
 Windows desktop entry for iDeer, version 0.1.0. The React/antd/zustand application
 owns a bundled Python Runtime and displays process, connection and task state.
 Paired devices receive signed Server tasks through the existing protocol.

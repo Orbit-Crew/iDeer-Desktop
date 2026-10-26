@@ -1,0 +1,17 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests/test_desktop_drain_snapshot.py",
+    "local-runtime/tests/test_install_drain.py",
+    "-q",
+    "--basetemp",
+    "C:\\Users\\Neo\\AppData\\Local\\Temp\\i108s-9c5e6f47"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T06:28:58.377051+00:00",
+  "finished": "2026-10-26T06:28:59.874181+00:00",
+  "seconds": 1.5,
+  "exitCode": 0
+}

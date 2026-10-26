@@ -1,2 +1,4 @@
 # Preserve the exact bytes bound by this acceptance evidence manifest.
 docs/acceptance/issue-99/evidence/* -text
+# Keep signed manifests, source snapshots and raw evidence byte-for-byte.
+docs/acceptance/issue-108/evidence/** -text whitespace=cr-at-eol,-blank-at-eof

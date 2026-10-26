@@ -1,0 +1,22 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "local-runtime/tests/test_files.py::test_symlink_escape_is_rejected",
+    "local-runtime/tests/test_files.py::test_symlink_inside_allowed_root_is_rejected",
+    "local-runtime/tests/test_mcp.py::test_stdio_close_reaps_grandchildren_of_the_server_process",
+    "local-runtime/tests/test_secrets.py::test_default_store_is_unavailable_without_an_os_backend",
+    "local-runtime/tests/test_secrets.py::test_cli_auto_backend_reports_unavailability_as_a_stable_code",
+    "local-runtime/tests/test_tray_actions.py::test_written_private_key_is_never_world_readable",
+    "-q",
+    "-rs",
+    "--basetemp",
+    "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer108-skips-4170c1fb50eb4241995e5b08b12fe0c2"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T06:01:12.189620+00:00",
+  "finished": "2026-10-26T06:01:12.826919+00:00",
+  "seconds": 0.64,
+  "exitCode": 0
+}
