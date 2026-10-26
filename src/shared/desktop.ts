@@ -93,7 +93,7 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
-  checkUpdates(): Promise<UpdateCheckResult>
+  checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
   recoveryState(): Promise<RecoveryView | null>

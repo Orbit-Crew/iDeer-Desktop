@@ -12,7 +12,7 @@ export default function AppLayout(): JSX.Element {
   const leftPanelOpen = useUIStore((state) => state.leftPanelOpen)
   const toggleLeftPanel = useUIStore((state) => state.toggleLeftPanel)
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div data-desktop-ready="true" className="flex h-screen w-screen overflow-hidden">
       <div className="relative flex-shrink-0 h-full overflow-hidden border-r border-line bg-white"
         style={{ width: leftPanelOpen ? 260 : 20, transition: 'width 0.2s ease-in-out' }}>
         {leftPanelOpen ? <Sidebar /> : (

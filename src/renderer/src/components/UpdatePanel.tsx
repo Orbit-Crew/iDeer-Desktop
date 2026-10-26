@@ -10,7 +10,21 @@ export default function UpdatePanel(): JSX.Element {
   const [install, setInstall] = useState<InstallOutcome | null>(null)
   const [recovery, setRecovery] = useState<RecoveryView | null>(null)
   const [failed, setFailed] = useState('')
-  useEffect(() => { void window.ideer.recoveryState().then((state) => { if (state) setRecovery(state) }).catch(() => {}) }, [])
+  useEffect(() => {
+    let active = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const refresh = async (): Promise<void> => {
+      try {
+        const state = await window.ideer.recoveryState()
+        if (!active) return
+        setRecovery(state)
+        if (state?.state === 'applied-pending-verify') timer = setTimeout(() => { void refresh() }, 500)
+      } catch {}
+    }
+    void refresh()
+    return () => { active = false; if (timer) clearTimeout(timer) }
+  }, [])
+  useEffect(() => { void window.ideer.checkUpdates('staged').then(setResult).catch(error => setFailed(String(error))) }, [])
 
   const run = async (kind: 'online' | 'offline'): Promise<void> => {
     setBusy(true); setFailed(''); setResult(null); setInstall(null)
