@@ -118,7 +118,19 @@ maintainer-authorized review with all required checks green.
 
 Real Win7 remains `unexecuted` per the ticket and is owned by
 [#131](https://github.com/Orbit-Crew/iDeer/issues/131). The Server-side
-artifact upload endpoint for the issue 105 contract is still pending in the
-Server workflow; T106-02's upload scenario therefore asserts the honest
-failure path (fixed error category, no fake success, no visibility change)
-and must be re-verified once that endpoint lands.
+artifact upload endpoint for the issue 105 contract was delivered by Server
+PR #143 (merged as `432b60930f499490dafde6e136b1cd2e036f227c`); the
+honest-failure assertion recorded in the 0.1.0-era run below was a
+transition-state record, not a permanent dependency.
+
+## Final-candidate installed re-verification (0.2.0, passed)
+
+The full installed-candidate matrix was re-run on the final 0.2.0 package
+against the real Gateway fixture — binding, environment and run map in
+[final-candidate-binding.md](../final-candidate-binding.md); result JSON in
+[evidence/installed-matrix-result.json](evidence/installed-matrix-result.json).
+T106-01..04 all passed (13 cases), including the explicit upload against the
+live Server artifact endpoint with an idempotent repeat, the second-device
+download of the exact bytes, and the cross-account refusal — the upload
+scenario that could only fail honestly in the earlier run now passes for
+real on the installed candidate.

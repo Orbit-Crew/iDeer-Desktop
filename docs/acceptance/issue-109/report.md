@@ -40,7 +40,7 @@ Python 3.12.10.
 | T109-01 (data, credentials, receipts preserved across injected failures) | recovery reads and writes only the program directory: the profile (receipts/credentials area) byte content is asserted unchanged through verify, rollback and lock paths; the rollback restores exact prior bytes (hash-checked backup) and removes previously-new files instead of resurrecting them | passed |
 | T109-02 (safe rollback only when the old program reads current data) | user data never enters recovery — the previous program is restored against untouched data, so the old combination reads it by construction; a format-incompatible full-installer path is the `kind=full` advice of #107/#108 rather than an in-place mix | passed |
 | T109-03 (no old/new mix; repeated updates stop; diagnostics kept) | rollback restores the complete recorded set; a second verification cycle cannot start because the recovery lock refuses installs and a recovery failure preserves the backup directory and the diagnostics text (`manual repair`) | passed |
-| T109-04 (cross-repo rerun after real restart) | the restart verification is exercised by the unit matrix against the real file system; the installed-package end-to-end run with a real Windows restart is staged with #108's incomplete entry and re-verified on the installed candidate | incomplete (staged with #108) |
+| T109-04 (cross-repo rerun after real restart) | originally staged with #108; now passed on the installed 0.2.0 candidate — see the re-verification section below | passed (re-verified) |
 
 ## Executed commands
 
@@ -55,5 +55,19 @@ Python 3.12.10.
 ## Platform scope
 
 Real Win7 remains `unexecuted` under [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
-Cross-repo gates re-run after the installed-candidate restart are staged with
-the #108 incomplete entry and must be green before #110 closes its ticket.
+The staged cross-repo re-verification was completed on the final candidate; see the re-verification section below.
+
+## Final-candidate installed re-verification (0.2.0, passed)
+
+A deliberately broken signed patch (syntax-broken `desktop.py`) was
+installed on the installed 0.2.0 candidate with the paired fixture harness
+(run D1, expectation `rolled-back`): the update applied, the relaunched
+combination failed its health handshake (`UPDATE_APPLICATION_START_FAILED`),
+the helper restored the exact prior bytes (verified against the recorded
+pre-run hashes, unrelated files untouched), relaunched the old combination,
+verified the real window/IPC/echo usability record, and persisted
+`rolled-back` with the honest "automatic updates paused; run manual repair"
+detail. The receipt ledger stayed byte-identical. Binding and evidence:
+[final-candidate-binding.md](../final-candidate-binding.md),
+[evidence/installed-rollback-result.json](evidence/installed-rollback-result.json).
+Real Win7 remains `unexecuted` under [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
