@@ -136,7 +136,8 @@ it('commits an update only after actual launch verification succeeds', async () 
   expect((await runMaintenance(s.transaction, s.host)).state).toBe('updated')
   expect(readRecoveryState(s.profile)?.state).toBe('updated')
 })
-it.each(['prepared', 'applying']).skipIf(process.platform !== 'win32')('observes live owned subprocesses and refuses replacement or rollback in %s until every related process exits', async phase => {
+it.each(['prepared', 'applying'])('observes live owned subprocesses and refuses replacement or rollback in %s until every related process exits', async phase => {
+  if (process.platform !== 'win32') return // captureOwnedProcessTree is Windows-only; CI lanes run Linux
   const { captureOwnedProcessTree } = await import('../src/main/maintenance')
   const { nativeMaintenanceHost } = await import('../src/main/update-helper')
   const { spawn } = await import('node:child_process')
