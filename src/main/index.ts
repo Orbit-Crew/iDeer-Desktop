@@ -11,7 +11,7 @@ import { UpdateService } from './update-stage'
 import { requestInstall } from './installer'
 import { initializeDataFormat, readDataFormat, readRecoveryState, type RecoveryState } from './recovery'
 import { captureOwnedProcessTree, launchMaintenance, prepareTransaction } from './maintenance'
-import { serveMaintenanceHealth } from './maintenance-health'
+import { serveMaintenanceHealth, stopMaintenanceRuntime } from './maintenance-health'
 
 // Set before ready and before any session, store or window is created.
 app.setName('iDeer Desktop')
@@ -66,10 +66,33 @@ if (!app.requestSingleInstanceLock()) {
       { label: '编辑', submenu: [{ role: 'copy' }, { role: 'selectAll' }] }
     ]))
     await runtime.start()
-    if (maintenanceId) await serveMaintenanceHealth({ id: maintenanceId, userData, executable: process.execPath,
+    const maintenanceSession = maintenanceId ? await serveMaintenanceHealth({ id: maintenanceId, userData, executable: process.execPath,
       desktopVersion: app.getVersion(), electronVersion: process.versions.electron, runtime,
-      quit: async () => { app.quit() } })
+      quit: async () => { app.quit() } }) : null
+    if (maintenanceId && !maintenanceSession) return
     mainWindow = createMainWindow()
+    if (maintenanceSession) {
+      const healthWindow = mainWindow
+      let loadFailed = false
+      healthWindow.webContents.on('did-fail-load', (_event, _code, _description, _url, isMainFrame) => {
+        if (isMainFrame) { loadFailed = true; maintenanceSession.failed() }
+      })
+      healthWindow.webContents.once('did-finish-load', () => {
+        if (loadFailed) return
+        // This fixed query traverses the shipped preload and actual trusted
+        // main-frame IPC handler after all handlers below are registered.
+        void healthWindow.webContents.executeJavaScript(`(async () => {
+          const deadline = Date.now() + 20000
+          while (!document.querySelector('[data-desktop-ready="true"]')) {
+            if (Date.now() > deadline) throw new Error('UPDATE_RENDERER_NOT_READY')
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+          return window.ideer.getStatus()
+        })()`, true)
+          .then((observed: DesktopStatus) => maintenanceSession.usable(observed))
+          .catch(() => maintenanceSession.failed())
+      })
+    }
 
     const requireMainFrame = (event: Electron.IpcMainInvokeEvent): void => {
       if (!mainWindow || event.sender !== mainWindow.webContents ||
@@ -169,7 +192,8 @@ if (!app.requestSingleInstanceLock()) {
       ? join(process.resourcesPath, 'updates/updates-public-key.pem')
       : join(app.getAppPath(), 'resources/updates/updates-public-key.pem'), 'utf8')
     const updates = new UpdateService({ directory: join(userData, 'Updates'), publicKeyPem, current: updateCurrent })
-    let lastPending: PendingUpdate | null = maintenanceId ? null : updates.restore().pending
+    const startupUpdate = !maintenanceId && existsSync(join(userData, 'Updates/pending.json')) ? updates.restore() : null
+    let lastPending: PendingUpdate | null = startupUpdate?.pending || null
     // Patches apply inside the installed program directory only; a dev checkout refuses.
     const programRoot = (): string => {
       if (!app.isPackaged) throw new Error('UPDATE_PACKAGED_ONLY')
@@ -182,8 +206,14 @@ if (!app.requestSingleInstanceLock()) {
       serverCompatibility: result.pending.manifest.serverCompatibility,
       fileCount: result.pending.manifest.files.length, deletionCount: result.pending.manifest.deletions.length } }
       : { ok: result.ok, error: result.error, pending: null }
-    ipcMain.handle('desktop:updates:check', async (event): Promise<UpdateCheckResult> => {
+    ipcMain.handle('desktop:updates:check', async (event, mode?: unknown, ...extra: unknown[]): Promise<UpdateCheckResult> => {
       requireMainFrame(event)
+      if ((mode !== undefined && mode !== 'staged') || extra.length) throw new Error('UPDATE_ACTION_INVALID')
+      if (mode === 'staged') {
+        const result = updates.readStaged()
+        lastPending = result.pending
+        return toView(!result.pending && startupUpdate?.error ? { ok: false, error: startupUpdate.error, pending: null } : result)
+      }
       if (installing || recoveryBlocked()) throw new Error('UPDATE_INSTALL_BUSY')
       updates.cancel()
       lastPending = null
@@ -261,7 +291,7 @@ if (!app.requestSingleInstanceLock()) {
     if (maintenanceId) {
       // A modal startup dialog would prevent the external helper from
       // confirming exit and safely restoring a failed candidate.
-      void runtime.stop().finally(() => app.exit(1))
+      void stopMaintenanceRuntime(runtime).then(() => app.exit(1)).catch(() => {})
       return
     }
     dialog.showErrorBox('iDeer Desktop 启动失败', String(error))

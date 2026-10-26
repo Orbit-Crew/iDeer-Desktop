@@ -31,6 +31,34 @@ function release(overrides: Partial<UpdateManifest> = {}): { text: string; signa
 }
 
 describe('verified updates through the online and offline entries', () => {
+  it.each([524288, 524289])('uses the same signed %i-byte manifest boundary online, offline and after restart', async bytes => {
+    const base = release().text, text = base + ' '.repeat(bytes - Buffer.byteLength(base))
+    const signature = sign(null, Buffer.from(text), keys.privateKey).toString('hex')
+    const media = fresh(), stages = fresh()
+    mkdirSync(join(media, 'files/resources/runtime/core'), { recursive: true })
+    writeFileSync(join(media, 'files/resources/runtime/core/update.py'), payload)
+    writeFileSync(join(media, 'manifest.json'), text); writeFileSync(join(media, 'manifest.sig'), signature)
+    const server = createServer((request, response) => {
+      if (request.url?.endsWith('manifest.json')) response.end(text)
+      else if (request.url?.endsWith('manifest.sig')) response.end(signature)
+      else response.end(payload)
+    })
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const offline = new UpdateService({ directory: stages, publicKeyPem, current: () => current })
+      const online = new UpdateService({ directory: fresh(), publicKeyPem, current: () => current })
+      expect(await offline.import(join(media, 'manifest.json'))).toMatchObject({ ok: bytes === 524288 })
+      expect((await online.check(`http://127.0.0.1:${(server.address() as { port: number }).port}`)).ok).toBe(bytes === 524288)
+      if (bytes === 524289) {
+        const small = release()
+        writeFileSync(join(media, 'manifest.json'), small.text); writeFileSync(join(media, 'manifest.sig'), small.signature)
+        expect((await offline.import(join(media, 'manifest.json'))).ok).toBe(true)
+        writeFileSync(join(offline.staged!.stageRoot, 'manifest.json'), text)
+        writeFileSync(join(offline.staged!.stageRoot, 'manifest.sig'), signature)
+      }
+      expect(new UpdateService({ directory: stages, publicKeyPem, current: () => current }).restore().ok).toBe(bytes === 524288)
+    } finally { await new Promise<void>(resolve => server.close(() => resolve())) }
+  })
   it('discards the previous installable release when a replacement download fails', async () => {
     const signed = release(), stages = fresh()
     let corrupt = false
@@ -117,4 +145,22 @@ describe('verified updates through the online and offline entries', () => {
       expect(readFileSync(join(offline.staged!.payloadRoot, 'resources/runtime/core/update.py'))).toEqual(payload)
     } finally { await new Promise<void>(resolve => server.close(() => resolve())) }
   })
+})
+it('reads a restored local candidate without its source media and without clearing it on a read-only integrity refusal', async () => {
+  const signed = release(), media = fresh(), directory = fresh()
+  mkdirSync(join(media, 'files/resources/runtime/core'), { recursive: true })
+  writeFileSync(join(media, 'files/resources/runtime/core/update.py'), payload)
+  writeFileSync(join(media, 'manifest.json'), signed.text); writeFileSync(join(media, 'manifest.sig'), signed.signature)
+  const service = new UpdateService({ directory, publicKeyPem, current: () => current })
+  expect((await service.import(join(media, 'manifest.json'))).ok).toBe(true)
+  const id = service.staged!.id
+  rmSync(media, { recursive: true, force: true })
+  const reopened = new UpdateService({ directory, publicKeyPem, current: () => current })
+  expect(reopened.restore().ok).toBe(true)
+  expect(reopened.readStaged()).toMatchObject({ ok: true, error: '', pending: { kind: 'patch', source: 'offline' } })
+  expect(reopened.staged!.id).toBe(id)
+  writeFileSync(join(reopened.staged!.payloadRoot, 'resources/runtime/core/update.py'), Buffer.alloc(payload.length))
+  expect(reopened.readStaged()).toMatchObject({ ok: false, error: 'UPDATE_PAYLOAD_HASH_MISMATCH', pending: null })
+  expect(reopened.staged!.id).toBe(id)
+  expect(readFileSync(join(directory, 'pending.json'), 'utf8')).toContain(id)
 })

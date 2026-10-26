@@ -1,12 +1,11 @@
 // Usage: node installed-update.cjs --installer BASE_SETUP --release MANIFEST --expected updated|rolled-back|recovery-failed --report REPORT_JSON
 // The base installer must contain the same deployment public key that signed the release.
-// Offline standalone coverage stops at staging, cancel-preservation and the
-// concurrent-restart refusal: the drain itself requires an authenticated,
-// workspace-selected pairing, which only the issue-102/111 server-fixture
-// harness provides (the drain command is identity- and workspace-bound).
+// Unpaired offline installation also runs the real drain and helper. Pairing
+// is required only for the separate Server task/receipt replay matrix.
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os'), crypto = require('node:crypto')
 const { spawnSync } = require('node:child_process')
 const { _electron } = require('playwright-core')
+const { nsisInvocation } = require('../../../resources/nsis/command.cjs')
 const options = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => index % 2 ? pairs : [...pairs, [value.replace(/^--/, ''), all[index + 1]]], []))
 const hash = p => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -15,7 +14,8 @@ async function main() {
   for (const name of ['installer', 'release', 'expected', 'report']) assert(options[name] && path.isAbsolute(options[name]) === (name !== 'expected'), 'missing/invalid --' + name)
   const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'ideer NSIS update ')), program = path.join(fixture, 'installed'), profile = path.join(fixture, 'profile')
   fs.mkdirSync(profile)
-  const install = spawnSync(options.installer, ['/S', '/D=' + program], { windowsHide: true, encoding: 'utf8', timeout: 120000 })
+  const invocation = nsisInvocation(options.installer, program)
+  const install = spawnSync(invocation.file, invocation.args, { ...invocation.options, encoding: 'utf8', timeout: 120000 })
   assert(install.status === 0, 'base NSIS install failed: ' + install.status)
   const executable = path.join(program, 'ideer-desktop.exe')
   assert(fs.existsSync(executable), 'installed executable missing')
@@ -35,8 +35,14 @@ async function main() {
     page = await client.firstWindow()
     recorder = setInterval(() => { void page.evaluate(() => window.ideer.getStatus().then(s =>
       ({ at: Date.now(), process: s.runtime.process, pid: s.runtime.pid, drain: s.runtime.installDrain }))).then(row => { if (row) timeline.push(row) }).catch(() => {}) }, 250)
-    await page.waitForFunction(() => window.ideer, { timeout: 15000 })
-    await page.waitForFunction(async () => (await window.ideer.getStatus()).runtime.process === 'running')
+    await page.waitForFunction(() => Boolean(window.ideer), undefined, { timeout: 15000 })
+    const runtimeDeadline = Date.now() + 30000
+    for (;;) {
+      const actual = await page.evaluate(() => window.ideer.getStatus())
+      if (actual.runtime.process === 'running') break
+      assert(Date.now() < runtimeDeadline, 'actual Runtime did not reach running: ' + actual.runtime.process)
+      await wait(100)
+    }
     await client.evaluate(({ dialog }, manifest) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [manifest] })
       dialog.showMessageBox = async () => new Promise(resolve => { globalThis.__ideerConfirmFixture = resolve })
@@ -55,15 +61,7 @@ async function main() {
     await client.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
     evidence.confirmations.push({ decision: 'confirmed' })
     evidence.before = await page.evaluate(() => window.ideer.getStatus())
-    if (evidence.before.runtime.workspace?.state !== 'ready') {
-      // The drain is identity- and workspace-bound by design; without an
-      // authenticated pairing there is nothing to drain and the install entry
-      // refuses (RUNTIME_UNAVAILABLE). Standalone offline coverage ends here.
-      evidence.standalone = 'staging, cancel preservation and concurrent-restart refusal verified offline; drain, install, rollback and health belong to the paired issue-102/111 fixture matrix'
-      evidence.passed = true
-      console.log(JSON.stringify({ passed: true, standalone: true, report: options.report, fixture }))
-      return
-    }
+    assert(evidence.before.runtime.process === 'running', 'Runtime must actually be running before drain')
     try { evidence.handoff = await page.evaluate(() => window.ideer.installUpdate()) } catch (error) { evidence.handoffTransport = String(error) }
     const recoveryFile = path.join(profile, 'updates-recovery.json'), deadline = Date.now() + 150000
     while (Date.now() < deadline) {
@@ -76,11 +74,12 @@ async function main() {
     assert(evidence.recovery, 'maintenance did not persist recovery state')
     const stage = path.dirname(evidence.recovery.journalPath)
     if (fs.existsSync(path.join(stage, 'health-response.json'))) evidence.health = JSON.parse(fs.readFileSync(path.join(stage, 'health-response.json'), 'utf8'))
+    if (fs.existsSync(path.join(stage, 'health-usable.json'))) evidence.usable = JSON.parse(fs.readFileSync(path.join(stage, 'health-usable.json'), 'utf8'))
     evidence.receiptsPreserved = hash(path.join(profile, 'Runtime/receipts.db')) === receiptsHash
     evidence.credentialsPreserved = fs.readFileSync(path.join(profile, 'current-credential-marker.txt'), 'utf8') === 'NEW-LEGAL-CREDENTIAL-REVOKED-GRANT'
     assert(evidence.recovery.state === options.expected, 'unexpected recovery result: ' + evidence.recovery.detail)
     assert(evidence.receiptsPreserved && evidence.credentialsPreserved, 'user records changed')
-    if (options.expected !== 'recovery-failed') assert(evidence.health?.echo === 'ideer-update-health-v1', 'no actual Runtime echo')
+    if (options.expected !== 'recovery-failed') assert(evidence.health?.echo === 'ideer-update-health-v1' && evidence.usable?.ipcReady === true && evidence.usable?.windowLoaded === true && evidence.usable?.runtimeUnfenced === true, 'no actual Desktop IPC/window and Runtime usability acknowledgment')
     evidence.passed = true
   } finally {
     clearInterval(recorder)

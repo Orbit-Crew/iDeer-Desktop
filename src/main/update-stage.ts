@@ -3,7 +3,7 @@ import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readF
   realpathSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from './update-filesystem'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { controlledBytes, controlledDownload, controlledOrigin } from './controlled-http'
-import { verifyUpdate, type PendingUpdate, type UpdateCurrent, type UpdateVerification } from './updates'
+import { MAX_MANIFEST_BYTES, verifyUpdate, type PendingUpdate, type UpdateCurrent, type UpdateVerification } from './updates'
 
 export interface StagedUpdate {
   id: string
@@ -83,7 +83,7 @@ export class UpdateService {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(pointer.id) ||
           !['online', 'offline'].includes(pointer.source)) throw new Error('UPDATE_STAGE_INVALID')
       const stageRoot = join(this.options.directory, 'stage-' + pointer.id)
-      const verified = verifyUpdate(textFile(stageRoot, 'manifest.json', 2 * 1024 * 1024),
+      const verified = verifyUpdate(textFile(stageRoot, 'manifest.json', MAX_MANIFEST_BYTES),
         textFile(stageRoot, 'manifest.sig', 256).trim(), this.options.publicKeyPem, this.options.current(), pointer.source)
       if (!verified.pending) throw new Error(verified.error)
       this.active = { id: pointer.id, stageRoot, payloadRoot: join(stageRoot, 'payload'), pending: verified.pending,
@@ -99,16 +99,25 @@ export class UpdateService {
 
   /** Recheck immutable signed facts immediately before handing a stage to installation. */
   validateStaged(): StagedUpdate {
+    try { return this.verifiedStage() } catch (error) { this.cancel(); throw error }
+  }
+
+  /** Local view refresh never cancels, fetches or discards a staged release. */
+  readStaged(): UpdateVerification {
+    if (!this.active) return { ok: true, error: '', pending: null }
+    try { return { ok: true, error: '', pending: this.verifiedStage().pending } }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'UPDATE_STAGE_INVALID', pending: null } }
+  }
+
+  private verifiedStage(): StagedUpdate {
     const stage = this.active
     if (!stage) throw new Error('UPDATE_NOT_STAGED')
-    try {
-      const verified = verifyUpdate(textFile(stage.stageRoot, 'manifest.json', 2 * 1024 * 1024),
+      const verified = verifyUpdate(textFile(stage.stageRoot, 'manifest.json', MAX_MANIFEST_BYTES),
         textFile(stage.stageRoot, 'manifest.sig', 256).trim(), this.options.publicKeyPem, this.options.current(), stage.pending.source)
       if (!verified.pending) throw new Error(verified.error)
       for (const file of verified.pending.manifest.files) copyVerified(regularUpdateFile(stage.payloadRoot, file.path), null, file)
       if (verified.pending.manifest.installer) copyVerified(regularUpdateFile(stage.stageRoot, 'installer.exe'), null, verified.pending.manifest.installer)
       return structuredClone(stage)
-    } catch (error) { this.cancel(); throw error }
   }
 
   cancel(): UpdateVerification {
@@ -125,7 +134,7 @@ export class UpdateService {
     return this.stage('online', async (signal) => {
       controlledOrigin(origin)
       const text = (await controlledBytes(origin, '/updates/desktop/manifest.json',
-        { maxBytes: 2 * 1024 * 1024, timeoutMs: this.options.timeoutMs, signal })).toString('utf8')
+        { maxBytes: MAX_MANIFEST_BYTES, timeoutMs: this.options.timeoutMs, signal })).toString('utf8')
       const signature = (await controlledBytes(origin, '/updates/desktop/manifest.sig',
         { maxBytes: 256, timeoutMs: this.options.timeoutMs, signal })).toString('utf8').trim()
       return { text, signature }
@@ -145,7 +154,7 @@ export class UpdateService {
       return { ok: false, error: 'UPDATE_MANIFEST_NAME_INVALID', pending: null }
     }
     const directory = dirname(manifestPath)
-    return this.stage('offline', async () => ({ text: textFile(directory, 'manifest.json', 2 * 1024 * 1024),
+    return this.stage('offline', async () => ({ text: textFile(directory, 'manifest.json', MAX_MANIFEST_BYTES),
       signature: textFile(directory, 'manifest.sig', 256).trim() }), async (entry, destination) => {
       copyVerified(regularUpdateFile(entry.path === 'installer.exe' ? directory : join(directory, 'files'), entry.path), destination, entry)
     })

@@ -139,7 +139,7 @@ class CompatibilityGate:
                 if not isinstance(notes, str) or len(notes) > 2000:
                     raise ValueError('COMPAT_MANIFEST_MALFORMED')
                 rows = declaration.get('supportedCombos', [])
-                if not isinstance(rows, list) or len(rows) > 128:
+                if not isinstance(rows, list) or len(rows) > 100:
                     raise ValueError('COMPAT_MANIFEST_MALFORMED')
                 selected = (level, disabled) if candidate == self._actual() else None
                 combos = [candidate]

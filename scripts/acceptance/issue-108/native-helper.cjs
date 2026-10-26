@@ -27,13 +27,28 @@ async function run(mode) {
   const { UpdateService, prepareTransaction, launchMaintenance } = require(library)
   const current = { desktopVersion: require(path.join(root, 'package.json')).version, electronVersion: '22.3.27',
     runtimePython: '3.12.10', protocolVersion: 1, dataFormat: 1, readableFormats: [1] }
-  const relative = mode === 'startup-failure' ? 'resources/runtime/core/desktop.py' : 'resources/runtime/core/update_probe.py'
-  const content = mode === 'startup-failure' ? 'def BROKEN PYTHON\n' : '# signed probe\n'
+  const asarFailure = ['desktop-failure', 'renderer-failure', 'renderer-throw'].includes(mode)
+  const relative = asarFailure ? 'resources/app.asar' : mode === 'startup-failure' ? 'resources/runtime/core/desktop.py' : 'resources/runtime/core/update_probe.py'
+  let content = mode === 'startup-failure' ? 'def BROKEN PYTHON\n' : '# signed probe\n'
+  if (asarFailure) {
+    const broken = path.join(fixture, 'broken-app')
+    fs.cpSync(appSource, broken, { recursive: true })
+    if (mode === 'desktop-failure') fs.rmSync(path.join(broken, 'out/renderer/index.html'))
+    else {
+      const assets = path.join(broken, 'out/renderer/assets')
+      const entry = path.join(assets, fs.readdirSync(assets).find(name => name.endsWith('.js')))
+      if (mode === 'renderer-throw') fs.writeFileSync(entry, 'throw new Error("T109 fixture renderer failed")')
+      else fs.rmSync(entry)
+    }
+    const candidate = path.join(fixture, 'broken.asar')
+    await createPackage(broken, candidate)
+    content = fs.readFileSync(candidate)
+  }
   const release = path.join(fixture, 'release')
   fs.mkdirSync(path.dirname(path.join(release, 'files', relative)), { recursive: true })
   fs.writeFileSync(path.join(release, 'files', relative), content)
   const manifest = { version: 1, kind: 'patch', publishedAt: '2026-10-25T00:00:00Z',
-    desktop: { version: current.desktopVersion, electron: current.electronVersion, asarSHA256: hash(path.join(program, 'resources/app.asar')) },
+    desktop: { version: current.desktopVersion, electron: current.electronVersion, asarSHA256: asarFailure ? crypto.createHash('sha256').update(content).digest('hex') : hash(path.join(program, 'resources/app.asar')) },
     runtime: { python: current.runtimePython, lockSHA256: hash(path.join(program, 'resources/runtime/distribution.lock.json')) },
     baseline: { desktopVersion: current.desktopVersion, electronVersion: current.electronVersion, runtimePython: current.runtimePython, dataFormat: 1 },
     dataCompatibility: { targetFormat: 1, readableFormats: [1] }, serverCompatibility: { minProtocol: 1, notes: '' },
@@ -60,10 +75,11 @@ async function run(mode) {
     if (state.state !== 'applied-pending-verify') break
     await wait(100)
   }
-  const expected = mode === 'startup-failure' ? 'rolled-back' : 'updated'
+  const expected = mode === 'success' ? 'updated' : 'rolled-back'
   const stageRoot = path.dirname(journal)
   let health = fs.existsSync(path.join(stageRoot, 'health-response.json')) ? JSON.parse(fs.readFileSync(path.join(stageRoot, 'health-response.json'), 'utf8')) : null
-  const evidence = { mode, fixture, expected, state, health, credentialsPreserved: fs.readFileSync(path.join(profile, 'credentials-preserved.txt'), 'utf8') === 'CURRENT-REVOKED-AUTH',
+  const usable = fs.existsSync(path.join(stageRoot, 'health-usable.json')) ? JSON.parse(fs.readFileSync(path.join(stageRoot, 'health-usable.json'), 'utf8')) : null
+  const evidence = { mode, fixture, expected, state, health, usable, credentialsPreserved: fs.readFileSync(path.join(profile, 'credentials-preserved.txt'), 'utf8') === 'CURRENT-REVOKED-AUTH',
     unconfirmedReceiptsPreserved: hash(path.join(profile, 'Runtime/receipts.db')) === ledgerHash }
   fs.writeFileSync(path.join(fixture, 'evidence.json'), JSON.stringify(evidence, null, 2))
   // Close the verified GUI normally; forced cleanup is only a failed-fixture fallback.
@@ -72,11 +88,11 @@ async function run(mode) {
     for (let i = 0; i < 50 && alive(health.pid); i++) await wait(100)
     if (alive(health.pid)) spawnSync('taskkill.exe', ['/PID', String(health.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' })
   }
-  if (state.state !== expected || !evidence.credentialsPreserved || !evidence.unconfirmedReceiptsPreserved || health?.echo !== 'ideer-update-health-v1') throw new Error(JSON.stringify(evidence))
+  if (state.state !== expected || !evidence.credentialsPreserved || !evidence.unconfirmedReceiptsPreserved || health?.echo !== 'ideer-update-health-v1' || usable?.ipcReady !== true || usable?.windowLoaded !== true || usable?.rendererReady !== true || usable?.runtimeUnfenced !== true) throw new Error(JSON.stringify(evidence))
   return evidence
 }
 ;(async () => {
   const results = []
-  for (const mode of ['success', 'startup-failure']) results.push(await run(mode))
+  for (const mode of (process.argv[2] ? [process.argv[2]] : ['success', 'startup-failure', 'desktop-failure', 'renderer-failure', 'renderer-throw'])) results.push(await run(mode))
   console.log(JSON.stringify({ passed: true, results }, null, 2))
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1 })

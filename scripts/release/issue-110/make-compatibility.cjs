@@ -17,7 +17,7 @@ function main() {
     const level = row.level ?? fallback.level
     const disabled = row.disabledCapabilities ?? fallback.disabledCapabilities
     if (!['compatible', 'capability', 'core'].includes(level) || !Array.isArray(disabled) || disabled.length > 128 ||
-        disabled.some(value => typeof value !== 'string' || (!known.has(value) && !/^local\.mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value))) ||
+        disabled.some(value => typeof value !== 'string' || value.length > 128 || (!known.has(value) && !/^local\.mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value))) ||
         new Set(disabled).size !== disabled.length || (level !== 'capability' && disabled.length)) throw new Error('COMPAT_POLICY_INVALID')
     return { level, disabledCapabilities: disabled }
   }
@@ -36,7 +36,7 @@ function main() {
       typeof declaration.notes !== 'string' || declaration.notes.length > 2000) throw new Error('COMPAT_SPEC_INVALID')
   const top = policy(declaration)
   const candidate = combo(declaration.candidateCombo)
-  if (declaration.supportedCombos !== undefined && (!Array.isArray(declaration.supportedCombos) || declaration.supportedCombos.length > 128)) throw new Error('COMPAT_COMBINATION_INVALID')
+  if (declaration.supportedCombos !== undefined && (!Array.isArray(declaration.supportedCombos) || declaration.supportedCombos.length > 100)) throw new Error('COMPAT_COMBINATION_INVALID')
   const rows = [{ ...candidate, ...top }]
   for (const value of declaration.supportedCombos || []) {
     const current = { ...combo(value), ...policy(value, top) }
@@ -51,6 +51,7 @@ function main() {
   if (key.asymmetricKeyType !== 'ed25519') throw new Error('COMPAT_SIGNING_KEY_INVALID')
   const publicKey = createPublicKey(key).export({ type: 'spki', format: 'der' })
   const text = JSON.stringify(declaration, null, 2) + '\n'
+  if (Buffer.byteLength(text, 'utf8') > 512 * 1024) throw new Error('COMPAT_MANIFEST_TOO_LARGE')
   const signature = sign(null, Buffer.from(text), key).toString('hex')
   const output = path.resolve(options['--output'])
   fs.mkdirSync(output, { recursive: true })

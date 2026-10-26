@@ -5,10 +5,24 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { createHash, createPrivateKey, sign } = require('node:crypto')
 const { extractFile } = require('@electron/asar')
+const { buildSync } = require('esbuild')
+const { Module } = require('node:module')
 
 const repository = path.resolve(__dirname, '../../..')
 const maxBytes = 2 * 1024 * 1024 * 1024
 const isInside = (base, target) => { const relative = path.relative(base, target); return relative && !relative.startsWith('..') && !path.isAbsolute(relative) }
+
+// Compile the checked-in client parser in memory so publishing and consuming
+// share one schema. No generated code or private key is written to the repo.
+function clientParser() {
+  const filename = path.join(repository, 'src/main/updates.ts')
+  const compiled = buildSync({ entryPoints: [filename], bundle: true, platform: 'node', target: 'node16',
+    format: 'cjs', write: false }).outputFiles[0].text
+  const loaded = new Module(filename, module)
+  loaded.paths = module.paths
+  loaded._compile(compiled, filename)
+  return loaded.exports.parseManifest
+}
 
 function programPath(value) {
   if (typeof value !== 'string' || value.length > 512 || value.split('/').some(part =>
@@ -74,17 +88,14 @@ function main() {
   if (new Set(affected).size !== affected.length || affected.some((target, index) => affected.some((other, otherIndex) =>
       index !== otherIndex && target.startsWith(other + '/')))) throw new Error('UPDATE_RELEASE_PATH_CONFLICT')
   let total = 0
-  fs.mkdirSync(outPath, { recursive: true })
+  const copies = []
   if (definition.kind === 'patch') {
     delete definition.installer
     definition.files = definition.files.map(entry => {
       const source = regular(payloadRoot, entry.path), actual = facts(source)
       total += actual.bytes
       if (total > maxBytes) throw new Error('UPDATE_RELEASE_TOO_LARGE')
-      const destination = path.join(outPath, 'files', entry.path)
-      fs.mkdirSync(path.dirname(destination), { recursive: true })
-      fs.copyFileSync(source, destination)
-      if (facts(destination).sha256 !== actual.sha256) throw new Error('UPDATE_RELEASE_COPY_MISMATCH')
+      copies.push({ source, relative: path.join('files', entry.path), actual })
       return { path: entry.path, ...actual }
     })
   } else if (definition.kind === 'full') {
@@ -93,13 +104,26 @@ function main() {
     if (!fs.statSync(source).isFile() || fs.lstatSync(source).isSymbolicLink()) throw new Error('UPDATE_RELEASE_INSTALLER_INVALID')
     definition.installer = { path: 'installer.exe', ...facts(source) }
     if (!definition.installer.bytes) throw new Error('UPDATE_RELEASE_INSTALLER_INVALID')
-    fs.copyFileSync(source, path.join(outPath, 'installer.exe'))
-    if (facts(path.join(outPath, 'installer.exe')).sha256 !== definition.installer.sha256) throw new Error('UPDATE_RELEASE_COPY_MISMATCH')
+    copies.push({ source, relative: 'installer.exe', actual: definition.installer })
   } else throw new Error('UPDATE_RELEASE_KIND_INVALID')
   const text = JSON.stringify(definition)
+  clientParser()(text)
   const signature = sign(null, Buffer.from(text, 'utf8'), key)
-  fs.writeFileSync(path.join(outPath, 'manifest.json'), text)
-  fs.writeFileSync(path.join(outPath, 'manifest.sig'), signature.toString('hex') + '\n')
+  fs.mkdirSync(path.dirname(outPath), { recursive: true })
+  const staging = fs.mkdtempSync(path.join(path.dirname(outPath), '.ideer-release-'))
+  try {
+    for (const { source, relative, actual } of copies) {
+      const destination = path.join(staging, relative)
+      fs.mkdirSync(path.dirname(destination), { recursive: true })
+      fs.copyFileSync(source, destination)
+      const copied = facts(destination)
+      if (copied.sha256 !== actual.sha256 || copied.bytes !== actual.bytes) throw new Error('UPDATE_RELEASE_COPY_MISMATCH')
+    }
+    fs.writeFileSync(path.join(staging, 'manifest.json'), text)
+    fs.writeFileSync(path.join(staging, 'manifest.sig'), signature.toString('hex') + '\n')
+    if (fs.existsSync(outPath)) fs.rmdirSync(outPath) // Only the prechecked empty directory may be replaced.
+    fs.renameSync(staging, outPath)
+  } finally { fs.rmSync(staging, { recursive: true, force: true }) }
   console.log('signed release written to', outPath)
 }
 

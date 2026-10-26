@@ -183,3 +183,53 @@ it('preserves an interrupted installation for repair when the durable transactio
   expect(result.state).toBe('recovery-failed')
   expect(readFileSync(join(s.program, 'resources/app.asar'), 'utf8')).toBe('PARTIAL-APP')
 })
+it.skipIf(process.platform !== 'win32')('enumerates owned processes through the actual Electron Node runner without a hidden-console deadlock', async () => {
+  const { buildSync } = await import('esbuild')
+  const { spawn } = await import('node:child_process')
+  const { resolve } = await import('node:path')
+  const directory = fresh(), api = join(directory, 'inventory.cjs')
+  buildSync({ entryPoints: ['src/main/maintenance.ts'], bundle: true, external: ['original-fs'], platform: 'node', format: 'cjs', outfile: api })
+  const runner = spawn(resolve('node_modules/electron/dist/electron.exe'), ['-e',
+    `try { console.log(JSON.stringify(require(process.argv[1]).captureOwnedProcessTree(${process.pid}))) } catch(error) { console.error(error.message); process.exitCode=1 }`, api],
+    { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  let stdout = '', stderr = ''
+  runner.stdout.on('data', chunk => { stdout += chunk.toString() }); runner.stderr.on('data', chunk => { stderr += chunk.toString() })
+  const code = await new Promise<number | null>((resolve, reject) => { runner.once('error', reject); runner.once('close', resolve) })
+  expect({ code, stderr }).toEqual({ code: 0, stderr: '' })
+  expect(JSON.parse(stdout)).toContain(runner.pid)
+}, 25000)
+it.skipIf(process.platform !== 'win32')('restores an ASAR atomically after an external reader briefly retains its Windows sharing lock', async () => {
+  const s = await scenario()
+  const { spawn } = await import('node:child_process')
+  const holder: { child?: import('node:child_process').ChildProcessWithoutNullStreams } = {}
+  s.host.launchAndVerify = async (_transaction, rollback) => {
+    if (rollback) return
+    const target = join(s.program, 'resources/app.asar').replace(/'/g, "''")
+    const locker = spawn(join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-Command', `$f=[IO.File]::Open('${target}',[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);[Console]::WriteLine('LOCKED');Start-Sleep -Milliseconds 400;$f.Dispose()`],
+      { windowsHide: true, stdio: 'pipe' })
+    holder.child = locker
+    await new Promise<void>((resolve, reject) => { locker.once('error', reject); locker.stdout.once('data', () => resolve()) })
+    throw new Error('UPDATE_DESKTOP_NOT_USABLE')
+  }
+  try {
+    const result = await runMaintenance(s.transaction, s.host)
+    expect(result.state).toBe('rolled-back')
+    expect(readFileSync(join(s.program, 'resources/app.asar'), 'utf8')).toBe('OLD-APP')
+  } finally {
+    const child = holder.child
+    if (child && child.exitCode === null) await new Promise<void>(resolve => { child.once('close', () => resolve()); child.kill() })
+  }
+}, 15000)
+it.each(['same', 'newer'])('retires only the completed stage pending pointer after healthy commit (%s pointer)', async pointer => {
+  const s = await scenario()
+  const transaction = JSON.parse(readFileSync(s.transaction, 'utf8'))
+  const pointerFile = join(s.profile, 'Updates/pending.json')
+  if (pointer === 'newer') s.host.launchAndVerify = async () => writeFileSync(pointerFile, '{"id":"00000000-0000-4000-8000-000000000000","source":"offline"}')
+  expect((await runMaintenance(s.transaction, s.host)).state).toBe('updated')
+  const { existsSync } = await import('node:fs')
+  expect(existsSync(pointerFile)).toBe(pointer === 'newer')
+  if (pointer === 'newer') expect(readFileSync(pointerFile, 'utf8')).toContain('00000000-0000-4000-8000-000000000000')
+  expect(existsSync(join(transaction.stageRoot, 'manifest.json'))).toBe(true)
+  expect(existsSync(join(transaction.stageRoot, 'backup/resources/app.asar'))).toBe(true)
+})

@@ -30,7 +30,7 @@ export interface CompatibilityEvaluation {
 
 const MAX_BYTES = 512 * 1024
 const KNOWN_CAPABILITIES = ['echo', 'local.files.read', 'local.files.write', 'local.files.list', 'local.files.search', 'local.python', 'local.artifacts.upload']
-const validCapability = (cap: unknown): boolean => typeof cap === 'string' &&
+const validCapability = (cap: unknown): boolean => typeof cap === 'string' && cap.length <= 128 &&
   (KNOWN_CAPABILITIES.includes(cap) || /^local\.mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(cap))
 
 function parse(text: string): CompatibilityDeclaration {
@@ -41,7 +41,7 @@ function parse(text: string): CompatibilityDeclaration {
   if (!d || typeof d !== 'object' || Array.isArray(d)) throw new Error('COMPAT_MANIFEST_MALFORMED')
   if (d.version !== 1) throw new Error('COMPAT_MANIFEST_VERSION_UNSUPPORTED')
   if (!['compatible', 'capability', 'core'].includes(d.level)) throw new Error('COMPAT_MANIFEST_LEVEL_INVALID')
-  if (!Array.isArray(d.disabledCapabilities) ||
+  if (!Array.isArray(d.disabledCapabilities) || d.disabledCapabilities.length > 128 ||
       d.disabledCapabilities.some(cap => !validCapability(cap)) ||
       new Set(d.disabledCapabilities).size !== d.disabledCapabilities.length) throw new Error('COMPAT_MANIFEST_CAPABILITY_INVALID')
   if (d.level === 'compatible' && d.disabledCapabilities.length) throw new Error('COMPAT_MANIFEST_CAPABILITY_INVALID')
@@ -52,7 +52,7 @@ function parse(text: string): CompatibilityDeclaration {
       [d.candidateCombo.desktop, d.candidateCombo.runtime, d.candidateCombo.server]
         .some(field => typeof field !== 'string' || !field || field.length > 128)) throw new Error('COMPAT_MANIFEST_MALFORMED')
   if (d.supportedCombos !== undefined) {
-    if (!Array.isArray(d.supportedCombos) || d.supportedCombos.length > 128) throw new Error('COMPAT_MANIFEST_MALFORMED')
+    if (!Array.isArray(d.supportedCombos) || d.supportedCombos.length > 100) throw new Error('COMPAT_MANIFEST_MALFORMED')
     const combos = new Set([JSON.stringify({ desktop: d.candidateCombo.desktop, runtime: d.candidateCombo.runtime, server: d.candidateCombo.server })])
     for (const row of d.supportedCombos) {
       if (!row || [row.desktop, row.runtime, row.server].some(value => typeof value !== 'string' || !value || value.length > 128)) throw new Error('COMPAT_MANIFEST_MALFORMED')
@@ -60,7 +60,7 @@ function parse(text: string): CompatibilityDeclaration {
       if (combos.has(key)) throw new Error('COMPAT_MANIFEST_MALFORMED')
       combos.add(key)
       const level = row.level ?? d.level, disabled = row.disabledCapabilities ?? d.disabledCapabilities
-      if (!['compatible', 'capability', 'core'].includes(level) || !Array.isArray(disabled) ||
+      if (!['compatible', 'capability', 'core'].includes(level) || !Array.isArray(disabled) || disabled.length > 128 ||
           disabled.some(cap => !validCapability(cap)) || new Set(disabled).size !== disabled.length ||
           (level !== 'capability' && disabled.length)) throw new Error('COMPAT_MANIFEST_MALFORMED')
     }

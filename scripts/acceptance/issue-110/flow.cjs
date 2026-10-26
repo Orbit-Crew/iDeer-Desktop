@@ -124,10 +124,14 @@ async function main() {
     throw error
   } finally {
     if (app) { try { await quit() } catch (error) { evidence.shutdownError = String(error); evidence.status = 'failed' } }
-    try { evidence.credentialCleanup = profile('cleanup') } catch (error) { evidence.cleanupError = String(error); evidence.status = 'failed' }
-    flag('drop-acks', false); flag('stop')
-    assert(path.resolve(work).startsWith(path.resolve(os.tmpdir()) + path.sep))
-    fs.rmSync(work, { recursive: true, force: true })
+    if (evidence.status !== 'passed' && process.env.IDEER_ACCEPTANCE_PRESERVE_FAILURE === '1') {
+      evidence.preservedForDiagnosis = { work, credentials: 'synthetic references retained', server: 'running' }
+    } else {
+      try { evidence.credentialCleanup = profile('cleanup') } catch (error) { evidence.cleanupError = String(error); evidence.status = 'failed' }
+      flag('drop-acks', false); flag('stop')
+      assert(path.resolve(work).startsWith(path.resolve(os.tmpdir()) + path.sep))
+      fs.rmSync(work, { recursive: true, force: true })
+    }
     evidence.finishedAt = new Date().toISOString(); save()
     if (evidence.status !== 'passed') process.exitCode = 1
   }

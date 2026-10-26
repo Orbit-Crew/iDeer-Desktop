@@ -34,7 +34,15 @@ const flushCopy = (source: string, destination: string): void => {
     try { fsyncSync(fd) } finally { closeSync(fd) }
     // A stopped app's archive is always a complete old or new file, including
     // when a helper is interrupted during the copy. Startup can resume recovery.
-    renameSync(temporary, destination)
+    const deadline = Date.now() + 5000
+    for (;;) {
+      try { renameSync(temporary, destination); break } catch (error) {
+        if (!['EPERM', 'EACCES', 'EBUSY'].includes((error as NodeJS.ErrnoException).code || '') || Date.now() >= deadline) throw error
+        // Windows can retain an image/AV lock briefly after process exit.
+        // Retry the same flushed file atomically, never truncate the target.
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
+      }
+    }
   } finally { if (existsSync(temporary)) rmSync(temporary) }
 }
 
@@ -121,6 +129,13 @@ function recoveryView(t: MaintenanceTransaction, state: RecoveryState['state']):
     detail: t.detail + '; diagnostics: ' + journalPath(t) + (state === 'recovery-failed' && t.manifest.kind === 'full'
       ? '; Reinstall a verified complete installer into ' + t.programRoot + ' without deleting the current profile. Repair instructions: ' + join(t.stageRoot, 'repair-instructions.json') : '') }
 }
+function retireCompletedPointer(t: MaintenanceTransaction): void {
+  const pointer = safeProgramPath(t.userData, 'Updates/pending.json')
+  if (!existsSync(pointer)) return
+  let value: { id?: string }
+  try { value = JSON.parse(readFileSync(pointer, 'utf8')) } catch { return }
+  if (value?.id === t.id) rmSync(pointer)
+}
 function verifyProgram(t: MaintenanceTransaction, rollback: boolean): void {
   if (rollback) {
     for (const fact of t.backup) {
@@ -162,6 +177,7 @@ export async function runMaintenance(path: string, host: MaintenanceHost): Promi
   if (['updated', 'rolled-back', 'recovery-failed'].includes(t.state)) {
     const result = recoveryView(t, t.state as RecoveryState['state'])
     writeRecoveryState(t.userData, result)
+    if (result.state === 'updated' || result.state === 'rolled-back') retireCompletedPointer(t)
     return result
   }
   let touched = t.state !== 'prepared'
@@ -209,6 +225,7 @@ export async function runMaintenance(path: string, host: MaintenanceHost): Promi
   }
   const result = recoveryView(t, t.state as RecoveryState['state'])
   writeRecoveryState(t.userData, result)
+  if (result.state === 'updated' || result.state === 'rolled-back') retireCompletedPointer(t)
   return result
 }
 
@@ -225,7 +242,7 @@ export function captureOwnedProcessTree(pid: number): number[] {
     `for($i=0;$i -lt $queue.Count;$i++){ foreach($row in $rows){ if([int]$row.ParentProcessId -eq $queue[$i] -and $seen.Add([int]$row.ProcessId)){ $queue.Add([int]$row.ProcessId) } } }; ` +
     `ConvertTo-Json -Compress -InputObject @($seen | ForEach-Object { [int]$_ })`
   const result = spawnSync(join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-    ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script],
+    ['-NoProfile', '-NonInteractive', '-Command', script],
     { windowsHide: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 })
   if (result.status !== 0 || result.error) throw new Error('UPDATE_PROCESS_INVENTORY_UNAVAILABLE')
   let value: unknown

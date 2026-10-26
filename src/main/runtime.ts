@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
@@ -297,7 +297,14 @@ export class RuntimeProcess {
       }
     })
     // Drain diagnostics without exposing possible credential-bearing exceptions.
-    child.stderr.resume()
+    // Runtime diagnostics must survive a failed session: tee stderr to the
+    // profile (bounded) instead of discarding it.
+    const stderrLog = join(this.profile, 'runtime-stderr.log')
+    try { writeFileSync(stderrLog, '') } catch {}
+    child.stderr.on('data', (chunk: Buffer) => {
+      try { appendFileSync(stderrLog, chunk) } catch {}
+      if (statSync(stderrLog).size > 1024 * 1024) { try { writeFileSync(stderrLog, '') } catch {} }
+    })
     child.stdin.on('error', () => {})
     child.on('error', () => {
       this.snapshot = { process: 'crashed', connection: 'offline', tasks: [] }

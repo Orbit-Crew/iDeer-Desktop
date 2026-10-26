@@ -26,6 +26,7 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
+  include: resources/nsis/process-guard.nsh
   artifactName: ideer-desktop-${version}-windows-${arch}-setup.${ext}
   shortcutName: iDeer Desktop
   uninstallDisplayName: iDeer Desktop

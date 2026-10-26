@@ -29,7 +29,7 @@ from core.transport import LocalRuntimeClient
     ('compatible', [], 1, 'LOCAL_POLICY_DENIED', 'local.files.write', True),
     ('unpublished', [], 1, '', 'local.files.write', False),
 ])
-def test_effective_gate_checks_the_signed_operation_before_any_file_effect(tmp_path, level, disabled, min_protocol, error, operation, deny):
+def test_effective_gate_checks_the_signed_operation_before_any_file_effect(tmp_path, level, disabled, min_protocol, error, operation, deny, supported_count=0, document_bytes=0):
     async def run():
         broker_key, device_key, release_key = [Ed25519PrivateKey.generate() for _ in range(3)]
         public = tmp_path / 'release.pem'
@@ -37,7 +37,10 @@ def test_effective_gate_checks_the_signed_operation_before_any_file_effect(tmp_p
                                                                serialization.PublicFormat.SubjectPublicKeyInfo))
         declaration = json.dumps(dict(version=1, level=level, disabledCapabilities=disabled,
             minProtocol=min_protocol, notes='Controlled contract fixture',
-            candidateCombo=dict(desktop='0.2.0', runtime='3.12.14', server='fixture-server'))).encode()
+            candidateCombo=dict(desktop='0.2.0', runtime='3.12.14', server='fixture-server'),
+            supportedCombos=[dict(desktop=f'0.3.{index}', runtime='3.12.14', server='fixture-server') for index in range(supported_count)])).encode()
+        if document_bytes:
+            declaration += b' ' * (document_bytes - len(declaration))
         signature = release_key.sign(declaration).hex().encode()
         finished = asyncio.Event()
         results = []
@@ -227,3 +230,30 @@ def test_core_gate_preserves_and_replays_the_original_unconfirmed_write_receipt(
                     await asyncio.gather(running, return_exceptions=True)
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize('count,error', [(100, ''), (101, 'COMPAT_MANIFEST_MALFORMED')])
+def test_signed_combination_limit_matches_server_100_101_boundary(tmp_path, count, error):
+    test_effective_gate_checks_the_signed_operation_before_any_file_effect(
+        tmp_path, 'compatible', [], 1, error, 'echo', False, supported_count=count)
+
+
+@pytest.mark.parametrize('length,error', [(128, ''), (129, 'COMPAT_MANIFEST_MALFORMED')])
+def test_signed_capability_name_length_boundary(tmp_path, length, error):
+    capability = 'local.mcp.' + 'a' * (length - 12) + '.x'
+    assert len(capability) == length
+    test_effective_gate_checks_the_signed_operation_before_any_file_effect(
+        tmp_path, 'capability', [capability], 1, error, 'echo', False)
+
+
+@pytest.mark.parametrize('count,error', [(128, ''), (129, 'COMPAT_MANIFEST_MALFORMED')])
+def test_signed_capability_array_length_boundary(tmp_path, count, error):
+    test_effective_gate_checks_the_signed_operation_before_any_file_effect(
+        tmp_path, 'capability', [f'local.mcp.fixture.tool{index}' for index in range(count)],
+        1, error, 'echo', False)
+
+
+@pytest.mark.parametrize('size,error', [(524288, ''), (524289, 'COMPAT_MANIFEST_TOO_LARGE')])
+def test_signed_document_byte_boundary(tmp_path, size, error):
+    test_effective_gate_checks_the_signed_operation_before_any_file_effect(
+        tmp_path, 'compatible', [], 1, error, 'echo', False, document_bytes=size)

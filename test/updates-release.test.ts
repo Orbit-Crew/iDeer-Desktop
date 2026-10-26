@@ -1,5 +1,5 @@
 import { createHash, generateKeyPairSync } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,6 +13,51 @@ const fresh = (): string => { const root = mkdtempSync(join(tmpdir(), 'ideer-upd
 afterEach(() => { delete process.env.IDEER_UPDATES_PUBLIC_KEY_FILE; for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
 describe('build-time update trust anchor', () => {
+  it('refuses invalid final client schemas and oversized assets without leaving a release', async () => {
+    const root = fresh(), installed = join(root, 'installed'), source = join(root, 'app')
+    mkdirSync(source); mkdirSync(join(installed, 'resources/runtime'), { recursive: true })
+    writeFileSync(join(source, 'package.json'), JSON.stringify({ version: '0.2.0' }))
+    const { createPackage } = await import('@electron/asar')
+    await createPackage(source, join(installed, 'resources/app.asar'))
+    writeFileSync(join(installed, 'resources/runtime/distribution.lock.json'), JSON.stringify({ python: '3.12.10' }))
+    const key = join(root, 'private.pem'), definition = join(root, 'definition.json')
+    writeFileSync(key, generateKeyPairSync('ed25519').privateKey.export({ format: 'pem', type: 'pkcs8' }))
+    const base = { version: 1, kind: 'patch', publishedAt: '2026-10-25T00:00:00Z',
+      desktop: { version: '0.2.0', electron: '22.3.27', asarSHA256: '0'.repeat(64) },
+      runtime: { python: '3.12.10', lockSHA256: '0'.repeat(64) },
+      baseline: { desktopVersion: '0.1.0', electronVersion: '22.3.27', runtimePython: '3.12.10', dataFormat: 1 },
+      dataCompatibility: { targetFormat: 1, readableFormats: [1] }, serverCompatibility: { minProtocol: 1, notes: '' },
+      files: [{ path: 'resources/app.asar' }], deletions: [] }
+    const cases = [
+      { version: 2 }, { publishedAt: 'not-a-date' }, { serverCompatibility: { minProtocol: 0, notes: '' } },
+      { serverCompatibility: { minProtocol: 1, notes: 'x'.repeat(2001) } },
+      { dataCompatibility: { targetFormat: 1, readableFormats: [1, 1] } },
+      { baseline: { ...base.baseline, dataFormat: 0 } },
+      { desktop: { ...base.desktop, electron: 'invalid' }, baseline: { ...base.baseline, electronVersion: 'invalid' } },
+      { files: [] }, { deletions: ['resources/runtime/core/desktop.py'] },
+      { padding: 'x'.repeat(524288) }
+    ]
+    for (const [index, invalid] of cases.entries()) {
+      const output = join(root, `release-${index}`)
+      writeFileSync(definition, JSON.stringify({ ...base, ...invalid }))
+      const result = spawnSync(process.execPath, ['scripts/release/issue-107/make-update.cjs', '--manifest', definition,
+        '--payload-root', installed, '--out', output, '--private-key', key], { encoding: 'utf8', windowsHide: true })
+      expect({ index, accepted: result.status === 0 }).toEqual({ index, accepted: false })
+      expect(existsSync(output)).toBe(false)
+    }
+    for (const bytes of [524288, 524289]) {
+      const output = join(root, `boundary-${bytes}`)
+      const boundary = { ...base, files: [{ path: 'resources/app.asar', bytes: statSync(join(installed, 'resources/app.asar')).size,
+        sha256: '0'.repeat(64) }], padding: '' }
+      boundary.padding = 'x'.repeat(bytes - Buffer.byteLength(JSON.stringify(boundary)))
+      writeFileSync(definition, JSON.stringify(boundary))
+      const result = spawnSync(process.execPath, ['scripts/release/issue-107/make-update.cjs', '--manifest', definition,
+        '--payload-root', installed, '--out', output, '--private-key', key], { encoding: 'utf8', windowsHide: true })
+      expect(result.status === 0).toBe(bytes === 524288)
+      if (bytes === 524289) expect(existsSync(output)).toBe(false)
+      else expect(readFileSync(join(output, 'manifest.json')).length).toBe(524288)
+    }
+  })
   it('creates one signed release directory usable both by static hosting and offline import', async () => {
     const keys = generateKeyPairSync('ed25519'), root = fresh(), installed = join(root, 'installed'), output = join(root, 'release')
     const asarSource = join(root, 'app')

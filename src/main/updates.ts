@@ -45,7 +45,7 @@ export interface UpdateCurrent {
   readableFormats: number[]
 }
 
-const MAX_MANIFEST_BYTES = 2 * 1024 * 1024
+export const MAX_MANIFEST_BYTES = 512 * 1024
 const MAX_FILES = 2000
 const MAX_DELETE = 500
 const MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
@@ -84,7 +84,7 @@ function safeRelativePath(value: unknown, field: string): string {
   return value
 }
 
-function parseManifest(text: string): UpdateManifest {
+export function parseManifest(text: string): UpdateManifest {
   if (Buffer.byteLength(text, 'utf8') > MAX_MANIFEST_BYTES) throw new Error('UPDATE_MANIFEST_TOO_LARGE')
   let value: unknown
   try { value = JSON.parse(text) } catch { throw new Error('UPDATE_MANIFEST_MALFORMED') }
