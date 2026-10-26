@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import platform
 import queue
 import sys
 import threading
@@ -11,6 +12,7 @@ from pathlib import Path
 
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
+from .compatibility import CompatibilityGate
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .process_job import own_process_tree
@@ -26,6 +28,8 @@ from .tray import load_controller
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, type=Path)
+    parser.add_argument('--update-health', action='store_true')
+    parser.add_argument('--desktop-version', default='0.1.0')
     args = parser.parse_args()
     job = own_process_tree()
     stop = threading.Event()
@@ -35,6 +39,7 @@ def main() -> int:
     management_commands: queue.Queue = queue.Queue(maxsize=1)
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
+    install_draining = args.update_health
     output_lock = threading.Lock()
 
     def emit(value):
@@ -49,6 +54,12 @@ def main() -> int:
                 if len(line) > 131072:
                     continue
                 command = json.loads(line)
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'echo'}
+                        and command['type'] == 'health' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and command['echo'] == 'ideer-update-health-v1'):
+                    emit({'v': 1, 'type': 'health', 'id': command['id'], 'echo': command['echo'],
+                          'python': '.'.join(map(str, sys.version_info[:3])), 'pid': __import__('os').getpid()})
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'grantId', 'scope'}
                         and command['type'] == 'manage' and command['action'] in {'logout', 'switch-account', 'revoke'}
                         and all(isinstance(command[key], str) and len(command[key]) <= 128 for key in ('id', 'grantId', 'scope'))):
@@ -120,6 +131,8 @@ def main() -> int:
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
         local_results = LocalResultRegistry(args.config.with_name('local-results.db'))
+        compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
+                                          runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
             owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
             return receipts.thread_history(owner, thread_id, run_ids)
@@ -131,7 +144,7 @@ def main() -> int:
                 TaskGuard(args.config.with_name('tasks.db')).stop_run(settings.device_id, run_id)
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
-            local_results=local_results)
+            local_results=local_results, compatibility_gate=compatibility)
 
         def chat_control():
             while not stop.is_set():
@@ -149,6 +162,8 @@ def main() -> int:
         threading.Thread(target=chat_control, daemon=True).start()
 
         def connect():
+            if install_draining:
+                return None
             settings = load_settings(args.config)
             if not settings.server_url or not settings.device_id:
                 return None
@@ -178,6 +193,8 @@ def main() -> int:
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
             controller.client.local_results = local_results
+            compatibility.bind()
+            controller.client.compatibility_gate = compatibility
             controller.client.user_id = settings.user_id
             owner = profile_binding(settings)
             controller.client.file_service.available = lambda: (
@@ -196,14 +213,16 @@ def main() -> int:
             if drain_command:
                 error = ''
                 try:
-                    if controller is None:
-                        raise ValueError('RUNTIME_UNAVAILABLE')
                     if drain_command['scope'] != workspace.scope():
                         raise ValueError('IDENTITY_CHANGED')
+                    install_draining = drain_command['action'] == 'begin'
                     if drain_command['action'] == 'begin':
-                        controller.client.begin_install_drain()
-                    else:
+                        if controller is not None:
+                            controller.client.begin_install_drain()
+                    elif controller is not None:
                         controller.client.abort_install_drain()
+                    elif not install_draining:
+                        controller = connect()
                 except Exception:
                     error = 'DRAIN_FAILED'
                 emit({'v': 1, 'type': 'install-drain', 'id': drain_command['id'], 'error': error})
@@ -278,6 +297,10 @@ def main() -> int:
                 stop_controller()
             current_receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
             receipt_view = receipts.snapshot(current_receipt_owner)
+            try:
+                unknown_write_effects = receipts.unknown_write_effects(None)
+            except ReceiptStorageError:
+                unknown_write_effects = 1  # An unreadable ledger cannot prove effects are known.
             tasks = [{"taskId": row['task_id'][:256], "runId": row['run_id'][:256],
                       "state": (row['status'] if row['delivery_state'] != 'cleaned' else 'cleaned')[:256],
                       "capability": row['capability'][:256]} for row in receipt_view['rows']]
@@ -285,7 +308,10 @@ def main() -> int:
             if controller is not None:
                 connection = controller.status().connection
             status = {"v": 1, "connection": connection, "tasks": tasks, "login": login.status(),
-                      "installDrain": bool(controller is not None and controller.client.install_draining),
+                      "serverOrigin": login.server_origin(),
+                      "compatibility": compatibility.snapshot(),
+                      "unknownWriteEffects": unknown_write_effects,
+                      "installDrain": install_draining,
                       "activeTasks": (controller.client.active_task_count() if controller is not None else 0),
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',

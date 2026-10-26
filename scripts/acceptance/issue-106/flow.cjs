@@ -72,24 +72,9 @@ async function main() {
     })
     evidence.scenarios['T106-01'].status = 'passed'; save()
 
-    // T106-02: the only upload path is the explicit user control; the Server
-    // artifact endpoint is delivered by the Server workflow, so the honest
-    // behavior today is a fixed failure that never fakes success.
-    await uploadClick(uploadTarget)
-    let rejected
-    await wait(async () => {
-      rejected = await snapshot()
-      return rejected.error !== ''
-    }, 'explicit upload rejection surfaced')
-    assert(['CHAT_NOT_FOUND', 'CHAT_SERVER_ERROR', 'CHAT_FORBIDDEN', 'CHAT_SERVER_UNAVAILABLE'].includes(rejected.error),
-      'fixed upload rejection category, got ' + rejected.error)
-    const afterUpload = (await snapshot()).localTasks.find(row => row.task_id === uploadTarget.approval.taskId)
-    assert.equal(afterUpload.localResult.artifact_ref, '', 'a failed upload never marks the local fact')
-    const bodyAfterUpload = await page.locator('body').innerText()
-    assert(!bodyAfterUpload.includes('· 附件 '), 'no platform attachment appears after a failed upload')
-    pass('T106-02', 'explicit-upload-fails-honestly-without-server-endpoint', {
-      operationId: uploadTarget.id, error: rejected.error, localResultArtifactRef: ''
-    })
+    // The migration gate requires the successful real artifact chain,
+    // including a separate paired device and an unauthorized account.
+    const uploadedArtifact = await exerciseArtifacts(uploadTarget, 'T106-02')
     evidence.scenarios['T106-02'].status = 'passed'; save()
 
     // T106-03: the safety contract survives the package switch unchanged.
@@ -127,7 +112,7 @@ async function main() {
     // independent package; a read task proves the signed echo-style contract.
     await restartRuntime()
     await reopen(uploadTarget)
-    await taskView(uploadTarget, row => row.status === 'completed' && row.localResult?.artifact_ref === '')
+    await taskView(uploadTarget, row => row.status === 'completed' && row.localResult?.artifact_ref === uploadedArtifact.artifact_id)
     const readOp = await submit('T106-04', 'health-read', 'health.txt', BEFORE, { operation: 'read' })
     await finish(readOp, /BEFORE/)
     assert.equal(readOp.tasks.length, 1); assert.equal(readOp.tasks[0].status, 200)
@@ -147,26 +132,37 @@ async function main() {
     await wait(async () => (await status()).runtime.receiptStorageError === '', 'no storage latch after restart')
     pass('T106-04', 'restart-reconnect-receipt-history', {
       operationId: readOp.id, readSHA256: sha(BEFORE), receiptTotal: history.total,
-      recoveredLocalResultRef: ''
+      recoveredLocalResultRef: uploadedArtifact.artifact_id
     })
     evidence.scenarios['T106-04'].status = 'passed'; save()
 
     await page.screenshot({ path: path.join(state, 'issue-106-matrix.png'), fullPage: true })
     evidence.finalLocalHistory = controls('history'); evidence.finalLocalAudit = controls('audit')
     assert(evidence.finalLocalAudit.integrity)
-    await quit(); profile('evidence', 'A')
+    await quit()
+    evidence.independentRuntime = python(path.join(__dirname, '../issue-106/independent_runtime.py'),
+      state, '--run-id', uploadTarget.runId)
+    assert.equal(evidence.independentRuntime.status, 'passed', 'standalone MCP/Python broker receipt matrix')
+    profile('evidence', 'A')
     evidence.status = 'passed'
   } catch (error) {
+    evidence.status = 'failed'
+    evidence.failure = String(error.stack || error)
+    for (const row of Object.values(evidence.scenarios)) if (row.status === 'unexecuted' && row.cases.length) row.status = 'incomplete'
     try { if (page) { evidence.failureSnapshot = await snapshot(); evidence.failureUI = await page.locator('body').innerText() } } catch {}
     throw error
   } finally {
     if (app) { try { await quit() } catch (error) { evidence.shutdownError = String(error); evidence.status = 'failed' } }
-    try { evidence.credentialCleanup = profile('cleanup') } catch (error) { evidence.cleanupError = String(error); evidence.status = 'failed' }
-    for (const name of ['hold-results', 'hold-uploads', 'drop-acks', 'disconnect-after-result']) flag(name, false)
-    flag('stop')
-    assert(path.resolve(work).startsWith(path.resolve(os.tmpdir()) + path.sep))
-    fs.rmSync(work, { recursive: true, force: true })
-    evidence.fixtureCleanup = { removed: true, appClosed: app === null }
+    if (evidence.status !== 'passed' && process.env.IDEER_ACCEPTANCE_PRESERVE_FAILURE === '1') {
+      evidence.preservedForDiagnosis = { work, credentials: 'synthetic references retained', server: 'running' }
+    } else {
+      try { evidence.credentialCleanup = profile('cleanup') } catch (error) { evidence.cleanupError = String(error); evidence.status = 'failed' }
+      for (const name of ['hold-results', 'hold-uploads', 'drop-acks', 'disconnect-after-result']) flag(name, false)
+      flag('stop')
+      assert(path.resolve(work).startsWith(path.resolve(os.tmpdir()) + path.sep))
+      fs.rmSync(work, { recursive: true, force: true })
+      evidence.fixtureCleanup = { removed: true, appClosed: app === null }
+    }
     evidence.finishedAt = new Date().toISOString(); save()
     if (evidence.status !== 'passed') process.exitCode = 1
   }

@@ -17,9 +17,10 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
              optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
-             artifact_status=None, artifact_responder=None):
+             artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None):
     records = []
     artifacts = {}
+    grants = set()
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
                     lifecycle_status=lifecycle, latest_version=version)
 
@@ -98,11 +99,40 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                 if history_gate:
                     history_gate.wait(5)
                 data = {'tasks': local_tasks or [], 'has_more': False, 'next_offset': None}
+            elif self.path == '/api/threads/thread-A/artifacts/grant':
+                status = grant_status
+                if user != 'A' or self.headers.get('X-Device-Session') != 'device-session-105':
+                    status = 403
+                token = f'server-issued-grant-{len(records)}'
+                grants.add(token)
+                data = dict(token=token, run_id=body['run_id'], task_id=body['task_id'],
+                            thread_id='thread-A', name=body['name'], device_id=body['device_id'],
+                            expires_at='2099-01-01T00:00:00+00:00') if status == 200 else {}
+                if on_grant:
+                    on_grant(data)
+            elif self.path.startswith('/api/threads/thread-A/artifacts?'):
+                status = 404 if user != 'A' else 200
+                data = {'artifacts': list(artifacts.values()), 'has_more': False, 'next_offset': None}
+            elif self.path.startswith('/api/threads/thread-A/artifacts/') and self.path.endswith('/download'):
+                import base64
+                artifact_id = self.path.split('/')[-2]
+                artifact = next((row for row in artifacts.values() if row['artifact_id'] == artifact_id), None)
+                if user != 'A' or artifact is None:
+                    status, data = 404, {}
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/octet-stream')
+                    self.send_header('X-Content-SHA256', artifact['sha256'])
+                    self.end_headers()
+                    self.wfile.write(base64.b64decode(artifact['content']))
+                    return
             elif self.path == '/api/threads/thread-A/artifacts':
                 # The Server-side artifact boundary contract for issue 105:
                 # upload is content-hash idempotent, thread-bound, and the
                 # response echoes what was stored so the device can verify it.
-                if artifact_status is not None:
+                if self.headers.get('X-Device-Session') != 'device-session-105' or body['grant']['token'] not in grants:
+                    status, data = 403, {}
+                elif artifact_status is not None:
                     status, data = artifact_status, {}
                 elif artifact_responder is not None:
                     status, data = artifact_responder(body)
@@ -113,6 +143,7 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     else:
                         data = dict(artifact_id=f"art-{len(artifacts) + 1}", thread_id='thread-A',
                                     name=body['name'], sha256=body['sha256'], bytes=body['bytes'],
+                                    task_id=body['task_id'], run_id=body['run_id'], content=body['content'],
                                     handle=body['handle'], duplicate=False)
                         artifacts[body['handle']] = data
             elif self.path == '/api/threads/thread-A/runs/run-1/stream':
@@ -182,7 +213,8 @@ def test_slow_history_poll_does_not_block_installing_the_local_stop_fence(tmp_pa
         chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
         chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
             'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Write AFTER'})
-        gate.clear(); started.clear()
+        gate.clear()
+        started.clear()
         time.sleep(2.05)
         try:
             before = time.monotonic()
@@ -470,11 +502,13 @@ def prepare_result(tmp_path, origin, *, mode='local', task_id='task-105'):
     from core.platform_chat import DesktopChat
     secure = InMemorySecretStore()
     secure.set('business-A', 'business-A')
+    secure.set('device-session-105', 'device-session-105')
     config = tmp_path / 'profile' / 'settings.json'
     work = tmp_path / 'work'
     work.mkdir(exist_ok=True)
     settings = RuntimeSettings(server_url=origin, user_id='A', device_id='D1',
         device_public_key='device-key-105', server_public_key='broker-key-105',
+        session_token_ref='device-session-105',
         business_token_ref='business-A', business_expires_at='2099-01-01T00:00:00+00:00')
     if mode == 'policy-deny':
         settings.rules['local.artifacts.upload'] = 'deny'

@@ -51,7 +51,7 @@ to mark anything uploaded unless that echo matches the staged bytes.
 | Command | Result | Record |
 | --- | --- | --- |
 | `npm.cmd run typecheck` (Node 22.14.0) | passed | this run |
-| `npm.cmd test` | 24 passed, 12 files (22 baseline + 2 new) | this run |
+| `npm.cmd test` | 24 passed, 12 files (23 baseline + 1 new) | this run |
 | `npm.cmd run test:security` | passed | this run |
 | `npm.cmd run verify:provenance` | passed (`f88141bb…`) | this run |
 | `python scripts/verify-runtime-source.py` | passed (`ccb251e0…`) | this run |
@@ -87,3 +87,20 @@ with no stored bytes on refusal. Payloads land in the owning thread's
 user-data outputs, so the existing artifact listing and access control apply.
 Win7 stays `unexecuted` per the ticket and is owned by
 [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
+
+## Final-candidate installed re-verification (0.2.0, passed)
+
+The installed-candidate artifact flow was re-run on the final 0.2.0 package
+against the real Gateway and the live artifact endpoint (Server PR #143) —
+binding and run map in
+[final-candidate-binding.md](../final-candidate-binding.md); result JSON in
+[evidence/installed-artifact-flow-result.json](evidence/installed-artifact-flow-result.json).
+The four ticket scenarios map to the executed cases: viewing/history without
+automatic upload and the second-device local-only view
+(`second-device-local-result-remains-unavailable`), the explicit
+authorization-gated upload with content-hash equality and the idempotent
+repeat (`explicit-upload-and-repeat-real-server`), the second-device
+download of exact bytes (`second-device-ui-download-exact-bytes`), and the
+permission/owner refusals including the cross-account download denial
+(`other-account-ui-and-http-download-refused`). All passed; T105-01..04 are
+covered on the installed candidate.

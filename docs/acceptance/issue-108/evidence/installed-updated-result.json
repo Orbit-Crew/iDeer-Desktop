@@ -1,0 +1,308 @@
+{
+  "startedAt": "2026-10-26T00:03:57.787Z",
+  "installed": true,
+  "model": "deterministic Server model; real Gateway and Windows Runtime tools",
+  "constants": {
+    "BEFORE": {
+      "text": "BEFORE",
+      "bytes": 6,
+      "sha256": "c341c7fe1027f9487e8019198223ad7af0b9cfe1564d41c7e7c4d139cd0226f3"
+    },
+    "AFTER": {
+      "text": "AFTER",
+      "bytes": 5,
+      "sha256": "94c3f1415d2061d05e4cce4d33e43e26a5ad7ebcf6e89acace6e8b84240a629c"
+    },
+    "NEWLINES": {
+      "text": "AFTER\r\n第二行\n",
+      "bytes": 17,
+      "sha256": "c1e898357fcb2824b595e53ac85efef2e4935c6a0c197791147c708fab47d91c"
+    }
+  },
+  "candidate": {
+    "serverHead": "591f80cf3579fcd3ec527d79fa9a867f6f4fc32d",
+    "serverSourceSHA256": "ac05cffff749e78e3a5115452a5d784954aec27d0b52444030844db84e3c467d",
+    "acceptanceFiles": [
+      {
+        "path": "scripts/acceptance/issue-102/desktop.cjs",
+        "sha256": "06ee73e1df4b65ad24025f06aa4b7141225e5159af8e58826ac57ec83e569577"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/profiles.py",
+        "sha256": "562160fabd1766ba33cdef7740057a6e95c3c6d565bd519a232188db2059efd3"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/profile_controls.py",
+        "sha256": "a8967aa59121a7e5f1fa0bbb0fb7a908b853accf54d196b6dcc5a9f056ccc70d"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/server_fixture.py",
+        "sha256": "d6b1075da518cf67038dd72577c5baafcff694c63d0d3da0700e035904c9ae85"
+      },
+      {
+        "path": "scripts/acceptance/issue-102/fixture_hooks.py",
+        "sha256": "db6ce4cda6217cd1e2b47c3608ee99d3713ee26b9729c7099ba657346ea07bf2"
+      },
+      {
+        "path": "scripts/acceptance/issue-100/profiles.py",
+        "sha256": "42de857d33f9ed11c6e82506b9328ef6ed7ce009337c5ae22c7385fb735ca327"
+      },
+      {
+        "path": "scripts/acceptance/issue-100/server_fixture.py",
+        "sha256": "f3636d0b0e6994c617fd893320431ac4b2440c379463b18feab52f74a80f4868"
+      },
+      {
+        "path": "scripts/acceptance/issue-101/source_binding.py",
+        "sha256": "452406ac8da404cf5c62b87ce9323ddb1ae08e423e96a6e284351233b3010453"
+      }
+    ],
+    "buildMirror": false,
+    "runtimePythonSHA256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a",
+    "runtimeCore": [
+      {
+        "path": "local-runtime/core/__init__.py",
+        "sha256": "482d173b4e0736abda1c487867bcdf1892b86c63154e6ef853ebd7b5a9e91d46"
+      },
+      {
+        "path": "local-runtime/core/artifacts.py",
+        "sha256": "b3731f7c8004c43272632c9d55cc8c9af7bf1d225bff1eda701d680661df603b"
+      },
+      {
+        "path": "local-runtime/core/audit.py",
+        "sha256": "0bc8ce02155386fce16708f03d7f18b7277e7e7c85419b7a942bff5a19b6fc2c"
+      },
+      {
+        "path": "local-runtime/core/browser_login.py",
+        "sha256": "0ddd50ec755db143aa06d3cad9dec1d0a8d6d6c21563344e9cfcdde0cece62be"
+      },
+      {
+        "path": "local-runtime/core/capabilities.py",
+        "sha256": "b342084b9e3213403d0387b2bfc594d6391aca710345b670f5e3e3feab1502cc"
+      },
+      {
+        "path": "local-runtime/core/cli.py",
+        "sha256": "5862fbce9d4e77bd20d896d4fed02b6ead3f117c9408d154c1cd7b49db820711"
+      },
+      {
+        "path": "local-runtime/core/compat.py",
+        "sha256": "c79b13b5f7d6c3fc082102fa97a0f48b86c06b1775794e6e282619e3c78c6d3c"
+      },
+      {
+        "path": "local-runtime/core/compatibility.py",
+        "sha256": "8fa8944003005104610f3864408a5b660fb07ba9e71423d980b30b813655bb92"
+      },
+      {
+        "path": "local-runtime/core/consent.py",
+        "sha256": "6ce1fb3680b52c03ccf91b584267faca654933fd7c0e38b6957d87a2351e3710"
+      },
+      {
+        "path": "local-runtime/core/consent_coord.py",
+        "sha256": "2daaad881e7b0cc9942215b18455ebb00cbad2af8cd470b32c45832b763aa6c8"
+      },
+      {
+        "path": "local-runtime/core/desktop.py",
+        "sha256": "e0e6e148e2186737ed551fe6afe15a8c3cb15ca336c59755aa0ac03d9255367d"
+      },
+      {
+        "path": "local-runtime/core/file_service.py",
+        "sha256": "f2ec5eef43ae97a48d5252421359d4e5c416be4debcd321befa66793eeb3fda6"
+      },
+      {
+        "path": "local-runtime/core/files.py",
+        "sha256": "b67abe228574d576d6e1dd8c03e9b5bfc2819490f44d5612efbde265866c1049"
+      },
+      {
+        "path": "local-runtime/core/files_nt.py",
+        "sha256": "dd4283a3b99296fe71b40e80e54b525cc1161e5e8796cefddf3f8cc302b5dd44"
+      },
+      {
+        "path": "local-runtime/core/local_results.py",
+        "sha256": "1e28c906b55075bd3d3a2c79f60ff6e290eb034e7c72e400b470c8e98fdc0f0b"
+      },
+      {
+        "path": "local-runtime/core/mcp.py",
+        "sha256": "71553174cd8b33bafade1623d9359ea5b70dbdc624994797b71a0a81323b2f3a"
+      },
+      {
+        "path": "local-runtime/core/platform_chat.py",
+        "sha256": "bcc879eaf2e2b0396df41794ee7ca7211a44cc31723155330446f7480fa16c4d"
+      },
+      {
+        "path": "local-runtime/core/policy.py",
+        "sha256": "d022a61c5ddb3c5462ca96eacdaf8c695a48f004643bfc7bbf0e2f514f777282"
+      },
+      {
+        "path": "local-runtime/core/process_job.py",
+        "sha256": "e419a888a22504df0da94f1a0e41ccc9e4a995a14c9da5ae33c39e53170c93ea"
+      },
+      {
+        "path": "local-runtime/core/protocol.py",
+        "sha256": "71ddd254afdcef25fcd0f1b8e164141f430afc978042a55ef07a61d156386205"
+      },
+      {
+        "path": "local-runtime/core/python.py",
+        "sha256": "5a1078521d93258d93f4464ad12250ea778e4f1a47b37685cdb276315c2ae7a1"
+      },
+      {
+        "path": "local-runtime/core/receipt_ledger.py",
+        "sha256": "1f13fcb5713c533fca2d5f1e7acbc8b08e046b59d7118092026a3adb0b74eb9f"
+      },
+      {
+        "path": "local-runtime/core/receipts.py",
+        "sha256": "1ccd4957072104feed176d66b2c9044cff37e6fa16eac2b79fca23be86c66ded"
+      },
+      {
+        "path": "local-runtime/core/secrets.py",
+        "sha256": "50d5a6e4b1fe830679868e9202818a9c6fd25276f3f2ac10df4d7dc8f41462ad"
+      },
+      {
+        "path": "local-runtime/core/settings.py",
+        "sha256": "319af4af23cdaeef215f9dada030b35b473b514f7256fe930d5b5c4b5b057d8b"
+      },
+      {
+        "path": "local-runtime/core/task_guard.py",
+        "sha256": "6dfaa7f4916040fef88975362601efc3956a82ca1205fe1dbde38edfc7750f00"
+      },
+      {
+        "path": "local-runtime/core/transport.py",
+        "sha256": "6dd809f3c03d94997b4ea08930469921e408ce6a443c5b57180de264c45acb54"
+      },
+      {
+        "path": "local-runtime/core/tray.py",
+        "sha256": "68619edbe0ec97ac93fdcad1702e1219e6a36d753bc7b53904c265e2501b3c20"
+      }
+    ],
+    "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+    "appASARSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+  },
+  "scenarios": {
+    "T108-04": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "paired installed launch and workspace",
+          "status": "passed",
+          "userData": "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\artifacts\\issue-108\\installed-finalC8\\appdata\\iDeer Desktop",
+          "workspace": "/workspace/2e0d7a4d-9414-49a6-a44e-808232439b23"
+        },
+        {
+          "name": "signed patch staged",
+          "status": "passed",
+          "kind": "patch",
+          "fileCount": 1
+        },
+        {
+          "name": "install entry accepted",
+          "status": "passed",
+          "install": "Error: page.evaluate: Target page, context or browser has been closed"
+        },
+        {
+          "name": "installed combination health-verified",
+          "status": "passed",
+          "echo": "ideer-update-health-v1",
+          "desktopVersion": "0.2.0",
+          "runtimePython": "3.12.10"
+        },
+        {
+          "name": "updated app verified real window, IPC and echo",
+          "status": "passed",
+          "desktopVersion": "0.2.0",
+          "windowLoaded": true,
+          "ipcReady": true
+        }
+      ]
+    },
+    "T109-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "operations": [],
+  "auxiliaryOperations": [],
+  "stages": [
+    {
+      "id": "workspace-selected",
+      "at": "2026-10-26T00:04:01.078Z",
+      "logical": "/workspace/2e0d7a4d-9414-49a6-a44e-808232439b23",
+      "pickerConfirmation": {
+        "title": "确认工作目录的数据边界",
+        "detail": "<synthetic directory>\n\n仅在会话请求列举、读取或搜索时，将所需文件名或文本发送到 Server 和模型。不会自动上传整个目录。模型仅能看到逻辑目录。目录不会登记为平台 Resource。授权保存在本机，同账号与设备重启后继续有效。切换目录将使旧路径失效。",
+        "buttons": [
+          "取消",
+          "确认目录授权"
+        ]
+      }
+    }
+  ],
+  "picker": "Actual Desktop selection button, synthetic path supplied through native dialog callback.",
+  "releasePath": "C:\\Users\\Neo\\.ideer-acceptance\\issue108\\published-updated\\manifest.json",
+  "expected": "updated",
+  "originalHashes": {
+    "traySHA256": "68619edbe0ec97ac93fdcad1702e1219e6a36d753bc7b53904c265e2501b3c20",
+    "desktopSHA256": "e0e6e148e2186737ed551fe6afe15a8c3cb15ca336c59755aa0ac03d9255367d",
+    "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+  },
+  "receiptSeedSHA256": "d9f94e5cadfefb730ab9958a23e2c4d86603e8840406cfdd11892ee6a8c58047",
+  "staged": {
+    "ok": true,
+    "error": "",
+    "pending": {
+      "kind": "patch",
+      "source": "offline",
+      "verifiedAt": "2026-10-26T00:04:01.458Z",
+      "advice": "校验通过，补丁已就绪；安装需要你在任务排空后单独确认。",
+      "desktopVersion": "0.2.0",
+      "runtimePython": "3.12.10",
+      "serverCompatibility": {
+        "minProtocol": 1,
+        "notes": "issue-108 installed acceptance patch"
+      },
+      "fileCount": 1,
+      "deletionCount": 0
+    }
+  },
+  "installTransport": "Error: page.evaluate: Target page, context or browser has been closed",
+  "recovery": {
+    "state": "updated",
+    "stamp": "df8dd408-4347-463b-b0a8-7d1fa852e866",
+    "programRoot": "D:\\software\\iDeer Desktop\\ideer-desktop",
+    "journalPath": "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\artifacts\\issue-108\\installed-finalC8\\appdata\\iDeer Desktop\\Updates\\stage-df8dd408-4347-463b-b0a8-7d1fa852e866\\transaction.json",
+    "desktopVersion": "0.2.0",
+    "runtimePython": "3.12.10",
+    "detail": "Desktop and bundled Runtime started, versions and controlled echo verified; diagnostics: C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\artifacts\\issue-108\\installed-finalC8\\appdata\\iDeer Desktop\\Updates\\stage-df8dd408-4347-463b-b0a8-7d1fa852e866\\transaction.json"
+  },
+  "health": {
+    "nonce": "f9735de2-5f7a-4731-8611-2effce57aa15",
+    "pid": 113988,
+    "executable": "D:\\software\\iDeer Desktop\\ideer-desktop\\ideer-desktop.exe",
+    "desktopVersion": "0.2.0",
+    "electronVersion": "22.3.27",
+    "runtimePython": "3.12.10",
+    "runtimePid": 132332,
+    "echo": "ideer-update-health-v1",
+    "dataFormat": 1,
+    "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897",
+    "lockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+  },
+  "usable": {
+    "nonce": "f9735de2-5f7a-4731-8611-2effce57aa15",
+    "pid": 113988,
+    "runtimePid": 132332,
+    "desktopVersion": "0.2.0",
+    "windowLoaded": true,
+    "rendererReady": true,
+    "ipcReady": true,
+    "runtimeUnfenced": true,
+    "echo": "ideer-update-health-v1"
+  },
+  "launched": {
+    "pid": 113988,
+    "runtimePid": 132332
+  },
+  "status": "passed",
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-26T00:04:11.955Z"
+}

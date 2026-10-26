@@ -64,3 +64,25 @@ coordination order stands: publish the Server's own compatibility declaration
 first, verify old clients, then introduce new clients; combinations beyond the
 declared candidate remain unclaimed. Real Win7 remains `unexecuted` under
 [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
+
+## Final-candidate installed re-verification (0.2.0, passed)
+
+Both legs ran against the real Gateway serving the operations-signed
+compatibility cases from the controlled address with the same trust key as
+the installed package (runs E4/E6; binding in
+[final-candidate-binding.md](../final-candidate-binding.md); evidence in
+this directory). Old-client-first: the unchanged archived 0.1.0 client
+paired, passed its identity and legacy-HELLO mapping, and completed a real
+write against the upgraded Server (`real-old-client-against-upgraded-server`).
+New-client leg on the installed 0.2.0 package: compatible write passes,
+the capability declaration stops exactly the declared write while an
+unaffected read succeeds (`COMPAT_CAPABILITY_DISABLED` in the Turn result,
+zero dispatch frames, zero executions, file unchanged), the feature switch
+never grants a resource or local permission (Server 403/404 plus local DENY
+hold), the core declaration stops new local work while an unconfirmed write
+receipt and the original file survive a restart without redispatch, and the
+Server-first old-then-new release order is asserted on the exact declared
+combinations only. One harness correction was made during this run: the
+refusal is asserted from the Turn's deterministic result (the Server refuses
+before any signed TASK frame, so no durable task row exists). Real Win7
+remains `unexecuted` under [#131](https://github.com/Orbit-Crew/iDeer/issues/131).

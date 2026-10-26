@@ -45,6 +45,25 @@ class BrowserLogin:
         self._status = {"state": "unauthenticated", "account": "", "device": "", "error": ""}
         self._pending = None
         self._expires_at = None
+        self._origin_binding = None
+
+    @staticmethod
+    def _binding(settings):
+        return (platform_origin(settings.server_url), settings.user_id, settings.device_id,
+                settings.device_key_ref, settings.server_public_key, settings.business_token_ref)
+
+    def server_origin(self) -> str:
+        """Expose only the origin of the identity authenticated by restore/login."""
+        if self.status()['state'] != 'authenticated' or self._origin_binding is None:
+            return ''
+        settings = load_settings(self.config)
+        try:
+            valid = not settings.signed_out and self._binding(settings) == self._origin_binding
+        except ValueError:
+            valid = False
+        if not valid:
+            return ''
+        return self._origin_binding[0]
 
     def restore(self) -> None:
         settings = load_settings(self.config)
@@ -73,6 +92,7 @@ class BrowserLogin:
             raise ValueError('DEVICE_BINDING_INVALID')
         self._status = {"state": "authenticated", "account": str(account["email"])[:256],
                         "device": settings.device_name, "error": ""}
+        self._origin_binding = self._binding(settings)
 
     def status(self) -> dict:
         if self._status["state"] == "authenticated" and self._expires_at and datetime.now(timezone.utc) >= self._expires_at:
@@ -111,6 +131,7 @@ class BrowserLogin:
         return origin + "/desktop-login?login_id=" + urllib.parse.quote(login_id)
 
     def fail(self, code: str) -> None:
+        self._origin_binding = None
         self._pending = None
         self._status = {"state": "error", "account": "", "device": "", "error": code}
 
@@ -131,6 +152,7 @@ class BrowserLogin:
             # must stay offline even if secure-store cleanup fails.
             settings.save(self.config)
             self._pending = self._expires_at = None
+            self._origin_binding = None
             self._status = dict(state='unauthenticated', account='', device='', error='')
             for reference in references:
                 if reference:
@@ -205,6 +227,7 @@ class BrowserLogin:
         self._expires_at = datetime.fromisoformat(settings.business_expires_at) if settings.business_expires_at else None
         self._status = {"state": "authenticated", "account": settings.user_name[:256],
                         "device": settings.device_name, "error": ""}
+        self._origin_binding = self._binding(settings)
         return True
 
     @staticmethod

@@ -151,6 +151,25 @@ class ReceiptLedger:
         return self._execute(lambda db: [self._upload(row) for row in db.execute(
             "SELECT * FROM local_receipts WHERE binding=? AND delivery_state='pending' ORDER BY rowid", (encoded,))])
 
+    def unknown_write_effects(self, binding):
+        """Count all unresolved writes, independently of history pagination or ack."""
+        if binding is None:
+            # An offline installation still must protect every original owner.
+            clause, arguments = '', ()
+        else:
+            clause = ' WHERE binding=?'
+            arguments = (json.dumps(self._binding(binding), sort_keys=True),)
+        def read(db):
+            count = 0
+            for row in db.execute('SELECT task, receipt, delivery_state FROM local_receipts' + clause, arguments):
+                task = json.loads(row['task'])
+                receipt = json.loads(row['receipt']) if row['receipt'] else {}
+                if task.get('capability') == 'local.files.write' and (row['delivery_state'] == 'uncertain' or
+                        receipt.get('status') == 'result_not_verified' or receipt.get('error_code') == 'RESULT_UNCERTAIN'):
+                    count += 1
+            return count
+        return self._execute(read)
+
     def confirm(self, receipt_id, receipt_hash, acknowledgment, *, binding=None):
         if not acknowledgment:
             return False

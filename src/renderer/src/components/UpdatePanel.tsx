@@ -10,7 +10,21 @@ export default function UpdatePanel(): JSX.Element {
   const [install, setInstall] = useState<InstallOutcome | null>(null)
   const [recovery, setRecovery] = useState<RecoveryView | null>(null)
   const [failed, setFailed] = useState('')
-  useEffect(() => { void window.ideer.recoveryState().then((state) => { if (state) setRecovery(state) }).catch(() => {}) }, [])
+  useEffect(() => {
+    let active = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const refresh = async (): Promise<void> => {
+      try {
+        const state = await window.ideer.recoveryState()
+        if (!active) return
+        setRecovery(state)
+        if (state?.state === 'applied-pending-verify') timer = setTimeout(() => { void refresh() }, 500)
+      } catch {}
+    }
+    void refresh()
+    return () => { active = false; if (timer) clearTimeout(timer) }
+  }, [])
+  useEffect(() => { void window.ideer.checkUpdates('staged').then(setResult).catch(error => setFailed(String(error))) }, [])
 
   const run = async (kind: 'online' | 'offline'): Promise<void> => {
     setBusy(true); setFailed(''); setResult(null); setInstall(null)
@@ -50,8 +64,9 @@ export default function UpdatePanel(): JSX.Element {
       <Typography.Paragraph type="warning">{pending.advice}</Typography.Paragraph>
       <Button type="primary" disabled={busy} onClick={() => void installNow()}>确认并排空安装</Button>
     </Card>}
-    {install && <Alert className="mt-4" type={install.installed ? 'success' : 'warning'} showIcon
-      message={install.installed ? `更新已就绪：${install.detail}` : `安装未执行（${install.stage}）：${install.detail}`} />}
+    {install && <Alert className="mt-4" type={install.installed ? 'success' : install.stage === 'launched' ? 'info' : 'warning'} showIcon
+      message={install.installed ? `更新已核实：${install.detail}` : install.stage === 'launched'
+        ? '维护进程已启动，重启后将核实 Desktop 和 Runtime 是否可用。' : `安装未执行（${install.stage}）：${install.detail}`} />}
     {recovery && <Alert className="mt-4" type={recovery.state === 'updated' ? 'success'
       : recovery.state === 'recovery-failed' ? 'error' : 'warning'} showIcon
       message={{ 'applied-pending-verify': '更新待重启核实', updated: '更新组合已核实',

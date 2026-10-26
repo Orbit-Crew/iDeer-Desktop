@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -143,7 +144,7 @@ class LocalAuditLog:
             return
         path = Path(self.db_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             db.executescript(_SCHEMA)
             if db.execute("SELECT 1 FROM audit_meta WHERE id = 1").fetchone() is None:
                 db.execute("INSERT INTO audit_meta VALUES (1, ?)", (GENESIS_HASH,))
@@ -185,7 +186,7 @@ class LocalAuditLog:
             entry = _entry(seq, stamp, row, entry_hash)
             self._buffer.append(entry)
             return entry
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             head = _head(db)
             seq = db.execute(
                 "SELECT COALESCE(MAX(seq), 0) + 1 FROM audit_entries"
@@ -238,7 +239,7 @@ class LocalAuditLog:
         if limit > 0:
             sql += " LIMIT ?"
             params.append(limit)
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             rows = db.execute(sql, params).fetchall()
         return [_from_row(row) for row in rows]
 
@@ -273,7 +274,7 @@ class LocalAuditLog:
         """
         if self.db_path is None:
             return AuditIntegrity(ok=True, entries=len(self._buffer))
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             rows = db.execute(
                 "SELECT seq, at, kind, action, capability, digest, run_id, task_id,"
                 " actor_id, detail, prev_hash, entry_hash FROM audit_entries ORDER BY seq"
@@ -316,7 +317,7 @@ class LocalAuditLog:
         """The record of every past clear: a cleared log stays explainable."""
         if self.db_path is None:
             return list(self._cleared)
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             return [
                 {
                     "cleared_at": row[0],
@@ -355,7 +356,7 @@ class LocalAuditLog:
             self._buffer = [entry for entry in self._buffer if entry.seq == marker.seq]
             self._cleared.append(clearance)
             return clearance
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             db.execute("DELETE FROM audit_entries WHERE seq < ?", (marker.seq,))
             db.execute(
                 "INSERT INTO audit_cleared VALUES (?, ?, ?, ?)",

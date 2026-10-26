@@ -51,6 +51,12 @@ def test_packaged_signed_echo_mcp_rejections_restart_and_crash(tmp_path, desktop
             await socket.wait_closed()
 
         async def authenticated_account(connection, request):
+            if request.path in {'/updates/compatibility.json', '/updates/compatibility.sig'}:
+                # This fixture is an older protocol-1 deployment with no
+                # published compatibility document. A normal HTTP 404 must
+                # not fall through into the WebSocket upgrade handler.
+                return Response(404, 'Not Found', Headers({'Content-Type': 'application/json',
+                    'Content-Length': '2'}), b'{}')
             if request.path in {"/api/v1/auth/me", '/api/devices/' + identity}:
                 assert request.headers.get("Cookie") == "access_token=business-" + identity
                 body = json.dumps({"id": identity, "email": "fixture@example.com"} if request.path == '/api/v1/auth/me'

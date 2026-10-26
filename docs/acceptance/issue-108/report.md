@@ -43,7 +43,7 @@ Runtime Python 3.12.10; Electron 22.3.27.
 | T108-01 (confirm, block new tasks, wait for terminals) | `test_install_drain.py`: a completed write precedes draining; the during-drain dispatch is refused `UPDATE_DRAINING` without consuming the task identity or writing bytes; abort restores admission and a later write completes. `test/install-coordinator.test.ts`: install only after `confirm`; drain-begin precedes apply; settled stop follows | passed |
 | T108-02 (uncertain write effect, unreliable records, unstoppable process) | coordinator tests: drain timeout aborts and blocks with "did not reach a terminal state"; `receiptStorageError` blocks with "could not be saved durably"; neither installs nor fakes success | passed |
 | T108-03 (no Server-confirmed receipts required; unconfirmed records kept) | the drain decision reads only the local ledger latch (`receiptStorageError`), never Server acknowledgment; unconfirmed rows are untouched by the refusal paths (no storage writes on any blocked path) | passed |
-| T108-04 (real install + restart on modern Windows) | the staged paths are covered by the coordinator unit matrix (patch apply with hash checks + bounded deletions into a program root; full-installer launch then quit) and the packaging CI runs the installer smoke on the candidate; the end-to-end installed-package run of the drain-and-install flow with a real restart is recorded as **incomplete** for this report and is re-verified with the installed candidate before #109 starts | incomplete (staged) |
+| T108-04 (real install + restart on modern Windows) | originally staged incomplete; now passed on the installed 0.2.0 candidate — see the re-verification section below | passed (re-verified) |
 
 ## Executed commands
 
@@ -62,3 +62,20 @@ The controlled hosting of full installers and patch payloads is a
 Server/deployment workflow item (issue 107 report); the local offline-import
 path is fully functional against a staged manifest+payload. Real Win7 remains
 `unexecuted` under [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
+
+## Final-candidate installed re-verification (0.2.0, passed)
+
+The single drain-and-install entry was re-run end to end on the installed
+0.2.0 package against the real Gateway fixture (run C8, expectation
+`updated`): pairing and workspace selection on the installed candidate, the
+signed patch staged offline through the real file dialog, the confirm dialog
+driving drain → verified graceful stop → out-of-process maintenance handoff,
+the helper applying the patch with hash verification, the real relaunch
+answering the `ideer-update-health-v1` echo, the receipt ledger byte-identical
+across the whole installation, and the updated app writing its own
+window/renderer/IPC usability record before the result was committed. Standalone installed offline coverage additionally verified staging, cancel
+preservation and the `UPDATE_INSTALL_BUSY` concurrent-restart refusal.
+Binding and evidence:
+[final-candidate-binding.md](../final-candidate-binding.md),
+[evidence/installed-updated-result.json](evidence/installed-updated-result.json).
+Real Win7 remains `unexecuted` under [#131](https://github.com/Orbit-Crew/iDeer/issues/131).

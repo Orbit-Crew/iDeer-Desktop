@@ -49,6 +49,8 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   installDrain?: boolean
   activeTasks?: number
+  unknownWriteEffects?: number
+  compatibility?: CompatibilityView
 }
 
 export interface UpdatePendingView {
@@ -69,6 +71,10 @@ export interface CompatibilityView {
   notes: string
   advice: string
   candidateCombo: { desktop: string; runtime: string; server: string }
+  actualCombo?: { desktop: string; runtime: string; server: string }
+  error?: string
+  declarationHash?: string
+  legacy?: boolean
 }
 export interface RecoveryView {
   state: 'applied-pending-verify' | 'updated' | 'rolled-back' | 'recovery-failed'
@@ -87,7 +93,7 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
-  checkUpdates(): Promise<UpdateCheckResult>
+  checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
   recoveryState(): Promise<RecoveryView | null>
@@ -101,7 +107,7 @@ export interface InstallOutcome {
 }
 
 export type ChatCommand =
-  | { action: 'state' | 'refresh' }
+  | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
@@ -109,6 +115,7 @@ export type ChatCommand =
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string; decision: 'allow' | 'allow-directory' | 'deny' }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
+  | { action: 'download'; scope: string; threadId: string; artifactId: string }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -131,6 +138,11 @@ export interface ChatMessage {
   response?: { request_id: string } | null
 }
 export interface ChatSnapshot {
+  compatibility?: CompatibilityView
+  artifacts?: PlatformArtifact[]
+  /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
+  download?: PlatformArtifact & { content: string }
+  downloadStatus?: 'saved' | 'cancelled'
   stop?: { runId: string; state: 'requested' | 'uncertain' } | null
   taskError?: string
   localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;

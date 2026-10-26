@@ -134,6 +134,10 @@ async function main() {
       }, 'local result view after reopen', 45000)
     }
     assert.equal(target.localResult.artifact_ref, '', 'the viewed result is still local')
+    // The panel renders from its own 500 ms poll; wait for the card to be on
+    // screen instead of asserting against the fresher driver-side snapshot.
+    const cardMarker = `Run：${uploadTarget().runId} · 任务：${uploadTarget().approval.taskId}`
+    await wait(async () => (await page.getByText(cardMarker, { exact: true }).count()) === 1, 'upload task card rendered')
     await uploadClick(uploadTarget())
     let uploaded
     await wait(async () => {
@@ -159,6 +163,9 @@ async function main() {
     await quit(); profile('evidence', 'A')
     evidence.status = 'passed'
   } catch (error) {
+    evidence.status = 'failed'
+    evidence.error = String(error)
+    evidence.errorStack = String(error.stack || error).replaceAll(/\r?\n/g, ' | ')
     try { if (page) { evidence.failureSnapshot = await snapshot(); evidence.failureUI = await page.locator('body').innerText() } } catch {}
     throw error
   } finally {

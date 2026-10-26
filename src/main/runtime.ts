@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
@@ -14,12 +14,13 @@ export class RuntimeProcess {
   private stopping: Promise<void> | null = null
   private loginRequest: { origin: string; resolve: (url: string) => void; reject: (error: Error) => void } | null = null
   private loginOrigin = ''
-  /** Origin of the paired Server, remembered for the controlled update address. */
+  /** Origin of the currently authenticated pairing, including restored logins. */
   serverOrigin(): string { return this.loginOrigin }
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
+  private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
 
   /** Issue 108: begin or abort the update drain on the owned Runtime. */
@@ -30,15 +31,43 @@ export class RuntimeProcess {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.managementRequest = null; reject(new Error('DRAIN_TIMEOUT')) }, 30000)
       this.managementRequest = { id,
-        resolve: () => { clearTimeout(timer); this.managementRequest = null; resolve() },
+        resolve: () => { clearTimeout(timer); this.managementRequest = null; if (action === 'abort') this.maintenance = false; resolve() },
         reject: (error) => { clearTimeout(timer); this.managementRequest = null; reject(error) } }
       this.child!.stdin.write(JSON.stringify({ type: 'install-drain', id, action, scope: this.selectionScope }) + '\n')
     })
   }
-  constructor(private readonly directory: string, private readonly profile: string) {}
+  constructor(private readonly directory: string, private readonly profile: string, private maintenance = false,
+    private readonly desktopVersion = '0.1.0') {}
 
   status(): RuntimeStatus {
     return structuredClone(this.snapshot)
+  }
+
+  async health(): Promise<{ python: string; pid: number; echo: string }> {
+    if (!this.child || this.stopping || this.healthRequest) throw new Error('RUNTIME_HEALTH_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.healthRequest = null; reject(new Error('RUNTIME_HEALTH_TIMEOUT')) }, 10000)
+      this.healthRequest = { id, resolve: value => { clearTimeout(timer); this.healthRequest = null; resolve(value) },
+        reject: error => { clearTimeout(timer); this.healthRequest = null; reject(error) } }
+      this.child!.stdin.write(JSON.stringify({ type: 'health', id, echo: 'ideer-update-health-v1' }) + '\n')
+    })
+  }
+
+  /** Installation may proceed only after a graceful exit, never a forced timeout. */
+  async stopForInstall(timeoutMs = 15000): Promise<void> {
+    if (!this.child || this.stopping || this.snapshot.installDrain !== true || this.snapshot.activeTasks !== 0 ||
+        this.snapshot.unknownWriteEffects !== 0 || this.snapshot.receiptStorageError) throw new Error('RUNTIME_STOP_NOT_SAFE')
+    const child = this.child
+    this.stopping = new Promise<void>((resolve, reject) => {
+      const closed = (): void => { clearTimeout(timer); resolve() }
+      const timer = setTimeout(() => { child.removeListener('close', closed); reject(new Error('RUNTIME_STOP_UNCONFIRMED')) }, timeoutMs)
+      child.once('close', closed)
+      child.stdin.end('{"type":"shutdown"}\n')
+    })
+    try { await this.stopping } finally { this.stopping = null }
+    if (this.child) throw new Error('RUNTIME_STOP_UNCONFIRMED')
+    this.snapshot = { process: 'stopped', connection: 'offline', tasks: [] }
   }
 
   async manage(action: 'logout' | 'switch-account' | 'revoke', grantId = ''): Promise<void> {
@@ -90,13 +119,14 @@ export class RuntimeProcess {
   async chat(command: ChatCommand): Promise<ChatSnapshot> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('CHAT_COMMAND_INVALID')
     const keys: Record<string, string[]> = {
-      state: ['action'], refresh: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
+      state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
       send: ['action', 'scope', 'threadId', 'turnId', 'text'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
-      upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision']
+      upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
+      download: ['action', 'scope', 'threadId', 'artifactId']
     }
     const allowed = keys[command.action]
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -104,6 +134,8 @@ export class RuntimeProcess {
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
+    if (command.action === 'download' && (Object.keys(command).length !== 4 || !command.scope ||
+        !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId) || !/^[A-Za-z0-9_-]{1,128}$/.test(command.artifactId))) throw new Error('CHAT_COMMAND_INVALID')
     if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
@@ -143,7 +175,7 @@ export class RuntimeProcess {
         reject(new Error('LOGIN_START_TIMEOUT'))
       }, 15000)
       this.loginRequest = { origin: origin.origin,
-        resolve: (url) => { clearTimeout(timer); this.loginRequest = null; this.loginOrigin = origin.origin; resolve(url) },
+        resolve: (url) => { clearTimeout(timer); this.loginRequest = null; resolve(url) },
         reject: (error) => { clearTimeout(timer); this.loginRequest = null; reject(error) } }
       this.child!.stdin.write(JSON.stringify({ type: 'login', serverUrl: origin.origin, deviceName: deviceName.trim() }) + '\n')
     })
@@ -162,7 +194,8 @@ export class RuntimeProcess {
       if (process.env[key]) env[key] = process.env[key]
     }
     // Both ends of the owned JSON pipe use UTF-8 regardless of the Windows code page.
-    const child = spawn(executable, ['-I', '-u', '-X', 'utf8', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json')], {
+    const child = spawn(executable, ['-I', '-u', '-X', 'utf8', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json'), '--desktop-version', this.desktopVersion,
+      ...(this.maintenance ? ['--update-health'] : [])], {
       cwd: this.directory, env, windowsHide: true, stdio: 'pipe', shell: false
     })
     this.child = child
@@ -185,6 +218,12 @@ export class RuntimeProcess {
         buffer = buffer.slice(boundary + 1)
         try {
           const value = JSON.parse(line)
+          if (value.v === 1 && value.type === 'health') {
+            const pending = this.healthRequest
+            if (pending && value.id === pending.id && value.echo === 'ideer-update-health-v1' &&
+                /^\d+\.\d+\.\d+$/.test(value.python) && value.pid === child.pid) pending.resolve(value)
+            continue
+          }
           if (value.v === 1 && (value.type === 'manage' || value.type === 'install-drain')) {
             const pending = this.managementRequest
             if (pending && value.id === pending.id) {
@@ -237,23 +276,42 @@ export class RuntimeProcess {
             this.loginRequest.resolve(url.href)
           }
           if (typeof value.selectionScope === 'string' && /^[0-9a-f]{64}$/.test(value.selectionScope)) this.selectionScope = value.selectionScope
+          this.loginOrigin = ''
+          if (login?.state === 'authenticated' && value.serverOrigin) {
+            const origin = new URL(value.serverOrigin)
+            if (origin.origin !== value.serverOrigin || origin.username || origin.password ||
+                !['http:', 'https:'].includes(origin.protocol) ||
+                (origin.protocol === 'http:' && !['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname))) throw new Error('Invalid paired origin')
+            this.loginOrigin = origin.origin
+          }
           this.receiptScope = typeof value.receiptScope === 'string' && /^[0-9a-f]{64}$/.test(value.receiptScope) ? value.receiptScope : ''
           lastStatus = Date.now()
-          if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks)) throw new Error('Invalid status')
+          if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
+              !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
-            installDrain: value.installDrain, activeTasks: value.activeTasks,
+            compatibility: value.compatibility,
+            installDrain: value.installDrain, activeTasks: value.activeTasks, unknownWriteEffects: value.unknownWriteEffects,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
     })
     // Drain diagnostics without exposing possible credential-bearing exceptions.
-    child.stderr.resume()
+    // Runtime diagnostics must survive a failed session: tee stderr to the
+    // profile (bounded) instead of discarding it.
+    const stderrLog = join(this.profile, 'runtime-stderr.log')
+    try { writeFileSync(stderrLog, '') } catch {}
+    child.stderr.on('data', (chunk: Buffer) => {
+      try { appendFileSync(stderrLog, chunk) } catch {}
+      if (statSync(stderrLog).size > 1024 * 1024) { try { writeFileSync(stderrLog, '') } catch {} }
+    })
     child.stdin.on('error', () => {})
     child.on('error', () => {
       this.snapshot = { process: 'crashed', connection: 'offline', tasks: [] }
     })
     child.on('close', () => {
+      this.loginOrigin = ''
+      this.healthRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.managementRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.workspaceRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))

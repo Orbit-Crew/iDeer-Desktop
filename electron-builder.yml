@@ -1,6 +1,8 @@
 appId: com.orbitcrew.ideer.desktop
 productName: iDeer Desktop
 electronVersion: 22.3.27
+afterPack: scripts/release/issue-107/after-pack.cjs
+artifactBuildCompleted: scripts/release/issue-107/artifact-completed.cjs
 directories:
   buildResources: resources
   output: dist
@@ -24,6 +26,7 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
+  include: resources/nsis/process-guard.nsh
   artifactName: ideer-desktop-${version}-windows-${arch}-setup.${ext}
   shortcutName: iDeer Desktop
   uninstallDisplayName: iDeer Desktop

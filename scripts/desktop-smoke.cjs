@@ -79,7 +79,7 @@ async function main() {
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
     const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'
     const ownedRuntime = await waitRuntimeState(page, expectedRuntime)
-    assert.equal(ownedRuntime.version, '0.1.0')
+    assert.equal(ownedRuntime.version, require('../package.json').version)
     assert.equal(ownedRuntime.server, process.platform === 'win32' ? 'not-configured' : 'offline')
     if (process.platform === 'win32') assert.ok(ownedRuntime.runtime.pid)
     const runtimeStages = [{ stage: 'started', ...ownedRuntime.runtime }]

@@ -44,7 +44,7 @@ The app ships only the pinned public key
   address; the bundled Runtime Python version is read from the pinned
   `distribution.lock.json`.
 
-## Scenario results (vitest `test/updates.test.ts`, 8 new cases, all passed)
+## Scenario results (vitest `test/updates.test.ts`, 7 new cases, all passed)
 
 | Scenario | Assertion summary | Result |
 | --- | --- | --- |
@@ -78,3 +78,17 @@ keeps verifying every signature locally. Real Win7 remains `unexecuted` per
 the ticket and is owned by [#131](https://github.com/Orbit-Crew/iDeer/issues/131).
 Actual installation, drain coordination and restart are #108's scope by
 design.
+
+## Final-candidate end-to-end re-verification (0.2.0, passed)
+
+The signed-release chain this issue built was re-verified end to end on the
+installed 0.2.0 package: the same pipeline staged, hash- and signature-checked
+and installed a real signed patch release on the installed program directory
+(issue 108 run C8, expectation `updated`), and refused a broken release into
+an exact rollback (issue 109 run D1). The standalone installed offline
+coverage additionally staged a signed release, preserved it across a cancel
+with unchanged program bytes, and refused a concurrent runtime start with
+`UPDATE_INSTALL_BUSY`. Binding and evidence:
+[final-candidate-binding.md](../final-candidate-binding.md),
+issue 108/109 evidence directories. The trust anchor packaged into the
+installer binds the isolated test public key by fingerprint.

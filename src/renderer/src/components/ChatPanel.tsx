@@ -52,6 +52,8 @@ function ChatContents({ state, busy, onCommand }: {
   const [skillId, setSkillId] = useState<string | undefined>(state.thread?.skillId || undefined)
   const [text, setText] = useState('')
   const threadId = state.thread?.id
+  const compatibility = state.compatibility
+  const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
   const answered = new Set(state.messages.flatMap((m) => m.response ? [m.response.request_id] : []))
   const pending = [...state.messages].reverse().find((m) => m.request && !answered.has(m.request.request_id))?.request
   const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId
@@ -78,7 +80,18 @@ function ChatContents({ state, busy, onCommand }: {
       disabled={busy} options={state.threads.map((t) => ({ value: t.id, label: `${t.title} · ${t.status}` }))}
       onChange={(id) => { setText(''); void onCommand({ action: 'open', scope: state.scope, threadId: id }) }} />
     {threadId && <>
+      {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
+        description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
+      {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
+      {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}
+      {!!state.artifacts?.length && <Card size="small" title="Thread 平台附件">
+        {state.artifacts.map((artifact) => <div key={artifact.artifact_id}>
+          <Typography.Paragraph>{artifact.name} · {artifact.bytes} 字节 · SHA-256 {artifact.sha256}</Typography.Paragraph>
+          <Button disabled={busy} onClick={() => void onCommand({ action: 'download', scope: state.scope,
+            threadId, artifactId: artifact.artifact_id })}>下载附件 {artifact.name}</Button>
+        </div>)}
+      </Card>}
       {state.run && <Typography.Text>Run：{state.run.id} · {state.run.status} · {state.stream}</Typography.Text>}
       {state.run && ['pending', 'running'].includes(state.run.status) && state.stop?.state !== 'requested' && <Button danger disabled={busy}
         onClick={() => void onCommand({ action: 'stop', scope: state.scope, threadId, runId: state.run!.id })}>{state.stop ? '重试停止请求' : '停止当前 Turn'}</Button>}
@@ -101,7 +114,7 @@ function ChatContents({ state, busy, onCommand }: {
               ? <Typography.Paragraph>平台附件：{task.localResult.artifact_ref}（可在其他已授权设备下载）</Typography.Paragraph>
               : <>
                 <Typography.Paragraph type="secondary">此结果尚未上传。查看或展示不会上传；上传需要你在此明确确认，并作为该 Thread 的附件受平台访问控制。</Typography.Paragraph>
-                <Button disabled={busy} onClick={() => void onCommand({ action: 'upload', scope: state.scope, threadId,
+                <Button disabled={busy || blocked('local.artifacts.upload')} onClick={() => void onCommand({ action: 'upload', scope: state.scope, threadId,
                   runId: task.run_id, taskId: task.task_id, decision: 'allow' })}>明确授权上传为 Thread 附件</Button>
               </>}
           </Card>}
@@ -122,9 +135,9 @@ function ChatContents({ state, busy, onCommand }: {
         {request.directory && <Typography.Paragraph>持续授权范围：{request.directory} 及其子目录中的文本新建与覆盖。受保护路径和脚本仍受限制，可在设置撤销。</Typography.Paragraph>}
         <Input.TextArea aria-label="审批写入内容" value={request.content} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
         <Space className="mt-3">
-          <Button type="primary" disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
+          <Button type="primary" disabled={busy || blocked('local.files.write')} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
             threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow' })}>仅允许这一次</Button>
-          {request.directory && <Button disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
+          {request.directory && <Button disabled={busy || blocked('local.files.write')} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
             threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow-directory' })}>始终允许此目录的文本写入</Button>}
           <Button danger disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
             threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'deny' })}>拒绝写入</Button>
