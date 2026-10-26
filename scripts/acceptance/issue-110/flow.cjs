@@ -30,17 +30,14 @@ async function effective(level) {
 async function blockedWrite(name, expected, scenario) {
   const operation = await submit(scenario, name, 'blocked.txt')
   operation.expectNoApproval = true
-  await finish(operation, null)
-  let task
-  await wait(async () => {
-    const current = await snapshot()
-    task = current.localTasks.find(row => row.run_id === operation.runId && row.error_code === expected)
-    return !!task
-  }, name + ' Server refusal record')
+  // The Server gate refuses before any signed TASK frame, so no durable
+  // localTasks row is created; the refusal is observable in the Turn's own
+  // deterministic result together with the absent dispatch and unchanged file.
+  await finish(operation, new RegExp(expected))
   assert.equal(executionCount(operation), 0)
   assert.equal(operation.dispatches.length, 0, 'Server gate refuses before a signed TASK frame')
   exact('W/blocked.txt', BEFORE)
-  pass(scenario, name, { operationId: operation.id, error: expected, task, taskFrames: 0, executionCount: 0 })
+  pass(scenario, name, { operationId: operation.id, error: expected, taskFrames: 0, executionCount: 0 })
 }
 async function main() {
   try {
