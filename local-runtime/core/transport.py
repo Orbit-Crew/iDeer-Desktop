@@ -33,6 +33,7 @@ from .consent_coord import (
 )
 from .file_service import FileTaskResult, LocalFileService
 from .files import FileAccessError
+from .knowledge_search import KnowledgeSearchError
 from .mcp import LocalMCPService, MCPExecution
 from .policy import LocalPolicy, PolicyDecision
 from .protocol import (
@@ -746,6 +747,28 @@ class LocalRuntimeClient:
                     return
                 result = file_task.value
                 receipt = self._file_receipt(envelope, operation, result)
+            elif operation == "local.knowledge.search":
+                # Issue 113: retrieval over a frozen import revision. Like the
+                # read capabilities it requires a bound broker key, and the
+                # unique Runtime re-validates every document hash in-workspace
+                # before a single line leaves the device.
+                if not self.server_public_key:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                knowledge_task = self.handle_knowledge_search_task(dict(envelope.payload))
+                if knowledge_task.decision is not PolicyDecision.ALLOW:
+                    await self._send_error(
+                        task_id,
+                        knowledge_task.decision.value,
+                        "POLICY_DENIED",
+                        envelope.payload,
+                        operation,
+                    )
+                    return
+                result = knowledge_task.value
+                receipt = self._file_receipt(envelope, operation, result)
             elif operation == "local.files.write":
                 file_task = self.handle_file_task(operation, dict(envelope.payload))
                 if file_task.decision is PolicyDecision.CONSENT_REQUIRED:
@@ -843,6 +866,14 @@ class LocalRuntimeClient:
                 task_id, str(exc), exc.code, envelope.payload, operation,
                 consent_decision=getattr(exc, 'authorization', None),
                 status='result_not_verified' if exc.code == 'RESULT_UNCERTAIN' else 'failed'
+            )
+            return
+        except KnowledgeSearchError as exc:
+            # Fixed retrieval categories cross the boundary verbatim: an
+            # unknown manifest or drifted content is never recast as a
+            # generic task failure (and never as an empty success).
+            await self._send_error(
+                task_id, str(exc), exc.code, envelope.payload, operation
             )
             return
         except SecretStoreError as exc:
@@ -1132,6 +1163,14 @@ class LocalRuntimeClient:
             payload_hash=content_hash(payload),
             result_hash=result_hash,
         )
+
+    def handle_knowledge_search_task(
+        self, payload: dict[str, Any], *, consent: bool = False
+    ) -> FileTaskResult:
+        """Frozen-revision retrieval through the workspace boundary (#113)."""
+        if self.file_service is None:
+            raise RuntimeError("file_service is required for local knowledge search")
+        return self.file_service.execute("local.knowledge.search", payload, consent=consent)
 
     def handle_file_task(
         self, capability: str, payload: dict[str, Any], *, consent: bool = False

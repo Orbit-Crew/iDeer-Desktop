@@ -230,3 +230,20 @@ class KnowledgeImportRegistry:
             return [self._view(row) for row in rows]
 
         return self._execute(read)
+
+    def find_registration(self, binding, revision_id: str, manifest_hash: str) -> dict[str, Any] | None:
+        """The registered frozen revision for retrieval revalidation (#113).
+
+        Lookup is binding-scoped: only a revision this identity registered on
+        this device can ever be re-validated here, so a server request about
+        an unknown or foreign manifest fails closed.
+        """
+
+        def read(db):
+            row = db.execute(
+                "SELECT * FROM knowledge_imports WHERE binding=? AND revision_id=? AND manifest_hash=? AND status='registered'"
+                " ORDER BY rowid DESC LIMIT 1",
+                (self._encoded(binding), str(revision_id)[:128], str(manifest_hash)[:64])).fetchone()
+            return self._view(row) if row is not None else None
+
+        return self._execute(read)

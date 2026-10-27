@@ -33,6 +33,10 @@ class LocalPolicy:
         del payload
         if capability in {"echo", "local.files.list", "local.files.read", "local.files.search"}:
             return RiskLevel.LEVEL_0
+        if capability == "local.knowledge.search":
+            # Read-only over content the user explicitly imported and froze;
+            # the manifest revalidation is what makes any result trustworthy.
+            return RiskLevel.LEVEL_0
         if (
             capability in self.level_two_capabilities
             or capability in self.dangerous_capabilities
