@@ -1,12 +1,14 @@
-"""Controlled wiki entry from the Desktop (#118).
+"""Controlled wiki entry from the Desktop (#118, #119).
 
 Every test drives the real DesktopChat seam against a protocol fixture: the
 view action reads exactly what the Server states (page list, progress, and
 frozen source bindings, bounded for display, never bodies), generate posts
-to the Server's wiki endpoint and re-reads the list, and read fetches one
+to the Server's wiki endpoint and re-reads the list, read fetches one
 page whose document id must be well-formed and frozen on the Server — a
 malformed answer is a protocol error instead of an invented page, and a
 skipped page projects as exactly that: its fixed category, never text.
+The #119 navigate action projects the index with links, backlinks, and the
+association graph, derived only from this revision's own frozen artifacts.
 """
 from __future__ import annotations
 
@@ -64,9 +66,47 @@ PAGE = {
     'body': GUIDE_BODY,
 }
 
+NAVIGATION = {
+    'knowledge_base_id': KB,
+    'revision_id': REVISION,
+    'revision_no': 1,
+    'manifest_hash': MANIFEST,
+    'status': 'partial',
+    'generated': 1,
+    'failed': 0,
+    'skipped': 1,
+    'pages': [
+        {'document_id': 'doc-1', 'filename': 'guide.txt', 'title': '甲零件与乙组件',
+         'content_hash': GUIDE_HASH, 'status': 'completed', 'error_code': None,
+         'links': [{'document_id': 'doc-2', 'title': '', 'status': 'skipped'}],
+         'missing_links': ['未登记的文档'],
+         'backlinks': []},
+        {'document_id': 'doc-2', 'filename': 'policy.txt', 'title': '',
+         'content_hash': 'e' * 64, 'status': 'skipped', 'error_code': 'GRAPH_CONTENT_DRIFTED',
+         'links': [],
+         'missing_links': [],
+         'backlinks': [{'document_id': 'doc-1', 'title': '甲零件与乙组件', 'status': 'completed'}]},
+    ],
+    'associations': {
+        'status': 'partial',
+        'generated': 1,
+        'failed': 0,
+        'sources': [
+            {'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH,
+             'status': 'completed', 'error_code': None},
+            {'document_id': 'doc-2', 'filename': 'policy.txt', 'content_hash': 'e' * 64,
+             'status': 'skipped', 'error_code': 'GRAPH_CONTENT_DRIFTED'},
+        ],
+        'entities': [{'name': '乙组件', 'type': 'component', 'document_id': 'doc-1',
+                      'filename': 'guide.txt', 'content_hash': GUIDE_HASH}],
+        'relations': [{'source': '甲零件', 'target': '乙组件', 'relation': '构成',
+                       'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH}],
+    },
+}
+
 
 @contextmanager
-def platform(view_payload=None, page_payload=None):
+def platform(view_payload=None, page_payload=None, navigation_payload=None):
     records = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -93,6 +133,11 @@ def platform(view_payload=None, page_payload=None):
                     data = view_payload
             elif self.path.endswith('/wiki') and self.command == 'POST':
                 data = {'status': 'completed', 'generated': 2, 'failed': 0, 'skipped': 0}
+            elif self.path.endswith('/wiki/navigation') and self.command == 'GET':
+                if navigation_payload is None:
+                    data = NAVIGATION
+                else:
+                    data = navigation_payload
             elif '/wiki/pages/' in self.path and self.command == 'GET':
                 if page_payload is None:
                     data = PAGE
@@ -234,3 +279,79 @@ def test_read_requires_a_bounded_document_id(tmp_path):
         assert str(error.value) == 'CHAT_COMMAND_INVALID'
         # Refused commands never reach the Server.
         assert not records
+
+
+def test_navigate_projects_index_with_links_backlinks_and_associations(tmp_path):
+    with platform() as (origin, records):
+        chat, _config, _space = prepare(tmp_path, origin)
+        del records[:]
+
+        index = chat.wiki(KB, REVISION, action='navigate')
+
+        assert index['kbId'] == KB and index['revisionId'] == REVISION
+        assert index['status'] == 'partial' and index['manifestHash'] == MANIFEST
+        assert index['generated'] == 1 and index['failed'] == 0 and index['skipped'] == 1
+        # Every page row keeps its honest status; a link to a skipped page
+        # names that status instead of pretending the target is readable, a
+        # target that names nothing frozen here stays an explicit missing
+        # entry, and backlinks invert exactly the resolved links.
+        assert index['pages'] == [
+            {'documentId': 'doc-1', 'filename': 'guide.txt', 'title': '甲零件与乙组件',
+             'contentHash': GUIDE_HASH, 'status': 'completed', 'errorCode': '',
+             'links': [{'documentId': 'doc-2', 'title': '', 'status': 'skipped'}],
+             'missingLinks': ['未登记的文档'],
+             'backlinks': []},
+            {'documentId': 'doc-2', 'filename': 'policy.txt', 'title': '',
+             'contentHash': 'e' * 64, 'status': 'skipped', 'errorCode': 'GRAPH_CONTENT_DRIFTED',
+             'links': [],
+             'missingLinks': [],
+             'backlinks': [{'documentId': 'doc-1', 'title': '甲零件与乙组件', 'status': 'completed'}]},
+        ]
+        # The association graph reuses the stored rows with their frozen
+        # document binding and digest; ungenerated documents stay coverage rows.
+        assert index['associations'] == {
+            'status': 'partial', 'generated': 1, 'failed': 0,
+            'sources': [
+                {'documentId': 'doc-1', 'filename': 'guide.txt', 'contentHash': GUIDE_HASH,
+                 'status': 'completed', 'errorCode': ''},
+                {'documentId': 'doc-2', 'filename': 'policy.txt', 'contentHash': 'e' * 64,
+                 'status': 'skipped', 'errorCode': 'GRAPH_CONTENT_DRIFTED'},
+            ],
+            'entities': [{'name': '乙组件', 'type': 'component', 'documentId': 'doc-1',
+                          'filename': 'guide.txt', 'contentHash': GUIDE_HASH}],
+            'relations': [{'source': '甲零件', 'target': '乙组件', 'relation': '构成',
+                           'documentId': 'doc-1', 'filename': 'guide.txt', 'contentHash': GUIDE_HASH}],
+        }
+        # Read-only derivation: navigation never triggers generation, and it
+        # reads exactly the Server's navigation endpoint.
+        assert not any(method == 'POST' for method, _path, _body, _headers in records)
+        reads = [path for method, path, _body, _headers in records if method == 'GET']
+        assert reads == [f'/api/resources/{KB}/knowledge-revisions/{REVISION}/wiki/navigation']
+
+
+def test_navigation_projection_is_bounded(tmp_path):
+    flood = [{'document_id': f'doc-{n}', 'filename': f'd{n}.txt', 'title': '', 'content_hash': 'a' * 64,
+              'status': 'not_generated', 'error_code': None, 'links': [], 'missing_links': [], 'backlinks': []}
+             for n in range(230)]
+    missing_flood = {**NAVIGATION, 'pages': [{**NAVIGATION['pages'][0], 'missing_links': [f'目标-{n}' for n in range(120)]}]}
+    with platform(navigation_payload={**NAVIGATION, 'pages': flood}) as (origin, _records):
+        chat, _config, _space = prepare(tmp_path, origin)
+        assert len(chat.wiki(KB, REVISION, action='navigate')['pages']) == 200
+    with platform(navigation_payload=missing_flood) as (origin, _records):
+        chat, _config, _space = prepare(tmp_path, origin)
+        assert len(chat.wiki(KB, REVISION, action='navigate')['pages'][0]['missingLinks']) == 100
+
+
+def test_malformed_navigation_answers_are_protocol_errors(tmp_path):
+    from core.platform_chat import ChatError
+    bad_associations = {**NAVIGATION, 'associations': {**NAVIGATION['associations'], 'status': 'invented'}}
+    bad_link_row = {**NAVIGATION, 'pages': [{**NAVIGATION['pages'][0], 'links': [{'document_id': 'doc-2', 'status': 'invented'}]}]}
+    for payload in ({'unexpected': True}, {**NAVIGATION, 'manifest_hash': 'short'},
+                    {**NAVIGATION, 'revision_no': '1'}, {**NAVIGATION, 'status': 'mystery'},
+                    {**NAVIGATION, 'pages': [{'document_id': 'doc-1', 'status': 'invented'}]},
+                    {**NAVIGATION, 'associations': 'not-a-dict'}, bad_associations, bad_link_row):
+        with platform(navigation_payload=payload) as (origin, _records):
+            chat, _config, _space = prepare(tmp_path, origin)
+            with pytest.raises(ChatError) as error:
+                chat.wiki(KB, REVISION, action='navigate')
+            assert str(error.value) == 'CHAT_PROTOCOL_ERROR'

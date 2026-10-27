@@ -207,8 +207,43 @@ export interface WikiPage {
   errorCode: string
   body: string
 }
+/** Issue 119: one resolved link or backlink row; the target names its honest page status. */
+export interface WikiLink {
+  documentId: string
+  title: string
+  status: WikiPageSummary['status']
+}
+/** Issue 119: one index page with its resolved links, missing targets, and backlinks. */
+export interface WikiNavigationPage extends WikiPageSummary {
+  links: WikiLink[]
+  missingLinks: string[]
+  backlinks: WikiLink[]
+}
+/** Issue 119: the association graph, reusing the stored #116 rows with frozen sources. */
+export interface WikiAssociationSource {
+  documentId: string
+  filename: string
+  contentHash: string
+  status: string
+  errorCode: string
+}
+export interface WikiAssociationEntity { name: string; type: string; documentId: string; filename: string; contentHash: string }
+export interface WikiAssociationRelation { source: string; target: string; relation: string; documentId: string; filename: string; contentHash: string }
+export interface WikiAssociations {
+  status: KnowledgeGraphView['status']
+  generated: number
+  failed: number
+  sources: WikiAssociationSource[]
+  entities: WikiAssociationEntity[]
+  relations: WikiAssociationRelation[]
+}
+/** Issue 119: the wiki index — pages with links/backlinks plus the association graph. */
+export interface WikiNavigation extends Omit<WikiView, 'pages'> {
+  pages: WikiNavigationPage[]
+  associations: WikiAssociations
+}
 export interface WikiCommand {
-  action: 'view' | 'generate' | 'read'
+  action: 'view' | 'generate' | 'read' | 'navigate'
   kbId: string
   revisionId: string
   documentId?: string
@@ -280,7 +315,7 @@ export interface DesktopBridge {
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
   knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult>
   /** Issue 118: controlled wiki page list, generation, and single-page reading. */
-  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage>
+  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

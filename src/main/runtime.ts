@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, WikiCommand, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -22,7 +22,7 @@ export class RuntimeProcess {
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
   private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
-  private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
+  private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -194,10 +194,10 @@ export class RuntimeProcess {
     })
   }
 
-  /** Issue 118: one controlled-wiki step (page list / generate / single-page read). */
-  async knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage> {
+  /** Issue 118/119: one controlled-wiki step (page list / generate / single-page read / index navigation). */
+  async knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('KNOWLEDGE_WIKI_COMMAND_INVALID')
-    if (!['view', 'generate', 'read'].includes(command.action)) throw new Error('KNOWLEDGE_WIKI_ACTION_INVALID')
+    if (!['view', 'generate', 'read', 'navigate'].includes(command.action)) throw new Error('KNOWLEDGE_WIKI_ACTION_INVALID')
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
     if (typeof command.kbId !== 'string' || !uuid.test(command.kbId)) throw new Error('KNOWLEDGE_WIKI_KB_INVALID')
     if (typeof command.revisionId !== 'string' || !uuid.test(command.revisionId)) throw new Error('KNOWLEDGE_WIKI_REVISION_INVALID')

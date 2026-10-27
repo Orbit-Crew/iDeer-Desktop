@@ -128,7 +128,7 @@ def main() -> int:
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
                         and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
                         and len(command['revisionId']) <= 64
-                        and command['action'] in {'view', 'generate', 'read'}
+                        and command['action'] in {'view', 'generate', 'read', 'navigate'}
                         and (command['action'] != 'read' or isinstance(command.get('documentId'), str))
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_wiki_commands.put_nowait(command)

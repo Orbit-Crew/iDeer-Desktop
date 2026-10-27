@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 import { WikiSection } from '../src/renderer/src/components/WikiSection'
-import type { KnowledgeImportView, RuntimeStatus, WikiCommand, WikiPage, WikiView } from '../src/shared/desktop'
+import type { KnowledgeImportView, RuntimeStatus, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../src/shared/desktop'
 
 const KB = '33333333-3333-4333-8333-333333333333'
 const REVISION = '77777777-7777-4777-8777-777777777777'
@@ -48,6 +48,7 @@ const runtimeStatus = (overrides: Partial<RuntimeStatus> = {}): RuntimeStatus =>
 
 const renderSection = (overrides: {
   wiki?: WikiView | null
+  navigation?: WikiNavigation | null
   page?: WikiPage | null
   runtime?: RuntimeStatus
   busy?: boolean
@@ -58,6 +59,7 @@ const renderSection = (overrides: {
     <WikiSection
       runtime={overrides.runtime ?? runtimeStatus()}
       wiki={overrides.wiki === undefined ? wikiView : overrides.wiki}
+      navigation={overrides.navigation === undefined ? null : overrides.navigation}
       page={overrides.page === undefined ? null : overrides.page}
       busy={overrides.busy ?? false}
       error={overrides.error ?? ''}
@@ -150,5 +152,95 @@ describe('controlled wiki entry (#118)', () => {
     })
     expect(failed).toContain('尚无可查看 Wiki 的已登记版本')
     expect(failed).not.toContain('aria-label="查看Wiki')
+  })
+})
+
+describe('wiki navigation index with links, backlinks, and associations (#119)', () => {
+  const navigation: WikiNavigation = {
+    ...wikiView,
+    status: 'partial',
+    generated: 1,
+    failed: 0,
+    skipped: 1,
+    pages: [
+      {
+        documentId: DOCUMENT, filename: 'guide.txt', title: '甲零件与乙组件', contentHash: GUIDE_HASH, status: 'completed', errorCode: '',
+        links: [{ documentId: SECOND_DOCUMENT, title: '', status: 'skipped' }],
+        missingLinks: ['未登记的文档'],
+        backlinks: []
+      },
+      {
+        documentId: SECOND_DOCUMENT, filename: 'policy.txt', title: '', contentHash: 'e'.repeat(64), status: 'skipped', errorCode: 'GRAPH_CONTENT_DRIFTED',
+        links: [],
+        missingLinks: [],
+        backlinks: [{ documentId: DOCUMENT, title: '甲零件与乙组件', status: 'completed' }]
+      }
+    ],
+    associations: {
+      status: 'partial',
+      generated: 1,
+      failed: 0,
+      sources: [
+        { documentId: DOCUMENT, filename: 'guide.txt', contentHash: GUIDE_HASH, status: 'completed', errorCode: '' },
+        { documentId: SECOND_DOCUMENT, filename: 'policy.txt', contentHash: 'e'.repeat(64), status: 'skipped', errorCode: 'GRAPH_CONTENT_DRIFTED' }
+      ],
+      entities: [{ name: '乙组件', type: 'component', documentId: DOCUMENT, filename: 'guide.txt', contentHash: GUIDE_HASH }],
+      relations: [{ source: '甲零件', target: '乙组件', relation: '构成', documentId: DOCUMENT, filename: 'guide.txt', contentHash: GUIDE_HASH }]
+    }
+  }
+
+  it('accepts the navigate action at the owned Runtime seam and still refuses malformed commands', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-119/unused')
+    // The navigate action is a well-formed command; it fails only because no
+    // owned Runtime process is running.
+    await expect(runtime.knowledgeWiki({ action: 'navigate', kbId: KB, revisionId: REVISION })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    for (const action of ['teleport', 'index', '']) {
+      await expect(runtime.knowledgeWiki({ action: action as 'view', kbId: KB, revisionId: REVISION })).rejects.toThrow('KNOWLEDGE_WIKI_ACTION_INVALID')
+    }
+    expect(runtime.status().process).toBe('stopped')
+  })
+
+  it('renders the navigation index with honest per-page statuses and offers the entry per registered revision', () => {
+    const html = renderSection({ wiki: null, navigation })
+    expect(html).toContain('aria-label="导航Wiki R1"')
+    expect(html).toContain('版本 R1 · 导航索引 · 部分完成 · 成功 1 · 失败 0 · 跳过 1')
+    expect(html).toContain('c'.repeat(64))
+    expect(html).toContain('甲零件与乙组件 · 可阅读')
+    expect(html).toContain('已跳过：GRAPH_CONTENT_DRIFTED')
+    // The index never carries a page body; bodies come only from the read.
+    expect(html).not.toContain('甲零件属于乙组件，乙组件由甲零件与螺栓构成。')
+    // Without the index nothing navigation-shaped is rendered.
+    expect(renderSection({ wiki: null })).not.toContain('导航索引 ·')
+  })
+
+  it('renders links and backlinks as page-to-page navigation and missing targets as explicit dead ends', () => {
+    const html = renderSection({ wiki: null, navigation })
+    expect(html).toContain('链接：')
+    expect(html).toContain('反链：')
+    // The completed target of the backlink is clickable for reading; the
+    // link row into a skipped page only names its status, never a read entry.
+    expect(html).toContain('aria-label="返回 甲零件与乙组件"')
+    expect(html).toContain('aria-label="阅读页面 guide.txt"')
+    expect(html).not.toContain('aria-label="前往')
+    expect(html).toContain('（已跳过）')
+    // A missing target stays an explicit dead end: it names the absent text
+    // and can never be opened.
+    expect(html).toContain('缺失目标：未登记的文档（未在此冻结版本中登记或生成，不可访问）')
+    expect(html).not.toContain('aria-label="前往 未登记的文档"')
+  })
+
+  it('renders the association graph summary with frozen source coverage', () => {
+    const html = renderSection({ wiki: null, navigation })
+    expect(html).toContain('关联图')
+    expect(html).toContain('部分完成 · 生成 1 · 失败 0 · 实体 1 · 关系 1')
+    expect(html).toContain(`来源 guide.txt · 可阅读 · 文档指纹：${GUIDE_HASH}`)
+    expect(html).toContain('来源 policy.txt · 已跳过：GRAPH_CONTENT_DRIFTED')
+  })
+
+  it('disables every navigation entry while a command is in flight', () => {
+    const html = renderSection({ wiki: null, navigation, busy: true })
+    expect(html).toContain('aria-label="导航Wiki R1"')
+    expect(html).toContain('disabled')
+    expect(html).not.toContain('aria-label="返回 甲零件与乙组件">')
   })
 })

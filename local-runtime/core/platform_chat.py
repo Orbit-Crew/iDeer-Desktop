@@ -266,6 +266,123 @@ def _wiki_page_payload(page):
             "body": _bounded_text(body, 20000) if has_body else ""}
 
 
+def _wiki_link_rows(rows):
+    """Project resolved link/backlink rows; every row names its page status."""
+    projected = []
+    for row in (rows or [])[:100]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        status = _bounded_text(row.get("status"), 32)
+        if not document_id or status not in _WIKI_PAGE_STATUSES:
+            raise ChatError("CHAT_PROTOCOL_ERROR")
+        projected.append({"documentId": document_id,
+                          "title": _bounded_text(row.get("title"), 200),
+                          "status": status})
+    return projected
+
+
+def _wiki_associations_payload(associations):
+    """Project the association graph with its frozen document sources (#119).
+
+    Entities and relations are exactly the Server's stored #116 rows with
+    their document binding and digest; un-generated or failed documents
+    appear as honest coverage rows and contribute nothing else.
+    """
+    if not isinstance(associations, dict):
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = associations.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    sources = []
+    for row in (associations.get("sources") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        sources.append({"documentId": document_id,
+                        "filename": _bounded_text(row.get("filename"), 255),
+                        "contentHash": _bounded_text(row.get("content_hash"), 64),
+                        "status": _bounded_text(row.get("status"), 32),
+                        "errorCode": _bounded_text(row.get("error_code"), 64)})
+    entities = []
+    for row in (associations.get("entities") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        name = _bounded_text(row.get("name"))
+        if not name:
+            continue
+        entities.append({"name": name, "type": _bounded_text(row.get("type"), 64),
+                         "documentId": _bounded_text(row.get("document_id"), 64),
+                         "filename": _bounded_text(row.get("filename"), 255),
+                         "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    relations = []
+    for row in (associations.get("relations") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        source = _bounded_text(row.get("source"))
+        target = _bounded_text(row.get("target"))
+        relation = _bounded_text(row.get("relation"))
+        if not source or not target or not relation:
+            continue
+        relations.append({"source": source, "target": target, "relation": relation,
+                          "documentId": _bounded_text(row.get("document_id"), 64),
+                          "filename": _bounded_text(row.get("filename"), 255),
+                          "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    return {"status": status,
+            "generated": associations["generated"] if type(associations.get("generated")) is int else 0,
+            "failed": associations["failed"] if type(associations.get("failed")) is int else 0,
+            "sources": sources, "entities": entities, "relations": relations}
+
+
+def _wiki_navigation_payload(index):
+    """Project the wiki index with links, backlinks, and associations (#119).
+
+    Every page row keeps its honest status; links and backlinks resolve only
+    inside the Server's revision and a target that names nothing there stays
+    an explicit missing entry — nothing is fabricated into an accessible page.
+    """
+    if not isinstance(index, dict) or not isinstance(index.get("manifest_hash"), str) \
+            or len(index["manifest_hash"]) != 64 or type(index.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = index.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    pages = []
+    for row in (index.get("pages") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        page_status = _bounded_text(row.get("status"), 32)
+        if page_status not in _WIKI_PAGE_STATUSES:
+            raise ChatError("CHAT_PROTOCOL_ERROR")
+        missing = []
+        for target in (row.get("missing_links") or [])[:100]:
+            text = _bounded_text(target, 255)
+            if text:
+                missing.append(text)
+        pages.append({"documentId": document_id,
+                      "filename": _bounded_text(row.get("filename"), 255),
+                      "title": _bounded_text(row.get("title"), 200),
+                      "contentHash": _bounded_text(row.get("content_hash"), 64),
+                      "status": page_status,
+                      "errorCode": _bounded_text(row.get("error_code"), 64),
+                      "links": _wiki_link_rows(row.get("links")),
+                      "missingLinks": missing,
+                      "backlinks": _wiki_link_rows(row.get("backlinks"))})
+    return {"kbId": "", "revisionId": _bounded_text(index.get("revision_id"), 64),
+            "revisionNo": index["revision_no"], "manifestHash": index["manifest_hash"],
+            "status": status,
+            "generated": index["generated"] if type(index.get("generated")) is int else 0,
+            "failed": index["failed"] if type(index.get("failed")) is int else 0,
+            "skipped": index["skipped"] if type(index.get("skipped")) is int else 0,
+            "pages": pages,
+            "associations": _wiki_associations_payload(index.get("associations"))}
+
+
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
@@ -1075,14 +1192,16 @@ class DesktopChat:
     # --- Controlled wiki entry (issue 118) ----------------------------------
 
     def wiki(self, kb_id, revision_id, *, action, document_id=None):
-        """View, generate, or read one frozen revision's wiki.
+        """View, generate, read, or navigate one frozen revision's wiki.
 
         The Server owns every page: the view carries the page list with its
         per-page progress, skips, and frozen source bindings (never bodies),
         ``generate`` lets the Server orchestrate the batch and re-reads the
-        list, and ``read`` fetches exactly one page whose document id must be
+        list, ``read`` fetches exactly one page whose document id must be
         frozen in this revision — the Server refuses anything else, so an
-        out-of-scope page can never leak a title or a body. A skipped or
+        out-of-scope page can never leak a title or a body — and ``navigate``
+        projects the index with links, backlinks, and the association graph
+        derived only from this revision's own artifacts (#119). A skipped or
         failed page projects as exactly that: its fixed category, never text.
         """
         kb_id = self._uuid(kb_id)
@@ -1101,6 +1220,10 @@ class DesktopChat:
         if action == "read":
             document = _wiki_document_id(document_id)
             payload = _wiki_page_payload(self._json(session, f"{base}/pages/{document}"))
+            payload["kbId"] = kb_id
+            return payload
+        if action == "navigate":
+            payload = _wiki_navigation_payload(self._json(session, f"{base}/navigation"))
             payload["kbId"] = kb_id
             return payload
         raise ChatError("CHAT_COMMAND_INVALID")

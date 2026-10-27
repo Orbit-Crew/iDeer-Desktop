@@ -3,7 +3,7 @@ import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
 import { WikiSection } from './WikiSection'
-import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, WikiCommand, WikiPage, WikiView } from '../../../shared/desktop'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -34,6 +34,7 @@ export default function RuntimePanel(): JSX.Element {
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphError, setGraphError] = useState('')
   const [wiki, setWiki] = useState<WikiView | null>(null)
+  const [wikiNavigation, setWikiNavigation] = useState<WikiNavigation | null>(null)
   const [wikiPage, setWikiPage] = useState<WikiPage | null>(null)
   const [wikiBusy, setWikiBusy] = useState(false)
   const [wikiError, setWikiError] = useState('')
@@ -41,12 +42,19 @@ export default function RuntimePanel(): JSX.Element {
     setWikiError(''); setWikiBusy(true)
     if (command.action === 'view' || command.action === 'generate') {
       // A new revision context resets the page list and any open page, so an
-      // older revision's body can never be shown next to a newer list.
+      // older revision's body can never be shown next to a newer list. The
+      // navigation index of another context closes with them (#119).
+      setWiki(null); setWikiPage(null); setWikiNavigation(null)
+    }
+    if (command.action === 'navigate') {
+      // The index replaces the plain list as this revision's surface, and
+      // any open body closes so a page is never shown next to a new index.
       setWiki(null); setWikiPage(null)
     }
     void window.ideer.knowledgeWiki(command)
       .then(result => {
         if (command.action === 'read') setWikiPage(result as WikiPage)
+        else if (command.action === 'navigate') setWikiNavigation(result as WikiNavigation)
         else setWiki(result as WikiView)
       })
       .catch(() => setWikiError('需要已认证会话，且版本与页面所属文档对当前账号可见'))
@@ -204,6 +212,7 @@ export default function RuntimePanel(): JSX.Element {
     <WikiSection
       runtime={runtime}
       wiki={wiki}
+      navigation={wikiNavigation}
       page={wikiPage}
       busy={wikiBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={wikiError}
