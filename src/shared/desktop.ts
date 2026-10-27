@@ -172,6 +172,47 @@ export interface KnowledgeGraphAskResult {
   errorCode: string
   scope: KnowledgeGraphScopeRow[]
 }
+/** Issue 118: one wiki page in the page list, bound to its frozen document source. */
+export interface WikiPageSummary {
+  documentId: string
+  filename: string
+  title: string
+  contentHash: string
+  status: 'completed' | 'skipped' | 'failed' | 'not_generated'
+  errorCode: string
+}
+/** Issue 118: the page list with its progress, skips, and frozen sources (never bodies). */
+export interface WikiView {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: KnowledgeGraphView['status']
+  generated: number
+  failed: number
+  skipped: number
+  pages: WikiPageSummary[]
+}
+/** Issue 118: one read page; a body only ever travels with a completed page. */
+export interface WikiPage {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  documentId: string
+  filename: string
+  title: string
+  contentHash: string
+  status: WikiPageSummary['status']
+  errorCode: string
+  body: string
+}
+export interface WikiCommand {
+  action: 'view' | 'generate' | 'read'
+  kbId: string
+  revisionId: string
+  documentId?: string
+}
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -238,6 +279,8 @@ export interface DesktopBridge {
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
   knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult>
+  /** Issue 118: controlled wiki page list, generation, and single-page reading. */
+  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

@@ -189,6 +189,83 @@ def _scoped_document_ids(document_ids):
     return list(dict.fromkeys(document_ids))
 
 
+_WIKI_PAGE_STATUSES = {"completed", "skipped", "failed", "not_generated"}
+
+
+def _wiki_document_id(document_id):
+    """Validate the requested page's frozen document id before anything is sent."""
+    if not isinstance(document_id, str) or not document_id or len(document_id) > 64 \
+            or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in document_id):
+        raise ChatError('CHAT_COMMAND_INVALID')
+    return document_id
+
+
+def _wiki_view_payload(view):
+    """Project the platform wiki page list into the Desktop display shape (#118).
+
+    Every row is validated and bounded; anything the platform did not state
+    is dropped rather than invented, and a page body never travels with the
+    list — bodies stay behind the per-page read.
+    """
+    if not isinstance(view, dict) or not isinstance(view.get("manifest_hash"), str) \
+            or len(view["manifest_hash"]) != 64 or type(view.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = view.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    pages = []
+    for row in (view.get("pages") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        page_status = _bounded_text(row.get("status"), 32)
+        if page_status not in _WIKI_PAGE_STATUSES:
+            raise ChatError("CHAT_PROTOCOL_ERROR")
+        pages.append({"documentId": document_id,
+                      "filename": _bounded_text(row.get("filename"), 255),
+                      "title": _bounded_text(row.get("title"), 200),
+                      "contentHash": _bounded_text(row.get("content_hash"), 64),
+                      "status": page_status,
+                      "errorCode": _bounded_text(row.get("error_code"), 64)})
+    return {"kbId": "", "revisionId": _bounded_text(view.get("revision_id"), 64),
+            "revisionNo": view["revision_no"], "manifestHash": view["manifest_hash"],
+            "status": status,
+            "generated": view["generated"] if type(view.get("generated")) is int else 0,
+            "failed": view["failed"] if type(view.get("failed")) is int else 0,
+            "skipped": view["skipped"] if type(view.get("skipped")) is int else 0,
+            "pages": pages}
+
+
+def _wiki_page_payload(page):
+    """Project one wiki page read into the Desktop display shape (#118).
+
+    A body only ever travels with a completed page; a skipped or failed page
+    projects as exactly that — its fixed category, never text.
+    """
+    if not isinstance(page, dict) or not isinstance(page.get("manifest_hash"), str) \
+            or len(page["manifest_hash"]) != 64 or type(page.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = page.get("status")
+    if status not in _WIKI_PAGE_STATUSES:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    document_id = _bounded_text(page.get("document_id"), 64)
+    if not document_id:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    body = page.get("body")
+    has_body = status == "completed" and isinstance(body, str) and bool(body.strip())
+    return {"kbId": "", "revisionId": _bounded_text(page.get("revision_id"), 64),
+            "revisionNo": page["revision_no"], "manifestHash": page["manifest_hash"],
+            "documentId": document_id,
+            "filename": _bounded_text(page.get("filename"), 255),
+            "title": _bounded_text(page.get("title"), 200),
+            "contentHash": _bounded_text(page.get("content_hash"), 64),
+            "status": status,
+            "errorCode": _bounded_text(page.get("error_code"), 64),
+            "body": _bounded_text(body, 20000) if has_body else ""}
+
+
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
@@ -993,6 +1070,39 @@ class DesktopChat:
             return {"kbId": kb_id, "revisionId": revision_id, "documentId": source["documentId"],
                     "filename": located.get("filename", ""),
                     "logicalPath": str(located.get("logical_path") or "")}
+        raise ChatError("CHAT_COMMAND_INVALID")
+
+    # --- Controlled wiki entry (issue 118) ----------------------------------
+
+    def wiki(self, kb_id, revision_id, *, action, document_id=None):
+        """View, generate, or read one frozen revision's wiki.
+
+        The Server owns every page: the view carries the page list with its
+        per-page progress, skips, and frozen source bindings (never bodies),
+        ``generate`` lets the Server orchestrate the batch and re-reads the
+        list, and ``read`` fetches exactly one page whose document id must be
+        frozen in this revision — the Server refuses anything else, so an
+        out-of-scope page can never leak a title or a body. A skipped or
+        failed page projects as exactly that: its fixed category, never text.
+        """
+        kb_id = self._uuid(kb_id)
+        revision_id = self._uuid(revision_id)
+        session = self._session()
+        base = f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/wiki"
+        if action == "view":
+            payload = _wiki_view_payload(self._json(session, base))
+            payload["kbId"] = kb_id
+            return payload
+        if action == "generate":
+            self._json(session, base, body={})
+            payload = _wiki_view_payload(self._json(session, base))
+            payload["kbId"] = kb_id
+            return payload
+        if action == "read":
+            document = _wiki_document_id(document_id)
+            payload = _wiki_page_payload(self._json(session, f"{base}/pages/{document}"))
+            payload["kbId"] = kb_id
+            return payload
         raise ChatError("CHAT_COMMAND_INVALID")
 
     # --- Explicit server-side publication (issue 115) -----------------------
