@@ -1,0 +1,78 @@
+{
+  "recordedAt": "2026-10-26T05:57:59.151Z",
+  "baseCommit": "7fe3877dc88fe8f156bb8e038a004ffa91fee2d2",
+  "branch": "codex/issue-108-acceptance",
+  "installer": {
+    "file": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "bytes": 92394899,
+    "sha256": "9db500c525366ecf6c093b51bf0d539942d36327066fdcce77fff7fef7ab9374"
+  },
+  "trust": {
+    "artifact": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "artifactSHA256": "9db500c525366ecf6c093b51bf0d539942d36327066fdcce77fff7fef7ab9374",
+    "publicKeySHA256": "2836a6c72360fca73c8bbf737a2d789224fdaa4ebf964ec6f53e5676ea7f49db",
+    "algorithm": "ed25519"
+  },
+  "environment": {
+    "windows": "Windows 11 Pro",
+    "release": "10.0.26300",
+    "arch": "x64",
+    "node": "v22.14.0",
+    "testPython": "3.12.14",
+    "runtimePython": "3.12.10",
+    "electron": "22.3.27"
+  },
+  "configuration": {
+    "serverRelease": "591f80c-runtime-compat-20261025",
+    "identities": "synthetic A/B, isolated databases and Windows credential references",
+    "model": "deterministic; real Gateway and Runtime tools",
+    "profileIsolation": "--user-data-dir per run",
+    "updates": "real Gateway /updates route, reviewed test-signed patch"
+  },
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "7c91b958d9db7590a5a5a9803a777a94c5af73b1eaca16851410a47b2e3117dd"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e"
+    },
+    {
+      "path": "local-runtime/distribution.lock.json",
+      "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    {
+      "path": "local-runtime/core/transport.py",
+      "sha256": "f43b091a92e374f2e33e36e58a1f4043fdab3dd708283b0009a33e4c0f71130f"
+    },
+    {
+      "path": "local-runtime/tests/test_install_drain.py",
+      "sha256": "867124e184de823f7980d29fdbf455813f21d2d9b821654e4136838d018df157"
+    },
+    {
+      "path": "resources/provenance/runtime-source.json",
+      "sha256": "0f4089f9d4e7ce2136d6af1d610377f88673503efde5072aca8276d5ee9aba76"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/acceptance.cjs",
+      "sha256": "3d6dde41488a25fe8c74cf482d43a0609a2ca1458c60153a2962e2b93d45b732"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-acceptance.cjs",
+      "sha256": "73860f772bb09e774cc06d1b94b930c4b4d49c778e5ecd24919875f0d9cd2bda"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/blockers.cjs",
+      "sha256": "7a2e888aba362fbe9905f6eb8d9b0ac6123d2aba6a7ba9a8f994bd65e2e4c371"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-blockers.cjs",
+      "sha256": "f1ebcf845e8be64a0ec5bcbdb8a5665f644c5e74f68757a72e2c75b8b07cfb45"
+    }
+  ],
+  "release": {
+    "sha256": "e3f8022a76d803bc6a2168564c025406dd3d63b742188a0d713b3cac9768516e",
+    "signatureSHA256": "09b1fb2804dac59c6e49eda1a0b1a555a0c3b451ab301fd174d8dae184dea522"
+  }
+}

@@ -296,6 +296,11 @@ def main() -> int:
             if controller is not None and login.status()["state"] != "authenticated":
                 stop_controller()
             current_receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+            # The worker can complete a write while this thread reads SQLite
+            # and controller status. Keep both activity observations so a stale
+            # unknown count cannot look like an idle queue and falsely block
+            # installation. A task appearing during the read still counts too.
+            active_tasks_before = controller.client.active_task_count() if controller is not None else 0
             receipt_view = receipts.snapshot(current_receipt_owner)
             try:
                 unknown_write_effects = receipts.unknown_write_effects(None)
@@ -312,7 +317,8 @@ def main() -> int:
                       "compatibility": compatibility.snapshot(),
                       "unknownWriteEffects": unknown_write_effects,
                       "installDrain": install_draining,
-                      "activeTasks": (controller.client.active_task_count() if controller is not None else 0),
+                      "activeTasks": max(active_tasks_before,
+                          controller.client.active_task_count() if controller is not None else 0),
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "selectionScope": workspace.scope(),

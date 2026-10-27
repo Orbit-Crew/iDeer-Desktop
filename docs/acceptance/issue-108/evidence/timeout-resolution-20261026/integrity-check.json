@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-26T08:25:00.092Z",
+  "status": "passed",
+  "sourceBindings": 12,
+  "expectedBeforeFailure": true,
+  "controlledAfterPass": true,
+  "onlineCases": 8,
+  "offlineCases": 8,
+  "installedBlockerCases": 2,
+  "vitestPassed": 94,
+  "runtimePassed": 400,
+  "runtimeSkipped": 6
+}

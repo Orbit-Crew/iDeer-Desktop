@@ -1,0 +1,242 @@
+{
+  "recordedAt": "2026-10-26T07:25:23.578Z",
+  "baseCommit": "7fe3877dc88fe8f156bb8e038a004ffa91fee2d2",
+  "branch": "codex/issue-108-acceptance",
+  "installer": {
+    "file": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "bytes": 92395057,
+    "sha256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d"
+  },
+  "trust": {
+    "artifact": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "artifactSHA256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d",
+    "publicKeySHA256": "2836a6c72360fca73c8bbf737a2d789224fdaa4ebf964ec6f53e5676ea7f49db",
+    "algorithm": "ed25519"
+  },
+  "environment": {
+    "windows": "Windows 11 Pro",
+    "release": "10.0.26300",
+    "arch": "x64",
+    "node": "v22.14.0",
+    "electron": "22.3.27",
+    "runtimePython": "3.12.10",
+    "testPython": "3.12.14"
+  },
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "7c91b958d9db7590a5a5a9803a777a94c5af73b1eaca16851410a47b2e3117dd"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e"
+    },
+    {
+      "path": "local-runtime/distribution.lock.json",
+      "sha256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d"
+    },
+    {
+      "path": "local-runtime/core/desktop.py",
+      "sha256": "b78dac996715b46578f9d7af8376a3b90a8fd92cd8ce167ce6cb46220a62d939"
+    },
+    {
+      "path": "local-runtime/core/transport.py",
+      "sha256": "f43b091a92e374f2e33e36e58a1f4043fdab3dd708283b0009a33e4c0f71130f"
+    },
+    {
+      "path": "local-runtime/tests/test_desktop_drain_snapshot.py",
+      "sha256": "d09b33abe27c87491510e6f02e5e7b962a05007c132e4e812eb5488fe1658d57"
+    },
+    {
+      "path": "local-runtime/tests/test_install_drain.py",
+      "sha256": "867124e184de823f7980d29fdbf455813f21d2d9b821654e4136838d018df157"
+    },
+    {
+      "path": "resources/provenance/runtime-source.json",
+      "sha256": "0f4089f9d4e7ce2136d6af1d610377f88673503efde5072aca8276d5ee9aba76"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/acceptance.cjs",
+      "sha256": "3d6dde41488a25fe8c74cf482d43a0609a2ca1458c60153a2962e2b93d45b732"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-acceptance.cjs",
+      "sha256": "151a68f98518781355ff2508d913d6a8d8f64af34bd793d2d6d2c6bdcc579d64"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/blockers.cjs",
+      "sha256": "7a2e888aba362fbe9905f6eb8d9b0ac6123d2aba6a7ba9a8f994bd65e2e4c371"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-blockers.cjs",
+      "sha256": "f1ebcf845e8be64a0ec5bcbdb8a5665f644c5e74f68757a72e2c75b8b07cfb45"
+    }
+  ],
+  "transport": {
+    "kind": "loopback-tcp-to-private-wsl",
+    "testOnly": true,
+    "rawBytes": true,
+    "systemNetworkChanges": false,
+    "files": [
+      {
+        "archive": "diagnostic/server-private.py",
+        "sha256": "ebeac6cf11235f20c721435836412205c7a1d2139aca5ad2453b5410d298c9a7"
+      },
+      {
+        "archive": "diagnostic/private-proxy.cjs",
+        "sha256": "4a5aa906980dcc3dad6ea7d556dc98709ccf51c093019a18a8e7b794855ee984"
+      }
+    ]
+  },
+  "runMap": {
+    "before": {
+      "run": "r-10c895e1",
+      "status": "failed",
+      "exitCode": 1,
+      "seconds": 27.907,
+      "timingInjection": {
+        "kind": "complete-during-status",
+        "testOnly": true,
+        "reachedAt": "2026-10-26T06:36:57.564Z"
+      },
+      "scenarios": {
+        "T108-01": {
+          "status": "unexecuted",
+          "cases": [
+            "cancel during in-flight write keeps program and pending stage",
+            "new dispatch refused without execution while original write waits",
+            "original admitted write finishes before maintenance"
+          ]
+        },
+        "T108-03": {
+          "status": "unexecuted",
+          "cases": [
+            "real-write-before-update"
+          ]
+        },
+        "T108-04": {
+          "status": "unexecuted",
+          "cases": [
+            "signed payload staged through actual update UI"
+          ]
+        }
+      }
+    },
+    "after": {
+      "run": "r-d2bf248b",
+      "status": "passed",
+      "exitCode": 0,
+      "seconds": 61.766,
+      "timingInjection": {
+        "kind": "complete-during-status",
+        "testOnly": true,
+        "reachedAt": "2026-10-26T06:38:49.920Z"
+      },
+      "scenarios": {
+        "T108-01": {
+          "status": "passed",
+          "cases": [
+            "cancel during in-flight write keeps program and pending stage",
+            "new dispatch refused without execution while original write waits",
+            "original admitted write finishes before maintenance"
+          ]
+        },
+        "T108-03": {
+          "status": "passed",
+          "cases": [
+            "real-write-before-update",
+            "real original pending receipt survives actual update without acknowledgment",
+            "same receipt replay confirmed under original owner with no task redispatch"
+          ]
+        },
+        "T108-04": {
+          "status": "passed",
+          "cases": [
+            "signed payload staged through actual update UI",
+            "changed signed program restarted with actual Desktop and Runtime usability"
+          ]
+        }
+      }
+    },
+    "online": {
+      "run": "clean-online-b",
+      "status": "passed",
+      "exitCode": 0,
+      "seconds": 44.766,
+      "timingInjection": null,
+      "scenarios": {
+        "T108-01": {
+          "status": "passed",
+          "cases": [
+            "cancel during in-flight write keeps program and pending stage",
+            "new dispatch refused without execution while original write waits",
+            "original admitted write finishes before maintenance"
+          ]
+        },
+        "T108-03": {
+          "status": "passed",
+          "cases": [
+            "real-write-before-update",
+            "real original pending receipt survives actual update without acknowledgment",
+            "same receipt replay confirmed under original owner with no task redispatch"
+          ]
+        },
+        "T108-04": {
+          "status": "passed",
+          "cases": [
+            "signed payload staged through actual update UI",
+            "changed signed program restarted with actual Desktop and Runtime usability"
+          ]
+        }
+      }
+    },
+    "offline": {
+      "run": "clean-offline",
+      "status": "passed",
+      "exitCode": 0,
+      "seconds": 63.313,
+      "timingInjection": null,
+      "scenarios": {
+        "T108-01": {
+          "status": "passed",
+          "cases": [
+            "cancel during in-flight write keeps program and pending stage",
+            "new dispatch refused without execution while original write waits",
+            "original admitted write finishes before maintenance"
+          ]
+        },
+        "T108-03": {
+          "status": "passed",
+          "cases": [
+            "real-write-before-update",
+            "real original pending receipt survives actual update without acknowledgment",
+            "same receipt replay confirmed under original owner with no task redispatch"
+          ]
+        },
+        "T108-04": {
+          "status": "passed",
+          "cases": [
+            "signed payload staged through actual update UI",
+            "changed signed program restarted with actual Desktop and Runtime usability"
+          ]
+        }
+      }
+    },
+    "blockers": {
+      "run": "clean-blockers",
+      "status": "passed",
+      "exitCode": 0,
+      "seconds": 30.75,
+      "timingInjection": null,
+      "scenarios": {
+        "T108-02": {
+          "status": "passed",
+          "cases": [
+            "real-storage-failure-blocks-install",
+            "real-unknown-write-effect-blocks-install"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.cache\\toolchains\\node-v22.14.0-win-x64\\node.exe",
+    "scripts\\acceptance\\issue-108\\acceptance.cjs",
+    "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\artifacts\\issue-108\\supplement\\online-b"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T05:41:32.818031+00:00",
+  "finished": "2026-10-26T05:45:57.097560+00:00",
+  "seconds": 264.281,
+  "exitCode": 1
+}

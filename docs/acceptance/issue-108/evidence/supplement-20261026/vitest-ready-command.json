@@ -1,0 +1,15 @@
+{
+  "command": [
+    "C:\\Users\\Neo\\.codex\\worktrees\\5435\\iDeer-Desktop\\.cache\\toolchains\\node-v22.14.0-win-x64\\npm.cmd",
+    "test",
+    "--",
+    "--no-cache",
+    "--reporter=json",
+    "--outputFile=artifacts/issue-108/supplement/vitest-ready-results.json"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T05:42:37.510473+00:00",
+  "finished": "2026-10-26T05:43:00.176766+00:00",
+  "seconds": 22.656,
+  "exitCode": 0
+}

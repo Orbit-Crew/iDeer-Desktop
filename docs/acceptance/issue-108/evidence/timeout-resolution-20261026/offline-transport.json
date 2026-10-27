@@ -1,0 +1,5 @@
+{
+  "kind": "loopback-tcp-to-private-wsl",
+  "serverOrigin": "http://172.26.97.143:52009",
+  "publicOrigin": "http://127.0.0.1:7611"
+}

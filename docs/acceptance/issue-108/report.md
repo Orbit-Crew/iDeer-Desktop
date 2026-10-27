@@ -1,5 +1,18 @@
 # Issue 108 acceptance
 
+Latest result: [installation timeout resolution and re-acceptance](timeout-resolution-20261026.md)
+reproduces the mixed-time drain snapshot, fixes it conservatively, and records
+the final clean installer passing online/offline update, real receipt replay
+and installed failure blockers. The original failed attempts remain unchanged.
+
+Current follow-up: [2026-10-26 supplement](supplement-20261026.md) records a new
+installed candidate, the drain-refusal fix, separate online/offline installation
+and real pending-receipt replay, plus installed storage/unknown-effect blockers.
+Those final runs passed. The intermediate maintenance wait timeout was still
+unexplained at that checkpoint; the newer resolution above records the controlled
+reproduction and fix. The C8 record below remains
+historical evidence for its original candidate, not this new installer.
+
 [iDeer #108](https://github.com/Orbit-Crew/iDeer/issues/108) turns the verified
 pending update of #107 into the single drain-and-install entry: explicit
 confirmation, stop admitting new tasks, wait for in-flight terminal states

@@ -504,7 +504,8 @@ class LocalRuntimeClient:
                                  run_id=str(envelope.payload.get("run_id", "")),
                                  detail={"error_code": "UPDATE_DRAINING"})
                     await self._send_error(task_id, "device is draining for a verified update",
-                                           "UPDATE_DRAINING", {}, "",
+                                           "UPDATE_DRAINING", dict(envelope.payload),
+                                           str(envelope.payload.get("operation", "")),
                                            policy_decision="deny", status="denied")
                     continue
                 try:

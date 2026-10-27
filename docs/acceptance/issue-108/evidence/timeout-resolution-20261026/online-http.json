@@ -1,0 +1,617 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/updates/desktop/manifest.json",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/4b26b9e8-f76c-4c5e-b41d-0606a0289666/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/e634bb81-f572-4ff6-a05c-4c141ca8810b/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/c8d3d621-01ab-4668-8885-b344b042de52",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/runs/74b577d3-762b-4ee2-bdd2-a44e159dc693/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/runs/74b577d3-762b-4ee2-bdd2-a44e159dc693",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/runs/74b577d3-762b-4ee2-bdd2-a44e159dc693",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/583a6c74-8ccb-4807-b0e7-c799c3dcfe62",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/desktop/manifest.json",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/desktop/manifest.sig",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/desktop/files/resources/runtime/core/tray.py",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/5ef7336b-b736-4bb1-b75e-799d0d94f8d2/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs/3dd9604e-5f90-4b34-ba1e-7b914f517ae3/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/runs/e95b1674-aeae-4376-ba07-ae0f326b74c6/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/runs/e95b1674-aeae-4376-ba07-ae0f326b74c6",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/b5b94a41-b116-47b0-9dad-db94dc09e376",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43c2e415-fa49-48ea-93f1-af3b78b7049f/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs/3dd9604e-5f90-4b34-ba1e-7b914f517ae3/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/9c7f9d37-0afe-4b14-9630-907abc8869b5/runs/3dd9604e-5f90-4b34-ba1e-7b914f517ae3",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/c8d3d621-01ab-4668-8885-b344b042de52",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/fc124955-9214-41ec-9f28-9f5fec2cdba4/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/583a6c74-8ccb-4807-b0e7-c799c3dcfe62",
+    "status": 200
+  }
+]
