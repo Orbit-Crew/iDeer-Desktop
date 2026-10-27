@@ -96,6 +96,44 @@ export interface KnowledgePublishOutcome {
   failureCode: string
   documentCount: number
 }
+/** Issue 116: controlled knowledge-graph facts for one frozen revision. */
+export interface KnowledgeGraphSource {
+  documentId: string
+  filename: string
+  contentHash: string
+  status: string
+  errorCode: string
+}
+export interface KnowledgeGraphEntity { name: string; type: string; documentId: string; filename: string }
+export interface KnowledgeGraphRelation { source: string; target: string; relation: string; documentId: string; filename: string }
+export interface KnowledgeGraphView {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: 'not_generated' | 'completed' | 'partial' | 'failed'
+  generated: number
+  failed: number
+  entities: KnowledgeGraphEntity[]
+  relations: KnowledgeGraphRelation[]
+  sources: KnowledgeGraphSource[]
+}
+/** Issue 116: device-local locate answer; the path never leaves this device. */
+export interface KnowledgeGraphSourceLocation {
+  kbId: string
+  revisionId: string
+  documentId: string
+  filename?: string
+  logicalPath?: string
+  missing?: boolean
+  reason?: string
+}
+export interface KnowledgeGraphCommand {
+  action: 'view' | 'generate' | 'locate'
+  kbId: string
+  revisionId: string
+  documentId?: string
+}
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -160,6 +198,8 @@ export interface DesktopBridge {
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
+  /** Issue 116: controlled graph view/generate plus device-local source locate. */
+  knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

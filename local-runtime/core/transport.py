@@ -769,6 +769,33 @@ class LocalRuntimeClient:
                     return
                 result = knowledge_task.value
                 receipt = self._file_receipt(envelope, operation, result)
+            elif operation == "local.knowledge.material":
+                # Issue 116: one frozen document's text may leave the device
+                # only after its user approves this exact material request;
+                # a bound broker key is still required to ask at all.
+                if not self.server_public_key:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                material_task = self.handle_knowledge_material_task(dict(envelope.payload))
+                if material_task.decision is PolicyDecision.CONSENT_REQUIRED:
+                    assert self.file_service is not None
+                    await self.consent_coord._request_consent(
+                        envelope,
+                        dict(envelope.payload),
+                        self.file_service.consent,
+                    )
+                    return
+                if material_task.decision is not PolicyDecision.ALLOW:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, material_task.decision
+                    )
+                    return
+                result = material_task.value
+                receipt = self._file_receipt(
+                    envelope, operation, result, consent_decision='allow_once'
+                )
             elif operation == "local.files.write":
                 file_task = self.handle_file_task(operation, dict(envelope.payload))
                 if file_task.decision is PolicyDecision.CONSENT_REQUIRED:
@@ -1171,6 +1198,14 @@ class LocalRuntimeClient:
         if self.file_service is None:
             raise RuntimeError("file_service is required for local knowledge search")
         return self.file_service.execute("local.knowledge.search", payload, consent=consent)
+
+    def handle_knowledge_material_task(
+        self, payload: dict[str, Any], *, consent: bool = False
+    ) -> FileTaskResult:
+        """Frozen-document material through the workspace boundary (#116)."""
+        if self.file_service is None:
+            raise RuntimeError("file_service is required for local knowledge material")
+        return self.file_service.execute("local.knowledge.material", payload, consent=consent)
 
     def handle_file_task(
         self, capability: str, payload: dict[str, Any], *, consent: bool = False

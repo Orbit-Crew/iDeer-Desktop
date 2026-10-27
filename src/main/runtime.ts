@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphCommand, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -21,6 +21,7 @@ export class RuntimeProcess {
   private receiptScope = ''
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
+  private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -154,6 +155,29 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.knowledgePublishRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify({ type: 'knowledge-publish', id, kbId, revisionId, paths, confirmed, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 116: one controlled-graph step (view / generate / source locate). */
+  async knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('KNOWLEDGE_GRAPH_COMMAND_INVALID')
+    if (!['view', 'generate', 'locate'].includes(command.action)) throw new Error('KNOWLEDGE_GRAPH_ACTION_INVALID')
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    if (typeof command.kbId !== 'string' || !uuid.test(command.kbId)) throw new Error('KNOWLEDGE_GRAPH_KB_INVALID')
+    if (typeof command.revisionId !== 'string' || !uuid.test(command.revisionId)) throw new Error('KNOWLEDGE_GRAPH_REVISION_INVALID')
+    if (command.action === 'locate' && (typeof command.documentId !== 'string' || !/^[0-9a-fA-Z-]{1,64}$/.test(command.documentId))) throw new Error('KNOWLEDGE_GRAPH_DOCUMENT_INVALID')
+    if (this.knowledgeGraphRequests.size) throw new Error('KNOWLEDGE_GRAPH_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeGraphRequests.delete(id); reject(new Error('KNOWLEDGE_GRAPH_TIMEOUT')) }, 60000)
+      this.knowledgeGraphRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.knowledgeGraphRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeGraphRequests.delete(id); reject(error) }
+      })
+      const wire: Record<string, unknown> = { type: 'knowledge-graph', id, kbId: command.kbId, revisionId: command.revisionId, action: command.action, scope: this.selectionScope }
+      if (command.action === 'locate') wire.documentId = command.documentId
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
   }
 
@@ -343,6 +367,53 @@ export class RuntimeProcess {
               status: outcome.status, failureCode: outcome.failureCode, documentCount: outcome.documentCount })
             continue
           }
+          if (value.v === 1 && value.type === 'knowledge-graph') {
+            const pending = this.knowledgeGraphRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeGraphRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                typeof outcome.documentId !== 'string' || !outcome.documentId) {
+              this.knowledgeGraphRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
+              continue
+            }
+            if (outcome.logicalPath !== undefined || outcome.missing !== undefined) {
+              // Locate answer: the workspace path stays a local display fact.
+              pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, documentId: outcome.documentId,
+                filename: typeof outcome.filename === 'string' ? outcome.filename : undefined,
+                logicalPath: typeof outcome.logicalPath === 'string' ? outcome.logicalPath : undefined,
+                missing: outcome.missing === true ? true : undefined,
+                reason: typeof outcome.reason === 'string' ? outcome.reason : undefined })
+              continue
+            }
+            // Graph view: only the Server's own entity/relation/source facts.
+            if (typeof outcome.manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.manifestHash) ||
+                !Number.isSafeInteger(outcome.revisionNo) ||
+                !['not_generated', 'completed', 'partial', 'failed'].includes(outcome.status) ||
+                !Number.isSafeInteger(outcome.generated) || !Number.isSafeInteger(outcome.failed) ||
+                !Array.isArray(outcome.entities) || !Array.isArray(outcome.relations) || !Array.isArray(outcome.sources)) {
+              this.knowledgeGraphRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
+              continue
+            }
+            const text = (input: unknown, limit: number): string => typeof input === 'string' && input.length > 0 && input.length <= limit ? input : ''
+            pending.resolve({
+              kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+              manifestHash: outcome.manifestHash, status: outcome.status,
+              generated: outcome.generated, failed: outcome.failed,
+              entities: outcome.entities.slice(0, 200).map((row: Record<string, unknown>) => ({
+                name: text(row?.name, 200), type: text(row?.type, 64),
+                documentId: text(row?.documentId, 64), filename: text(row?.filename, 255) })),
+              relations: outcome.relations.slice(0, 200).map((row: Record<string, unknown>) => ({
+                source: text(row?.source, 200), target: text(row?.target, 200), relation: text(row?.relation, 200),
+                documentId: text(row?.documentId, 64), filename: text(row?.filename, 255) })),
+              sources: outcome.sources.slice(0, 200).map((row: Record<string, unknown>) => ({
+                documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
+                contentHash: text(row?.contentHash, 64), status: text(row?.status, 32), errorCode: text(row?.errorCode, 64) }))
+            })
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -461,6 +532,7 @@ export class RuntimeProcess {
       for (const pending of this.receiptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgePublishRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

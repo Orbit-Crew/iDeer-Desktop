@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, DesktopBridge } from '../shared/desktop'
+import type { ChatCommand, DesktopBridge, KnowledgeGraphCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -13,6 +13,7 @@ const bridge: DesktopBridge = Object.freeze({
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
   importKnowledge: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:import', kbId),
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),
+  knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
   installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),

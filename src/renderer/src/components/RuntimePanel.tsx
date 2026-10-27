@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
+import { KnowledgeGraphSection } from './KnowledgeGraphSection'
+import type { KnowledgeGraphCommand, KnowledgeGraphSourceLocation, KnowledgeGraphView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -23,6 +25,21 @@ export default function RuntimePanel(): JSX.Element {
   const [importError, setImportError] = useState(false)
   const [publishingId, setPublishingId] = useState('')
   const [publishError, setPublishError] = useState(false)
+  const [graph, setGraph] = useState<KnowledgeGraphView | null>(null)
+  const [graphLocated, setGraphLocated] = useState<Record<string, KnowledgeGraphSourceLocation>>({})
+  const [graphBusy, setGraphBusy] = useState(false)
+  const [graphError, setGraphError] = useState('')
+  const runGraph = (command: KnowledgeGraphCommand) => {
+    setGraphError(''); setGraphBusy(true)
+    if (command.action !== 'locate') { setGraph(null); setGraphLocated({}) }
+    void window.ideer.knowledgeGraph(command)
+      .then(result => {
+        if (command.action === 'locate') setGraphLocated(current => ({ ...current, [command.documentId as string]: result as KnowledgeGraphSourceLocation }))
+        else setGraph(result as KnowledgeGraphView)
+      })
+      .catch(() => setGraphError('需要已认证会话，且版本对当前账号可见'))
+      .finally(() => setGraphBusy(false))
+  }
   const publish = (rowId: string, rowKbId: string, rowRevisionId: string) => {
     setPublishError(false); setPublishingId(rowId)
     void window.ideer.publishKnowledge(rowKbId, rowRevisionId).catch(() => setPublishError(true)).finally(() => setPublishingId(''))
@@ -140,6 +157,15 @@ export default function RuntimePanel(): JSX.Element {
       </Typography.Paragraph>}
       {row.status === 'failed' && <Typography.Paragraph type="secondary">失败后可重新发布；已上传到服务端副本的内容会校验一致后复用，不会重复占用。</Typography.Paragraph>}
     </Card>)}
+    <Typography.Title level={5} className="mt-5">知识图谱</Typography.Title>
+    <KnowledgeGraphSection
+      runtime={runtime}
+      graph={graph}
+      located={graphLocated}
+      busy={graphBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
+      error={graphError}
+      onCommand={runGraph}
+    />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
     {(runtime?.receiptStorageError || history?.storageError) && <Alert type="error" message="可靠记录存储不可用，已暂停新写入。已发生效果的任务请核实结果。"

@@ -52,6 +52,10 @@ class LocalPolicy:
             "local.python",
             "local.artifacts.upload",
             "custom.modify",
+            # Issue 116: document material leaves the device for a
+            # server-orchestrated graph generation, so every request is a
+            # local confirmation like the writes above.
+            "local.knowledge.material",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

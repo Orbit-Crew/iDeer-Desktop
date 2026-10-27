@@ -29,9 +29,10 @@ describe('bootstrap capability boundary', () => {
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     // Issue 112 adds desktop:knowledge:import; issue 115 adds desktop:knowledge:publish.
     // Both are explicit knowledge flows whose file picking and confirmation stay
-    // in the trusted main process.
+    // in the trusted main process. Issue 116 adds desktop:knowledge:graph for the
+    // controlled graph entry (view/generate plus the device-local source locate).
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
   })
 })
