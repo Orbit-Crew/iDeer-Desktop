@@ -37,6 +37,27 @@ export interface LocalResultView {
   uploaded_at: string
 }
 export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
+/** Issue 112: device-local display fact for one explicit knowledge import. */
+export interface KnowledgeImportDocumentView { filename: string; sha256: string; bytes: number; mime: string }
+export interface KnowledgeImportView {
+  id: string
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  documentCount: number
+  status: 'registered' | 'failed'
+  errorCode: string
+  createdAt: string
+  documents: KnowledgeImportDocumentView[]
+}
+export interface KnowledgeImportOutcome {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  documentCount: number
+}
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -47,6 +68,8 @@ export interface RuntimeStatus {
   receiptStorageError?: string
   receiptScope?: string
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
+  knowledgeImports?: KnowledgeImportView[]
+  knowledgeImportStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -93,6 +116,8 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
+  /** Issue 112: explicit local import; the main process picks files and confirms. */
+  importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

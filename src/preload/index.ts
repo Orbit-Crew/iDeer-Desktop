@@ -11,6 +11,7 @@ const bridge: DesktopBridge = Object.freeze({
   beginLogin: (server: string, deviceName: string) => ipcRenderer.invoke('desktop:login:begin', server, deviceName),
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
+  importKnowledge: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:import', kbId),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
   installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),

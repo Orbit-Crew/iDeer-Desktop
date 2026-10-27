@@ -17,7 +17,9 @@ from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .process_job import own_process_tree
 from .settings import load_settings
-from .file_service import WorkspaceSelection
+from .file_service import WorkspaceSelection, WorkspaceFileStore
+from .files import FileAccessError, RootConfig
+from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
@@ -38,6 +40,7 @@ def main() -> int:
     receipt_commands: queue.Queue = queue.Queue(maxsize=1)
     management_commands: queue.Queue = queue.Queue(maxsize=1)
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -75,6 +78,15 @@ def main() -> int:
                         and len(command['id']) <= 64 and command['action'] in {'history', 'clear-confirmed'}
                         and type(command['offset']) is int and 0 <= command['offset'] <= 1000000000):
                     receipt_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'paths', 'scope'}
+                        and command['type'] == 'knowledge-import' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['paths'], list)
+                        and 1 <= len(command['paths']) <= 200
+                        and all(isinstance(path, str) and 0 < len(path) <= 32768 for path in command['paths'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -131,6 +143,9 @@ def main() -> int:
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
         local_results = LocalResultRegistry(args.config.with_name('local-results.db'))
+        # Issue 112: explicit local imports keep the same discipline — the
+        # registry stores device-local display facts, never file content.
+        knowledge_imports = KnowledgeImportRegistry(args.config.with_name('knowledge-imports.db'))
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -142,9 +157,18 @@ def main() -> int:
             else:
                 settings = load_settings(args.config)
                 TaskGuard(args.config.with_name('tasks.db')).stop_run(settings.device_id, run_id)
+        def knowledge_files():
+            """The confirmed workspace store for explicit imports; nothing is implicit."""
+            if login.status()['state'] != 'authenticated':
+                raise FileAccessError('WORKSPACE_UNAVAILABLE')
+            settings, grant = workspace.current()
+            files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(args.config.parent,))
+            return settings, grant, files
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
-            local_results=local_results, compatibility_gate=compatibility)
+            local_results=local_results, compatibility_gate=compatibility,
+            knowledge_imports=knowledge_imports, knowledge_files=knowledge_files)
 
         def chat_control():
             while not stop.is_set():
@@ -264,6 +288,25 @@ def main() -> int:
                 emit({'v': 1, 'type': 'receipts', 'id': receipt_command['id'],
                       'result': receipts.snapshot(receipt_owner, offset=receipt_command['offset']), 'error': error})
             try:
+                knowledge_command = knowledge_commands.get_nowait()
+            except queue.Empty:
+                knowledge_command = None
+            if knowledge_command:
+                error = ''
+                result = None
+                try:
+                    if knowledge_command['scope'] != workspace.scope():
+                        raise KnowledgeImportError('KNOWLEDGE_IMPORT_IDENTITY_CHANGED')
+                    result = chat.register_local_import(knowledge_command['kbId'], knowledge_command['paths'])
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    error = category_for(exc)
+                    if error == 'KNOWLEDGE_IMPORT_FAILED' and str(exc).startswith('CHAT_'):
+                        error = str(exc)
+                emit({'v': 1, 'type': 'knowledge-import', 'id': knowledge_command['id'],
+                      'result': result, 'error': error})
+            try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
                 selection = None
@@ -296,6 +339,10 @@ def main() -> int:
             if controller is not None and login.status()["state"] != "authenticated":
                 stop_controller()
             current_receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+            try:
+                knowledge_rows = knowledge_imports.view(current_receipt_owner) if current_receipt_owner else []
+            except KnowledgeImportError:
+                knowledge_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -321,6 +368,8 @@ def main() -> int:
                           controller.client.active_task_count() if controller is not None else 0),
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
+                      "knowledgeImports": knowledge_rows[:20],
+                      "knowledgeImportStorageError": knowledge_imports.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

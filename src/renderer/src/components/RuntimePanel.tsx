@@ -18,6 +18,9 @@ export default function RuntimePanel(): JSX.Element {
       .catch(() => setManagementError(true)).finally(() => setManaging(false))
   }
   const [historyOffset, setHistoryOffset] = useState(0)
+  const [kbId, setKbId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState(false)
   const controller = useRef<RuntimePanelController | null>(null)
   useEffect(() => {
     let active = true
@@ -78,6 +81,35 @@ export default function RuntimePanel(): JSX.Element {
       <Typography.Paragraph>账号 {grant.userId} · 设备 {grant.deviceId} · {grant.createdAt}</Typography.Paragraph>
       <Typography.Paragraph copyable>授权 ID：{grant.id}</Typography.Paragraph>
       <Button danger disabled={managing} onClick={() => manage('revoke', grant.id)}>撤销此目录授权</Button>
+    </Card>)}
+    <Typography.Title level={5} className="mt-5">本地知识导入</Typography.Title>
+    <Typography.Paragraph>把工作目录中的文件显式导入为你的私有平台知识库版本：设备侧解析并计算指纹，平台只登记文件名、大小、类型与 SHA-256 清单，原文件与设备索引不会自动上传。每次导入生成新的不可变版本。</Typography.Paragraph>
+    <Space className="w-full mb-2">
+      <Input aria-label="平台知识库 UUID" placeholder="平台知识库 UUID（资源页可创建并复制）" value={kbId} maxLength={36}
+        onChange={(event) => setKbId(event.target.value)} className="max-w-md" />
+      <Button type="primary" loading={importing}
+        disabled={!kbId || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated' || runtime.workspace?.state !== 'ready'}
+        onClick={() => {
+          setImportError(false); setImporting(true)
+          void window.ideer.importKnowledge(kbId).catch(() => setImportError(true)).finally(() => setImporting(false))
+        }}>选择文件并导入</Button>
+    </Space>
+    {importError && <Alert type="error" message="导入未完成：需要已认证会话与已确认的工作目录，且文件必须位于工作目录内" />}
+    {runtime?.knowledgeImportStorageError && <Alert type="error" message="导入记录存储不可用，状态显示可能不完整" />}
+    {!runtime?.knowledgeImports?.length && <Typography.Text type="secondary">当前账号与设备尚无导入记录。</Typography.Text>}
+    {runtime?.knowledgeImports?.map(row => <Card key={row.id} size="small" className="mt-2">
+      <Typography.Paragraph>
+        {row.status === 'registered'
+          ? `已登记版本 R${row.revisionNo} · ${row.documentCount} 个文件`
+          : `导入失败：${row.errorCode}`}
+      </Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        知识库 {row.kbId}{row.status === 'registered' ? ` · 版本 ${row.revisionId}` : ''} · {row.createdAt}
+      </Typography.Paragraph>
+      {row.status === 'registered' && <Typography.Paragraph copyable>清单指纹：{row.manifestHash}</Typography.Paragraph>}
+      {!!row.documents.length && <Typography.Paragraph type="secondary">
+        {row.documents.map(document => `${document.filename}（${document.mime}，${document.bytes} 字节）`).join('、')}
+      </Typography.Paragraph>}
     </Card>)}
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
