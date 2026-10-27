@@ -1,0 +1,12 @@
+{
+  "command": [
+    "C:/Users/Neo/.codex/worktrees/5435/iDeer-Desktop/.cache/toolchains/node-v22.14.0-win-x64/node.exe",
+    "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\scripts\\acceptance\\issue-111\\desktop.cjs",
+    "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\artifacts\\issue-111\\recheck-matrix\\desktop"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T13:09:21.552803+00:00",
+  "finished": "2026-10-26T13:10:39.390239+00:00",
+  "seconds": 77.844,
+  "exitCode": 0
+}

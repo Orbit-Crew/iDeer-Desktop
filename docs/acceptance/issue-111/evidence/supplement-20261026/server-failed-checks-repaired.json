@@ -1,0 +1,14 @@
+{
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "-lc",
+    "cd /home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/backend && env -u TEST_PNPM_BIN PYTHONPATH=.:tests UV_CACHE_DIR=/tmp/deer-flow-uv-cache uv run --no-sync pytest -q tests/unit/scripts/test_maintain_gitnexus_guidance.py tests/unit/gateway/test_agent_guidance_check.py tests/unit/scripts/test_pnpm_script.py tests/unit/scripts/test_check_script.py"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T13:00:50.018749+00:00",
+  "finished": "2026-10-26T13:01:02.622758+00:00",
+  "seconds": 12.609,
+  "exitCode": 0
+}

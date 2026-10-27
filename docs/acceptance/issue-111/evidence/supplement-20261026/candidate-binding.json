@@ -1,0 +1,337 @@
+{
+  "executionBaseCommit": "8d17d16e816456096bb8f37ddb496b8a7ac84443",
+  "branch": "codex/issue-111-acceptance",
+  "productCommit": "d17721cb6950ba4eb2457c4d2ccc3c0fae5c4a17",
+  "productSourceSHA256": "8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a",
+  "installer": {
+    "name": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "bytes": 92395057,
+    "sha256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d"
+  },
+  "server": {
+    "commits": [
+      "7079f760de39d946babaca0c0ef72c865e86a2de",
+      "dc5383266516438c3edfab0bcecff8b968cd3edc"
+    ],
+    "sourceSHA256": "d8d3a6e8325b86ccea1972cdbc19d2bfc1bdb3891092eda5133d59e69eb2c19c",
+    "difference": "Only root AGENTS.md and CLAUDE.md canonical managed guidance; identical application/test/build inputs."
+  },
+  "environment": {
+    "windows": "Windows 11 Pro 10.0.26300 x64",
+    "node": "22.14.0",
+    "electron": "22.3.27",
+    "runtimePython": "3.12.10",
+    "testPython": "3.12.14"
+  },
+  "drivers": [
+    {
+      "path": "scripts/acceptance/issue-99/desktop.cjs",
+      "sha256": "f2f7aeb2860f61f4a7cce6f5efcd5a8634080791b499e6c18ddc1a23714d96da"
+    },
+    {
+      "path": "scripts/acceptance/issue-99/gateway_fixture.py",
+      "sha256": "478c50c747ecbe4b6ac64006963b754cc03398a0907bde4b70412149e3963408"
+    },
+    {
+      "path": "scripts/acceptance/issue-99/provider_profiles.py",
+      "sha256": "9e77760cf09546136531b43e63263a6ea1fe32b0ba8dd38e4c1546864285fa49"
+    },
+    {
+      "path": "scripts/acceptance/issue-99/provider_server.py",
+      "sha256": "30d6411fad28ba42eed5e1815cb519a0da5ae6e39930aec8473b89c71b2b0ac0"
+    },
+    {
+      "path": "scripts/acceptance/issue-99/README.md",
+      "sha256": "a0f8f8f75d018a9c3737ead49c2701eca6fa629f6b24fed5a8492feb6868cd87"
+    },
+    {
+      "path": "scripts/acceptance/issue-99/shortcuts.ps1",
+      "sha256": "6ba70db73480f064f71a5a4daa7d539fda947c457a0918e814883cbdf19f593c"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/collect_evidence.py",
+      "sha256": "96655f8e3e9825941e6dee570880f150b0960d022b4f977509b3ff2b861c5120"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/desktop.cjs",
+      "sha256": "6f4592c5450e2b11be9cb060f21a2eeed451e3740981272e1babe72e639c0490"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/installed.ps1",
+      "sha256": "0dde724bb6b47cbf19a24ee27826f5b549cb80b16e1cf2ad1cdf24bff7791ad4"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/profiles.py",
+      "sha256": "42de857d33f9ed11c6e82506b9328ef6ed7ce009337c5ae22c7385fb735ca327"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/README.md",
+      "sha256": "43c35dd62632d95423bdbd8a5167c500626dce94d1c2a9971f4ed550134c929e"
+    },
+    {
+      "path": "scripts/acceptance/issue-100/server_fixture.py",
+      "sha256": "f3636d0b0e6994c617fd893320431ac4b2440c379463b18feab52f74a80f4868"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/cleanup_real_fixture.py",
+      "sha256": "030a6b209a071c0b9517937bbc7838da7b33d30ae434a74f8e1ed3712bf6f32a"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/collect_evidence.py",
+      "sha256": "cd4819e8930c6717b969530a1d7385156321ed7817b841951e0a6a65a2b40203"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/desktop.cjs",
+      "sha256": "fed69c7b14dc85c564da9fd4bc44797a77086fcad61db8e8d9e81a468af63e3a"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/install_lifecycle.ps1",
+      "sha256": "c703a760cd03235adcdfbec13ee0b45c5f30a6a706355ac0c952f1ac6b4dd44c"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/installed.ps1",
+      "sha256": "2c6fc133fe83446b90ab7b87d3a57e4498d1ed8218d2b19cdca280c6446b07c1"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/profile_controls.py",
+      "sha256": "13cb0c540cc6c5d64024c27cfcd2f1281495e3c81f1c79549456d171ea377201"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/README.md",
+      "sha256": "93d1e731bc2bc46620d3b98a5bed86362cef298d0aab6751f297aecbc9d7099d"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/record_command.py",
+      "sha256": "b7f28a6b1d57200bf40e01dc24a13eab1962a3f303d162c99cd6ae2323d54d35"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/server_fixture.py",
+      "sha256": "c9d477bfe2e7da2e80f98a8a5f5e63e9d539196927aec2907960e7f6260290c9"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/source_binding.py",
+      "sha256": "452406ac8da404cf5c62b87ce9323ddb1ae08e423e96a6e284351233b3010453"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/validate_evidence.py",
+      "sha256": "0118008b804e24122312fa06fb98e5b9a15ac8d427246f3d001bb22ccd35225d"
+    },
+    {
+      "path": "scripts/acceptance/issue-101/verify_server_static.py",
+      "sha256": "31595b54e07dcdca0170095a1be696f484a3e71ec2285cee1c046443561c101e"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/desktop.cjs",
+      "sha256": "06ee73e1df4b65ad24025f06aa4b7141225e5159af8e58826ac57ec83e569577"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/fixture_hooks.py",
+      "sha256": "db6ce4cda6217cd1e2b47c3608ee99d3713ee26b9729c7099ba657346ea07bf2"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/installed.ps1",
+      "sha256": "e0d65885c6322116f7025b48ad340b82f4339a3a3b71dbb71d38fa41f07a97d0"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/profile_controls.py",
+      "sha256": "a8967aa59121a7e5f1fa0bbb0fb7a908b853accf54d196b6dcc5a9f056ccc70d"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/profiles.py",
+      "sha256": "562160fabd1766ba33cdef7740057a6e95c3c6d565bd519a232188db2059efd3"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/README.md",
+      "sha256": "17f138674f945c40f5f3fef019dc7a09b326932a2b50c2060f5413f9acc9e0a3"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/server_fixture.py",
+      "sha256": "d6b1075da518cf67038dd72577c5baafcff694c63d0d3da0700e035904c9ae85"
+    },
+    {
+      "path": "scripts/acceptance/issue-102/validate_evidence.py",
+      "sha256": "fbdf47683af890772626a393d10273a6fa61c0ad799143949a7f5ff7030410cf"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/desktop.cjs",
+      "sha256": "80d07a932c5e9cc39430cf959d1cf1379f77a7d34fa0512ff19b9056046638f9"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/flow.cjs",
+      "sha256": "5082b35f8ac4785cf06303a562aa4e7bf7ba2ad35b099ad75282fb2fe95b728d"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/installed.ps1",
+      "sha256": "e0d65885c6322116f7025b48ad340b82f4339a3a3b71dbb71d38fa41f07a97d0"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/lifecycle.py",
+      "sha256": "08d8c2368e93a25db3a7182f17e90afe41efea0de6765cab8acdf9237ae3fd94"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/prepare_server_env.py",
+      "sha256": "31925fcdd4361eab38bfc62366e9b413d623cf170961ea22ae6ee3939ede1f08"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/profile_controls.py",
+      "sha256": "f82849034c3e2d0b6c61cfc9729777697036f59fde266d11eb1c97b80e6819cc"
+    },
+    {
+      "path": "scripts/acceptance/issue-103/README.md",
+      "sha256": "9b57e0f69302c7e9d6b24e2ebeddc1ae4ff4e5b2482c402b6224f71584fcbf0e"
+    },
+    {
+      "path": "scripts/acceptance/issue-105/artifact-flow.cjs",
+      "sha256": "ebfd7dcf09e8ce6de4744b642ff3c8e78cfe421561561594cf98b02cb2698d56"
+    },
+    {
+      "path": "scripts/acceptance/issue-105/artifact_profiles.py",
+      "sha256": "8e362a202f0adc48910522518d7bf3200a44c591f75f4dda50d707ce0d081e03"
+    },
+    {
+      "path": "scripts/acceptance/issue-105/desktop.cjs",
+      "sha256": "6adc1275d4380dd92c66ad0ce4f87c4b3bdfcebe0459974db006556a13aa8908"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/acceptance.cjs",
+      "sha256": "3d6dde41488a25fe8c74cf482d43a0609a2ca1458c60153a2962e2b93d45b732"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/blockers.cjs",
+      "sha256": "7a2e888aba362fbe9905f6eb8d9b0ac6123d2aba6a7ba9a8f994bd65e2e4c371"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-acceptance.cjs",
+      "sha256": "151a68f98518781355ff2508d913d6a8d8f64af34bd793d2d6d2c6bdcc579d64"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-blockers.cjs",
+      "sha256": "f1ebcf845e8be64a0ec5bcbdb8a5665f644c5e74f68757a72e2c75b8b07cfb45"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/flow-paired.cjs",
+      "sha256": "290f5d6110a41a7315cfd7639f437b763b2de84558f0579706d2b5f1633199ae"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/installed-paired.cjs",
+      "sha256": "ef806ec3a20a9fca728ef54b218924fda67729c09a82d348cc1666b7e5ed9ab5"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/installed-update.cjs",
+      "sha256": "435e6a39bded5d1052cacdbab6d0e25171756438be5458d5586b265ee1d24ca9"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/native-helper.cjs",
+      "sha256": "2e9531110127131c89cf5e3bf6b8706d87a133a90ba07433d4b86eaa7fddf3f9"
+    },
+    {
+      "path": "scripts/acceptance/issue-108/README.md",
+      "sha256": "dd945084edbe28b7ba4fa9db170742b57a834a5f4bb8634604a062e24ef420d1"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/fixture.cjs",
+      "sha256": "60b99475e89a70091cda7543504ecf0ae059b1e4c07906b477d2d9ca02c0d972"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/native.cjs",
+      "sha256": "483ed29983ab6d18b284588a1607cec080f75085e1843241fd4bd704cd724820"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired-flow.cjs",
+      "sha256": "85cba4e16b37d23a9aa299ef77552e0cd696f4203a916097e93d91def334e119"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired.cjs",
+      "sha256": "d1e02ac386a8a8e120b3333aa7c550da43c04b492c5f9ad89b91ea443fee7a5f"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/private-proxy.cjs",
+      "sha256": "4a5aa906980dcc3dad6ea7d556dc98709ccf51c093019a18a8e7b794855ee984"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/README.md",
+      "sha256": "e980ff9a2aecb29b961eabe4bc1f07bc77cd9443ca9d0834d10ed1c87aa1a935"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/run-paired.ps1",
+      "sha256": "bd83f2435b0306a5a844c3c16fa854d2abdd37b47505e75548b7fd983a536f8d"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/server-private.py",
+      "sha256": "ebeac6cf11235f20c721435836412205c7a1d2139aca5ad2453b5410d298c9a7"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/composed.cjs",
+      "sha256": "5f00c0664dc75760ea9feb87918349009c99fa9f94bfb4590a755bb3150e2920"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/desktop.cjs",
+      "sha256": "a1e2c813e0d17bd64389f54711edf2a187d69f5775414949471f48da50fab193"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/flow.cjs",
+      "sha256": "fa60ac6863295291ad575998a9eec0664a9fd15f483a0674231f7eab0d0ddb3e"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/gateway-supervisor.py",
+      "sha256": "1c022a2afbaaecc39cccfee4b7325c2db59eb5c5a1c00f8721ae83e5dc91fa95"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/installed.ps1",
+      "sha256": "aca3e1b470951ac8f658f857c430c74f21b902ff1ab17bae659fc1b79b349e9b"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/lifecycle.cjs",
+      "sha256": "45cfb52c7f0f708695d8f505890f67511f2f43e236dc9fbd79eda8b8b54c2996"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-desktop.cjs",
+      "sha256": "f1ca8a9388c90a776c83506fe85ac8ac86aa52ab6d4ed43c9c51e40c427ada6c"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-frontend-restart.py",
+      "sha256": "9605d397f430a6e9164fe0cadef8eb642a7a324b5391b440c2a384f9da66ef07"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-profile.py",
+      "sha256": "19a5ec9ee5e6fe673dbe0059c37bd5bcb7910e3c08c79636f2812b90c06be455"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-proxy.cjs",
+      "sha256": "db78a28563c0c3d1193813d6e1a4218df7440c216da16deeaebbcf1212ea8bd2"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-server.py",
+      "sha256": "4981fafdcc679adcf6592da23b3e64e165c561d71bb25c22b135d498e925af90"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/manual-setup.py",
+      "sha256": "af37d3c3476826b77442f188c0a5cb9fa26c121b896363a1cd13ae83bf97d4c4"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/provider-private.py",
+      "sha256": "27408d6104ebb078594f9a5f1c1096787a497750b8ce095a17ebfe6bbd6239e8"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/provider-profiles.py",
+      "sha256": "18b914498e63db1cfe56437af10ad58f7be3762570ca47c45d45564ac3270219"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/provider.cjs",
+      "sha256": "293aaedcb64044a23da77d76d3d4ba42b60e1133a3b3fee7e41461232f129e95"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/README.md",
+      "sha256": "b0c7871c15afc6778c601abf35e088da3a42a10d43e3cafb4a1c0c002c580835"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/run-base.ps1",
+      "sha256": "629ad4c63546c2523385d28ad849578c9c68e014b8bdd740776cd7e25013f66c"
+    },
+    {
+      "path": "scripts/acceptance/issue-111/run-provider.ps1",
+      "sha256": "5a617811100ab7bc07067efdc148cc034372dc29bd9276920698bbb7d04a12cf"
+    }
+  ],
+  "recordedAt": "2026-10-26T14:24:55.660354+00:00"
+}

@@ -1,5 +1,16 @@
 # Issue 111 acceptance
 
+## Current review: 2026-10-26
+
+Start with [the current re-acceptance report](supplement-20261026.md).
+It binds the #108-fixed installer, expanded installed-package matrices, real
+external-model execution, current Server gates and separate human steps.
+The earlier summary below is historical and does not establish completion of
+the human login or final signoff required by the current issue. The current
+report's verdict takes precedence over the older green summary.
+
+## Historical record
+
 [iDeer #111](https://github.com/Orbit-Crew/iDeer/issues/111) is the phase-one
 final-package cross-repo acceptance. Final state: the installed-package full
 matrix, the paired installed update/rollback scenarios, the installation

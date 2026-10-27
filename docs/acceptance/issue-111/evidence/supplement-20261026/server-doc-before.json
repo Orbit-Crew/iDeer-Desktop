@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "candidate": {
+    "mode": "worktree",
+    "revision": null,
+    "head": "7079f760de39d946babaca0c0ef72c865e86a2de"
+  },
+  "counts": {
+    "findings": 0,
+    "errors": 0,
+    "warnings": 0,
+    "by_rule": {}
+  },
+  "findings": []
+}

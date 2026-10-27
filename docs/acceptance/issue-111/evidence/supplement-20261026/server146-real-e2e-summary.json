@@ -1,0 +1,16 @@
+{
+  "repository": "Orbit-Crew/iDeer",
+  "candidate": "99cd9b8961be2a9ee079a06b9dede0f0dd3c86bf",
+  "pullRequest": 146,
+  "base": "591f80cf3579fcd3ec527d79fa9a867f6f4fc32d",
+  "run": 40250431006,
+  "job": 121340956243,
+  "url": "https://github.com/Orbit-Crew/iDeer/actions/runs/40250431006/job/121340956243",
+  "selection": "selected by authentication middleware protected path",
+  "result": "success",
+  "passed": 7,
+  "skipped": 5,
+  "duration": "3.3m",
+  "scope": "isolated real browser/Gateway CI; real-model workflow is one of skipped cases; does not prove external provider execution",
+  "source": "GitHub connector workflow job steps and full log readback, 2026-10-26"
+}

@@ -1,0 +1,17 @@
+{
+  "closed": [
+    {
+      "taskOwnedProfileVerified": true,
+      "exitCode": 0,
+      "pid": 188748,
+      "profile": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\artifacts\\issue-111\\human-login\\desktop\\isolated-browser"
+    },
+    {
+      "taskOwnedProfileVerified": true,
+      "exitCode": 0,
+      "pid": 197584,
+      "profile": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop\\artifacts\\issue-111\\human-login-2\\desktop\\isolated-browser"
+    }
+  ],
+  "scope": "Only isolated Edge parent processes with exact task-owned user-data-dir and executable"
+}

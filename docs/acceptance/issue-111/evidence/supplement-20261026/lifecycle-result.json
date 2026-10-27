@@ -1,0 +1,129 @@
+{
+  "startedAt": "2026-10-26T12:39:46.870Z",
+  "fixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer111-lifecycle-Rupmuw",
+  "installerSHA256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d",
+  "driverSHA256": "45cfb52c7f0f708695d8f505890f67511f2f43e236dc9fbd79eda8b8b54c2996",
+  "canarySHA256": "fe77c484cd8770cafa381f974edcb7f84522edf246acbb3642454adc3249793d",
+  "steps": [
+    {
+      "step": "install",
+      "exitCode": 0,
+      "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+      "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+    },
+    {
+      "step": "installed-ui-quit",
+      "metadata": {
+        "packaged": true,
+        "version": "0.2.0",
+        "electron": "22.3.27",
+        "node": "16.17.1",
+        "disableGpu": true,
+        "gpu": {
+          "2d_canvas": "unavailable_software",
+          "canvas_oop_rasterization": "disabled_off",
+          "direct_rendering_display_compositor": "disabled_off_ok",
+          "gpu_compositing": "disabled_software",
+          "multiple_raster_threads": "enabled_on",
+          "opengl": "disabled_off",
+          "rasterization": "disabled_software",
+          "raw_draw": "disabled_off_ok",
+          "video_decode": "disabled_software",
+          "video_encode": "disabled_software",
+          "vulkan": "disabled_off",
+          "webgl": "unavailable_software",
+          "webgl2": "unavailable_software",
+          "webgpu": "unavailable_software"
+        },
+        "preferences": {
+          "allowRunningInsecureContent": false,
+          "contextIsolation": true,
+          "disablePopups": false,
+          "enableBlinkFeatures": "",
+          "enableWebSQL": true,
+          "experimentalFeatures": false,
+          "javascript": true,
+          "nodeIntegration": false,
+          "nodeIntegrationInSubFrames": false,
+          "sandbox": true,
+          "webSecurity": true,
+          "webviewTag": false
+        }
+      },
+      "renderer": {
+        "require": "undefined",
+        "process": "undefined",
+        "bridge": "function"
+      },
+      "runtimePID": 190752,
+      "runtimeExited": true,
+      "dataRetained": true
+    },
+    {
+      "step": "uninstall",
+      "exitCode": 0,
+      "dataRetained": true
+    },
+    {
+      "step": "install",
+      "exitCode": 0,
+      "executableSHA256": "216e4fd06d4cb175f1b5604b4a2848eb02968150d02e9022cc3c1952b1453071",
+      "asarSHA256": "e160044a2da9df434147f2f0f8237dbf81f5ef8f408c79c0399c662880054897"
+    },
+    {
+      "step": "reinstalled-native-close",
+      "metadata": {
+        "packaged": true,
+        "version": "0.2.0",
+        "electron": "22.3.27",
+        "node": "16.17.1",
+        "disableGpu": true,
+        "gpu": {
+          "2d_canvas": "unavailable_software",
+          "canvas_oop_rasterization": "disabled_off",
+          "direct_rendering_display_compositor": "disabled_off_ok",
+          "gpu_compositing": "disabled_software",
+          "multiple_raster_threads": "enabled_on",
+          "opengl": "disabled_off",
+          "rasterization": "disabled_software",
+          "raw_draw": "disabled_off_ok",
+          "video_decode": "disabled_software",
+          "video_encode": "disabled_software",
+          "vulkan": "disabled_off",
+          "webgl": "unavailable_software",
+          "webgl2": "unavailable_software",
+          "webgpu": "unavailable_software"
+        },
+        "preferences": {
+          "allowRunningInsecureContent": false,
+          "contextIsolation": true,
+          "disablePopups": false,
+          "enableBlinkFeatures": "",
+          "enableWebSQL": true,
+          "experimentalFeatures": false,
+          "javascript": true,
+          "nodeIntegration": false,
+          "nodeIntegrationInSubFrames": false,
+          "sandbox": true,
+          "webSecurity": true,
+          "webviewTag": false
+        }
+      },
+      "renderer": {
+        "require": "undefined",
+        "process": "undefined",
+        "bridge": "function"
+      },
+      "runtimePID": 188852,
+      "runtimeExited": true,
+      "dataRetained": true
+    },
+    {
+      "step": "uninstall",
+      "exitCode": 0,
+      "dataRetained": true
+    }
+  ],
+  "status": "passed",
+  "finishedAt": "2026-10-26T12:40:25.572Z"
+}

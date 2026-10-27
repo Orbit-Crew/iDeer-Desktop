@@ -1,0 +1,104 @@
+{
+  "changed_files": [
+    "UPSTREAM_PATCH_LEDGER.md",
+    "backend/app/device_control/artifacts.py",
+    "backend/app/device_control/broker.py",
+    "backend/app/device_control/receipt_archive.py",
+    "backend/app/device_control/release_compatibility.py",
+    "backend/app/gateway/app.py",
+    "backend/app/gateway/auth_middleware.py",
+    "backend/app/gateway/routers/UPDATES_ADDRESS.md",
+    "backend/app/gateway/routers/desktop_artifacts.py",
+    "backend/app/gateway/routers/devices.py",
+    "backend/app/gateway/routers/updates.py",
+    "backend/docs/development-reference.md",
+    "backend/packages/harness/deerflow/extensions/gateway.py",
+    "backend/tests/integration/api/test_desktop_artifact_authorization.py",
+    "backend/tests/integration/api/test_desktop_artifacts.py",
+    "backend/tests/integration/api/test_device_compatibility_gate.py",
+    "backend/tests/integration/api/test_updates_address.py",
+    "backend/tests/unit/device_control/test_broker.py",
+    "backend/tests/unit/extensions/test_extension_gateway_wiring.py",
+    "docker/nginx/nginx.conf",
+    "docker/nginx/nginx.local.conf",
+    "docs/acceptance/BRANCH_BASELINE.md",
+    "docs/acceptance/issue-105/report.md",
+    "docs/acceptance/issue-106/report.md",
+    "docs/acceptance/issue-107/report.md",
+    "docs/acceptance/issue-110/report.md",
+    "docs/governance/document-policy.json"
+  ],
+  "channels": [
+    "governance",
+    "backend-standard",
+    "frontend-standard",
+    "frontend-smoke",
+    "static-checks",
+    "real-e2e"
+  ],
+  "docs_only": false,
+  "reasons": {
+    "backend-standard": [
+      "backend path: backend/app/device_control/artifacts.py",
+      "backend path: backend/app/device_control/broker.py",
+      "backend path: backend/app/device_control/receipt_archive.py",
+      "backend path: backend/app/device_control/release_compatibility.py",
+      "backend path: backend/app/gateway/app.py",
+      "backend path: backend/app/gateway/auth_middleware.py",
+      "backend path: backend/app/gateway/routers/UPDATES_ADDRESS.md",
+      "backend path: backend/app/gateway/routers/desktop_artifacts.py",
+      "backend path: backend/app/gateway/routers/devices.py",
+      "backend path: backend/app/gateway/routers/updates.py",
+      "backend path: backend/docs/development-reference.md",
+      "backend path: backend/packages/harness/deerflow/extensions/gateway.py",
+      "backend path: backend/tests/integration/api/test_desktop_artifact_authorization.py",
+      "backend path: backend/tests/integration/api/test_desktop_artifacts.py",
+      "backend path: backend/tests/integration/api/test_device_compatibility_gate.py",
+      "backend path: backend/tests/integration/api/test_updates_address.py",
+      "backend path: backend/tests/unit/device_control/test_broker.py",
+      "backend path: backend/tests/unit/extensions/test_extension_gateway_wiring.py",
+      "build, configuration, or workflow input: docker/nginx/nginx.conf",
+      "build, configuration, or workflow input: docker/nginx/nginx.local.conf",
+      "unclassified path expands validation: docs/governance/document-policy.json"
+    ],
+    "frontend-smoke": [
+      "build, configuration, or workflow input: docker/nginx/nginx.conf",
+      "build, configuration, or workflow input: docker/nginx/nginx.local.conf",
+      "unclassified path expands validation: docs/governance/document-policy.json"
+    ],
+    "frontend-standard": [
+      "build, configuration, or workflow input: docker/nginx/nginx.conf",
+      "build, configuration, or workflow input: docker/nginx/nginx.local.conf",
+      "unclassified path expands validation: docs/governance/document-policy.json"
+    ],
+    "governance": [
+      "all changes require ownership and guidance checks"
+    ],
+    "real-e2e": [
+      "high-risk path requires protected real E2E: backend/app/gateway/auth_middleware.py: authentication"
+    ],
+    "static-checks": [
+      "backend code or test path: backend/app/device_control/artifacts.py",
+      "backend code or test path: backend/app/device_control/broker.py",
+      "backend code or test path: backend/app/device_control/receipt_archive.py",
+      "backend code or test path: backend/app/device_control/release_compatibility.py",
+      "backend code or test path: backend/app/gateway/app.py",
+      "backend code or test path: backend/app/gateway/auth_middleware.py",
+      "backend code or test path: backend/app/gateway/routers/UPDATES_ADDRESS.md",
+      "backend code or test path: backend/app/gateway/routers/desktop_artifacts.py",
+      "backend code or test path: backend/app/gateway/routers/devices.py",
+      "backend code or test path: backend/app/gateway/routers/updates.py",
+      "backend code or test path: backend/docs/development-reference.md",
+      "backend code or test path: backend/packages/harness/deerflow/extensions/gateway.py",
+      "backend code or test path: backend/tests/integration/api/test_desktop_artifact_authorization.py",
+      "backend code or test path: backend/tests/integration/api/test_desktop_artifacts.py",
+      "backend code or test path: backend/tests/integration/api/test_device_compatibility_gate.py",
+      "backend code or test path: backend/tests/integration/api/test_updates_address.py",
+      "backend code or test path: backend/tests/unit/device_control/test_broker.py",
+      "backend code or test path: backend/tests/unit/extensions/test_extension_gateway_wiring.py",
+      "build, configuration, or workflow input: docker/nginx/nginx.conf",
+      "build, configuration, or workflow input: docker/nginx/nginx.local.conf",
+      "unclassified path expands validation: docs/governance/document-policy.json"
+    ]
+  }
+}

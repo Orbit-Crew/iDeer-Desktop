@@ -27,7 +27,7 @@ async function uploadClick(operation) {
 
 async function main() {
   try {
-    for (const name of ['new.txt', 'target.txt', 'reject.txt', 'hash.txt', 'health.txt', 'directory.txt', 'second.txt']) fixture('W/' + name)
+    for (const name of ['new.txt', 'target.txt', 'reject.txt', 'hash.txt', 'health.txt', 'directory.txt', 'second.txt', 'search.txt']) fixture('W/' + name)
     fixture('outside/secret.txt'); fixture('W/.git/config')
     fs.symlinkSync(outside, path.join(workspace, 'junction'), 'junction')
     await launch(); await choose()
@@ -44,6 +44,11 @@ async function main() {
       reopenedThread: operation.threadId
     })
     evidence.scenarios['T111-01'].status = 'passed'; save()
+
+    const searched = await submit('T111-02', 'actual-search', 'search.txt', BEFORE, { operation: 'search' })
+    await finish(searched, /BEFORE/)
+    assert.deepEqual(searched.tasks[0].body.result.matches, [{ path: logical + '/search.txt', line: 1, text: BEFORE }])
+    pass('T111-02', 'actual-search', { operationId: searched.id, matches: searched.tasks[0].body.result.matches, unchanged: exact('W/search.txt', BEFORE) })
 
     // T111-02: the read/write authority matrix — new and overwrite with
     // per-approval, refusal, request-hash mismatch, the fixed product timeout,
@@ -106,7 +111,10 @@ async function main() {
     // scenario exercises a fresh per-approval round again.
     const grantsBefore = (await status()).runtime.directoryGrants || []
     await page.getByRole('button', { name: '撤销此目录授权', exact: true }).click()
-    await wait(async () => ((await status()).runtime.directoryGrants || []).length === grantsBefore.length - 1,
+    await wait(async () => {
+      const observed = await status()
+      return Array.isArray(observed.runtime.directoryGrants) && observed.runtime.directoryGrants.length === grantsBefore.length - 1 && observed.server === 'connected'
+    },
       'directory grant revoked through the panel')
     const first = await successful('T111-03', 'stop-first', 'W/stop.txt', 'stop.txt', AFTER, true)
     // The second write is dispatched and waits for approval; stopping the Turn

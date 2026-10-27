@@ -1,0 +1,6 @@
+lane=backend-full
+command=/home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026/scripts/run-test-lane.sh\ backend-full
+started=2026-10-26T13:28:31Z
+finished=2026-10-26T13:48:22Z
+status=0
+seconds=1191

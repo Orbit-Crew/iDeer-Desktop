@@ -1,0 +1,12 @@
+{
+  "proxyExecExitCode": 0,
+  "activeTcpConnectionCount": 0,
+  "browserParentExitCodes": [
+    0,
+    0
+  ],
+  "installedProcessCount": 0,
+  "gatewayExecExitCode": 0,
+  "scope": "Actual process and TCP post-exit check; proxy shutdown snapshot had two destroying sockets before their close callbacks",
+  "recordedAt": "2026-10-26T14:23:54.8346553Z"
+}

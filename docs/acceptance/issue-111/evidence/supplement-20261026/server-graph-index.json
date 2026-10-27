@@ -1,0 +1,14 @@
+{
+  "command": [
+    "wsl.exe",
+    "-e",
+    "bash",
+    "-lc",
+    "cd /home/neowyh/.codex-worktrees/ideer-acceptance111-15aa-20261026 && NODE_OPTIONS=--max-old-space-size=3072 node /home/neowyh/.npm/_npx/e46929201c1128dd/node_modules/gitnexus/dist/cli/index.js analyze --index-only --no-stats"
+  ],
+  "cwd": "C:\\Users\\Neo\\.codex\\worktrees\\15aa\\iDeer-Desktop",
+  "started": "2026-10-26T13:10:26.114192+00:00",
+  "finished": "2026-10-26T13:15:14.668288+00:00",
+  "seconds": 288.562,
+  "exitCode": 0
+}
