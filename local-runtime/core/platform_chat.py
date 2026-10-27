@@ -108,6 +108,87 @@ def _graph_view_payload(view):
             "entities": entities, "relations": relations, "sources": sources}
 
 
+def _scope_rows(rows):
+    """Project the platform's per-document scope rows for display (#117)."""
+    projected = []
+    for row in (rows or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        projected.append({"documentId": document_id,
+                          "filename": _bounded_text(row.get("filename"), 255),
+                          "contentHash": _bounded_text(row.get("content_hash"), 64),
+                          "status": _bounded_text(row.get("status"), 32),
+                          "errorCode": _bounded_text(row.get("error_code"), 64)})
+    return projected
+
+
+def _graph_scope_payload(view, *, with_answer):
+    """Project a scoped query or ask answer into the Desktop display shape (#117).
+
+    Like the graph view, every row is validated and bounded and anything the
+    platform did not state is dropped rather than invented. A refused ask is
+    projected as exactly that: no answer text, with the per-document fixed
+    categories the platform returned.
+    """
+    if not isinstance(view, dict) or not isinstance(view.get("manifest_hash"), str) \
+            or len(view["manifest_hash"]) != 64 or type(view.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = view.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    payload = {"kbId": "", "revisionId": _bounded_text(view.get("revision_id"), 64),
+               "revisionNo": view["revision_no"], "manifestHash": view["manifest_hash"],
+               "status": status, "scope": _scope_rows(view.get("scope"))}
+    if with_answer:
+        answer = view.get("answer")
+        payload["question"] = _bounded_text(view.get("question"), 4000)
+        payload["answerAvailable"] = view.get("answer_available") is True and isinstance(answer, str) and bool(answer.strip())
+        payload["answer"] = _bounded_text(answer, 8000) if payload["answerAvailable"] else ""
+        payload["errorCode"] = _bounded_text(view.get("error_code"), 64)
+        return payload
+    payload["query"] = _bounded_text(view.get("query"), 512)
+    entities = []
+    for row in (view.get("entities") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        name = _bounded_text(row.get("name"))
+        if not name:
+            continue
+        entities.append({"name": name, "type": _bounded_text(row.get("type"), 64),
+                         "documentId": _bounded_text(row.get("document_id"), 64),
+                         "filename": _bounded_text(row.get("filename"), 255),
+                         "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    relations = []
+    for row in (view.get("relations") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        source = _bounded_text(row.get("source"))
+        target = _bounded_text(row.get("target"))
+        relation = _bounded_text(row.get("relation"))
+        if not source or not target or not relation:
+            continue
+        relations.append({"source": source, "target": target, "relation": relation,
+                          "documentId": _bounded_text(row.get("document_id"), 64),
+                          "filename": _bounded_text(row.get("filename"), 255),
+                          "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    payload["entities"] = entities
+    payload["relations"] = relations
+    return payload
+
+
+def _scoped_document_ids(document_ids):
+    """Validate the selected frozen-document scope before anything is sent."""
+    if not isinstance(document_ids, list) or not 1 <= len(document_ids) <= 50 \
+            or any(not isinstance(value, str) or not value or len(value) > 64 or any(
+                c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value)
+                for value in document_ids):
+        raise ChatError('CHAT_COMMAND_INVALID')
+    return list(dict.fromkeys(document_ids))
+
+
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
@@ -839,20 +920,39 @@ class DesktopChat:
 
     # --- Controlled knowledge-graph entry (issue 116) -----------------------
 
-    def knowledge_graph(self, kb_id, revision_id, *, action, document_id=None):
-        """View, generate, or locate one frozen revision's controlled graph.
+    def knowledge_graph(self, kb_id, revision_id, *, action, document_id=None, document_ids=None, query=""):
+        """View, generate, locate, or scope-query one frozen revision's graph.
 
-        The Server owns the graph: the view/generate answers carry entity,
-        relation, and source facts bound to the frozen KB/Revision identity,
-        projected exactly as the platform returned them (bounded for display).
-        ``locate`` never calls the Server for content: it resolves the source
-        document against this device's workspace by (filename, frozen digest)
-        and answers with the workspace logical path for the local user only.
+        The Server owns the graph and every scoped answer: the view/generate
+        answers carry entity, relation, and source facts bound to the frozen
+        KB/Revision identity, projected exactly as the platform returned them
+        (bounded for display). ``search`` and ``ask`` post the selected
+        frozen-document scope to the Server's scoped endpoints, so retrieval
+        and QA ride the Server's authorization chain and its own model — the
+        device never runs a local model or filters authorization by display
+        labels. ``locate`` never calls the Server for content: it resolves
+        the source document against this device's workspace by (filename,
+        frozen digest) and answers with the workspace logical path for the
+        local user only.
         """
         from .knowledge_material import locate_frozen_document
         kb_id = self._uuid(kb_id)
         revision_id = self._uuid(revision_id)
         session = self._session()
+        if action in {"search", "ask"}:
+            documents = _scoped_document_ids(document_ids)
+            text = _bounded_text(query, 512 if action == "search" else 4000)
+            if not text:
+                raise ChatError("CHAT_COMMAND_INVALID")
+            endpoint = "query" if action == "search" else "ask"
+            body = {"document_ids": documents}
+            body["query" if action == "search" else "question"] = text
+            payload = _graph_scope_payload(
+                self._json(session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph/{endpoint}", body),
+                with_answer=action == "ask",
+            )
+            payload["kbId"] = kb_id
+            return payload
         if action == "view":
             payload = _graph_view_payload(self._json(
                 session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))

@@ -49,9 +49,39 @@ VIEW = {
                    'document_id': 'doc-1', 'filename': 'guide.txt'}],
 }
 
+GUIDE_HASH = hashlib.sha256(GUIDE.encode()).hexdigest()
+
+SCOPE = [{'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH, 'status': 'completed', 'error_code': None}]
+
+QUERY = {
+    'knowledge_base_id': KB,
+    'revision_id': REVISION,
+    'revision_no': 1,
+    'manifest_hash': MANIFEST,
+    'status': 'completed',
+    'query': '甲零件',
+    'scope': SCOPE,
+    'entities': [{'name': '甲零件', 'type': '零件', 'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH}],
+    'relations': [{'source': '甲零件', 'target': '乙组件', 'relation': '属于',
+                   'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH}],
+}
+
+ASK = {
+    'knowledge_base_id': KB,
+    'revision_id': REVISION,
+    'revision_no': 1,
+    'manifest_hash': MANIFEST,
+    'status': 'completed',
+    'question': '乙组件由什么构成？',
+    'answer': '依据 guide.txt：甲零件属于乙组件。',
+    'answer_available': True,
+    'error_code': None,
+    'scope': SCOPE,
+}
+
 
 @contextmanager
-def platform(view_payload=None):
+def platform(view_payload=None, query_payload=None, ask_payload=None):
     records = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -78,6 +108,10 @@ def platform(view_payload=None):
                     data = view_payload
             elif self.path.endswith('/graph') and self.command == 'POST':
                 data = {'status': 'completed', 'generated': 1, 'failed': 0}
+            elif self.path.endswith('/graph/query') and self.command == 'POST':
+                data = QUERY if query_payload is None else query_payload
+            elif self.path.endswith('/graph/ask') and self.command == 'POST':
+                data = ASK if ask_payload is None else ask_payload
             else:
                 status, data = 404, {}
             payload = json.dumps(data).encode()
@@ -196,3 +230,98 @@ def test_locate_refuses_unknown_source_documents(tmp_path):
         with pytest.raises(ChatError) as error:
             chat.knowledge_graph(KB, REVISION, action='locate', document_id='doc-other')
         assert str(error.value) == 'KNOWLEDGE_GRAPH_SOURCE_UNKNOWN'
+
+
+# --- Scoped retrieval and QA through the Server chain (#117) ------------------
+
+
+def test_search_posts_the_selected_scope_and_projects_sourced_rows(tmp_path):
+    with platform() as (origin, records):
+        chat, _config, _space = prepare(tmp_path, origin, work=False)
+        del records[:]
+
+        result = chat.knowledge_graph(KB, REVISION, action='search', query='甲零件', document_ids=['doc-1'])
+
+        assert result['kbId'] == KB and result['revisionId'] == REVISION
+        assert result['status'] == 'completed' and result['query'] == '甲零件'
+        assert result['scope'] == [{'documentId': 'doc-1', 'filename': 'guide.txt',
+                                    'contentHash': GUIDE_HASH, 'status': 'completed', 'errorCode': ''}]
+        assert result['entities'] == [{'name': '甲零件', 'type': '零件', 'documentId': 'doc-1',
+                                       'filename': 'guide.txt', 'contentHash': GUIDE_HASH}]
+        assert result['relations'] == [{'source': '甲零件', 'target': '乙组件', 'relation': '属于',
+                                        'documentId': 'doc-1', 'filename': 'guide.txt', 'contentHash': GUIDE_HASH}]
+        # The scoped selection travels to the Server's query endpoint and to
+        # nothing else: search never generates and never asks.
+        posts = [(path, body) for method, path, body, _headers in records if method == 'POST']
+        assert posts == [(f'/api/resources/{KB}/knowledge-revisions/{REVISION}/graph/query',
+                          {'query': '甲零件', 'document_ids': ['doc-1']})]
+
+
+def test_ask_posts_the_question_and_projects_answer_with_scope(tmp_path):
+    with platform() as (origin, records):
+        chat, _config, _space = prepare(tmp_path, origin, work=False)
+        del records[:]
+
+        result = chat.knowledge_graph(KB, REVISION, action='ask', query='乙组件由什么构成？', document_ids=['doc-1'])
+
+        assert result['answerAvailable'] is True
+        assert result['answer'] == '依据 guide.txt：甲零件属于乙组件。'
+        assert result['question'] == '乙组件由什么构成？'
+        assert result['errorCode'] == ''
+        assert result['scope'] == [{'documentId': 'doc-1', 'filename': 'guide.txt',
+                                    'contentHash': GUIDE_HASH, 'status': 'completed', 'errorCode': ''}]
+        posts = [(path, body) for method, path, body, _headers in records if method == 'POST']
+        assert posts == [(f'/api/resources/{KB}/knowledge-revisions/{REVISION}/graph/ask',
+                          {'question': '乙组件由什么构成？', 'document_ids': ['doc-1']})]
+
+
+def test_ask_refusal_is_projected_without_an_answer(tmp_path):
+    refused = {**ASK, 'status': 'partial', 'answer': None, 'answer_available': False, 'error_code': None,
+               'scope': [{'document_id': 'doc-1', 'filename': 'guide.txt', 'content_hash': GUIDE_HASH,
+                          'status': 'failed', 'error_code': 'GRAPH_CONTENT_DRIFTED'}]}
+    with platform(ask_payload=refused) as (origin, _records):
+        chat, _config, _space = prepare(tmp_path, origin, work=False)
+
+        result = chat.knowledge_graph(KB, REVISION, action='ask', query='检修手册由谁维护？', document_ids=['doc-1'])
+
+        # The structured refusal is the display fact: no answer, the fixed
+        # category stays visible next to its document.
+        assert result['answerAvailable'] is False
+        assert result['answer'] == ''
+        assert result['status'] == 'partial'
+        assert result['scope'] == [{'documentId': 'doc-1', 'filename': 'guide.txt',
+                                    'contentHash': GUIDE_HASH, 'status': 'failed', 'errorCode': 'GRAPH_CONTENT_DRIFTED'}]
+
+
+def test_malformed_scoped_answers_are_protocol_errors(tmp_path):
+    from core.platform_chat import ChatError
+    for payload in ({'unexpected': True}, {**QUERY, 'manifest_hash': 'short'}, {**ASK, 'status': 'mystery'}):
+        with platform(query_payload=payload) as (origin, _records):
+            chat, _config, _space = prepare(tmp_path, origin, work=False)
+            with pytest.raises(ChatError) as error:
+                chat.knowledge_graph(KB, REVISION, action='search', query='甲零件', document_ids=['doc-1'])
+            assert str(error.value) == 'CHAT_PROTOCOL_ERROR'
+    with platform(ask_payload={'unexpected': True}) as (origin, _records):
+        chat, _config, _space = prepare(tmp_path, origin, work=False)
+        with pytest.raises(ChatError) as error:
+            chat.knowledge_graph(KB, REVISION, action='ask', query='问题', document_ids=['doc-1'])
+        assert str(error.value) == 'CHAT_PROTOCOL_ERROR'
+
+
+def test_scoped_actions_require_a_bounded_scope_and_query(tmp_path):
+    from core.platform_chat import ChatError
+    with platform() as (origin, records):
+        chat, _config, _space = prepare(tmp_path, origin, work=False)
+        del records[:]
+        # Each action enforces its own bounded query plus the same scope rules.
+        for action, cases in (
+            ('search', [([], '甲零件'), (['doc-1'] * 51, '甲零件'), (['doc-1'], ''), (['doc-1'], '长' * 513), (['../escape'], '甲零件'), ('doc-1', '甲零件')]),
+            ('ask', [([], '问题'), (['doc-1'] * 51, '问题'), (['doc-1'], ''), (['doc-1'], '问' * 4001), (['../escape'], '问题'), ('doc-1', '问题')]),
+        ):
+            for document_ids, query in cases:
+                with pytest.raises(ChatError) as error:
+                    chat.knowledge_graph(KB, REVISION, action=action, query=query, document_ids=document_ids)
+                assert str(error.value) == 'CHAT_COMMAND_INVALID'
+        # Refused commands never reach the Server.
+        assert not records
+

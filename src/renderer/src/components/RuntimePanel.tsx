@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
-import type { KnowledgeGraphCommand, KnowledgeGraphSourceLocation, KnowledgeGraphView } from '../../../shared/desktop'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -27,17 +27,27 @@ export default function RuntimePanel(): JSX.Element {
   const [publishError, setPublishError] = useState(false)
   const [graph, setGraph] = useState<KnowledgeGraphView | null>(null)
   const [graphLocated, setGraphLocated] = useState<Record<string, KnowledgeGraphSourceLocation>>({})
+  const [graphQueryResult, setGraphQueryResult] = useState<KnowledgeGraphQueryResult | null>(null)
+  const [graphAskResult, setGraphAskResult] = useState<KnowledgeGraphAskResult | null>(null)
+  const [graphSelection, setGraphSelection] = useState<Record<string, boolean>>({})
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphError, setGraphError] = useState('')
   const runGraph = (command: KnowledgeGraphCommand) => {
     setGraphError(''); setGraphBusy(true)
-    if (command.action !== 'locate') { setGraph(null); setGraphLocated({}) }
+    if (command.action === 'view' || command.action === 'generate') {
+      // A new revision context resets the frozen scope, its sources, and the
+      // scoped answers; search/ask keep the graph view mounted so the
+      // selected scope stays visible next to its results.
+      setGraph(null); setGraphLocated({}); setGraphSelection({}); setGraphQueryResult(null); setGraphAskResult(null)
+    }
     void window.ideer.knowledgeGraph(command)
       .then(result => {
         if (command.action === 'locate') setGraphLocated(current => ({ ...current, [command.documentId as string]: result as KnowledgeGraphSourceLocation }))
+        else if (command.action === 'search') setGraphQueryResult(result as KnowledgeGraphQueryResult)
+        else if (command.action === 'ask') setGraphAskResult(result as KnowledgeGraphAskResult)
         else setGraph(result as KnowledgeGraphView)
       })
-      .catch(() => setGraphError('需要已认证会话，且版本对当前账号可见'))
+      .catch(() => setGraphError('需要已认证会话，且版本与所选文档对当前账号可见'))
       .finally(() => setGraphBusy(false))
   }
   const publish = (rowId: string, rowKbId: string, rowRevisionId: string) => {
@@ -162,8 +172,12 @@ export default function RuntimePanel(): JSX.Element {
       runtime={runtime}
       graph={graph}
       located={graphLocated}
+      queryResult={graphQueryResult}
+      askResult={graphAskResult}
+      selection={graphSelection}
       busy={graphBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={graphError}
+      onSelection={(documentId, checked) => setGraphSelection(current => ({ ...current, [documentId]: checked }))}
       onCommand={runGraph}
     />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>

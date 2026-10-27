@@ -104,13 +104,19 @@ def main() -> int:
                     continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'kbId', 'revisionId', 'action', 'scope'},
-                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'})
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'},
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentIds', 'query', 'scope'})
                         and command['type'] == 'knowledge-graph' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
                         and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
                         and len(command['revisionId']) <= 64
-                        and command['action'] in {'view', 'generate', 'locate'}
+                        and command['action'] in {'view', 'generate', 'locate', 'search', 'ask'}
                         and (command['action'] != 'locate' or isinstance(command.get('documentId'), str))
+                        and (command['action'] not in {'search', 'ask'} or (
+                            isinstance(command.get('documentIds'), list)
+                            and 1 <= len(command['documentIds']) <= 50
+                            and all(isinstance(d, str) and 0 < len(d) <= 64 for d in command['documentIds'])
+                            and isinstance(command.get('query'), str) and 0 < len(command['query']) <= 4000))
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_graph_commands.put_nowait(command)
                     continue
@@ -366,7 +372,9 @@ def main() -> int:
                 try:
                     result = chat.knowledge_graph(graph_command['kbId'], graph_command['revisionId'],
                                                   action=graph_command['action'],
-                                                  document_id=graph_command.get('documentId'))
+                                                  document_id=graph_command.get('documentId'),
+                                                  document_ids=graph_command.get('documentIds'),
+                                                  query=graph_command.get('query') or '')
                 except Exception as exc:
                     # Only fixed categories cross the Desktop boundary.
                     message = str(exc)
