@@ -20,6 +20,7 @@ from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
+from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
@@ -41,6 +42,7 @@ def main() -> int:
     management_commands: queue.Queue = queue.Queue(maxsize=1)
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_publish_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -87,6 +89,17 @@ def main() -> int:
                         and all(isinstance(path, str) and 0 < len(path) <= 32768 for path in command['paths'])
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'paths', 'confirmed', 'scope'}
+                        and command['type'] == 'knowledge-publish' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64 and isinstance(command['paths'], list)
+                        and 1 <= len(command['paths']) <= 200
+                        and all(isinstance(path, str) and 0 < len(path) <= 32768 for path in command['paths'])
+                        and command['confirmed'] in (True, False)
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_publish_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -146,6 +159,9 @@ def main() -> int:
         # Issue 112: explicit local imports keep the same discipline — the
         # registry stores device-local display facts, never file content.
         knowledge_imports = KnowledgeImportRegistry(args.config.with_name('knowledge-imports.db'))
+        # Issue 115: explicit publications record the outcome of a confirmed
+        # server copy attempt; a preview alone never writes a row.
+        knowledge_publications = KnowledgePublicationRegistry(args.config.with_name('knowledge-publications.db'))
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -168,7 +184,8 @@ def main() -> int:
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
-            knowledge_imports=knowledge_imports, knowledge_files=knowledge_files)
+            knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
+            knowledge_publications=knowledge_publications)
 
         def chat_control():
             while not stop.is_set():
@@ -307,6 +324,26 @@ def main() -> int:
                 emit({'v': 1, 'type': 'knowledge-import', 'id': knowledge_command['id'],
                       'result': result, 'error': error})
             try:
+                publish_command = knowledge_publish_commands.get_nowait()
+            except queue.Empty:
+                publish_command = None
+            if publish_command:
+                error = ''
+                result = None
+                try:
+                    if publish_command['scope'] != workspace.scope():
+                        raise KnowledgePublishError('KNOWLEDGE_PUBLISH_IDENTITY_CHANGED')
+                    result = chat.publish_local_revision(publish_command['kbId'], publish_command['revisionId'],
+                                                         publish_command['paths'],
+                                                         confirmed=publish_command['confirmed'] is True)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    error = category_for(exc) if isinstance(exc, KnowledgeImportError) else str(exc) \
+                        if str(exc).startswith(('KNOWLEDGE_PUBLISH_', 'KNOWLEDGE_IMPORT_', 'CHAT_')) else 'KNOWLEDGE_PUBLISH_FAILED'
+                emit({'v': 1, 'type': 'knowledge-publish', 'id': publish_command['id'],
+                      'result': result, 'error': error})
+            try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
                 selection = None
@@ -343,6 +380,10 @@ def main() -> int:
                 knowledge_rows = knowledge_imports.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgeImportError:
                 knowledge_rows = []
+            try:
+                knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
+            except KnowledgePublishError:
+                knowledge_publication_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -370,6 +411,8 @@ def main() -> int:
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],
                       "knowledgeImportStorageError": knowledge_imports.error,
+                      "knowledgePublications": knowledge_publication_rows[:20],
+                      "knowledgePublishStorageError": knowledge_publications.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

@@ -247,3 +247,20 @@ class KnowledgeImportRegistry:
             return self._view(row) if row is not None else None
 
         return self._execute(read)
+
+    def find_registration_by_revision(self, binding, kb_id: str, revision_id: str) -> dict[str, Any] | None:
+        """The registered frozen revision behind an explicit publication (#115).
+
+        Publication content must be the exact bytes behind one registered
+        import, so the lookup stays binding-scoped like every other registry
+        read: a revision this identity never registered cannot be published.
+        """
+
+        def read(db):
+            row = db.execute(
+                "SELECT * FROM knowledge_imports WHERE binding=? AND kb_id=? AND revision_id=? AND status='registered'"
+                " ORDER BY rowid DESC LIMIT 1",
+                (self._encoded(binding), str(kb_id)[:128], str(revision_id)[:128])).fetchone()
+            return self._view(row) if row is not None else None
+
+        return self._execute(read)

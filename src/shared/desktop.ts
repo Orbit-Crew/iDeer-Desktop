@@ -58,6 +58,44 @@ export interface KnowledgeImportOutcome {
   manifestHash: string
   documentCount: number
 }
+/** Issue 115: device-local display fact for one explicit server publication. */
+export interface KnowledgePublicationView {
+  id: string
+  kbId: string
+  revisionId: string
+  copyResourceId: string
+  copySlug: string
+  copyRevisionId: string
+  status: 'published' | 'failed'
+  errorCode: string
+  documentCount: number
+  createdAt: string
+}
+export interface KnowledgePublishDestination {
+  kind: string
+  displayName: string
+  slug: string
+  visibility: string
+  governance: string
+}
+export interface KnowledgePublishPreview {
+  confirmed: false
+  kbId: string
+  revisionId: string
+  destination: KnowledgePublishDestination
+  documents: KnowledgeImportDocumentView[]
+}
+export interface KnowledgePublishOutcome {
+  confirmed: true
+  kbId: string
+  revisionId: string
+  copyResourceId: string
+  copySlug: string
+  copyRevisionId: string
+  status: string
+  failureCode: string
+  documentCount: number
+}
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -70,6 +108,8 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   knowledgeImports?: KnowledgeImportView[]
   knowledgeImportStorageError?: string
+  knowledgePublications?: KnowledgePublicationView[]
+  knowledgePublishStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -118,6 +158,8 @@ export interface DesktopBridge {
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
   /** Issue 112: explicit local import; the main process picks files and confirms. */
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
+  /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
+  publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

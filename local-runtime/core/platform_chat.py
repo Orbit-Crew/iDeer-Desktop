@@ -32,6 +32,14 @@ MAX_RESULT_BYTES = 65536
 class ChatError(Exception):
     """Only fixed error categories cross the Desktop boundary."""
 
+    def __init__(self, code: str, detail: str = "") -> None:
+        # str(error) stays the fixed category; the optional detail keeps the
+        # server's machine-readable refusal (e.g. LOCAL_PUBLISH_* codes)
+        # without ever entering the displayed category.
+        super().__init__(code)
+        self.code = code
+        self.detail = detail
+
 
 @dataclass(frozen=True)
 class ChatSession:
@@ -50,7 +58,7 @@ def empty_state(scope=""):
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
-                 compatibility_gate=None, knowledge_imports=None, knowledge_files=None):
+                 compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -65,6 +73,7 @@ class DesktopChat:
         # discipline; the registry keeps device-local display facts and the
         # file callback yields the confirmed workspace store for reads.
         self.knowledge_imports = knowledge_imports
+        self.knowledge_publications = knowledge_publications
         self.knowledge_files = knowledge_files
         self._tasks_checked = 0.0
         self._tasks_loading = None
@@ -677,19 +686,26 @@ class DesktopChat:
 
     def _request(self, session, path, body=None, headers=None):
         csrf = secrets.token_urlsafe(32)
+        # A pre-encoded body (multipart upload) carries its own Content-Type
+        # through the headers override; JSON requests keep the default.
         request_headers = {'Cookie': f'access_token={session.token}; csrf_token={csrf}',
                            'X-CSRF-Token': csrf, 'Origin': session.origin, 'Content-Type': 'application/json',
                            **(headers or {})}
         request = urllib.request.Request(session.origin + path, headers=request_headers,
-                                         data=None if body is None else json.dumps(body).encode())
+                                         data=None if body is None else (body if isinstance(body, bytes) else json.dumps(body).encode()))
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         try:
             return opener.open(request, timeout=15)
         except urllib.error.HTTPError as exc:
             codes = {401: 'CHAT_UNAUTHENTICATED', 403: 'CHAT_FORBIDDEN', 404: 'CHAT_NOT_FOUND',
                      409: 'CHAT_CONFLICT', 422: 'CHAT_RESOURCE_UNAVAILABLE'}
-            exc.close()
-            raise ChatError(codes.get(exc.code, 'CHAT_SERVER_ERROR')) from None
+            try:
+                detail = exc.read(4096).decode('utf-8', 'replace')
+            except OSError:
+                detail = ''
+            finally:
+                exc.close()
+            raise ChatError(codes.get(exc.code, 'CHAT_SERVER_ERROR'), detail) from None
         except (OSError, ValueError):
             raise ChatError('CHAT_SERVER_UNAVAILABLE') from None
 
@@ -761,6 +777,126 @@ class DesktopChat:
             manifest_hash=created['manifest_hash'], document_count=created['document_count'],
             documents=entries))
         return outcome
+
+    # --- Explicit server-side publication (issue 115) -----------------------
+
+    def publish_local_revision(self, kb_id, revision_id, paths, *, confirmed, publish_polls=20):
+        """Publish one frozen local revision to an independent server copy.
+
+        The preview step reads the platform's read-only destination preview
+        and uploads nothing; only ``confirmed=True`` sends the exact registered
+        content through the platform's own document upload endpoint and asks
+        the platform to verify, freeze, and build the copy. The device KB is
+        never re-scoped and nothing syncs automatically in either direction.
+        """
+        from .knowledge_import import (MAX_IMPORT_DOCUMENTS, MAX_IMPORT_FILE_BYTES, KnowledgeImportError,
+                                       build_manifest, category_for, logical_paths_for)
+        from .files import FileAccessError
+        from .knowledge_publish import (PUBLISH_CONFIRMATION_REQUIRED, PUBLISH_CONTENT_DRIFTED,
+                                        KnowledgePublishError, verify_against_registration)
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        if self.knowledge_imports is None or self.knowledge_files is None or self.knowledge_publications is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        kb_id = self._uuid(kb_id)
+        if not isinstance(revision_id, str) or not revision_id.strip() or len(revision_id) > 64:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        revision_id = revision_id.strip()
+        if not isinstance(paths, list) or not 1 <= len(paths) <= MAX_IMPORT_DOCUMENTS \
+                or any(not isinstance(path, str) or not path or len(path) > 32768 for path in paths):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        binding = profile_binding(load_settings(self.config))
+        copy_resource_id, copy_slug = '', ''
+        try:
+            try:
+                settings, grant, files = self.knowledge_files()
+            except (FileAccessError, KnowledgeImportError) as exc:
+                raise KnowledgeImportError(category_for(exc)) from exc
+            registered = self.knowledge_imports.find_registration_by_revision(binding, kb_id, revision_id)
+            if registered is None:
+                # Only a revision this identity registered on this device can
+                # ever be published from it.
+                raise KnowledgeImportError('KNOWLEDGE_PUBLISH_REVISION_UNKNOWN')
+            logical_paths = logical_paths_for(grant, list(paths))
+            entries = build_manifest(files, logical_paths)
+            # Refuse drifted or extra content before a single byte leaves the device.
+            verify_against_registration(entries, registered)
+            base = f'/api/resources/{kb_id}/knowledge-revisions/{revision_id}/local-publication'
+            if not confirmed:
+                # Read-only destination preview: no upload, no copy, no state.
+                preview = self._json(session, f'{base}/preview')
+                if not isinstance(preview, dict) or not isinstance(preview.get('source'), dict) \
+                        or not isinstance(preview.get('documents'), list) or not isinstance(preview.get('destination'), dict):
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+                return dict(confirmed=False, kbId=kb_id, revisionId=revision_id,
+                            source=preview['source'], destination=preview['destination'],
+                            documents=[dict(filename=entry['filename'], sha256=entry['sha256'],
+                                            bytes=entry['bytes'], mime=entry['mime']) for entry in entries])
+            confirmed_payload = self._json(session, base, {'confirmed': True})
+            copy = confirmed_payload.get('copy') if isinstance(confirmed_payload, dict) else None
+            if not isinstance(copy, dict) or not isinstance(copy.get('resource_id'), str) or not copy['resource_id']:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            copy_resource_id, copy_slug = copy['resource_id'], str(copy.get('slug', ''))[:255]
+            for logical_path, entry in zip(logical_paths, entries):
+                content = files.read_bytes(logical_path, max_bytes=MAX_IMPORT_FILE_BYTES)
+                if hashlib.sha256(content).hexdigest() != entry['sha256']:
+                    raise KnowledgePublishError(PUBLISH_CONTENT_DRIFTED)
+                self._upload_document(session, copy_resource_id, entry['filename'], entry['mime'], content)
+            outcome = self._json(session, f'{base}/complete', {})
+            if not isinstance(outcome, dict) or outcome.get('status') not in {'publishing', 'published'}:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            status = outcome
+            for _ in range(max(1, int(publish_polls))):
+                if status.get('status') in {'published', 'failed'}:
+                    break
+                time.sleep(0.5)
+                status = self._json(session, base)
+            revision = status.get('revision') if isinstance(status.get('revision'), dict) else {}
+            record_status = 'published' if status.get('status') == 'published' else 'failed'
+            self.knowledge_publications.record(binding, dict(
+                kb_id=kb_id, revision_id=revision_id, copy_resource_id=copy_resource_id, copy_slug=copy_slug,
+                copy_revision_id=str(revision.get('id', ''))[:128], status=record_status,
+                error_code='' if record_status == 'published' else str(revision.get('failure_code') or 'KNOWLEDGE_PUBLISH_FAILED'),
+                document_count=len(entries)))
+            return dict(confirmed=True, kbId=kb_id, revisionId=revision_id,
+                        copyResourceId=copy_resource_id, copySlug=copy_slug,
+                        copyRevisionId=str(revision.get('id', '')), status=str(status.get('status')),
+                        failureCode=str(revision.get('failure_code') or ''), documentCount=len(entries))
+        except (KnowledgeImportError, KnowledgePublishError, ChatError) as exc:
+            # The failure is recorded with its real fixed category so the
+            # display never impersonates a published copy.
+            category = str(exc)
+            if isinstance(exc, ChatError):
+                detail = getattr(exc, 'detail', '') or ''
+                category = next((code for code in (PUBLISH_CONFIRMATION_REQUIRED, PUBLISH_CONTENT_DRIFTED) if code in detail), category)
+            try:
+                self.knowledge_publications.record(binding, dict(
+                    kb_id=kb_id, revision_id=revision_id, copy_resource_id=copy_resource_id,
+                    copy_slug=copy_slug, status='failed', error_code=category, document_count=0))
+            except KnowledgePublishError:
+                pass
+            raise KnowledgePublishError(category) from exc
+
+    def _upload_document(self, session, resource_id, filename, mime_type, content):
+        """Upload one document through the platform's own multipart endpoint."""
+        boundary = '----ideer115' + secrets.token_hex(16)
+        safe_filename = filename.replace('\\', '%5C').replace('"', '\\"')
+        part = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{safe_filename}"\r\n'
+                f'Content-Type: {mime_type}\r\n\r\n').encode() + content + f'\r\n--{boundary}--\r\n'.encode()
+        with self._request(session, f'/api/resources/{resource_id}/documents', part,
+                           {'Content-Type': f'multipart/form-data; boundary={boundary}'}) as response:
+            raw = response.read(MAX_RESPONSE + 1)
+        if len(raw) > MAX_RESPONSE:
+            raise ChatError('CHAT_RESPONSE_TOO_LARGE')
+        try:
+            document = json.loads(raw)
+        except (ValueError, UnicodeError):
+            raise ChatError('CHAT_PROTOCOL_ERROR') from None
+        if not isinstance(document, dict) or not isinstance(document.get('id'), str) \
+                or document.get('content_hash') != hashlib.sha256(content).hexdigest():
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        return document
 
     def _resources(self, session, can_run):
         resources = []
