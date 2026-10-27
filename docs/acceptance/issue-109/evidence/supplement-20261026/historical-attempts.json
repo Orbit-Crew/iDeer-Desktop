@@ -1,0 +1,26 @@
+[
+  {
+    "file": "copy-failure.json",
+    "status": "failed",
+    "error": "Error: \"out/main/update-helper.cjs\" was not found in this archive",
+    "sha256": "08cdc9e29db3306a6d1f8d6420ac65aac7a79794fb3ed33f0cceb9c3b8a0c286"
+  },
+  {
+    "file": "copy-failure-v2.json",
+    "status": "failed",
+    "error": "Error: Timeout: owned launched processes stop",
+    "sha256": "730ce862bf660777554bc9d92d1687a19a64bb818b0af945ba9a439622842a4e"
+  },
+  {
+    "file": "copy-failure-final.json",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nnull !== 0\n",
+    "sha256": "744d0bc53e1c9fc334f615903235f4c0b67b70a5b6994379c925577dfe95b42e"
+  },
+  {
+    "file": "combination-mismatch.json",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n",
+    "sha256": "6d5d4674d5a6f837029254bc6bb9b6600ae725f07a98dc9c2cc2c8a04b4e0030"
+  }
+]

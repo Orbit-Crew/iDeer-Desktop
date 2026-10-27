@@ -1,0 +1,63 @@
+{
+  "executionBaseCommit": "a30ec98134600fea97bd4745b8a280d9573c5261",
+  "branch": "codex/issues-109-111-acceptance",
+  "productCommit": "d17721cb6950ba4eb2457c4d2ccc3c0fae5c4a17",
+  "productSourceSHA256": "8f8c87ee4d9cd1e4e4ea53bb0338f3d90882312ef1bf2d7cb5deabf2b234253a",
+  "installer": {
+    "name": "ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "bytes": 92395057,
+    "sha256": "b04e83d30a1230d46b909c72caeba1cad55793b2e52c81fc617a4705f9fe370d"
+  },
+  "server": {
+    "commit": "99cd9b8961be2a9ee079a06b9dede0f0dd3c86bf",
+    "model": "deterministic actual tool selection; real Gateway, broker and Windows Runtime",
+    "sourceSHA256": "3d85edf53ecbb35db5c0969428258e312b01f0786a91405f0c19148ebd8a78cc"
+  },
+  "environment": {
+    "windows": "Windows 11 Pro 10.0.26300 x64",
+    "node": "22.14.0",
+    "electron": "22.3.27",
+    "runtimePython": "3.12.10",
+    "testPython": "3.12.14"
+  },
+  "drivers": [
+    {
+      "path": "scripts/acceptance/issue-109/fixture.cjs",
+      "sha256": "60b99475e89a70091cda7543504ecf0ae059b1e4c07906b477d2d9ca02c0d972"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/native.cjs",
+      "sha256": "483ed29983ab6d18b284588a1607cec080f75085e1843241fd4bd704cd724820"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired-flow.cjs",
+      "sha256": "85cba4e16b37d23a9aa299ef77552e0cd696f4203a916097e93d91def334e119"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/paired.cjs",
+      "sha256": "d1e02ac386a8a8e120b3333aa7c550da43c04b492c5f9ad89b91ea443fee7a5f"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/private-proxy.cjs",
+      "sha256": "4a5aa906980dcc3dad6ea7d556dc98709ccf51c093019a18a8e7b794855ee984"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/README.md",
+      "sha256": "e980ff9a2aecb29b961eabe4bc1f07bc77cd9443ca9d0834d10ed1c87aa1a935"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/run-paired.ps1",
+      "sha256": "bd83f2435b0306a5a844c3c16fa854d2abdd37b47505e75548b7fd983a536f8d"
+    },
+    {
+      "path": "scripts/acceptance/issue-109/server-private.py",
+      "sha256": "ebeac6cf11235f20c721435836412205c7a1d2139aca5ad2453b5410d298c9a7"
+    }
+  ],
+  "pairedRun": {
+    "commandSeconds": 105.172,
+    "desktopSeconds": 80.812,
+    "source": "paired-stable",
+    "status": "passed"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "profileToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile",
+  "backupToPreserve": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13\\backup",
+  "resumeCommand": "$env:ELECTRON_RUN_AS_NODE='1'; & 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13\\helper\\ideer-desktop.exe' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13\\helper\\update-helper.cjs' 'C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\profile\\Updates\\stage-49d640db-8711-4a6d-a599-fc32429b4c13\\transaction.json'",
+  "fullRepair": "If automatic recovery cannot safely finish, reinstall a verified complete installer into C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer109-XUiH5Z\\installed. Preserve the profile and backup above. Do not uninstall or copy old credentials, authorizations or receipts over the current profile."
+}
