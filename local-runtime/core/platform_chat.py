@@ -266,6 +266,123 @@ def _wiki_page_payload(page):
             "body": _bounded_text(body, 20000) if has_body else ""}
 
 
+def _wiki_link_rows(rows):
+    """Project resolved link/backlink rows; every row names its page status."""
+    projected = []
+    for row in (rows or [])[:100]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        status = _bounded_text(row.get("status"), 32)
+        if not document_id or status not in _WIKI_PAGE_STATUSES:
+            raise ChatError("CHAT_PROTOCOL_ERROR")
+        projected.append({"documentId": document_id,
+                          "title": _bounded_text(row.get("title"), 200),
+                          "status": status})
+    return projected
+
+
+def _wiki_associations_payload(associations):
+    """Project the association graph with its frozen document sources (#119).
+
+    Entities and relations are exactly the Server's stored #116 rows with
+    their document binding and digest; un-generated or failed documents
+    appear as honest coverage rows and contribute nothing else.
+    """
+    if not isinstance(associations, dict):
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = associations.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    sources = []
+    for row in (associations.get("sources") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        sources.append({"documentId": document_id,
+                        "filename": _bounded_text(row.get("filename"), 255),
+                        "contentHash": _bounded_text(row.get("content_hash"), 64),
+                        "status": _bounded_text(row.get("status"), 32),
+                        "errorCode": _bounded_text(row.get("error_code"), 64)})
+    entities = []
+    for row in (associations.get("entities") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        name = _bounded_text(row.get("name"))
+        if not name:
+            continue
+        entities.append({"name": name, "type": _bounded_text(row.get("type"), 64),
+                         "documentId": _bounded_text(row.get("document_id"), 64),
+                         "filename": _bounded_text(row.get("filename"), 255),
+                         "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    relations = []
+    for row in (associations.get("relations") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        source = _bounded_text(row.get("source"))
+        target = _bounded_text(row.get("target"))
+        relation = _bounded_text(row.get("relation"))
+        if not source or not target or not relation:
+            continue
+        relations.append({"source": source, "target": target, "relation": relation,
+                          "documentId": _bounded_text(row.get("document_id"), 64),
+                          "filename": _bounded_text(row.get("filename"), 255),
+                          "contentHash": _bounded_text(row.get("content_hash"), 64)})
+    return {"status": status,
+            "generated": associations["generated"] if type(associations.get("generated")) is int else 0,
+            "failed": associations["failed"] if type(associations.get("failed")) is int else 0,
+            "sources": sources, "entities": entities, "relations": relations}
+
+
+def _wiki_navigation_payload(index):
+    """Project the wiki index with links, backlinks, and associations (#119).
+
+    Every page row keeps its honest status; links and backlinks resolve only
+    inside the Server's revision and a target that names nothing there stays
+    an explicit missing entry — nothing is fabricated into an accessible page.
+    """
+    if not isinstance(index, dict) or not isinstance(index.get("manifest_hash"), str) \
+            or len(index["manifest_hash"]) != 64 or type(index.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = index.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    pages = []
+    for row in (index.get("pages") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        page_status = _bounded_text(row.get("status"), 32)
+        if page_status not in _WIKI_PAGE_STATUSES:
+            raise ChatError("CHAT_PROTOCOL_ERROR")
+        missing = []
+        for target in (row.get("missing_links") or [])[:100]:
+            text = _bounded_text(target, 255)
+            if text:
+                missing.append(text)
+        pages.append({"documentId": document_id,
+                      "filename": _bounded_text(row.get("filename"), 255),
+                      "title": _bounded_text(row.get("title"), 200),
+                      "contentHash": _bounded_text(row.get("content_hash"), 64),
+                      "status": page_status,
+                      "errorCode": _bounded_text(row.get("error_code"), 64),
+                      "links": _wiki_link_rows(row.get("links")),
+                      "missingLinks": missing,
+                      "backlinks": _wiki_link_rows(row.get("backlinks"))})
+    return {"kbId": "", "revisionId": _bounded_text(index.get("revision_id"), 64),
+            "revisionNo": index["revision_no"], "manifestHash": index["manifest_hash"],
+            "status": status,
+            "generated": index["generated"] if type(index.get("generated")) is int else 0,
+            "failed": index["failed"] if type(index.get("failed")) is int else 0,
+            "skipped": index["skipped"] if type(index.get("skipped")) is int else 0,
+            "pages": pages,
+            "associations": _wiki_associations_payload(index.get("associations"))}
+
+
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
@@ -275,7 +392,8 @@ def empty_state(scope=""):
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
-                 compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None):
+                 compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
+                 skill_imports=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -292,6 +410,9 @@ class DesktopChat:
         self.knowledge_imports = knowledge_imports
         self.knowledge_publications = knowledge_publications
         self.knowledge_files = knowledge_files
+        # Issue 120: explicit skill package imports keep the same discipline —
+        # the registry stores device-local display facts, never package content.
+        self.skill_imports = skill_imports
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -1075,14 +1196,16 @@ class DesktopChat:
     # --- Controlled wiki entry (issue 118) ----------------------------------
 
     def wiki(self, kb_id, revision_id, *, action, document_id=None):
-        """View, generate, or read one frozen revision's wiki.
+        """View, generate, read, or navigate one frozen revision's wiki.
 
         The Server owns every page: the view carries the page list with its
         per-page progress, skips, and frozen source bindings (never bodies),
         ``generate`` lets the Server orchestrate the batch and re-reads the
-        list, and ``read`` fetches exactly one page whose document id must be
+        list, ``read`` fetches exactly one page whose document id must be
         frozen in this revision — the Server refuses anything else, so an
-        out-of-scope page can never leak a title or a body. A skipped or
+        out-of-scope page can never leak a title or a body — and ``navigate``
+        projects the index with links, backlinks, and the association graph
+        derived only from this revision's own artifacts (#119). A skipped or
         failed page projects as exactly that: its fixed category, never text.
         """
         kb_id = self._uuid(kb_id)
@@ -1103,7 +1226,147 @@ class DesktopChat:
             payload = _wiki_page_payload(self._json(session, f"{base}/pages/{document}"))
             payload["kbId"] = kb_id
             return payload
+        if action == "navigate":
+            payload = _wiki_navigation_payload(self._json(session, f"{base}/navigation"))
+            payload["kbId"] = kb_id
+            return payload
         raise ChatError("CHAT_COMMAND_INVALID")
+
+    # --- Explicit skill package import (issue 120) --------------------------
+
+    def _post_multipart_form(self, session, path, fields, filename, content, file_type):
+        """POST one multipart form (fields plus one file) and parse the JSON reply."""
+        boundary = '----ideer120' + secrets.token_hex(16)
+        parts = []
+        for name, value in fields:
+            parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n'
+                          f'{value}\r\n').encode())
+        safe_filename = filename.replace('\\', '%5C').replace('"', '\\"')
+        parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="archive"; filename="{safe_filename}"\r\n'
+                      f'Content-Type: {file_type}\r\n\r\n').encode() + content + b'\r\n')
+        parts.append(f'--{boundary}--\r\n'.encode())
+        with self._request(session, path, b''.join(parts),
+                           {'Content-Type': f'multipart/form-data; boundary={boundary}'}) as response:
+            raw = response.read(MAX_RESPONSE + 1)
+        if len(raw) > MAX_RESPONSE:
+            raise ChatError('CHAT_RESPONSE_TOO_LARGE')
+        try:
+            return json.loads(raw)
+        except (ValueError, UnicodeError):
+            raise ChatError('CHAT_PROTOCOL_ERROR') from None
+
+    def import_skill_package(self, kind, paths, *, confirmed):
+        """Preview or confirm one Desktop skill package import (#120).
+
+        The device-side read is entirely local and uploads nothing: the
+        preview projects the package's body, scripts, and references with
+        their hashes. A confirmed attempt re-reads the exact bytes, binds
+        them through the Server's preview identity (hash equality), and
+        lands them as the account's private draft. Publication stays an
+        explicit later step on the existing draft/publish flow, and nothing
+        here executes locally: the package only ever becomes catalog
+        content for Server-orchestrated Runs.
+        """
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        from .skill_import import PACKAGE_KINDS, SkillImportError, read_package
+        if self.skill_imports is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if kind not in PACKAGE_KINDS or not isinstance(paths, list) or len(paths) != 1 \
+                or any(not isinstance(path, str) or not path or len(path) > 32768 for path in paths) \
+                or not isinstance(confirmed, bool):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        binding = profile_binding(load_settings(self.config))
+        try:
+            package = read_package(paths, kind, protected=(self.config.parent,))
+            upload = package.pop('upload')
+            if not confirmed:
+                return dict(confirmed=False, origin=kind, name=package['name'],
+                            description=package['description'], body=package['body'],
+                            files=package['files'], fileCount=package['file_count'],
+                            totalBytes=package['total_bytes'], packageHash=package['package_hash'],
+                            destination=dict(resourceType='skill', visibility='private'))
+            session = self._session()
+            file_type = 'text/markdown' if kind == 'markdown' else 'application/zip'
+            # The Server preview binds the authoritative identity of the exact
+            # bytes this device just read; any drift refuses the import before
+            # the confirm call can create anything.
+            server_preview = self._post_multipart_form(
+                session, '/api/resources/import/skill/preview', [('origin', kind)],
+                'package' if kind == 'markdown' else 'package.zip', upload, file_type)
+            if not isinstance(server_preview, dict) or not isinstance(server_preview.get('package_hash'), str) \
+                    or len(server_preview['package_hash']) != 64 \
+                    or server_preview['package_hash'] != package['package_hash']:
+                raise SkillImportError('SKILL_IMPORT_HASH_MISMATCH')
+            created = self._post_multipart_form(
+                session, '/api/resources/import/skill/confirm',
+                [('origin', kind), ('expected_package_hash', package['package_hash'])],
+                'package' if kind == 'markdown' else 'package.zip', upload, file_type)
+            if not isinstance(created, dict) or not isinstance(created.get('id'), str) \
+                    or not isinstance(created.get('slug'), str) \
+                    or not isinstance(created.get('draft'), dict) \
+                    or type(created['draft'].get('revision')) is not int \
+                    or not isinstance(created['draft'].get('content_hash'), str) \
+                    or len(created['draft']['content_hash']) != 64 \
+                    or created['draft']['content_hash'] != package['package_hash']:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            outcome = dict(confirmed=True, resourceId=created['id'], slug=created['slug'],
+                           revision=created['draft']['revision'], contentHash=created['draft']['content_hash'],
+                           fileCount=package['file_count'], totalBytes=package['total_bytes'])
+            self.skill_imports.record(binding, dict(
+                resource_id=created['id'], slug=created['slug'], revision=created['draft']['revision'],
+                content_hash=created['draft']['content_hash'], version=0, origin=kind,
+                file_count=package['file_count'], total_bytes=package['total_bytes'], status='imported'))
+            return outcome
+        except (SkillImportError, ChatError) as exc:
+            # The failure is recorded with its real fixed category so the
+            # display never impersonates an imported draft.
+            category = str(exc)
+            if isinstance(exc, ChatError) and not category.startswith('CHAT_'):
+                category = 'SKILL_IMPORT_FAILED'
+            try:
+                self.skill_imports.record(binding, dict(status='failed', error_code=category, origin=kind))
+            except SkillImportError:
+                pass
+            raise SkillImportError(category) from exc
+
+    def publish_skill(self, resource_id, expected_draft_revision):
+        """Publish one confirmed imported Skill draft through the platform flow (#120).
+
+        The platform owns validation and versioning: the call reuses the
+        canonical publish endpoint, so success yields the next immutable
+        version copy (with its content hash). A Run in progress keeps its
+        frozen version, and no local edit can impersonate the published one.
+        """
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        from .skill_import import SkillImportError
+        if self.skill_imports is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        resource_id = self._uuid(resource_id)
+        if type(expected_draft_revision) is not int or not 1 <= expected_draft_revision <= 1000000:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        binding = profile_binding(load_settings(self.config))
+        try:
+            version = self._json(self._session(), f'/api/resources/{resource_id}/publish',
+                                 {'expected_draft_revision': expected_draft_revision,
+                                  'scan_result': {'status': 'desktop_confirmed_import'}})
+            if not isinstance(version, dict) or type(version.get('version')) is not int or version['version'] < 1 \
+                    or not isinstance(version.get('content_hash'), str) or len(version['content_hash']) != 64:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            self.skill_imports.mark_published(binding, resource_id, expected_draft_revision,
+                                              version['version'], version['content_hash'])
+            return dict(resourceId=resource_id, version=version['version'], contentHash=version['content_hash'])
+        except ChatError as exc:
+            # The failure is recorded with its real fixed category so the
+            # display never impersonates a published version copy.
+            category = str(exc) if str(exc).startswith('CHAT_') else 'SKILL_PUBLISH_FAILED'
+            try:
+                self.skill_imports.record(binding, dict(resource_id=resource_id, status='failed',
+                                                        error_code=category))
+            except SkillImportError:
+                pass
+            raise ChatError(category) from exc
 
     # --- Explicit server-side publication (issue 115) -----------------------
 

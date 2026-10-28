@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -232,6 +232,55 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_WIKI_UNAUTHENTICATED')
       return runtime.knowledgeWiki(command)
+    })
+    // Issue 120: the skill package import flow. Package picking, the
+    // device-side preview, and the upload confirmation stay in the trusted
+    // main process: the preview uploads nothing, a canceled flow never
+    // leaves the device, and the confirmed upload lands a private draft that
+    // only the platform's own draft/publish flow can turn into a version.
+    ipcMain.handle('desktop:skills', async (event, command: SkillCommand): Promise<SkillImportPreview | { confirmed: true; resourceId: string; slug: string; revision: number; contentHash: string; fileCount: number; totalBytes: number } | { resourceId: string; version: number; contentHash: string }> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['import', 'publish'].includes(command.action)) throw new Error('SKILL_COMMAND_INVALID')
+      const status = runtime.status()
+      if (command.action === 'import') {
+        if (status.login?.state !== 'authenticated') throw new Error('SKILL_IMPORT_UNAUTHENTICATED')
+        if (!['markdown', 'zip', 'directory'].includes(command.kind)) throw new Error('SKILL_COMMAND_INVALID')
+        const chosen = command.kind === 'directory'
+          ? await dialog.showOpenDialog(mainWindow!, { title: '选择要导入的技能目录', properties: ['openDirectory'] })
+          : await dialog.showOpenDialog(mainWindow!, { title: '选择要导入的技能包',
+              filters: command.kind === 'markdown'
+                ? [{ name: '技能 Markdown', extensions: ['md'] }]
+                : [{ name: '技能包 (ZIP)', extensions: ['zip'] }], properties: ['openFile'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('SKILL_IMPORT_CANCELED')
+        // Step 1: the read-only device-side preview. Nothing uploads; the
+        // exact upload scope — body excerpt, scripts, references, hashes —
+        // is shown for confirmation.
+        const preview = await runtime.importSkill(command.kind, chosen.filePaths, false)
+        if (preview.confirmed !== false) throw new Error('SKILL_IMPORT_FAILED')
+        const roleNames = { body: '正文', script: '脚本', reference: '引用', attachment: '附件' }
+        const scope = preview.files.map(file => `${file.path}（${roleNames[file.role]}，${file.bytes} 字节）`).join('、')
+        const excerpt = preview.bodyExcerpt.trim().slice(0, 600)
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认上传技能包',
+          message: `将「${preview.name}」上传为你的私有平台技能草稿？`,
+          detail: `正文摘录：${excerpt || '（空）'}\n\n上传范围：${scope}\n\n包指纹 ${preview.packageHash.slice(0, 16)}… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。`,
+          buttons: ['取消，不上传', '确认上传'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('SKILL_IMPORT_CANCELED')
+        // Step 2: the confirmed upload re-reads the exact bytes and lands the
+        // private draft; publication stays a separate explicit step.
+        return runtime.importSkill(command.kind, chosen.filePaths, true)
+      }
+      if (status.login?.state !== 'authenticated') throw new Error('SKILL_PUBLISH_UNAUTHENTICATED')
+      if (typeof command.resourceId !== 'string' || !Number.isSafeInteger(command.expectedDraftRevision)) throw new Error('SKILL_COMMAND_INVALID')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认发布技能版本',
+        message: '将该技能草稿发布为平台上的新版本副本？',
+        detail: '发布沿用平台既有的草稿校验与发布流程，生成新的不可变版本副本；已固定该技能版本的任务不受新版本影响。',
+        buttons: ['取消', '确认发布'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('SKILL_PUBLISH_CANCELED')
+      return runtime.publishSkill(command.resourceId, command.expectedDraftRevision)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

@@ -207,11 +207,97 @@ export interface WikiPage {
   errorCode: string
   body: string
 }
+/** Issue 119: one resolved link or backlink row; the target names its honest page status. */
+export interface WikiLink {
+  documentId: string
+  title: string
+  status: WikiPageSummary['status']
+}
+/** Issue 119: one index page with its resolved links, missing targets, and backlinks. */
+export interface WikiNavigationPage extends WikiPageSummary {
+  links: WikiLink[]
+  missingLinks: string[]
+  backlinks: WikiLink[]
+}
+/** Issue 119: the association graph, reusing the stored #116 rows with frozen sources. */
+export interface WikiAssociationSource {
+  documentId: string
+  filename: string
+  contentHash: string
+  status: string
+  errorCode: string
+}
+export interface WikiAssociationEntity { name: string; type: string; documentId: string; filename: string; contentHash: string }
+export interface WikiAssociationRelation { source: string; target: string; relation: string; documentId: string; filename: string; contentHash: string }
+export interface WikiAssociations {
+  status: KnowledgeGraphView['status']
+  generated: number
+  failed: number
+  sources: WikiAssociationSource[]
+  entities: WikiAssociationEntity[]
+  relations: WikiAssociationRelation[]
+}
+/** Issue 119: the wiki index — pages with links/backlinks plus the association graph. */
+export interface WikiNavigation extends Omit<WikiView, 'pages'> {
+  pages: WikiNavigationPage[]
+  associations: WikiAssociations
+}
 export interface WikiCommand {
-  action: 'view' | 'generate' | 'read'
+  action: 'view' | 'generate' | 'read' | 'navigate'
   kbId: string
   revisionId: string
   documentId?: string
+}
+/** Issue 120: one package member in the upload scope, bound to its frozen hash. */
+export interface SkillPackageFileView {
+  path: string
+  role: 'body' | 'script' | 'reference' | 'attachment'
+  bytes: number
+  sha256: string
+}
+export interface SkillImportDestination { resourceType: string; visibility: string; ownerId?: string }
+/** Issue 120: the read-only device-side preview; nothing uploads in this step. */
+export interface SkillImportPreview {
+  confirmed: false
+  origin: 'markdown' | 'zip' | 'directory'
+  name: string
+  description: string
+  bodyExcerpt: string
+  files: SkillPackageFileView[]
+  fileCount: number
+  totalBytes: number
+  packageHash: string
+  destination: SkillImportDestination
+}
+/** Issue 120: the confirmed import lands as the account's private draft, never published here. */
+export interface SkillImportOutcome {
+  confirmed: true
+  resourceId: string
+  slug: string
+  revision: number
+  contentHash: string
+  fileCount: number
+  totalBytes: number
+}
+/** Issue 120: the version copy produced by the existing platform publish flow. */
+export interface SkillPublishOutcome { resourceId: string; version: number; contentHash: string }
+export type SkillCommand =
+  | { action: 'import'; kind: 'markdown' | 'zip' | 'directory' }
+  | { action: 'publish'; resourceId: string; expectedDraftRevision: number }
+/** Issue 120: device-local display fact for one explicit skill import or publication. */
+export interface SkillImportView {
+  id: string
+  resourceId: string
+  slug: string
+  revision: number
+  contentHash: string
+  version: number
+  origin: string
+  fileCount: number
+  totalBytes: number
+  status: 'imported' | 'published' | 'failed'
+  errorCode: string
+  createdAt: string
 }
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
@@ -227,6 +313,8 @@ export interface RuntimeStatus {
   knowledgeImportStorageError?: string
   knowledgePublications?: KnowledgePublicationView[]
   knowledgePublishStorageError?: string
+  skillImports?: SkillImportView[]
+  skillImportStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -280,7 +368,9 @@ export interface DesktopBridge {
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
   knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult>
   /** Issue 118: controlled wiki page list, generation, and single-page reading. */
-  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage>
+  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation>
+  /** Issue 120: skill package preview import; picking and confirmation stay in main. */
+  skills(command: SkillCommand): Promise<SkillImportPreview | SkillImportOutcome | SkillPublishOutcome>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
