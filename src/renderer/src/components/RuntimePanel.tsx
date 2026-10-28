@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
-import type { KnowledgeGraphCommand, KnowledgeGraphSourceLocation, KnowledgeGraphView } from '../../../shared/desktop'
+import { WikiSection } from './WikiSection'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, WikiCommand, WikiPage, WikiView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -27,17 +28,46 @@ export default function RuntimePanel(): JSX.Element {
   const [publishError, setPublishError] = useState(false)
   const [graph, setGraph] = useState<KnowledgeGraphView | null>(null)
   const [graphLocated, setGraphLocated] = useState<Record<string, KnowledgeGraphSourceLocation>>({})
+  const [graphQueryResult, setGraphQueryResult] = useState<KnowledgeGraphQueryResult | null>(null)
+  const [graphAskResult, setGraphAskResult] = useState<KnowledgeGraphAskResult | null>(null)
+  const [graphSelection, setGraphSelection] = useState<Record<string, boolean>>({})
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphError, setGraphError] = useState('')
+  const [wiki, setWiki] = useState<WikiView | null>(null)
+  const [wikiPage, setWikiPage] = useState<WikiPage | null>(null)
+  const [wikiBusy, setWikiBusy] = useState(false)
+  const [wikiError, setWikiError] = useState('')
+  const runWiki = (command: WikiCommand) => {
+    setWikiError(''); setWikiBusy(true)
+    if (command.action === 'view' || command.action === 'generate') {
+      // A new revision context resets the page list and any open page, so an
+      // older revision's body can never be shown next to a newer list.
+      setWiki(null); setWikiPage(null)
+    }
+    void window.ideer.knowledgeWiki(command)
+      .then(result => {
+        if (command.action === 'read') setWikiPage(result as WikiPage)
+        else setWiki(result as WikiView)
+      })
+      .catch(() => setWikiError('需要已认证会话，且版本与页面所属文档对当前账号可见'))
+      .finally(() => setWikiBusy(false))
+  }
   const runGraph = (command: KnowledgeGraphCommand) => {
     setGraphError(''); setGraphBusy(true)
-    if (command.action !== 'locate') { setGraph(null); setGraphLocated({}) }
+    if (command.action === 'view' || command.action === 'generate') {
+      // A new revision context resets the frozen scope, its sources, and the
+      // scoped answers; search/ask keep the graph view mounted so the
+      // selected scope stays visible next to its results.
+      setGraph(null); setGraphLocated({}); setGraphSelection({}); setGraphQueryResult(null); setGraphAskResult(null)
+    }
     void window.ideer.knowledgeGraph(command)
       .then(result => {
         if (command.action === 'locate') setGraphLocated(current => ({ ...current, [command.documentId as string]: result as KnowledgeGraphSourceLocation }))
+        else if (command.action === 'search') setGraphQueryResult(result as KnowledgeGraphQueryResult)
+        else if (command.action === 'ask') setGraphAskResult(result as KnowledgeGraphAskResult)
         else setGraph(result as KnowledgeGraphView)
       })
-      .catch(() => setGraphError('需要已认证会话，且版本对当前账号可见'))
+      .catch(() => setGraphError('需要已认证会话，且版本与所选文档对当前账号可见'))
       .finally(() => setGraphBusy(false))
   }
   const publish = (rowId: string, rowKbId: string, rowRevisionId: string) => {
@@ -162,9 +192,22 @@ export default function RuntimePanel(): JSX.Element {
       runtime={runtime}
       graph={graph}
       located={graphLocated}
+      queryResult={graphQueryResult}
+      askResult={graphAskResult}
+      selection={graphSelection}
       busy={graphBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={graphError}
+      onSelection={(documentId, checked) => setGraphSelection(current => ({ ...current, [documentId]: checked }))}
       onCommand={runGraph}
+    />
+    <Typography.Title level={5} className="mt-5">知识 Wiki</Typography.Title>
+    <WikiSection
+      runtime={runtime}
+      wiki={wiki}
+      page={wikiPage}
+      busy={wikiBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
+      error={wikiError}
+      onCommand={runWiki}
     />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>

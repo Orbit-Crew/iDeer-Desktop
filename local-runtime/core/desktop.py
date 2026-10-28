@@ -44,6 +44,7 @@ def main() -> int:
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_publish_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -104,15 +105,33 @@ def main() -> int:
                     continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'kbId', 'revisionId', 'action', 'scope'},
-                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'})
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'},
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentIds', 'query', 'scope'})
                         and command['type'] == 'knowledge-graph' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
                         and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
                         and len(command['revisionId']) <= 64
-                        and command['action'] in {'view', 'generate', 'locate'}
+                        and command['action'] in {'view', 'generate', 'locate', 'search', 'ask'}
                         and (command['action'] != 'locate' or isinstance(command.get('documentId'), str))
+                        and (command['action'] not in {'search', 'ask'} or (
+                            isinstance(command.get('documentIds'), list)
+                            and 1 <= len(command['documentIds']) <= 50
+                            and all(isinstance(d, str) and 0 < len(d) <= 64 for d in command['documentIds'])
+                            and isinstance(command.get('query'), str) and 0 < len(command['query']) <= 4000))
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_graph_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'scope'},
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'})
+                        and command['type'] == 'knowledge-wiki' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and command['action'] in {'view', 'generate', 'read'}
+                        and (command['action'] != 'read' or isinstance(command.get('documentId'), str))
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_wiki_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -366,12 +385,31 @@ def main() -> int:
                 try:
                     result = chat.knowledge_graph(graph_command['kbId'], graph_command['revisionId'],
                                                   action=graph_command['action'],
-                                                  document_id=graph_command.get('documentId'))
+                                                  document_id=graph_command.get('documentId'),
+                                                  document_ids=graph_command.get('documentIds'),
+                                                  query=graph_command.get('query') or '')
                 except Exception as exc:
                     # Only fixed categories cross the Desktop boundary.
                     message = str(exc)
                     error = message if message.startswith(('CHAT_', 'KNOWLEDGE_')) else 'KNOWLEDGE_GRAPH_FAILED'
                 emit({'v': 1, 'type': 'knowledge-graph', 'id': graph_command['id'],
+                      'result': result, 'error': error})
+            try:
+                wiki_command = knowledge_wiki_commands.get_nowait()
+            except queue.Empty:
+                wiki_command = None
+            if wiki_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.wiki(wiki_command['kbId'], wiki_command['revisionId'],
+                                       action=wiki_command['action'],
+                                       document_id=wiki_command.get('documentId'))
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'KNOWLEDGE_', 'WIKI_')) else 'KNOWLEDGE_WIKI_FAILED'
+                emit({'v': 1, 'type': 'knowledge-wiki', 'id': wiki_command['id'],
                       'result': result, 'error': error})
             try:
                 selection = workspace_commands.get_nowait()

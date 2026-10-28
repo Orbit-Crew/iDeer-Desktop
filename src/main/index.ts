@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -223,6 +223,15 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_GRAPH_UNAUTHENTICATED')
       return runtime.knowledgeGraph(command)
+    })
+    // Issue 118: the controlled wiki entry. The renderer only names the
+    // authorized KB/Revision and the action; the Server owns every page and
+    // its authorization, and no page body is fetched or cached anywhere else.
+    ipcMain.handle('desktop:knowledge:wiki', (event, command: WikiCommand) => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_WIKI_UNAUTHENTICATED')
+      return runtime.knowledgeWiki(command)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

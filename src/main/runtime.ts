@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphCommand, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, WikiCommand, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -21,7 +21,8 @@ export class RuntimeProcess {
   private receiptScope = ''
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
-  private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation) => void; reject: (error: Error) => void }>()
+  private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
+  private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -158,14 +159,24 @@ export class RuntimeProcess {
     })
   }
 
-  /** Issue 116: one controlled-graph step (view / generate / source locate). */
-  async knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation> {
+  /** Issue 116/117: one controlled-graph step (view / generate / source locate / scoped search / scoped ask). */
+  async knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('KNOWLEDGE_GRAPH_COMMAND_INVALID')
-    if (!['view', 'generate', 'locate'].includes(command.action)) throw new Error('KNOWLEDGE_GRAPH_ACTION_INVALID')
+    if (!['view', 'generate', 'locate', 'search', 'ask'].includes(command.action)) throw new Error('KNOWLEDGE_GRAPH_ACTION_INVALID')
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
     if (typeof command.kbId !== 'string' || !uuid.test(command.kbId)) throw new Error('KNOWLEDGE_GRAPH_KB_INVALID')
     if (typeof command.revisionId !== 'string' || !uuid.test(command.revisionId)) throw new Error('KNOWLEDGE_GRAPH_REVISION_INVALID')
     if (command.action === 'locate' && (typeof command.documentId !== 'string' || !/^[0-9a-fA-Z-]{1,64}$/.test(command.documentId))) throw new Error('KNOWLEDGE_GRAPH_DOCUMENT_INVALID')
+    // Issue 117: the selected frozen-document scope and bounded text are the
+    // caller's contract; the Server re-validates membership against the
+    // manifest, so nothing here can widen into a whole-revision query.
+    const scoped = command.action === 'search' || command.action === 'ask'
+    if (scoped) {
+      const limit = command.action === 'search' ? 512 : 4000
+      if (!Array.isArray(command.documentIds) || command.documentIds.length < 1 || command.documentIds.length > 50 ||
+          command.documentIds.some((id) => typeof id !== 'string' || !uuid.test(id))) throw new Error('KNOWLEDGE_GRAPH_SCOPE_INVALID')
+      if (typeof command.query !== 'string' || command.query.trim().length < 1 || command.query.length > limit) throw new Error('KNOWLEDGE_GRAPH_QUERY_INVALID')
+    }
     if (this.knowledgeGraphRequests.size) throw new Error('KNOWLEDGE_GRAPH_BUSY')
     if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
     const id = randomUUID()
@@ -173,10 +184,39 @@ export class RuntimeProcess {
       const timer = setTimeout(() => { this.knowledgeGraphRequests.delete(id); reject(new Error('KNOWLEDGE_GRAPH_TIMEOUT')) }, 60000)
       this.knowledgeGraphRequests.set(id, {
         resolve: (view) => { clearTimeout(timer); this.knowledgeGraphRequests.delete(id); resolve(view) },
-        reject: (error) => { clearTimeout(timer); this.knowledgeGraphRequests.delete(id); reject(error) }
+        reject: (error) => { clearTimeout(timer); this.knowledgeGraphRequests.delete(id); reject(error) },
+        action: command.action
       })
       const wire: Record<string, unknown> = { type: 'knowledge-graph', id, kbId: command.kbId, revisionId: command.revisionId, action: command.action, scope: this.selectionScope }
       if (command.action === 'locate') wire.documentId = command.documentId
+      if (scoped) { wire.documentIds = command.documentIds; wire.query = command.query }
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /** Issue 118: one controlled-wiki step (page list / generate / single-page read). */
+  async knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('KNOWLEDGE_WIKI_COMMAND_INVALID')
+    if (!['view', 'generate', 'read'].includes(command.action)) throw new Error('KNOWLEDGE_WIKI_ACTION_INVALID')
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    if (typeof command.kbId !== 'string' || !uuid.test(command.kbId)) throw new Error('KNOWLEDGE_WIKI_KB_INVALID')
+    if (typeof command.revisionId !== 'string' || !uuid.test(command.revisionId)) throw new Error('KNOWLEDGE_WIKI_REVISION_INVALID')
+    // Issue 118: the requested page must name a well-formed frozen document
+    // id; the Server re-validates membership against the manifest, so an
+    // out-of-scope page can never leak a title or a body.
+    if (command.action === 'read' && (typeof command.documentId !== 'string' || !/^[0-9a-zA-Z_-]{1,64}$/.test(command.documentId))) throw new Error('KNOWLEDGE_WIKI_DOCUMENT_INVALID')
+    if (this.knowledgeWikiRequests.size) throw new Error('KNOWLEDGE_WIKI_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeWikiRequests.delete(id); reject(new Error('KNOWLEDGE_WIKI_TIMEOUT')) }, 60000)
+      this.knowledgeWikiRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.knowledgeWikiRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeWikiRequests.delete(id); reject(error) },
+        action: command.action
+      })
+      const wire: Record<string, unknown> = { type: 'knowledge-wiki', id, kbId: command.kbId, revisionId: command.revisionId, action: command.action, scope: this.selectionScope }
+      if (command.action === 'read') wire.documentId = command.documentId
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
   }
@@ -372,14 +412,63 @@ export class RuntimeProcess {
             if (!pending) continue
             if (value.error) { this.knowledgeGraphRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
             const outcome = value.result
-            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
-                typeof outcome.documentId !== 'string' || !outcome.documentId) {
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string') {
               this.knowledgeGraphRequests.delete(value.id)
               pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
               continue
             }
-            if (outcome.logicalPath !== undefined || outcome.missing !== undefined) {
-              // Locate answer: the workspace path stays a local display fact.
+            const text = (input: unknown, limit: number): string => typeof input === 'string' && input.length > 0 && input.length <= limit ? input : ''
+            if (pending.action === 'search' || pending.action === 'ask') {
+              // Issue 117: only the Server's own scoped facts are projected;
+              // a refusal stays a refusal (no answer text is invented).
+              if (typeof outcome.manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.manifestHash) ||
+                  !Number.isSafeInteger(outcome.revisionNo) ||
+                  !['not_generated', 'completed', 'partial', 'failed'].includes(outcome.status) ||
+                  !Array.isArray(outcome.scope)) {
+                this.knowledgeGraphRequests.delete(value.id)
+                pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
+                continue
+              }
+              const scope: KnowledgeGraphScopeRow[] = outcome.scope.slice(0, 200).map((row: Record<string, unknown>) => ({
+                documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
+                contentHash: text(row?.contentHash, 64), status: text(row?.status, 32), errorCode: text(row?.errorCode, 64)
+              })).filter((row: KnowledgeGraphScopeRow) => row.documentId !== '')
+              this.knowledgeGraphRequests.delete(value.id)
+              if (pending.action === 'ask') {
+                const answerAvailable = outcome.answerAvailable === true
+                const answer = answerAvailable ? text(outcome.answer, 8000) : ''
+                if (answerAvailable && !answer) {
+                  pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
+                  continue
+                }
+                pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+                  manifestHash: outcome.manifestHash, status: outcome.status,
+                  question: text(outcome.question, 4000), answerAvailable, answer,
+                  errorCode: text(outcome.errorCode, 64), scope })
+                continue
+              }
+              pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+                manifestHash: outcome.manifestHash, status: outcome.status, query: text(outcome.query, 512), scope,
+                entities: Array.isArray(outcome.entities) ? outcome.entities.slice(0, 200).map((row: Record<string, unknown>) => ({
+                  name: text(row?.name, 200), type: text(row?.type, 64),
+                  documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
+                  contentHash: text(row?.contentHash, 64) })).filter((row: { name: string }) => row.name !== '') : [],
+                relations: Array.isArray(outcome.relations) ? outcome.relations.slice(0, 200).map((row: Record<string, unknown>) => ({
+                  source: text(row?.source, 200), target: text(row?.target, 200), relation: text(row?.relation, 200),
+                  documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
+                  contentHash: text(row?.contentHash, 64) }))
+                  .filter((row: { source: string; target: string; relation: string }) => row.source !== '' && row.target !== '' && row.relation !== '') : []
+              })
+              continue
+            }
+            if (pending.action === 'locate') {
+              // Locate answer: the workspace path stays a local display fact;
+              // a locate answer always names its source document.
+              if (typeof outcome.documentId !== 'string' || !outcome.documentId) {
+                this.knowledgeGraphRequests.delete(value.id)
+                pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
+                continue
+              }
               pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, documentId: outcome.documentId,
                 filename: typeof outcome.filename === 'string' ? outcome.filename : undefined,
                 logicalPath: typeof outcome.logicalPath === 'string' ? outcome.logicalPath : undefined,
@@ -397,7 +486,6 @@ export class RuntimeProcess {
               pending.reject(new Error('KNOWLEDGE_GRAPH_FAILED'))
               continue
             }
-            const text = (input: unknown, limit: number): string => typeof input === 'string' && input.length > 0 && input.length <= limit ? input : ''
             pending.resolve({
               kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, status: outcome.status,
@@ -411,6 +499,65 @@ export class RuntimeProcess {
               sources: outcome.sources.slice(0, 200).map((row: Record<string, unknown>) => ({
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
                 contentHash: text(row?.contentHash, 64), status: text(row?.status, 32), errorCode: text(row?.errorCode, 64) }))
+            })
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-wiki') {
+            const pending = this.knowledgeWikiRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeWikiRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            const text = (input: unknown, limit: number): string => typeof input === 'string' && input.length > 0 && input.length <= limit ? input : ''
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                typeof outcome.manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.manifestHash) ||
+                !Number.isSafeInteger(outcome.revisionNo) ||
+                !['not_generated', 'completed', 'partial', 'failed'].includes(outcome.status)) {
+              this.knowledgeWikiRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_WIKI_FAILED'))
+              continue
+            }
+            const pageStatus = (input: unknown): input is WikiPageSummary['status'] =>
+              ['completed', 'skipped', 'failed', 'not_generated'].includes(input as string)
+            if (pending.action === 'read') {
+              // Issue 118: one page read. A body only ever travels with a
+              // completed page; a skip or failure projects as exactly that.
+              if (typeof outcome.documentId !== 'string' || !outcome.documentId || !pageStatus(outcome.status)) {
+                this.knowledgeWikiRequests.delete(value.id)
+                pending.reject(new Error('KNOWLEDGE_WIKI_FAILED'))
+                continue
+              }
+              const completed = outcome.status === 'completed'
+              const body = completed ? text(outcome.body, 20000) : ''
+              if (completed && !body) {
+                this.knowledgeWikiRequests.delete(value.id)
+                pending.reject(new Error('KNOWLEDGE_WIKI_FAILED'))
+                continue
+              }
+              this.knowledgeWikiRequests.delete(value.id)
+              pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+                manifestHash: outcome.manifestHash, documentId: outcome.documentId,
+                filename: text(outcome.filename, 255), title: text(outcome.title, 200),
+                contentHash: text(outcome.contentHash, 64), status: outcome.status,
+                errorCode: text(outcome.errorCode, 64), body })
+              continue
+            }
+            // Wiki page list: only the Server's own page/progress/source facts.
+            if (!Number.isSafeInteger(outcome.generated) || !Number.isSafeInteger(outcome.failed) ||
+                !Number.isSafeInteger(outcome.skipped) || !Array.isArray(outcome.pages)) {
+              this.knowledgeWikiRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_WIKI_FAILED'))
+              continue
+            }
+            this.knowledgeWikiRequests.delete(value.id)
+            pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+              manifestHash: outcome.manifestHash, status: outcome.status,
+              generated: outcome.generated, failed: outcome.failed, skipped: outcome.skipped,
+              pages: outcome.pages.slice(0, 200).map((row: Record<string, unknown>) => ({
+                documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
+                title: text(row?.title, 200), contentHash: text(row?.contentHash, 64),
+                status: pageStatus(row?.status) ? row.status : 'not_generated',
+                errorCode: text(row?.errorCode, 64) }))
+                .filter((row: WikiPageSummary) => row.documentId !== '')
             })
             continue
           }
@@ -533,6 +680,7 @@ export class RuntimeProcess {
       for (const pending of this.knowledgeRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgePublishRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.knowledgeWikiRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

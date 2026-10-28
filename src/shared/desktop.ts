@@ -129,7 +129,86 @@ export interface KnowledgeGraphSourceLocation {
   reason?: string
 }
 export interface KnowledgeGraphCommand {
-  action: 'view' | 'generate' | 'locate'
+  action: 'view' | 'generate' | 'locate' | 'search' | 'ask'
+  kbId: string
+  revisionId: string
+  documentId?: string
+  documentIds?: string[]
+  query?: string
+}
+/** Issue 117: one selected document inside a scoped query/ask, with its frozen source. */
+export interface KnowledgeGraphScopeRow {
+  documentId: string
+  filename: string
+  contentHash: string
+  status: string
+  errorCode: string
+}
+/** Issue 117: sourced entity/relation rows inside the selected scope. */
+export interface KnowledgeGraphScopedEntity { name: string; type: string; documentId: string; filename: string; contentHash: string }
+export interface KnowledgeGraphScopedRelation { source: string; target: string; relation: string; documentId: string; filename: string; contentHash: string }
+/** Issue 117: scoped entity/relation retrieval bound to the frozen revision. */
+export interface KnowledgeGraphQueryResult {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: KnowledgeGraphView['status']
+  query: string
+  scope: KnowledgeGraphScopeRow[]
+  entities: KnowledgeGraphScopedEntity[]
+  relations: KnowledgeGraphScopedRelation[]
+}
+/** Issue 117: scoped ask answer with the per-document sources it was built from. */
+export interface KnowledgeGraphAskResult {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: KnowledgeGraphView['status']
+  question: string
+  answerAvailable: boolean
+  answer: string
+  errorCode: string
+  scope: KnowledgeGraphScopeRow[]
+}
+/** Issue 118: one wiki page in the page list, bound to its frozen document source. */
+export interface WikiPageSummary {
+  documentId: string
+  filename: string
+  title: string
+  contentHash: string
+  status: 'completed' | 'skipped' | 'failed' | 'not_generated'
+  errorCode: string
+}
+/** Issue 118: the page list with its progress, skips, and frozen sources (never bodies). */
+export interface WikiView {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: KnowledgeGraphView['status']
+  generated: number
+  failed: number
+  skipped: number
+  pages: WikiPageSummary[]
+}
+/** Issue 118: one read page; a body only ever travels with a completed page. */
+export interface WikiPage {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  documentId: string
+  filename: string
+  title: string
+  contentHash: string
+  status: WikiPageSummary['status']
+  errorCode: string
+  body: string
+}
+export interface WikiCommand {
+  action: 'view' | 'generate' | 'read'
   kbId: string
   revisionId: string
   documentId?: string
@@ -199,7 +278,9 @@ export interface DesktopBridge {
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
-  knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation>
+  knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult>
+  /** Issue 118: controlled wiki page list, generation, and single-page reading. */
+  knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
