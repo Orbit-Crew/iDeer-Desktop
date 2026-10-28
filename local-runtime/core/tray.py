@@ -391,6 +391,18 @@ class TrayController:
         self.secrets = _build_secret_resolver(self.settings, self._note_secret_use)
         self.mcp_service = None if self.desktop_mode else _build_mcp_service(self.settings, self.secrets, self.consent)
         self._mcp_config_path = self.settings.mcp_config_path
+        # Issue 122: the device-leg Skill script gate shares the tray's
+        # consent store so one approval surface grades every capability.
+        from .skill_script import SkillScriptRegistry, SkillScriptService
+
+        if self.desktop_mode and self.settings.config_path:
+            self.skill_script_service = SkillScriptService(
+                SkillScriptRegistry(Path(self.settings.config_path).with_name("skill-scripts.db")),
+                policy=self.settings.policy(),
+                consent=self.consent,
+            )
+        else:
+            self.skill_script_service = None
         self.client = LocalRuntimeClient(
             server_url=(
                 self.settings.websocket_url()
@@ -409,6 +421,7 @@ class TrayController:
             policy=self.settings.policy(),
             policy_hash=self.settings.policy_hash(),
             file_service=self._desktop_files() if self.desktop_mode else _build_file_service(self.settings, self.consent),
+            skill_script_service=self.skill_script_service,
             python_service=None if self.desktop_mode else _build_python_service(
                 self.settings, self.secrets, self.consent
             ),
@@ -435,7 +448,13 @@ class TrayController:
 
     def _desktop_capabilities(self):
         from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
-        return WORKSPACE_CAPABILITIES if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready' else ()
+        from .skill_script import SKILL_SCRIPT_CAPABILITIES
+        # Issue 122: the Skill script capability rides the desktop surface
+        # itself; workspace reads/writes still need a selected directory.
+        capabilities = list(SKILL_SCRIPT_CAPABILITIES)
+        if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready':
+            capabilities.extend(WORKSPACE_CAPABILITIES)
+        return tuple(capabilities)
 
     def _save_connection_setting(self, name: str, value: str) -> None:
         # Selection and connection callbacks share this transaction. Loading

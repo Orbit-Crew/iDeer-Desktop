@@ -47,9 +47,15 @@ def render_consent_summary(
             "local.files.write": "write a file inside an allowed root",
             "local.python": "run a script on this machine",
             "local.artifacts.upload": "send a local file to the server",
+            # Issue 122: name the skill and the script, never the raw bytes.
+            "local.skill.script": "run a Skill script on this device",
         }.get(capability, ""),
     }
-    if capability.startswith("local.mcp."):
+    if capability == "local.skill.script":
+        summary["target"] = text(payload.get("skill_id", ""))
+        summary["command"] = text(payload.get("script_path", ""))
+        summary["version"] = text(payload.get("skill_version", ""))
+    elif capability.startswith("local.mcp."):
         summary["action"] = "call a tool on a local MCP server"
         summary["target"] = summary["capability"]
         summary["arguments"] = text(

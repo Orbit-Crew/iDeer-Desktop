@@ -94,6 +94,7 @@ class _ConsentWire:
     file_service: LocalFileService | None
     python_service: LocalPythonService | None
     mcp_service: LocalMCPService | None
+    skill_script_service: Any | None
     consent_prompt: ConsentPrompt | None
     _running_tasks: dict[str, asyncio.Task[None]]
     _task_runs: dict[str, str]
@@ -101,6 +102,12 @@ class _ConsentWire:
     _task_finished: Callable[[str, asyncio.Task[None]], None]
 
     def _consent_service_store(self, capability: str) -> ConsentStore: ...
+
+    def receipt_binding(self) -> dict[str, str]: ...
+
+    async def run_skill_script_task(
+        self, payload: dict[str, Any], *, consent: bool, authorization_basis: str | None
+    ) -> Any: ...
 
     def _record_policy_denial(
         self, capability: str, task_id: str, payload: dict[str, Any]
@@ -174,6 +181,11 @@ class LocalConsentCoordinator:
     def _desktop_write(self, capability):
         from .file_service import WorkspaceFileService
         return capability == 'local.files.write' and isinstance(self._wire.file_service, WorkspaceFileService)
+
+    def _skill_script(self, capability):
+        """True for #122 Skill script requests this device gates and executes."""
+        from .skill_script import SKILL_SCRIPT_CAPABILITIES
+        return capability in SKILL_SCRIPT_CAPABILITIES and self._wire.skill_script_service is not None
 
     def _summary(self, request: ConsentRequest) -> dict[str, str]:
         summary = render_consent_summary(
@@ -468,7 +480,21 @@ class LocalConsentCoordinator:
             approved = False
         if self._desktop_write(request.capability):
             always = False
+        # "Remember" for Skill scripts binds the exact content and scope in
+        # the device grant registry; the capability-wide always-allow escape
+        # must never apply to script execution (AC2).
+        remember_script_grant = approved and bool(always) and self._skill_script(request.capability) and origin == 'tray'
+        if self._skill_script(request.capability):
+            always = False
         basis = 'approved'
+        if remember_script_grant:
+            try:
+                identity = wire.skill_script_service.remember_grant(
+                    wire.receipt_binding(), request.payload
+                )
+                basis = f'skill_script_grant:{identity}'
+            except Exception:  # noqa: BLE001 - remember is an upgrade, not a gate
+                basis = 'approved'
         if approved and directory and self._desktop_write(request.capability) and origin == 'tray':
             try:
                 if wire.receipt_ledger is None or wire.receipt_ledger.error:
@@ -693,7 +719,10 @@ class LocalConsentCoordinator:
                     request.payload, request.capability, policy_decision=PolicyDecision.DENY.value,
                     status='denied', consent_decision=consent_decision)
                 return
-        if self._desktop_write(request.capability) and (wire.receipt_ledger is None or wire.receipt_ledger.error):
+        if (
+            (self._desktop_write(request.capability) or self._skill_script(request.capability))
+            and (wire.receipt_ledger is None or wire.receipt_ledger.error)
+        ):
             await wire._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
             return
         if request.capability.startswith("local.mcp."):
@@ -727,6 +756,18 @@ class LocalConsentCoordinator:
                 receipt = python_result.receipt
                 if receipt is not None:
                     receipt = replace(receipt, task_id=task_id)
+        elif self._skill_script(request.capability):
+            # Issue 122: the consented Skill script run; the receipt binds
+            # the skill version, content digest, and this authorization basis.
+            script_result = await wire.run_skill_script_task(
+                request.payload,
+                consent=True,
+                authorization_basis=consent_decision,
+            )
+            decision = script_result.decision
+            value = script_result.value
+            if script_result.receipt is not None:
+                receipt = replace(script_result.receipt, task_id=task_id)
         else:
             assert wire.file_service is not None
             file_task = wire.file_service.execute(

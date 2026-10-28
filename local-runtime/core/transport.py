@@ -48,6 +48,7 @@ from .python import LocalPythonService, PythonResult
 from .receipts import LocalExecutionReceipt, content_hash, safe_logical_target
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError
 from .secrets import SecretStoreError
+from .skill_script import SkillScriptError, SkillScriptService
 from .task_guard import TaskGuard
 
 
@@ -76,6 +77,7 @@ class LocalRuntimeClient:
         file_service: LocalFileService | None = None,
         python_service: LocalPythonService | None = None,
         mcp_service: LocalMCPService | None = None,
+        skill_script_service: SkillScriptService | None = None,
         audit: LocalAuditLog | None = None,
         consent_prompt: ConsentPrompt | None = None,
         on_session_id: Any | None = None,
@@ -129,6 +131,9 @@ class LocalRuntimeClient:
         self.file_service = file_service
         self.python_service = python_service
         self.mcp_service = mcp_service
+        # Issue 122: the device-leg Skill script gate; None keeps the
+        # capability unannounced and every such task refused.
+        self.skill_script_service = skill_script_service
         if self.mcp_service is not None:
             self.mcp_service.on_capabilities_changed = self._on_mcp_capabilities_changed
         self.connection: ClientConnection | None = None
@@ -647,7 +652,10 @@ class LocalRuntimeClient:
         task_id = envelope.task_id or ""
         operation = str(envelope.payload.get("operation", ""))
         from .file_service import WorkspaceFileService
-        if operation == 'local.files.write' and isinstance(self.file_service, WorkspaceFileService) and (self.receipt_ledger is None or self.receipt_ledger.error):
+        if (operation == 'local.files.write' and isinstance(self.file_service, WorkspaceFileService)
+                or operation == 'local.skill.script') and (self.receipt_ledger is None or self.receipt_ledger.error):
+            # A Skill script is an effect-producing task like a write: without
+            # durable admission its receipt could never recover (T122-05).
             await self._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
             return
         if self.receipt_ledger is not None:
@@ -815,6 +823,54 @@ class LocalRuntimeClient:
                 receipt = self._file_receipt(
                     envelope, operation, result, consent_decision=result.get('authorization', 'always_allow')
                 )
+            elif operation == "local.skill.script":
+                # Issue 122: the only path a Skill script may take onto this
+                # device. Like the reads it needs a bound broker key, and the
+                # gate re-derives content, declaration, and grant state
+                # locally before anything runs; scripts are off by default.
+                if not self.server_public_key:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                if self.skill_script_service is None:
+                    # The gate exists on every desktop surface; a runtime built
+                    # without it has no script channel at all.
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                script_task, _declaration = self.handle_skill_script_task(dict(envelope.payload))
+                if script_task.decision is PolicyDecision.CONSENT_REQUIRED:
+                    await self.consent_coord._request_consent(
+                        envelope,
+                        dict(envelope.payload),
+                        self.skill_script_service.consent,
+                    )
+                    return
+                if script_task.decision is not PolicyDecision.ALLOW:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, script_task.decision
+                    )
+                    return
+                if script_task.receipt is None:
+                    # The grant (or policy) decided without running anything;
+                    # the constrained execution happens now, under the same
+                    # authorization basis.
+                    script_task = await self.run_skill_script_task(
+                        dict(envelope.payload), consent=True,
+                        authorization_basis=script_task.basis,
+                    )
+                    if script_task.decision is not PolicyDecision.ALLOW:
+                        await self._denial_response(
+                            operation, task_id, envelope.payload, script_task.decision
+                        )
+                        return
+                result = script_task.value
+                receipt = script_task.receipt
+                if receipt is None:
+                    raise RuntimeError("local Skill script execution did not produce a receipt")
+                receipt = replace(receipt, task_id=task_id)
             elif operation == "local.python":
                 if self.python_service is None:
                     raise RuntimeError(
@@ -901,6 +957,15 @@ class LocalRuntimeClient:
             # generic task failure (and never as an empty success).
             await self._send_error(
                 task_id, str(exc), exc.code, envelope.payload, operation
+            )
+            return
+        except SkillScriptError as exc:
+            # Issue 122: fixed skill-script categories cross the boundary
+            # verbatim — tampered content, invalid declarations, environment
+            # mismatch or unavailability are never recast as generic errors.
+            await self._send_error(
+                task_id, str(exc), str(exc), envelope.payload, operation,
+                policy_decision=PolicyDecision.DENY.value, status="denied",
             )
             return
         except SecretStoreError as exc:
@@ -1062,6 +1127,8 @@ class LocalRuntimeClient:
             service: Any = self.mcp_service
         elif capability == "local.python":
             service = self.python_service
+        elif capability == "local.skill.script":
+            service = self.skill_script_service
         else:
             service = self.file_service
         if service is None:
@@ -1206,6 +1273,26 @@ class LocalRuntimeClient:
         if self.file_service is None:
             raise RuntimeError("file_service is required for local knowledge material")
         return self.file_service.execute("local.knowledge.material", payload, consent=consent)
+
+    def handle_skill_script_task(self, payload: dict[str, Any]) -> Any:
+        """Evaluate one Skill script request against grants and policy (#122).
+
+        Returns the service's :class:`SkillScriptDecision`: ALLOW with the
+        executed result when a stored grant covers the exact content, or
+        CONSENT_REQUIRED when the device must ask. Fixed refusals raise
+        :class:`SkillScriptError`.
+        """
+        if self.skill_script_service is None:
+            raise RuntimeError("skill_script_service is required for local Skill scripts")
+        return self.skill_script_service.evaluate(self.receipt_binding(), payload)
+
+    async def run_skill_script_task(self, payload: dict[str, Any], *, consent: bool, authorization_basis: str | None) -> Any:
+        """The consented execution half (#122), shared by dispatch and settle."""
+        if self.skill_script_service is None:
+            raise RuntimeError("skill_script_service is required for local Skill scripts")
+        return await self.skill_script_service.execute(
+            payload, consent=consent, authorization_basis=authorization_basis
+        )
 
     def handle_file_task(
         self, capability: str, payload: dict[str, Any], *, consent: bool = False

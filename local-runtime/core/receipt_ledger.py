@@ -18,7 +18,8 @@ from .receipts import content_hash
 BINDING_FIELDS = ("server_origin", "user_id", "device_id", "device_public_key", "broker_public_key")
 RECEIPT_FIELDS = frozenset(("run_id", "task_id", "capability", "policy_decision", "status", "payload_hash",
     "request_hash", "result_hash", "policy_version", "consent_decision", "stdout_hash", "stderr_hash",
-    "runtime_version", "exit_code", "started_at", "finished_at", "error_code"))
+    "runtime_version", "exit_code", "started_at", "finished_at", "error_code",
+    "skill_id", "skill_version", "skill_content_hash", "authorization_basis"))
 
 
 def profile_binding(settings):
@@ -164,7 +165,9 @@ class ReceiptLedger:
             for row in db.execute('SELECT task, receipt, delivery_state FROM local_receipts' + clause, arguments):
                 task = json.loads(row['task'])
                 receipt = json.loads(row['receipt']) if row['receipt'] else {}
-                if task.get('capability') == 'local.files.write' and (row['delivery_state'] == 'uncertain' or
+                # Writes and Skill scripts both leave real device effects, so
+                # an unresolved outcome of either blocks a verified update.
+                if task.get('capability') in ('local.files.write', 'local.skill.script') and (row['delivery_state'] == 'uncertain' or
                         receipt.get('status') == 'result_not_verified' or receipt.get('error_code') == 'RESULT_UNCERTAIN'):
                     count += 1
             return count

@@ -22,6 +22,7 @@ from .files import FileAccessError, RootConfig
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
 from .skill_import import SkillImportError, SkillImportRegistry
+from .skill_script import SkillScriptError
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
@@ -47,6 +48,8 @@ def main() -> int:
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
+    skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
+    skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -153,6 +156,39 @@ def main() -> int:
                             and type(command['expectedDraftRevision']) is int
                             and 1 <= command['expectedDraftRevision'] <= 1000000))):
                     skill_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'authorizationId', 'scope'})
+                        and command['type'] == 'skill-scripts' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'revoke'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'revoke' or (
+                            isinstance(command.get('authorizationId'), str)
+                            and 0 < len(command['authorizationId']) <= 128))):
+                    skill_script_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'set', 'clear'}
+                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                             or command['action'] == 'clear' and set(command) == {'type', 'id', 'action', 'skillId', 'scope'}
+                             and isinstance(command.get('skillId'), str) and len(command['skillId']) <= 64
+                             or command['action'] == 'set' and set(command) == {'type', 'id', 'action', 'skillId', 'enabled',
+                                                                                'keywords', 'alwaysInject', 'applicableAgentIds',
+                                                                                'priority', 'scope'}
+                             and isinstance(command.get('skillId'), str) and len(command['skillId']) <= 64
+                             and type(command.get('enabled')) is bool
+                             and isinstance(command.get('keywords'), list) and len(command['keywords']) <= 16
+                             and all(isinstance(keyword, str) and 0 < len(keyword.strip()) <= 64 for keyword in command['keywords'])
+                             and type(command.get('alwaysInject')) is bool
+                             and isinstance(command.get('applicableAgentIds'), list) and len(command['applicableAgentIds']) <= 32
+                             and all(isinstance(agent_id, str) and 0 < len(agent_id) <= 64 for agent_id in command['applicableAgentIds'])
+                             and type(command.get('priority')) is int and not isinstance(command.get('priority'), bool)
+                             and -1000 <= command['priority'] <= 1000)):
+                    skill_preference_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -457,6 +493,47 @@ def main() -> int:
                 emit({'v': 1, 'type': 'skills', 'id': skill_command['id'],
                       'result': result, 'error': error})
             try:
+                preference_command = skill_preference_commands.get_nowait()
+            except queue.Empty:
+                preference_command = None
+            if preference_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.skill_preferences(preference_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'SKILL_PREFERENCE_')) else 'SKILL_PREFERENCE_FAILED'
+                emit({'v': 1, 'type': 'skill-preferences', 'id': preference_command['id'],
+                      'result': result, 'error': error})
+            try:
+                script_command = skill_script_commands.get_nowait()
+            except queue.Empty:
+                script_command = None
+            if script_command:
+                error = ''
+                result = None
+                try:
+                    if script_command['scope'] != workspace.scope():
+                        raise SkillScriptError('SKILL_SCRIPT_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    if owner is None or controller is None or controller.skill_script_service is None:
+                        raise SkillScriptError('SKILL_SCRIPT_UNAVAILABLE')
+                    registry = controller.skill_script_service.registry
+                    if script_command['action'] == 'revoke':
+                        revoked = registry.revoke_identity(owner, script_command['authorizationId'])
+                        result = {'revoked': bool(revoked)}
+                    else:
+                        result = {'authorizations': registry.view(owner)}
+                except SkillScriptError as exc:
+                    error = str(exc)
+                except Exception:
+                    error = 'SKILL_SCRIPT_FAILED'
+                emit({'v': 1, 'type': 'skill-scripts', 'id': script_command['id'],
+                      'result': result, 'error': error})
+            try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
                 selection = None
@@ -501,6 +578,12 @@ def main() -> int:
                 skill_rows = skill_imports.view(current_receipt_owner) if current_receipt_owner else []
             except SkillImportError:
                 skill_rows = []
+            script_service = getattr(controller, 'skill_script_service', None) if controller is not None else None
+            try:
+                script_rows = script_service.registry.view(current_receipt_owner) if current_receipt_owner and script_service is not None else []
+            except SkillScriptError:
+                script_rows = []
+            script_registry_error = script_service.registry.error if script_service is not None else ''
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -532,6 +615,8 @@ def main() -> int:
                       "knowledgePublishStorageError": knowledge_publications.error,
                       "skillImports": skill_rows[:20],
                       "skillImportStorageError": skill_imports.error,
+                      "skillScriptAuthorizations": script_rows[:20],
+                      "skillScriptStorageError": script_registry_error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

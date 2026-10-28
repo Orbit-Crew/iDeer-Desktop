@@ -1022,7 +1022,7 @@ class DesktopChat:
                                            profile_binding(settings)], sort_keys=True).encode()).hexdigest()
         return ChatSession(scope, origin, settings.user_id, self.secure.get(settings.business_token_ref))
 
-    def _request(self, session, path, body=None, headers=None):
+    def _request(self, session, path, body=None, headers=None, method=None):
         csrf = secrets.token_urlsafe(32)
         # A pre-encoded body (multipart upload) carries its own Content-Type
         # through the headers override; JSON requests keep the default.
@@ -1030,7 +1030,8 @@ class DesktopChat:
                            'X-CSRF-Token': csrf, 'Origin': session.origin, 'Content-Type': 'application/json',
                            **(headers or {})}
         request = urllib.request.Request(session.origin + path, headers=request_headers,
-                                         data=None if body is None else (body if isinstance(body, bytes) else json.dumps(body).encode()))
+                                         data=None if body is None else (body if isinstance(body, bytes) else json.dumps(body).encode()),
+                                         method=method)
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         try:
             return opener.open(request, timeout=15)
@@ -1056,6 +1057,13 @@ class DesktopChat:
             return json.loads(raw)
         except (ValueError, UnicodeError):
             raise ChatError('CHAT_PROTOCOL_ERROR') from None
+
+    def _empty(self, session, path, body, method, expected=204):
+        """One Server write that returns no body; only the expected status passes."""
+        with self._request(session, path, body, method=method) as response:
+            raw = response.read(MAX_RESPONSE + 1)
+        if response.status != expected or raw:
+            raise ChatError('CHAT_PROTOCOL_ERROR')
 
     def _authorize(self, session):
         account = self._json(session, '/api/v1/auth/me')
@@ -1367,6 +1375,75 @@ class DesktopChat:
             except SkillImportError:
                 pass
             raise ChatError(category) from exc
+
+    # --- Server-side trigger preferences (issue 121) ------------------------
+
+    def _preference_projection(self, listing):
+        """Project the Server's own preference list into the Desktop display shape (#121).
+
+        Every field is validated and bounded; anything the Server did not state
+        is dropped rather than invented. The rows carry identity and the
+        caller's own preference fields — never Skill content — and matching
+        happens only Server-side at Run preparation.
+        """
+        if not isinstance(listing, dict) or not isinstance(listing.get('items'), list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        rows = []
+        for item in listing['items'][:200]:
+            if not isinstance(item, dict) or not isinstance(item.get('skill'), dict):
+                continue
+            skill = item['skill']
+            keywords = item.get('keywords')
+            agent_ids = item.get('applicable_agent_ids')
+            row = dict(skillId=_bounded_text(item.get('skill_resource_id'), 64),
+                       slug=_bounded_text(skill.get('slug'), 255),
+                       displayName=_bounded_text(skill.get('display_name'), 255),
+                       latestVersion=skill['latest_version'] if type(skill.get('latest_version')) is int else 0,
+                       available=skill.get('available') is True,
+                       enabled=item.get('enabled') is True,
+                       keywords=[_bounded_text(keyword, 64) for keyword in keywords[:16]] if isinstance(keywords, list) else [],
+                       alwaysInject=item.get('always_inject') is True,
+                       applicableAgentIds=[_bounded_text(agent_id, 64) for agent_id in agent_ids[:32]] if isinstance(agent_ids, list) else [],
+                       priority=item['priority'] if type(item.get('priority')) is int else 0)
+            if row['skillId']:
+                rows.append(row)
+        return rows
+
+    def skill_preferences(self, command):
+        """Relay one trigger-preference command to the Server endpoints (#121).
+
+        The Desktop never matches keywords and never drives a model: the
+        preference document goes to the Server's own endpoints, and the reply
+        is the Server's bounded projection. Authority (visibility, published
+        availability, dependency closure) is the Server's decision at Run
+        preparation, re-validated on every match.
+        """
+        action = command.get('action')
+        if action not in {'list', 'set', 'clear'}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        if action == 'list':
+            return dict(skills=self._preference_projection(
+                self._json(session, '/api/resources/skill-trigger-preferences')))
+        skill_id = self._uuid(command.get('skillId'))
+        if action == 'set':
+            keywords = command.get('keywords')
+            agent_ids = command.get('applicableAgentIds')
+            priority = command.get('priority')
+            if not isinstance(keywords, list) or not isinstance(agent_ids, list) \
+                    or type(priority) is not int or isinstance(priority, bool) \
+                    or not -1000 <= priority <= 1000:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            payload = dict(enabled=command.get('enabled') is True,
+                           keywords=[str(keyword).strip() for keyword in keywords][:16],
+                           always_inject=command.get('alwaysInject') is True,
+                           applicable_agent_ids=[self._uuid(agent_id) for agent_id in agent_ids][:32],
+                           priority=priority)
+            self._empty(session, f'/api/resources/{skill_id}/trigger-preference', payload, 'PUT')
+        else:
+            self._empty(session, f'/api/resources/{skill_id}/trigger-preference', None, 'DELETE')
+        return dict(skills=self._preference_projection(
+            self._json(session, '/api/resources/skill-trigger-preferences')))
 
     # --- Explicit server-side publication (issue 115) -----------------------
 
