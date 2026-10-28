@@ -32,6 +32,13 @@ class LocalExecutionReceipt:
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error_code: str | None = None
+    # Issue 122: skill script receipts bind the executed skill identity and
+    # the authorization basis the device accepted (AC3). All four stay None
+    # for every other capability.
+    skill_id: str | None = None
+    skill_version: int | None = None
+    skill_content_hash: str | None = None
+    authorization_basis: str | None = None
 
     @property
     def request_hash(self) -> str:
@@ -58,6 +65,10 @@ class LocalExecutionReceipt:
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "finished_at": self.finished_at.isoformat() if self.finished_at else None,
             "error_code": self.error_code,
+            "skill_id": self.skill_id,
+            "skill_version": self.skill_version,
+            "skill_content_hash": self.skill_content_hash,
+            "authorization_basis": self.authorization_basis,
         }
 
     def cleanup_local_logs(self) -> None:

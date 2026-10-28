@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Input, InputNumber, Space, Switch, Tag, Typography } from 'antd'
-import type { RuntimeStatus, SkillCommand, SkillImportView, SkillPreferenceCommand, SkillPreferencesView, SkillTriggerPreferenceView } from '../../../shared/desktop'
+import type { RuntimeStatus, SkillCommand, SkillImportView, SkillPreferenceCommand, SkillPreferencesView, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView } from '../../../shared/desktop'
 
 const originNames: Record<string, string> = { markdown: 'Markdown', zip: 'ZIP', directory: '目录' }
 const statusNames: Record<SkillImportView['status'], string> = {
@@ -18,6 +18,8 @@ export interface SkillSectionProps {
   onPreferences?: (command: SkillPreferenceCommand) => Promise<SkillPreferencesView>
   /** Issue 121: the Server's already-known projection (static render/tests). */
   initialPreferences?: SkillPreferencesView
+  /** Issue 122: injectable for tests; defaults to the real pinned IPC bridge. */
+  onScriptCommands?: (command: SkillScriptCommand) => Promise<SkillScriptView>
 }
 
 interface PreferenceDraft {
@@ -51,13 +53,16 @@ const parseList = (value: string): string[] =>
  * 可见性/发布/依赖闭包校验与注入全部由 Server 在 Run 准备时完成，桌面端没有
  * 匹配代码，也不驱动模型。
  */
-export function SkillSection({ runtime, busy, error, onCommand, onPreferences, initialPreferences }: SkillSectionProps): JSX.Element {
+export function SkillSection({ runtime, busy, error, onCommand, onPreferences, initialPreferences, onScriptCommands }: SkillSectionProps): JSX.Element {
   const preferencesApi = onPreferences ?? ((command: SkillPreferenceCommand) => window.ideer.skillPreferences(command))
+  const scriptsApi = onScriptCommands ?? ((command: SkillScriptCommand) => window.ideer.skillScripts(command))
   const [rows, setRows] = useState<SkillTriggerPreferenceView[] | null>(initialPreferences ? initialPreferences.skills : null)
   const [loadError, setLoadError] = useState('')
   const [drafts, setDrafts] = useState<Record<string, PreferenceDraft>>({})
   const [working, setWorking] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [scriptGrants, setScriptGrants] = useState<SkillScriptAuthorizationView[]>(runtime?.skillScriptAuthorizations ?? [])
+  const [scriptError, setScriptError] = useState('')
 
   const reload = useCallback(async () => {
     try {
@@ -71,7 +76,19 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
     }
   }, [preferencesApi])
 
+  const reloadScripts = useCallback(async () => {
+    try {
+      const view = await scriptsApi({ action: 'list' })
+      setScriptGrants(view.authorizations)
+      setScriptError('')
+    } catch (exception) {
+      setScriptGrants([])
+      setScriptError(exception instanceof Error ? exception.message : String(exception))
+    }
+  }, [scriptsApi])
+
   useEffect(() => { void reload() }, [reload])
+  useEffect(() => { void reloadScripts() }, [reloadScripts])
 
   const apply = async (command: SkillPreferenceCommand): Promise<void> => {
     setWorking(true)
@@ -99,6 +116,19 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
       applicableAgentIds: parseList(draft.applicableAgentIds).slice(0, 32),
       priority: draft.priority
     })
+  }
+
+  const revokeScriptGrant = async (authorizationId: string): Promise<void> => {
+    setWorking(true)
+    setScriptError('')
+    try {
+      const view = await scriptsApi({ action: 'revoke', authorizationId })
+      setScriptGrants(view.authorizations)
+    } catch (exception) {
+      setScriptError(exception instanceof Error ? exception.message : String(exception))
+    } finally {
+      setWorking(false)
+    }
   }
 
   const rows_ = rows ?? []
@@ -175,6 +205,25 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
           </Space>
         </Card>
       })}
+    </Card>
+    <Card className="max-w-3xl mt-2" size="small" title="脚本授权（设备本地）">
+      <Typography.Paragraph>
+        自定义技能脚本默认关闭。每次执行都会先在本机确认；勾选“记住”只对当前脚本内容与声明的环境范围生效——脚本或范围变化会重新询问。撤销后再次执行需要重新批准；目录授权、技能共享和内置身份都不能代替脚本审批。
+      </Typography.Paragraph>
+      {runtime?.skillScriptStorageError && <Alert type="error" message="脚本授权记录存储不可用，状态显示可能不完整" />}
+      {scriptError && <Alert type="error" message={`脚本授权不可用：${scriptError}`} />}
+      {!scriptGrants.length && !scriptError && <Typography.Text type="secondary">本机当前没有已记住的技能脚本授权。</Typography.Text>}
+      {scriptGrants.map(row => <Card key={row.id} size="small" className="mt-2">
+        <Typography.Paragraph>
+          {row.slug || row.resourceId} · {row.scriptPath} · V{row.version}
+        </Typography.Paragraph>
+        <Typography.Paragraph type="secondary">
+          <Typography.Text copyable>脚本指纹 {row.scriptSha256}</Typography.Text>
+        </Typography.Paragraph>
+        <Typography.Paragraph type="secondary">账号与设备绑定 · {row.createdAt}</Typography.Paragraph>
+        <Button aria-label={`撤销脚本授权 ${row.slug || row.resourceId}`} disabled={working}
+          onClick={() => void revokeScriptGrant(row.id)}>撤销此授权</Button>
+      </Card>)}
     </Card>
   </>
 }

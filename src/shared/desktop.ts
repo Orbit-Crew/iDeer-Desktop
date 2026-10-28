@@ -318,6 +318,24 @@ export interface SkillImportView {
   errorCode: string
   createdAt: string
 }
+/** Issue 122: one remembered device-local Skill script grant (exact content + scope). */
+export interface SkillScriptAuthorizationView {
+  id: string
+  resourceId: string
+  slug: string
+  version: number
+  contentHash: string
+  scriptPath: string
+  scriptSha256: string
+  requirementsHash: string
+  status: 'granted'
+  createdAt: string
+}
+/** Issue 122: list or revoke the device's remembered Skill script grants. */
+export type SkillScriptCommand =
+  | { action: 'list' }
+  | { action: 'revoke'; authorizationId: string }
+export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[] }
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -334,6 +352,8 @@ export interface RuntimeStatus {
   knowledgePublishStorageError?: string
   skillImports?: SkillImportView[]
   skillImportStorageError?: string
+  skillScriptAuthorizations?: SkillScriptAuthorizationView[]
+  skillScriptStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -392,6 +412,8 @@ export interface DesktopBridge {
   skills(command: SkillCommand): Promise<SkillImportPreview | SkillImportOutcome | SkillPublishOutcome>
   /** Issue 121: configure Skill trigger preferences; the Server matches, the Desktop never does. */
   skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
+  /** Issue 122: list or revoke the device's remembered Skill script grants. */
+  skillScripts(command: SkillScriptCommand): Promise<SkillScriptView>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

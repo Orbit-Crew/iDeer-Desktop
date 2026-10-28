@@ -56,6 +56,11 @@ class LocalPolicy:
             # server-orchestrated graph generation, so every request is a
             # local confirmation like the writes above.
             "local.knowledge.material",
+            # Issue 122: a Skill script runs machine code on this device, so
+            # every request starts as an explicit local confirmation; stored
+            # content-bound grants short-circuit the ask, local DENY never
+            # does.
+            "local.skill.script",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

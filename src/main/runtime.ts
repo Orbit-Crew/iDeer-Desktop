@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -26,6 +26,7 @@ export class RuntimeProcess {
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
+  private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -303,6 +304,35 @@ export class RuntimeProcess {
       this.skillPreferenceRequests.set(id, {
         resolve: (view) => { clearTimeout(timer); this.skillPreferenceRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.skillPreferenceRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /** Issue 122: list or revoke the device's remembered Skill script grants.
+   * The registry lives in the owned Runtime and is binding-scoped; the
+   * Desktop never grants execution from here — approvals happen in the
+   * consent flow only. */
+  async skillScripts(command: SkillScriptCommand): Promise<SkillScriptView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('SKILL_SCRIPT_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'skill-scripts', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('SKILL_SCRIPT_COMMAND_INVALID')
+    } else {
+      if (typeof command.authorizationId !== 'string' || !command.authorizationId || command.authorizationId.length > 128) throw new Error('SKILL_SCRIPT_COMMAND_INVALID')
+      if (Object.keys(command).length !== 2) throw new Error('SKILL_SCRIPT_COMMAND_INVALID')
+      wire.authorizationId = command.authorizationId
+    }
+    if (this.skillScriptRequests.size) throw new Error('SKILL_SCRIPT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.skillScriptRequests.delete(id); reject(new Error('SKILL_SCRIPT_TIMEOUT')) }, 30000)
+      this.skillScriptRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.skillScriptRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.skillScriptRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -745,6 +775,32 @@ export class RuntimeProcess {
             pending.resolve({ skills })
             continue
           }
+          if (value.v === 1 && value.type === 'skill-scripts') {
+            // Issue 122: the device's own binding-scoped grant list, bounded
+            // before it reaches the renderer; hashes only, never script bytes.
+            const pending = this.skillScriptRequests.get(value.id)
+            if (!pending) continue
+            this.skillScriptRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || !Array.isArray(result.authorizations)) { pending.reject(new Error('SKILL_SCRIPT_FAILED')); continue }
+            const authorizations: SkillScriptAuthorizationView[] = []
+            for (const row of result.authorizations.slice(0, 20)) {
+              if (!row || typeof row.id !== 'string' || !/^[0-9a-f]{64}$/.test(row.id) ||
+                  typeof row.resourceId !== 'string' || typeof row.scriptPath !== 'string' ||
+                  !row.scriptPath.startsWith('scripts/') || typeof row.scriptSha256 !== 'string' ||
+                  !/^[0-9a-f]{64}$/.test(row.scriptSha256) || typeof row.requirementsHash !== 'string' ||
+                  !/^[0-9a-f]{64}$/.test(row.requirementsHash) || row.status !== 'granted' ||
+                  typeof row.createdAt !== 'string') throw new Error('Invalid skill script authorization')
+              authorizations.push({ id: row.id, resourceId: row.resourceId, slug: typeof row.slug === 'string' ? row.slug.slice(0, 128) : '',
+                version: Number.isSafeInteger(row.version) && row.version >= 0 ? row.version : 0,
+                contentHash: typeof row.contentHash === 'string' && /^[0-9a-f]{64}$/.test(row.contentHash) ? row.contentHash : '',
+                scriptPath: row.scriptPath.slice(0, 512), scriptSha256: row.scriptSha256,
+                requirementsHash: row.requirementsHash, status: 'granted', createdAt: row.createdAt })
+            }
+            pending.resolve({ authorizations })
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -848,6 +904,25 @@ export class RuntimeProcess {
                 status: row.status, errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt })
             }
           }
+          const scriptAuthorizations: SkillScriptAuthorizationView[] = []
+          if (Array.isArray(value.skillScriptAuthorizations)) {
+            for (const row of value.skillScriptAuthorizations.slice(0, 20)) {
+              // Issue 122: rows are device-local display facts for the exact
+              // content/scope bindings this account granted; hashes only.
+              if (!row || typeof row.id !== 'string' || !/^[0-9a-f]{64}$/.test(row.id) ||
+                  typeof row.resourceId !== 'string' || typeof row.scriptPath !== 'string' ||
+                  !row.scriptPath.startsWith('scripts/') || typeof row.scriptSha256 !== 'string' ||
+                  !/^[0-9a-f]{64}$/.test(row.scriptSha256) || typeof row.requirementsHash !== 'string' ||
+                  !/^[0-9a-f]{64}$/.test(row.requirementsHash) || row.status !== 'granted' ||
+                  typeof row.createdAt !== 'string') throw new Error('Invalid skill script status')
+              scriptAuthorizations.push({ id: row.id, resourceId: row.resourceId,
+                slug: typeof row.slug === 'string' ? row.slug.slice(0, 128) : '',
+                version: Number.isSafeInteger(row.version) && row.version >= 0 ? row.version : 0,
+                contentHash: typeof row.contentHash === 'string' && /^[0-9a-f]{64}$/.test(row.contentHash) ? row.contentHash : '',
+                scriptPath: row.scriptPath.slice(0, 512), scriptSha256: row.scriptSha256,
+                requirementsHash: row.requirementsHash, status: 'granted', createdAt: row.createdAt })
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
@@ -857,6 +932,8 @@ export class RuntimeProcess {
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',
             skillImports, skillImportStorageError: value.skillImportStorageError === 'SKILL_IMPORT_STORAGE_UNAVAILABLE' ? value.skillImportStorageError : '',
+            skillScriptAuthorizations: scriptAuthorizations,
+            skillScriptStorageError: value.skillScriptStorageError === 'SKILL_SCRIPT_STORAGE_UNAVAILABLE' ? value.skillScriptStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
@@ -886,6 +963,7 @@ export class RuntimeProcess {
       for (const pending of this.knowledgePublishRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeWikiRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

@@ -167,3 +167,61 @@ describe('skill trigger preference configuration bridge (#121)', () => {
     expect(renderSection()).toContain('正在加载触发偏好')
   })
 })
+
+describe('device skill script authorization surface (#122)', () => {
+  const grant = {
+    id: 'a'.repeat(64), resourceId: RESOURCE, slug: 'report-skill', version: 2,
+    contentHash: PACKAGE_HASH, scriptPath: 'scripts/analyze.py', scriptSha256: 'b'.repeat(64),
+    requirementsHash: 'd'.repeat(64), status: 'granted' as const, createdAt: '2026-10-27T00:00:00Z'
+  }
+
+  it('validates the script command before the owned Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-122/unused')
+    for (const command of [
+      null, 'list', {}, { action: 'grant' }, { action: 'list', extra: 1 },
+      { action: 'revoke' }, { action: 'revoke', authorizationId: '' },
+      { action: 'revoke', authorizationId: 'x'.repeat(129) }, { action: 'revoke', authorizationId: 7 }
+    ]) {
+      await expect(runtime.skillScripts(command as never)).rejects.toThrow('SKILL_SCRIPT_COMMAND_INVALID')
+    }
+    await expect(runtime.skillScripts({ action: 'list' })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.skillScripts({ action: 'revoke', authorizationId: 'a'.repeat(64) }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+
+  it('renders remembered grants with revoke and shows the storage error honestly', async () => {
+    const html = renderToStaticMarkup(
+      <SkillSection
+        runtime={runtimeStatus({
+          skillScriptAuthorizations: [grant],
+          skillImports: []
+        })}
+        busy={false}
+        error=""
+        onCommand={() => {}}
+        onPreferences={async () => ({ skills: [] })}
+        onScriptCommands={async () => ({ authorizations: [grant] })}
+      />
+    )
+    expect(html).toContain('脚本授权（设备本地）')
+    expect(html).toContain('report-skill')
+    expect(html).toContain('scripts/analyze.py')
+    expect(html).toContain('脚本指纹')
+    expect(html).toContain('撤销此授权')
+// No grants and no error: the empty state says so instead of inventing rows.
+    const empty = renderToStaticMarkup(
+      <SkillSection runtime={runtimeStatus({ skillImports: [] })} busy={false} error=""
+        onCommand={() => {}} onPreferences={async () => ({ skills: [] })}
+        onScriptCommands={async () => ({ authorizations: [] })} />
+    )
+    expect(empty).toContain('本机当前没有已记住的技能脚本授权')
+    const storageError = renderToStaticMarkup(
+      <SkillSection runtime={runtimeStatus({
+        skillImports: [], skillScriptStorageError: 'SKILL_SCRIPT_STORAGE_UNAVAILABLE'
+      })} busy={false} error="" onCommand={() => {}} onPreferences={async () => ({ skills: [] })}
+        onScriptCommands={async () => ({ authorizations: [] })} />
+    )
+    expect(storageError).toContain('脚本授权记录存储不可用')
+  })
+})

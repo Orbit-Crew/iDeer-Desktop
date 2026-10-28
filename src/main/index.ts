@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -293,6 +293,16 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('SKILL_PREFERENCE_UNAUTHENTICATED')
       return runtime.skillPreferences(command)
+    })
+    // Issue 122: the device's own Skill script grant list. Listing and
+    // revoking happen only on the owned Runtime's binding-scoped registry;
+    // nothing here can create a grant — approvals live in the consent flow.
+    ipcMain.handle('desktop:skill-scripts', async (event, command: SkillScriptCommand): Promise<SkillScriptView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['list', 'revoke'].includes(command.action)) throw new Error('SKILL_SCRIPT_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('SKILL_SCRIPT_UNAUTHENTICATED')
+      return runtime.skillScripts(command)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)
