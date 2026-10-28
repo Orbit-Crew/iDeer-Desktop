@@ -1,0 +1,210 @@
+{
+  "startedAt": "2026-10-28T22:25:47.545Z",
+  "status": "failed",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "82d336eae531067ba8daea0c936bfd17c67cc5dd",
+  "desktopCandidateMeaning": "worktree base commit; the driven tree is this worktree as installed",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "model": "agnes-3.0-flash",
+  "realProvider": true,
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "2cbcf37404587fd11b24f4f0701e9b19e712e74a6c5052838c8db56b4726b74e",
+  "fixtureSHA256": "65065a66a9c28d9c25ea80dd23e0fa5bccfd23c9caff5b7cd582c75f00649de5",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "authentication": "real registration/login/pairing APIs",
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP and authorization.",
+  "runSessions": "None. Wiki generation and page reads are Server-orchestrated endpoints (run_oneshot_llm on the Server); this driver creates no chat thread and no Desktop Run, so the Runtime SSE consumption timeout (Orbit-Crew/iDeer-Desktop#37) cannot affect any wait. Every model-adjacent settlement is observed by Gateway API polling, the issue-120 terminal(threadId, runId) pattern.",
+  "scenarios": {
+    "T118-01": {
+      "status": "unexecuted",
+      "cases": [
+        {
+          "name": "frozen-revision-registered",
+          "status": "passed",
+          "revision": {
+            "id": "c0f174a5-c50c-43f5-b1dc-77bf18f2944f",
+            "resource_id": "7752e645-04e4-4077-b300-0b27543ab02c",
+            "revision_no": 1,
+            "status": "draft",
+            "manifest_hash": "930a4cdc689efdd28f3a701c8b5cdab26103cb0be089eed6be85f00d67d5aa86",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T22:25:54.618770",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "5ea6dc14-efba-5c3c-953b-784089aef24d",
+                "content_hash": "87907db239083f1aa8868fe443e5f70be81fc9d9b5d4f7153f2e3a9372f87094",
+                "filename": "guide.md",
+                "size_bytes": 62,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "c530f464-3db4-4b68-a28f-35ed58d4bbb1"
+                }
+              }
+            ]
+          },
+          "guideSHA256": "87907db239083f1aa8868fe443e5f70be81fc9d9b5d4f7153f2e3a9372f87094"
+        },
+        {
+          "name": "view-before-generation-is-honest",
+          "status": "passed",
+          "view": {
+            "knowledge_base_id": "7752e645-04e4-4077-b300-0b27543ab02c",
+            "revision_id": "c0f174a5-c50c-43f5-b1dc-77bf18f2944f",
+            "revision_no": 1,
+            "manifest_hash": "930a4cdc689efdd28f3a701c8b5cdab26103cb0be089eed6be85f00d67d5aa86",
+            "status": "not_generated",
+            "generated": 0,
+            "failed": 0,
+            "skipped": 0,
+            "pages": [
+              {
+                "document_id": "5ea6dc14-efba-5c3c-953b-784089aef24d",
+                "filename": "guide.md",
+                "title": "",
+                "content_hash": "87907db239083f1aa8868fe443e5f70be81fc9d9b5d4f7153f2e3a9372f87094",
+                "status": "not_generated",
+                "error_code": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "T118-02": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T118-03": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T118-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "error": "Error: Timeout: wiki refusal alert",
+  "stack": "Error: Timeout: wiki refusal alert\n    at wait (G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\scripts\\acceptance\\issue-118\\desktop.cjs:42:9)\n    at async nextRefusalAlert (G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\scripts\\acceptance\\issue-118\\desktop.cjs:121:3)\n    at async main (G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\scripts\\acceptance\\issue-118\\desktop.cjs:150:28)",
+  "failureStatus": {
+    "version": "0.2.0",
+    "server": "connected",
+    "runtime": {
+      "process": "running",
+      "connection": "connected",
+      "tasks": [],
+      "pid": 275532,
+      "login": {
+        "state": "authenticated",
+        "account": "t100-a@test.com",
+        "device": "T100 isolated device A",
+        "error": ""
+      },
+      "workspace": {
+        "state": "ready",
+        "logicalRoot": "/workspace/1b15d4a0-027d-4607-9673-de8f78e403fc"
+      },
+      "compatibility": {
+        "level": "compatible",
+        "disabledCapabilities": [],
+        "error": "",
+        "notes": "未发布兼容声明，仅保留已支持的旧协议 1 行为。",
+        "advice": "旧协议 1 兼容。权限仍由 Server 与本地策略决定。",
+        "candidateCombo": {
+          "desktop": "0.2.0",
+          "runtime": "3.12.10",
+          "server": "591f80c-runtime-compat-20261025"
+        },
+        "actualCombo": {
+          "desktop": "0.2.0",
+          "runtime": "3.12.10",
+          "server": "591f80c-runtime-compat-20261025"
+        },
+        "declarationHash": "",
+        "legacy": true
+      },
+      "installDrain": false,
+      "activeTasks": 0,
+      "unknownWriteEffects": 0,
+      "directoryGrants": [],
+      "knowledgeImports": [
+        {
+          "id": "0c068871488362e9d05e56590ccda1e5d1e5fa50a3b8b3dc35447451f734142c",
+          "kbId": "7752e645-04e4-4077-b300-0b27543ab02c",
+          "revisionId": "c0f174a5-c50c-43f5-b1dc-77bf18f2944f",
+          "revisionNo": 1,
+          "manifestHash": "930a4cdc689efdd28f3a701c8b5cdab26103cb0be089eed6be85f00d67d5aa86",
+          "documentCount": 1,
+          "status": "registered",
+          "errorCode": "",
+          "createdAt": "2026-10-28 22:25:54",
+          "documents": [
+            {
+              "filename": "guide.md",
+              "sha256": "87907db239083f1aa8868fe443e5f70be81fc9d9b5d4f7153f2e3a9372f87094",
+              "bytes": 62,
+              "mime": "text/markdown"
+            }
+          ]
+        }
+      ],
+      "knowledgeImportStorageError": "",
+      "knowledgePublications": [],
+      "knowledgePublishStorageError": "",
+      "skillImports": [],
+      "skillImportStorageError": "",
+      "skillScriptAuthorizations": [],
+      "skillScriptStorageError": "",
+      "connectors": [],
+      "connectorStorageError": "",
+      "receiptStorageError": "",
+      "receiptScope": "ac130f909101374d3c92fa81e7f5a3587650c88ebf00c47efdfe11d8cb07115d"
+    }
+  },
+  "failureUI": "iDeer Desktop\n平台连接\n\n在本机 Runtime 面板查看设备连接与任务状态。\n\n版本 0.1.0\n\n退出应用\n平台连接\n平台登录与设备连接\n登录后可选择平台已有 Agent/Skill，继续平台聊天与历史\n配对后的设备可通过 Runtime 接收 Server 签名任务。尚未配置设备时，任务不可用。\n原 linz 安装和数据保留在原位置，可继续通过原应用查阅。\n平台聊天与历史\n刷新资源与历史\n由 Server 编排，凭证保留在系统安全存储中\n选择已发布 Agent\n可选：选择 Agent 已包含的 Skill\n新建平台聊天\n重新打开平台 Thread\n本机 Runtime\n平台账号与设备绑定\n在系统浏览器登录已有账号或 SSO，核对设备后确认绑定。完成交换前，桌面业务会话为未认证。\n在浏览器登录并绑定此设备\n桌面业务会话：已认证\n账号：t100-a@test.com · 设备：T100 isolated device A\n退出账号\n切换账号或重新绑定设备\n退出会停止任务并取消待审批，保留隔离记录。同账号原设备重登可恢复授权；切换账号将建立新的设备绑定。\n进程：运行中 （PID 275532）\n设备连接：已连接\n启动 Runtime\n停止 Runtime\n工作目录\n按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。\n/workspace/1b15d4a0-027d-4607-9673-de8f78e403fc\n选择并授权目录\n在原聊天中可选择仅允许一次，或持续允许所选目录及子目录的文本新建与覆盖。目录授权不允许执行脚本。\n持续目录授权\n当前账号与设备没有持续文本写入授权。\n本地知识导入\n把工作目录中的文件显式导入为你的私有平台知识库版本：设备侧解析并计算指纹，平台只登记文件名、大小、类型与 SHA-256 清单，原文件与设备索引不会自动上传。每次导入生成新的不可变版本。\n选择文件并导入\n已登记版本 R1 · 1 个文件\n知识库 7752e645-04e4-4077-b300-0b27543ab02c · 版本 c0f174a5-c50c-43f5-b1dc-77bf18f2944f · 2026-10-28 22:25:54\n清单指纹：930a4cdc689efdd28f3a701c8b5cdab26103cb0be089eed6be85f00d67d5aa86\nguide.md（text/markdown，62 字节）\n发布此版本到服务端…\n服务端发布记录\n把你登记过的私有版本显式发布为平台上的独立服务端知识库副本：先预览内容与去向，确认后才上传；副本初始为私有，团队访问须经平台可见性申请与审批。设备端知识库保持私有，发布不会自动双向同步，也不会替换正在运行的知识版本。\n当前账号与设备尚无发布记录。\n知识图谱\n知识图谱\n针对已登记的知识库版本，由平台统一编排生成实体与关系；来源始终绑定冻结版本与文档指纹，可定位回本机授权来源。跨账号或其他范围的版本不会显示。\nR1 · 7752e645-04e4-4077-b300-0b27543ab02c\n查看图谱\n生成图谱\n知识 Wiki\n知识 Wiki\n针对已登记的知识库版本，由平台统一编排生成 Wiki 页面；页面与来源始终绑定冻结版本与文档指纹，进度、跳过和部分失败如实展示。导航索引、链接反链与关联图均由该冻结版本自身的产物推导，缺失目标如实标注，不会伪造可访问页面。跨账号或其他范围的版本不会显示。\nR1 · 7752e645-04e4-4077-b300-0b27543ab02c\n查看Wiki\n生成Wiki\n导航索引\n版本 R1 · 生成失败 · 成功 0 · 失败 0 · 跳过 1\n清单指纹：930a4cdc689efdd28f3a701c8b5cdab26103cb0be089eed6be85f00d67d5aa86\n页面列表\nguide.md · 已跳过：GRAPH_DEVICE_UNAVAILABLE\n来源 guide.md · 文档指纹：87907db239083f1aa8868fe443e5f70be81fc9d9b5d4f7153f2e3a9372f87094\n技能包导入\n技能包导入\n选择一个 Markdown、ZIP 或目录技能包：先在设备侧预览正文、脚本、引用与指纹，确认后才上传为你的私有平台技能草稿；发布版本需再次确认，走平台既有的草稿校验与发布流程。取消或未确认的包不会上传，本地草稿也不会在设备上执行。\n导入 Markdown 技能…\n导入 ZIP 技能…\n导入目录技能…\n触发偏好（Server 端匹配）\n为本人账号的技能配置启用、关键词、始终注入、适用 Agent 与优先级。配置仅保存到 Server；Server 在 Run 准备时按既有规则完成匹配注入（明确选用优先、空关键词始终注入、每次最多注入一个、可见性/发布/依赖闭包重新校验）。桌面端不匹配、不驱动模型；进行中的 Run 不受后续修改影响。\n触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY\n当前账号尚无技能触发偏好。\n脚本授权（设备本地）\n自定义技能脚本默认关闭。每次执行都会先在本机确认；勾选“记住”只对当前脚本内容与声明的环境范围生效——脚本或范围变化会重新询问。撤销后再次执行需要重新批准；目录授权、技能共享和内置身份都不能代替脚本审批。\n脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY\n本地连接器组件\n把本机的一个组件目录安装为仅本人可用的受管 Connector：本机校验版本、依赖与入口后生成受控配置， 平台只登记名称、版本与指纹身份。运行绑定与数据目录留在本设备，不会同步为其他设备可运行的配置。\n安装本地连接器组件…\n当前账号与设备尚无已安装的连接器。\n执行回执历史\n重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。\n共 0 条 · 待确认 0 · 已确认 0 · 结果待核实 0 · 已清理标记 0\n清理已确认回执\n较新回执\n较早回执\n近期任务\n暂无任务记录\n更新检查与离线导入\n在线检查使用已配对 Server 提供的受控地址；离线导入选择 manifest.json（同目录需有 manifest.sig）。 两条路径都只做签名、完整性与兼容性校验，并停在待安装状态——检查或导入不等于安装同意，也不会修改任何文件。\n检查更新（在线）\n导入离线补丁清单\n组合兼容状态\n兼容声明由已配对 Server 的受控地址提供并验签。单项不兼容只停该能力；核心不兼容停止新的本地任务， 历史与未确认执行记录完整保留，未知任务不会当作未执行。功能开关不替代权限：Server 授权与本地策略仍决定每个请求。\n刷新兼容声明\n级别：组合兼容\n候选组合：Desktop 0.2.0 · Runtime 3.12.10 · Server 591f80c-runtime-compat-20261025\n当前组合：Desktop 0.2.0 · Runtime 3.12.10 · Server 591f80c-runtime-compat-20261025\n未发布兼容声明，仅保留已支持的旧协议 1 行为。\n旧协议 1 兼容。权限仍由 Server 与本地策略决定。",
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-28T22:37:02.033Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer118-files-yRzzHc"
+}
