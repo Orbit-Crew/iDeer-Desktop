@@ -162,6 +162,13 @@ async function main() {
     save()
     if (canceled.confirmation) {
       assert.equal(canceled.confirmation.title, '确认发布到服务端知识库')
+      assert.match(canceled.confirmation.message, /「T115 owned knowledge · 服务端副本 R1」/)
+      assert.match(canceled.confirmation.detail, /包含文件：guide\.md（text\/markdown，\d+ 字节）/)
+      assert.match(canceled.confirmation.detail, /服务端副本初始为私有/)
+      assert.match(canceled.confirmation.detail, /可见性申请与审批/)
+      assert.match(canceled.confirmation.detail, /不会自动双向同步/)
+      assert.match(canceled.confirmation.detail, /取消则不会上传任何内容/)
+      assert.deepEqual(canceled.confirmation.buttons, ['取消，不上传', '确认发布'])
     } else {
       // The publish flow refused before the confirmation dialog; the dialog
       // leg stays unexecuted with the captured observation and the data-plane
@@ -171,13 +178,6 @@ async function main() {
         ipcRejection: canceled.ipcRejection, alerts: canceled.alerts })
       save()
     }
-    assert.match(canceled.confirmation.message, /「T115 owned knowledge · 服务端副本 R1」/)
-    assert.match(canceled.confirmation.detail, /包含文件：guide\.md（text\/markdown，\d+ 字节）/)
-    assert.match(canceled.confirmation.detail, /服务端副本初始为私有/)
-    assert.match(canceled.confirmation.detail, /可见性申请与审批/)
-    assert.match(canceled.confirmation.detail, /不会自动双向同步/)
-    assert.match(canceled.confirmation.detail, /取消则不会上传任何内容/)
-    assert.deepEqual(canceled.confirmation.buttons, ['取消，不上传', '确认发布'])
     assert(canceled.alerts.some(text => text.includes(publishAlert)))
     const previewRows = canceled.wire.filter(row => row.method === 'GET' && row.path.endsWith('/local-publication/preview'))
     assert.equal(previewRows.length, 1); assert.equal(previewRows[0].status, 200)

@@ -230,17 +230,20 @@ async function main() {
     const first = (await importUI([path.join(workspace, 'guide.md')], kb)).row
     const r1 = revision(first)
     await activate(kb, first.revisionId, 1)
-    // Known server defect (Orbit-Crew/iDeer#167): the refused publish leaves
-    // version 1 behind, so the retry needs a fresh draft revision. The
-    // refused-attempt behavior is asserted above and recorded as the defect
-    // observation.
+    // Known server defect (Orbit-Crew/iDeer#167): a publish that fails
+    // dependency validation leaves published version 1 behind, so the SAME
+    // agent can never be published afterwards ("Resource version 1 already
+    // exists"). The refused-attempt behavior is asserted above; the rest of
+    // the scenario runs on a fresh identical agent.
     evidence.defect167DoublePublish = true
     save()
-    const redraft = put('A', `/api/resources/${agentA.body.id}/agent-draft`, { config: { name: 't113-frozen-agent', model: manifest.model, thinking_enabled: false, memory_enabled: false, model_settings: { max_tokens: 3000 } },
-      soul: 'Answer only from the authorized knowledge sources and quote the exact stored phrase. Use no tools other than knowledge search.', expected_revision: 1,
+    const agentA2 = api('A', '/api/resources', { type: 'agent', slug: 't113-frozen-agent-2', display_name: 'T113 frozen agent 2', storage_kind: 'filesystem' })
+    assert.equal(agentA2.status, 201)
+    const draft2 = put('A', `/api/resources/${agentA2.body.id}/agent-draft`, { config: { name: 't113-frozen-agent-2', model: manifest.model, thinking_enabled: false, memory_enabled: false, model_settings: { max_tokens: 3000 } },
+      soul: 'Answer only from the authorized knowledge sources and quote the exact stored phrase. Use no tools other than knowledge search.', expected_revision: 0,
       knowledge_dependencies: [{ resource_id: kb, dependency_mode: 'live' }] })
-    assert.equal(redraft.status, 200, 'redraft failed: ' + JSON.stringify(redraft.body).slice(0, 200))
-    const publishedAgent = api('A', `/api/resources/${agentA.body.id}/publish`, { expected_draft_revision: 2, scan_result: { status: 'passed' } })
+    assert.equal(draft2.status, 200)
+    const publishedAgent = api('A', `/api/resources/${agentA2.body.id}/publish`, { expected_draft_revision: 1, scan_result: { status: 'passed' } })
     assert.equal(publishedAgent.status, 200, 'agent publish failed: ' + JSON.stringify(publishedAgent.body).slice(0, 300))
     let publicationChecksComplete = true
     for (const action of ['prepare', 'publish']) {
@@ -260,7 +263,7 @@ async function main() {
     const question = 'What is the depot access phrase stored in the authorized knowledge? Answer with the exact phrase only. Use no tools.'
     const refreshed = await chat({ action: 'refresh' }); assert.equal(refreshed.error, '')
     const scope = refreshed.scope
-    const threadA = await chat({ action: 'create', scope, agentId: agentA.body.id })
+    const threadA = await chat({ action: 'create', scope, agentId: agentA2.body.id })
     assert.equal(threadA.error, '')
     const sentA = await chat({ action: 'send', scope: threadA.scope, threadId: threadA.thread.id, turnId: randomUUID(), text: question })
     assert.equal(sentA.error, ''); assert(sentA.run)
@@ -287,7 +290,7 @@ async function main() {
       receipt: { engine: retrievalA.engine, revision_id: retrievalA.revision_id, revision_no: retrievalA.revision_no, manifest_hash: retrievalA.manifest_hash, result_status: retrievalA.result_status } })
     await page.screenshot({ path: path.join(state, 'T113-01-midrun-frozen.png'), fullPage: true })
 
-    const threadB = await chat({ action: 'create', scope, agentId: agentA.body.id })
+    const threadB = await chat({ action: 'create', scope, agentId: agentA2.body.id })
     assert.equal(threadB.error, '')
     const sentB = await chat({ action: 'send', scope: threadB.scope, threadId: threadB.thread.id, turnId: randomUUID(), text: question })
     assert.equal(sentB.error, '')
@@ -376,11 +379,11 @@ async function main() {
     assert.equal(foreignActivation.status, 404)
     const bThread = api('B', '/api/threads', {})
     assert.equal(bThread.status, 200)
-    const bStarted = api('B', `/api/threads/${bThread.body.thread_id}/runs`, { assistant_id: agentA.body.id, input: { messages: [{ role: 'user', content: question }] }, context: {} })
+    const bStarted = api('B', `/api/threads/${bThread.body.thread_id}/runs`, { assistant_id: agentA2.body.id, input: { messages: [{ role: 'user', content: question }] }, context: {} })
     assert.equal(bStarted.status, 404)
     pass('T113-03', 'other-caller-local-kb-binds-nothing', { revisionStatus: hidden.status, activationStatus: foreignActivation.status, runStatus: bStarted.status })
     fs.writeFileSync(path.join(workspace, 'guide.md'), drifted)
-    const thread3 = await chat({ action: 'create', scope, agentId: agentA.body.id })
+    const thread3 = await chat({ action: 'create', scope, agentId: agentA2.body.id })
     assert.equal(thread3.error, '')
     const sent3 = await chat({ action: 'send', scope: thread3.scope, threadId: thread3.thread.id, turnId: randomUUID(), text: question })
     assert.equal(sent3.error, '')
@@ -408,11 +411,11 @@ async function main() {
     await quit()
     let offlineScope
     await wait(async () => {
-      offlineScope = api('A', `/api/resources/${agentA.body.id}/knowledge-scope`)
+      offlineScope = api('A', `/api/resources/${agentA2.body.id}/knowledge-scope`)
       assert.equal(offlineScope.status, 200)
       return offlineScope.body.sources[0].device_online === false
     }, 'scope view reports the device offline after the Runtime stops', 30000)
-    const offline = await startApiRun(agentA.body.id, question)
+    const offline = await startApiRun(agentA2.body.id, question)
     let offlineDetail
     await wait(async () => {
       offlineDetail = api('A', `/api/threads/${offline.threadId}/runs/${offline.runId}`)
@@ -432,7 +435,7 @@ async function main() {
     fs.writeFileSync(identityPath, JSON.stringify(identity))
     await launch('A')
     const relaunched = await chat({ action: 'refresh' }); assert.equal(relaunched.error, '')
-    const denyThread = await chat({ action: 'create', scope: relaunched.scope, agentId: agentA.body.id })
+    const denyThread = await chat({ action: 'create', scope: relaunched.scope, agentId: agentA2.body.id })
     assert.equal(denyThread.error, '')
     const denySent = await chat({ action: 'send', scope: denyThread.scope, threadId: denyThread.thread.id, turnId: randomUUID(), text: question })
     assert.equal(denySent.error, '')
