@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, UpdateCheckResult } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeImportOutcome, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -165,6 +165,27 @@ if (!app.requestSingleInstanceLock()) {
       requireMainFrame(event)
       if (maintenanceBusy()) throw new Error('UPDATE_INSTALL_BUSY')
       return runtime.start()
+    })
+    // Issue 112: the explicit import flow. The renderer only chooses the
+    // platform KB identity; file picking and the content boundary confirmation
+    // stay in the trusted main process.
+    ipcMain.handle('desktop:knowledge:import', async (event, kbId: string): Promise<KnowledgeImportOutcome> => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_IMPORT_KB_INVALID')
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '选择要导入的文件', properties: ['openFile', 'multiSelections'] })
+      if (chosen.canceled || !chosen.filePaths.length) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认本地知识导入',
+        message: '在设备侧解析所选文件，并在平台登记你的私有知识库新版本？',
+        detail: '仅登记文件名、大小、类型与 SHA-256 指纹清单；原文件与设备侧索引不会自动上传。每次导入生成一个新的不可变版本，不覆盖已登记版本。',
+        buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.importKnowledge(kbId, chosen.filePaths)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

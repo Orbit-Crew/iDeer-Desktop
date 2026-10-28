@@ -50,7 +50,7 @@ def empty_state(scope=""):
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
-                 compatibility_gate=None):
+                 compatibility_gate=None, knowledge_imports=None, knowledge_files=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -61,6 +61,11 @@ class DesktopChat:
         self.stop_local = stop_local
         self.local_results = local_results
         self.compatibility_gate = compatibility_gate
+        # Issue 112: explicit local imports reuse this session's transport
+        # discipline; the registry keeps device-local display facts and the
+        # file callback yields the confirmed workspace store for reads.
+        self.knowledge_imports = knowledge_imports
+        self.knowledge_files = knowledge_files
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -703,6 +708,59 @@ class DesktopChat:
         if account.get('id') != session.user_id:
             raise ChatError('CHAT_IDENTITY_CHANGED')
         return account.get('system_role') in {'user', 'department_admin', 'super_admin'} and 'runs:create' in (account.get('permissions') or [])
+
+    # --- Explicit local knowledge imports (issue 112) -----------------------
+
+    def register_local_import(self, kb_id, paths):
+        """Freeze one explicit local import as a platform Revision manifest.
+
+        The platform call carries identity fields only; original bytes and the
+        device index never leave this device. A failed attempt is recorded as
+        failed with its real category and never impersonates a registration.
+        """
+        from .knowledge_import import (MAX_IMPORT_DOCUMENTS, KnowledgeImportError, build_manifest,
+                                       category_for, logical_paths_for, registration_payload)
+        from .files import FileAccessError
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        if self.knowledge_imports is None or self.knowledge_files is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        kb_id = self._uuid(kb_id)
+        if not isinstance(paths, list) or not 1 <= len(paths) <= MAX_IMPORT_DOCUMENTS \
+                or any(not isinstance(path, str) or not path or len(path) > 32768 for path in paths):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        try:
+            settings, grant, files = self.knowledge_files()
+        except (FileAccessError, KnowledgeImportError) as exc:
+            raise KnowledgeImportError(category_for(exc)) from exc
+        binding = profile_binding(load_settings(self.config))
+        try:
+            entries = build_manifest(files, logical_paths_for(grant, list(paths)))
+            created = self._json(session, f'/api/resources/{kb_id}/knowledge-revisions/local-imports',
+                                 registration_payload(entries, settings.device_id))
+            if not isinstance(created, dict) or not isinstance(created.get('id'), str) \
+                    or type(created.get('revision_no')) is not int \
+                    or not isinstance(created.get('manifest_hash'), str) or len(created['manifest_hash']) != 64 \
+                    or created.get('document_count') != len(entries):
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+        except (KnowledgeImportError, ChatError) as exc:
+            # The failure is recorded with its real fixed category so the
+            # display never impersonates a registered revision.
+            category = str(exc)
+            try:
+                self.knowledge_imports.record(binding, dict(kb_id=kb_id, status='failed',
+                    error_code=category, documents=[]))
+            except KnowledgeImportError:
+                pass
+            raise KnowledgeImportError(category) from exc
+        outcome = dict(kbId=kb_id, revisionId=created['id'], revisionNo=created['revision_no'],
+                       manifestHash=created['manifest_hash'], documentCount=created['document_count'])
+        self.knowledge_imports.record(binding, dict(kb_id=kb_id, status='registered',
+            revision_id=created['id'], revision_no=created['revision_no'],
+            manifest_hash=created['manifest_hash'], document_count=created['document_count'],
+            documents=entries))
+        return outcome
 
     def _resources(self, session, can_run):
         resources = []

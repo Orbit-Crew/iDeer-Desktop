@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeImportOutcome, KnowledgeImportView, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -19,6 +19,7 @@ export class RuntimeProcess {
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
+  private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -113,6 +114,24 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.workspaceRequest = null; reject(error) }
       }
       this.child!.stdin.write(JSON.stringify({ type: 'workspace', id, path, scope, confirmed: true }) + '\n')
+    })
+  }
+
+  /** Issue 112: one explicit local import; identity manifest only, never content. */
+  async importKnowledge(kbId: string, paths: string[]): Promise<KnowledgeImportOutcome> {
+    if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_IMPORT_KB_INVALID')
+    if (!Array.isArray(paths) || paths.length < 1 || paths.length > 200 ||
+        paths.some((path) => typeof path !== 'string' || !path || path.length > 32768)) throw new Error('KNOWLEDGE_IMPORT_PATHS_INVALID')
+    if (this.knowledgeRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 60000)
+      this.knowledgeRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.knowledgeRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import', id, kbId, paths, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -240,6 +259,22 @@ export class RuntimeProcess {
             else throw new Error('Invalid receipt response')
             continue
           }
+          if (value.v === 1 && value.type === 'knowledge-import') {
+            const pending = this.knowledgeRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                !Number.isSafeInteger(outcome.revisionNo) || typeof outcome.manifestHash !== 'string' ||
+                !/^[0-9a-f]{64}$/.test(outcome.manifestHash) || !Number.isSafeInteger(outcome.documentCount)) {
+              this.knowledgeRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
+              continue
+            }
+            pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+              manifestHash: outcome.manifestHash, documentCount: outcome.documentCount })
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -285,6 +320,26 @@ export class RuntimeProcess {
             this.loginOrigin = origin.origin
           }
           this.receiptScope = typeof value.receiptScope === 'string' && /^[0-9a-f]{64}$/.test(value.receiptScope) ? value.receiptScope : ''
+          const knowledgeImports: KnowledgeImportView[] = []
+          if (Array.isArray(value.knowledgeImports)) {
+            for (const row of value.knowledgeImports.slice(0, 20)) {
+              if (!row || typeof row.id !== 'string' || typeof row.kbId !== 'string' || typeof row.status !== 'string' ||
+                  !['registered', 'failed'].includes(row.status) ||
+                  (row.status === 'registered' ? typeof row.revisionId !== 'string' || !/^[0-9a-f]{64}$/.test(row.manifestHash || '') : false) ||
+                  !Number.isSafeInteger(row.documentCount) || typeof row.createdAt !== 'string' ||
+                  (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false)) throw new Error('Invalid knowledge import status')
+              knowledgeImports.push({ id: row.id, kbId: row.kbId, revisionId: typeof row.revisionId === 'string' ? row.revisionId : '',
+                revisionNo: Number.isSafeInteger(row.revisionNo) ? row.revisionNo : 0,
+                manifestHash: typeof row.manifestHash === 'string' ? row.manifestHash : '',
+                documentCount: row.documentCount, status: row.status === 'registered' ? 'registered' : 'failed',
+                errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt,
+                documents: Array.isArray(row.documents) ? row.documents.slice(0, 200).map((document: { filename?: unknown; sha256?: unknown; bytes?: unknown; mime?: unknown }) => ({
+                  filename: typeof document?.filename === 'string' ? document.filename : '',
+                  sha256: typeof document?.sha256 === 'string' ? document.sha256 : '',
+                  bytes: Number.isSafeInteger(document?.bytes) ? document.bytes : 0,
+                  mime: typeof document?.mime === 'string' ? document.mime : '' })) : [] })
+            }
+          }
           lastStatus = Date.now()
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
@@ -292,6 +347,7 @@ export class RuntimeProcess {
             compatibility: value.compatibility,
             installDrain: value.installDrain, activeTasks: value.activeTasks, unknownWriteEffects: value.unknownWriteEffects,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
+            knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
@@ -317,6 +373,7 @@ export class RuntimeProcess {
       this.loginRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.receiptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.knowledgeRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }
