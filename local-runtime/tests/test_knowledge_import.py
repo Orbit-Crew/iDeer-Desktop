@@ -123,8 +123,8 @@ def test_explicit_import_registers_private_revision_and_never_uploads_content(tm
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         guide = space / 'guide.md'
         notes = space / 'notes.txt'
-        guide.write_text(GUIDE, encoding='utf-8')
-        notes.write_text(NOTES, encoding='utf-8')
+        guide.write_bytes(GUIDE.encode('utf-8'))
+        notes.write_bytes(NOTES.encode('utf-8'))
 
         outcome = chat.register_local_import(KB, [str(guide), str(notes)])
 
@@ -163,7 +163,7 @@ def test_import_refuses_without_confirmed_workspace_and_never_takes_over(tmp_pat
     with platform() as (origin, records):
         chat, registry, settings, config, space, _ = prepare(tmp_path, origin, work=False)
         target = space / 'guide.md'
-        target.write_text(GUIDE, encoding='utf-8')
+        target.write_bytes(GUIDE.encode('utf-8'))
         with pytest.raises(KnowledgeImportError) as refused:
             chat.register_local_import(KB, [str(target)])
         assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
@@ -177,7 +177,7 @@ def test_import_does_not_inherit_workspace_across_accounts(tmp_path):
     with platform() as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         target = space / 'guide.md'
-        target.write_text(GUIDE, encoding='utf-8')
+        target.write_bytes(GUIDE.encode('utf-8'))
         chat.register_local_import(KB, [str(target)])
         assert len(import_posts(records)) == 1
 
@@ -205,14 +205,14 @@ def test_import_refuses_restricted_and_out_of_bounds_paths(tmp_path, kind, expec
     with platform() as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         inside = space / 'guide.md'
-        inside.write_text(GUIDE, encoding='utf-8')
+        inside.write_bytes(GUIDE.encode('utf-8'))
         outside = tmp_path / 'outside.md'
         outside.write_text('outside bytes\n', encoding='utf-8')
         if kind == 'protected':
             restricted = space / 'node_modules'
             restricted.mkdir()
             picked = [str(restricted / 'notes.md')]
-            (restricted / 'notes.md').write_text(GUIDE, encoding='utf-8')
+            (restricted / 'notes.md').write_bytes(GUIDE.encode('utf-8'))
         elif kind == 'env':
             (space / '.env').write_text('SECRET=1\n', encoding='utf-8')
             picked = [str(space / '.env')]
@@ -246,9 +246,9 @@ def test_reimport_creates_new_revision_and_freezes_the_old_one(tmp_path):
     with platform() as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         marked = space / 'marked.md'
-        marked.write_text(GUIDE, encoding='utf-8')
+        marked.write_bytes(GUIDE.encode('utf-8'))
         first = chat.register_local_import(KB, [str(marked)])
-        marked.write_text(CHANGED, encoding='utf-8')
+        marked.write_bytes(CHANGED.encode('utf-8'))
         second = chat.register_local_import(KB, [str(marked)])
 
         assert second['revisionNo'] == 2 and second['revisionId'] != first['revisionId']
@@ -267,7 +267,7 @@ def test_platform_rejections_are_recorded_as_real_failures(tmp_path, status, exp
     with platform(local_import_status=status) as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         target = space / 'guide.md'
-        target.write_text(GUIDE, encoding='utf-8')
+        target.write_bytes(GUIDE.encode('utf-8'))
         with pytest.raises(KnowledgeImportError) as failed:
             chat.register_local_import(KB, [str(target)])
         assert failed.value.args[0] == expected
@@ -288,7 +288,7 @@ def test_import_requires_authenticated_session_before_any_read(tmp_path):
         unauthenticated = DesktopChat(config, InMemorySecretStore(), lambda: {'state': 'unauthenticated'},
                                       knowledge_imports=registry, knowledge_files=must_not_read)
         target = space / 'guide.md'
-        target.write_text(GUIDE, encoding='utf-8')
+        target.write_bytes(GUIDE.encode('utf-8'))
         with pytest.raises(ChatError) as refused:
             unauthenticated.register_local_import(KB, [str(target)])
         assert refused.value.args[0] == 'CHAT_UNAUTHENTICATED'
@@ -301,7 +301,7 @@ def test_import_records_survive_restart_and_stay_identity_bound(tmp_path):
     with platform() as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         target = space / 'guide.md'
-        target.write_text(GUIDE, encoding='utf-8')
+        target.write_bytes(GUIDE.encode('utf-8'))
         outcome = chat.register_local_import(KB, [str(target)])
 
         restarted = KnowledgeImportRegistry(config.with_name('knowledge-imports.db'))
@@ -343,7 +343,7 @@ def test_logical_paths_verify_workspace_generation_before_mapping(tmp_path):
     space = tmp_path / 'work'
     space.mkdir()
     target = space / 'guide.md'
-    target.write_text(GUIDE, encoding='utf-8')
+    target.write_bytes(GUIDE.encode('utf-8'))
     stale = dict(logical_root='/workspace/abc', physical_root=str(space), identity=[12345, 67890])
     # The directory generation no longer matches the confirmed grant.
     with pytest.raises(KnowledgeImportError) as drifted:

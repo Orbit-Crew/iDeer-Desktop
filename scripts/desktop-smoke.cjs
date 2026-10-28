@@ -74,7 +74,12 @@ async function main() {
     await recordProcesses('initial-launch', 'running')
     assert.match(await page.locator('body').innerText(), /登录后可选择平台已有 Agent\/Skill/)
     assert.equal(await page.title(), 'iDeer Desktop')
-    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), ['beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'getStatus', 'importUpdate', 'installUpdate', 'manage', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'startRuntime', 'stopRuntime'])
+    assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
+      'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
+      'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
+      'manage', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
+      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime'
+    ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
     const expectedRuntime = process.platform === 'win32' ? 'running' : 'missing'

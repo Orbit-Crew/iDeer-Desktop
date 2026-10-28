@@ -76,7 +76,7 @@ def _store(work_root):
 
 def test_frozen_match_returns_verified_text(tmp_path) -> None:
     (tmp_path / 'docs').mkdir()
-    (tmp_path / 'docs' / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (tmp_path / 'docs' / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     result = material_frozen_document(_payload(), files=_store(tmp_path), logical_root='/workspace')
 
     assert result['document_id'] == _document('guide.txt', GUIDE)['document_id']
@@ -120,7 +120,7 @@ def test_oversized_frozen_bytes_refuse_instead_of_truncating(tmp_path) -> None:
 def test_duplicate_names_still_find_the_frozen_bytes(tmp_path) -> None:
     (tmp_path / 'guide.txt').write_text('drifted\n', encoding='utf-8')
     (tmp_path / 'archive').mkdir()
-    (tmp_path / 'archive' / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (tmp_path / 'archive' / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     result = material_frozen_document(_payload(), files=_store(tmp_path), logical_root='/workspace')
     assert result['text'] == GUIDE
 
@@ -154,7 +154,7 @@ def _register(config, binding, documents) -> None:
 def test_service_requires_consent_then_returns_verified_text(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
@@ -175,7 +175,7 @@ def test_service_requires_consent_then_returns_verified_text(tmp_path) -> None:
 def test_service_refuses_revisions_this_identity_never_registered(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
@@ -256,7 +256,7 @@ def test_signed_material_task_asks_for_local_consent_before_any_text(tmp_path) -
 
     work = tmp_path / "work"
     work.mkdir()
-    (work / "guide.txt").write_text(GUIDE, encoding="utf-8")
+    (work / "guide.txt").write_bytes(GUIDE.encode("utf-8"))
     config = tmp_path / "profile" / "settings.json"
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
@@ -280,7 +280,7 @@ def test_signed_material_task_returns_verified_text_after_consent(tmp_path) -> N
 
     work = tmp_path / "work"
     work.mkdir()
-    (work / "guide.txt").write_text(GUIDE, encoding="utf-8")
+    (work / "guide.txt").write_bytes(GUIDE.encode("utf-8"))
     config = tmp_path / "profile" / "settings.json"
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
