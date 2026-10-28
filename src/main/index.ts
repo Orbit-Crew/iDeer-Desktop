@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeImportOutcome, UpdateCheckResult } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -186,6 +186,33 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
       return runtime.importKnowledge(kbId, chosen.filePaths)
+    })
+    // Issue 115: the explicit server publication flow. The preview step is
+    // read-only; content leaves the device only after the owner has seen the
+    // destination and confirmed in the trusted main process.
+    ipcMain.handle('desktop:knowledge:publish', async (
+      event, kbId: string, revisionId: string): Promise<KnowledgePublishOutcome> => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_PUBLISH_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_PUBLISH_WORKSPACE_UNAVAILABLE')
+      if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_PUBLISH_KB_INVALID')
+      if (typeof revisionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(revisionId)) throw new Error('KNOWLEDGE_PUBLISH_REVISION_INVALID')
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '选择要发布到服务端的文件', properties: ['openFile', 'multiSelections'] })
+      if (chosen.canceled || !chosen.filePaths.length) throw new Error('KNOWLEDGE_PUBLISH_CANCELED')
+      const preview = await runtime.publishKnowledge(kbId, revisionId, chosen.filePaths, false)
+      if (preview.confirmed !== false) throw new Error('KNOWLEDGE_PUBLISH_FAILED')
+      const summary = preview.documents.map((document) =>
+        `${document.filename}（${document.mime}，${document.bytes} 字节）`).join('、')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认发布到服务端知识库',
+        message: `将所选内容上传到平台新建的独立服务端知识库「${preview.destination.displayName}」？`,
+        detail: `包含文件：${summary}\n\n服务端副本初始为私有；团队访问必须经过平台可见性申请与审批。你设备上的知识库保持私有，不改变可见性，也不会自动双向同步。取消则不会上传任何内容。`,
+        buttons: ['取消，不上传', '确认发布'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_PUBLISH_CANCELED')
+      return (await runtime.publishKnowledge(kbId, revisionId, chosen.filePaths, true)) as KnowledgePublishOutcome
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

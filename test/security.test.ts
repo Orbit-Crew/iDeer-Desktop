@@ -27,11 +27,11 @@ describe('bootstrap capability boundary', () => {
       '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
-    // Issue 112 adds exactly one capability: desktop:knowledge:import, the
-    // explicit local-import flow whose file picking and confirmation stay in
-    // the trusted main process.
+    // Issue 112 adds desktop:knowledge:import; issue 115 adds desktop:knowledge:publish.
+    // Both are explicit knowledge flows whose file picking and confirmation stay
+    // in the trusted main process.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:knowledge:import', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
   })
 })

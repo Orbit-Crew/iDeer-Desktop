@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeImportOutcome, KnowledgeImportView, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -20,6 +20,7 @@ export class RuntimeProcess {
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
+  private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -132,6 +133,27 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.knowledgeRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import', id, kbId, paths, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 115: one explicit server publication step (preview or confirmed upload). */
+  async publishKnowledge(kbId: string, revisionId: string, paths: string[], confirmed: boolean):
+      Promise<KnowledgePublishPreview | KnowledgePublishOutcome> {
+    if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_PUBLISH_KB_INVALID')
+    if (typeof revisionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(revisionId)) throw new Error('KNOWLEDGE_PUBLISH_REVISION_INVALID')
+    if (typeof confirmed !== 'boolean') throw new Error('KNOWLEDGE_PUBLISH_CONFIRMATION_INVALID')
+    if (!Array.isArray(paths) || paths.length < 1 || paths.length > 200 ||
+        paths.some((path) => typeof path !== 'string' || !path || path.length > 32768)) throw new Error('KNOWLEDGE_PUBLISH_PATHS_INVALID')
+    if (this.knowledgePublishRequests.size) throw new Error('KNOWLEDGE_PUBLISH_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgePublishRequests.delete(id); reject(new Error('KNOWLEDGE_PUBLISH_TIMEOUT')) }, confirmed ? 60000 : 30000)
+      this.knowledgePublishRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.knowledgePublishRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.knowledgePublishRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-publish', id, kbId, revisionId, paths, confirmed, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -275,6 +297,52 @@ export class RuntimeProcess {
               manifestHash: outcome.manifestHash, documentCount: outcome.documentCount })
             continue
           }
+          if (value.v === 1 && value.type === 'knowledge-publish') {
+            const pending = this.knowledgePublishRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgePublishRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                typeof outcome.confirmed !== 'boolean') {
+              this.knowledgePublishRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_PUBLISH_FAILED'))
+              continue
+            }
+            if (outcome.confirmed === false) {
+              // Preview: identity facts plus the platform's stated destination.
+              if (!outcome.destination || typeof outcome.destination.displayName !== 'string' ||
+                  typeof outcome.destination.slug !== 'string' || outcome.destination.visibility !== 'private' ||
+                  !Array.isArray(outcome.documents)) {
+                this.knowledgePublishRequests.delete(value.id)
+                pending.reject(new Error('KNOWLEDGE_PUBLISH_FAILED'))
+                continue
+              }
+              pending.resolve({ confirmed: false, kbId: outcome.kbId, revisionId: outcome.revisionId,
+                destination: { kind: String(outcome.destination.kind ?? 'server_copy'),
+                  displayName: outcome.destination.displayName, slug: outcome.destination.slug,
+                  visibility: outcome.destination.visibility,
+                  governance: String(outcome.destination.governance ?? 'visibility_application_required') },
+                documents: outcome.documents.slice(0, 200).map((document: { filename?: unknown; sha256?: unknown; bytes?: unknown; mime?: unknown }) => ({
+                  filename: typeof document?.filename === 'string' ? document.filename : '',
+                  sha256: typeof document?.sha256 === 'string' ? document.sha256 : '',
+                  bytes: Number.isSafeInteger(document?.bytes) ? document.bytes : 0,
+                  mime: typeof document?.mime === 'string' ? document.mime : '' })) })
+              continue
+            }
+            // Confirmed outcome: the derived platform status, never a fabricated one.
+            if (typeof outcome.copyResourceId !== 'string' || !outcome.copyResourceId ||
+                typeof outcome.copySlug !== 'string' || typeof outcome.status !== 'string' ||
+                !Number.isSafeInteger(outcome.documentCount) || typeof outcome.failureCode !== 'string') {
+              this.knowledgePublishRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_PUBLISH_FAILED'))
+              continue
+            }
+            pending.resolve({ confirmed: true, kbId: outcome.kbId, revisionId: outcome.revisionId,
+              copyResourceId: outcome.copyResourceId, copySlug: outcome.copySlug,
+              copyRevisionId: typeof outcome.copyRevisionId === 'string' ? outcome.copyRevisionId : '',
+              status: outcome.status, failureCode: outcome.failureCode, documentCount: outcome.documentCount })
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -341,6 +409,23 @@ export class RuntimeProcess {
             }
           }
           lastStatus = Date.now()
+          const knowledgePublications: KnowledgePublicationView[] = []
+          if (Array.isArray(value.knowledgePublications)) {
+            for (const row of value.knowledgePublications.slice(0, 20)) {
+              if (!row || typeof row.id !== 'string' || typeof row.kbId !== 'string' ||
+                  typeof row.revisionId !== 'string' || typeof row.status !== 'string' ||
+                  !['published', 'failed'].includes(row.status) ||
+                  typeof row.copyResourceId !== 'string' || typeof row.copySlug !== 'string' ||
+                  !Number.isSafeInteger(row.documentCount) || typeof row.createdAt !== 'string' ||
+                  (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false)) throw new Error('Invalid knowledge publication status')
+              knowledgePublications.push({ id: row.id, kbId: row.kbId, revisionId: row.revisionId,
+                copyResourceId: row.copyResourceId, copySlug: row.copySlug,
+                copyRevisionId: typeof row.copyRevisionId === 'string' ? row.copyRevisionId : '',
+                status: row.status === 'published' ? 'published' : 'failed',
+                errorCode: typeof row.errorCode === 'string' ? row.errorCode : '',
+                documentCount: row.documentCount, createdAt: row.createdAt })
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
@@ -348,6 +433,7 @@ export class RuntimeProcess {
             installDrain: value.installDrain, activeTasks: value.activeTasks, unknownWriteEffects: value.unknownWriteEffects,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
+            knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
@@ -374,6 +460,7 @@ export class RuntimeProcess {
       for (const pending of this.chatRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.receiptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.knowledgePublishRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

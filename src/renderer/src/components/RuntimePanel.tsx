@@ -21,6 +21,12 @@ export default function RuntimePanel(): JSX.Element {
   const [kbId, setKbId] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState(false)
+  const [publishingId, setPublishingId] = useState('')
+  const [publishError, setPublishError] = useState(false)
+  const publish = (rowId: string, rowKbId: string, rowRevisionId: string) => {
+    setPublishError(false); setPublishingId(rowId)
+    void window.ideer.publishKnowledge(rowKbId, rowRevisionId).catch(() => setPublishError(true)).finally(() => setPublishingId(''))
+  }
   const controller = useRef<RuntimePanelController | null>(null)
   useEffect(() => {
     let active = true
@@ -110,6 +116,29 @@ export default function RuntimePanel(): JSX.Element {
       {!!row.documents.length && <Typography.Paragraph type="secondary">
         {row.documents.map(document => `${document.filename}（${document.mime}，${document.bytes} 字节）`).join('、')}
       </Typography.Paragraph>}
+      {row.status === 'registered' && <Button
+        loading={publishingId === row.id}
+        disabled={!!publishingId || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated' || runtime.workspace?.state !== 'ready'}
+        onClick={() => publish(row.id, row.kbId, row.revisionId)}>发布此版本到服务端…</Button>}
+    </Card>)}
+    <Typography.Title level={5} className="mt-5">服务端发布记录</Typography.Title>
+    <Typography.Paragraph>把你登记过的私有版本显式发布为平台上的独立服务端知识库副本：先预览内容与去向，确认后才上传；副本初始为私有，团队访问须经平台可见性申请与审批。设备端知识库保持私有，发布不会自动双向同步，也不会替换正在运行的知识版本。</Typography.Paragraph>
+    {publishError && <Alert type="error" message="发布未完成：需要已认证会话与已确认的工作目录，且所选文件必须与登记版本完全一致" />}
+    {runtime?.knowledgePublishStorageError && <Alert type="error" message="发布记录存储不可用，状态显示可能不完整" />}
+    {!runtime?.knowledgePublications?.length && <Typography.Text type="secondary">当前账号与设备尚无发布记录。</Typography.Text>}
+    {runtime?.knowledgePublications?.map(row => <Card key={row.id} size="small" className="mt-2">
+      <Typography.Paragraph>
+        {row.status === 'published'
+          ? `已发布服务端副本 · ${row.documentCount} 个文件`
+          : `发布失败：${row.errorCode}`}
+      </Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        知识库 {row.kbId} · 版本 {row.revisionId} · {row.createdAt}
+      </Typography.Paragraph>
+      {row.status === 'published' && <Typography.Paragraph copyable>
+        服务端副本：{row.copyResourceId}{row.copySlug ? `（${row.copySlug}）` : ''}
+      </Typography.Paragraph>}
+      {row.status === 'failed' && <Typography.Paragraph type="secondary">失败后可重新发布；已上传到服务端副本的内容会校验一致后复用，不会重复占用。</Typography.Paragraph>}
     </Card>)}
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
