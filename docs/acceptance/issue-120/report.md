@@ -131,3 +131,55 @@ All commands run 2026-10-27 against the working tree at this candidate.
   100 MB archive cap as every other resource upload.
 - `dev-log/` remains an untracked local working directory in this repo
   (ticket copy at `dev-log/ticket-120.md`), exactly as at baseline.
+
+## Modern Windows combined acceptance entry, 2026-10-28
+
+The current integration base is Desktop `b64e51d4a7f20740337dcbf7ac6c00544282b379`
+and Server `f4bca92e7f467714d7eb5cf365cbbabc6584a6f3`. The ongoing CI repairs
+are uncommitted. A run records the actual Server Python source hash, installer
+and app.asar hashes, driver hashes, and model name rather than attributing a
+modified tree to its base commit alone.
+
+The new `scripts/acceptance/issue-120/run.ps1` is prepared for an installed
+Desktop, the real isolated `create_app()` Gateway, synthetic regular A/B
+accounts paired through the actual APIs and Windows secret store, and the
+configured `agnes-3.0-flash` provider. Configuration credentials and endpoint
+values stay in the Linux process environment. The fixture provisions its
+synthetic system-owned Skill through `seed_bundled_resources`; it does not
+insert a fake read-only resource row directly.
+
+```powershell
+& scripts/acceptance/issue-120/run.ps1 `
+  -State "$candidate/artifacts/issue-120/installed-20261028-a" `
+  -Installer "$candidate/dist/ideer-desktop-0.2.0-windows-x64-setup.exe"
+```
+
+Pass absolute paths with `$candidate` bound to the current Desktop checkout.
+The defaults name the current Server checkout, its existing Python interpreter,
+and `/home/neowyh/code/AgentPlatform` as the real provider configuration root.
+Run sequentially with other installed acceptance sessions. Each invocation
+requires fresh state and performs owned credential, Gateway, proxy and NSIS
+cleanup. Its external requests contain only the synthetic Skill and messages.
+
+| Scenario | Prepared operation | Current status |
+| --- | --- | --- |
+| T120-01 | Drive the actual three import buttons, record the native preview, cancel with zero upload calls and unchanged resource identities, then confirm a private draft and publish V1. Independently calculated package/file hashes cover body, script and reference bytes. | unexecuted |
+| T120-02 | Read the bundled resource's `can_modify=false`, refuse an in-place draft over the real API, fork an independent copy, alter the local selected file and verify platform V1 remains unchanged, then create a real V2 draft/version. | unexecuted |
+| T120-03 | Refuse traversal and broken ZIPs before upload, send an intentionally mismatched hash to the actual confirm endpoint, verify a missing package and B's private-resource reads return 404, and retain zero script grants. | unexecuted |
+| T120-04 | Prepare V2 draft, start an actual model Run from the installed Runtime with V1, publish V2 while the old Run is observably pending/running, compare its immutable selection/hash and V1 marker, then execute a fresh V2 Run. | unexecuted |
+
+Only static validation has run for this entry: Node `--check`, Python AST
+parsing of its three Python scripts, and the PowerShell parser all passed.
+No Gateway, installer, account, provider request or business scenario was
+started during preparation. The old staged records above remain open.
+The overlap assertion keeps T120-04 incomplete if the real model finishes
+before publication; a later Run must not stand in for continuing the old one.
+Native-dialog callbacks automate synthetic test choices and do not constitute
+a human login or signoff. Win7 stays unexecuted under #131.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end with the
+real external model. All four scenarios passed; the two model-echo marker
+cases inside T120-04 are recorded unexecuted with the local-sandbox mount
+dependency, and the Runtime stream observation is bound to defect #37.
+Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.
