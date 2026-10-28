@@ -1445,6 +1445,43 @@ class DesktopChat:
         return dict(skills=self._preference_projection(
             self._json(session, '/api/resources/skill-trigger-preferences')))
 
+    # --- Canonical connector identities (issue 123) -------------------------
+
+    def register_connector_identity(self, slug, display_name, version, manifest_hash):
+        """Register one installed connector's platform-canonical identity (#123).
+
+        The call carries identity fields only — slug, display name, declared
+        version and the frozen manifest hash. The runnable binding (command,
+        entry, environment, credentials) has no field in this request and
+        never leaves this device; the Server owns the owner-scoped identity
+        row and nothing else. A 409 (the same version already bound to
+        different content) surfaces as CHAT_CONFLICT so the device can show
+        its own actionable category.
+        """
+        if not isinstance(slug, str) or not 1 <= len(slug) <= 64 \
+                or not isinstance(display_name, str) or not 1 <= len(display_name) <= 200 \
+                or not isinstance(version, str) or not 1 <= len(version) <= 32 \
+                or not isinstance(manifest_hash, str) or len(manifest_hash) != 64:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        return self._json(session, '/api/connectors', dict(
+            slug=slug, display_name=display_name, version=version, manifest_hash=manifest_hash))
+
+    def unregister_connector_identity(self, connector_id):
+        """Remove the platform identity after a confirmed local removal (#123).
+
+        An already-absent identity is a successful no-op: the authoritative
+        state — the device no longer has the component — is what matters.
+        """
+        connector_id = self._uuid(connector_id)
+        session = self._session()
+        try:
+            self._empty(session, f'/api/connectors/{connector_id}', None, 'DELETE')
+        except ChatError as exc:
+            if exc.code != 'CHAT_NOT_FOUND':
+                raise
+        return dict(unregistered=True)
+
     # --- Explicit server-side publication (issue 115) -----------------------
 
     def publish_local_revision(self, kb_id, revision_id, paths, *, confirmed, publish_polls=20):

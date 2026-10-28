@@ -389,7 +389,24 @@ class TrayController:
             db_path=self.consent_store_path or self._default_consent_path()
         )
         self.secrets = _build_secret_resolver(self.settings, self._note_secret_use)
-        self.mcp_service = None if self.desktop_mode else _build_mcp_service(self.settings, self.secrets, self.consent)
+        # Issue 123: the device-leg connector installer owns this profile's
+        # managed store and controlled MCP configuration. The registrar and
+        # unregister callbacks are attached by the desktop shell once its
+        # platform session exists; in tray mode no connector flow is exposed.
+        from .connector_install import ConnectorInstallService, ConnectorRegistry
+
+        if self.desktop_mode and self.settings.config_path:
+            self.connector_service = ConnectorInstallService(
+                ConnectorRegistry(Path(self.settings.config_path).with_name("connectors.db")),
+                config_path=self.settings.config_path,
+            )
+        else:
+            self.connector_service = None
+        self.mcp_service = (
+            self._desktop_connector_mcp()
+            if self.desktop_mode
+            else _build_mcp_service(self.settings, self.secrets, self.consent)
+        )
         self._mcp_config_path = self.settings.mcp_config_path
         # Issue 122: the device-leg Skill script gate shares the tray's
         # consent store so one approval surface grades every capability.
@@ -445,6 +462,35 @@ class TrayController:
     def _desktop_files(self):
         from .file_service import WorkspaceFileService, WorkspaceSelection
         return WorkspaceFileService(WorkspaceSelection(self.settings.config_path))
+
+    def _desktop_connector_mcp(self) -> LocalMCPService | None:
+        """Issue 123: desktop mode runs only the controlled connector servers.
+
+        The specs come from this device's binding-scoped connector registry —
+        pinned interpreter, managed entry, the connector's own data directory
+        — never from a user-editable MCP configuration, and they exist only
+        for the profile that installed them. An unbound profile (not yet
+        paired) has no runnable connector configuration at all.
+        """
+        if self.connector_service is None:
+            return None
+        from .receipt_ledger import profile_binding
+
+        owner = profile_binding(self.settings)
+        if owner is None:
+            return None
+        supervisor = MCPSupervisor(self.connector_service.specs(owner))
+        return LocalMCPService(supervisor, policy=self.settings.policy(), consent=self.consent)
+
+    def refresh_connectors(self) -> None:
+        """Swap the supervisor over the current connector installs (#123).
+
+        After a confirmed install or removal the controlled configuration has
+        changed: the swap stops removed servers, starts added ones, and
+        republishes the capability projection so the Server never sees a tool
+        this device can no longer run.
+        """
+        self._replace_mcp_service()
 
     def _desktop_capabilities(self):
         from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
@@ -1143,7 +1189,13 @@ class TrayController:
 
     def _replace_mcp_service(self) -> None:
         old = self.mcp_service
-        new = _build_mcp_service(self.settings, self.secrets, self.consent)
+        # Issue 123: desktop mode rebuilds from the connector registry; tray
+        # mode rebuilds from the user-editable MCP configuration file.
+        new = (
+            self._desktop_connector_mcp()
+            if self.desktop_mode
+            else _build_mcp_service(self.settings, self.secrets, self.consent)
+        )
         self.mcp_service = new
         self.client.mcp_service = new
         self._mcp_config_path = self.settings.mcp_config_path

@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -303,6 +303,56 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('SKILL_SCRIPT_UNAUTHENTICATED')
       return runtime.skillScripts(command)
+    })
+    // Issue 123: the optional local connector install. The renderer only
+    // names the action; the candidate directory is located and both the
+    // install and the removal are confirmed in the trusted main process.
+    // The preview is read-only and writes nothing; a confirmed install
+    // registers the platform-canonical identity first (identity fields
+    // only), then commits the managed copy on this device. The runnable
+    // binding — command, entry, environment, data directory — never leaves
+    // the device, and nothing is published, shared or synced.
+    ipcMain.handle('desktop:connectors', async (event, command: ConnectorCommand): Promise<ConnectorOutcome> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' ||
+          !['install', 'remove', 'list'].includes(command.action)) throw new Error('CONNECTOR_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('CONNECTOR_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('CONNECTOR_WORKSPACE_UNAVAILABLE')
+      if (command.action === 'list') return runtime.connectors({ action: 'list' })
+      if (command.action === 'remove') {
+        if (typeof command.slug !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(command.slug)) throw new Error('CONNECTOR_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认移除本地连接器',
+          message: `移除本设备上的连接器「${command.slug}」？`,
+          detail: '移除会停止该组件、删除受管副本与受控配置，并同步移除平台上的身份登记。组件数据目录内的既有文件保持在本机，不会上传或同步。该连接器从未发布或共享给其他账号、其他设备。',
+          buttons: ['取消', '确认移除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('CONNECTOR_CANCELED')
+        return runtime.connectors({ action: 'remove', slug: command.slug })
+      }
+      // Install: locate the candidate package directory here; the path
+      // never reaches the renderer.
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '选择连接器组件目录', properties: ['openDirectory'] })
+      if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('CONNECTOR_CANCELED')
+      // Step 1: the read-only device-side validation. Nothing registers on
+      // the platform and nothing is written on the device yet.
+      const preview: ConnectorInternalOutcome = await runtime.connectors({ action: 'preview', path: chosen.filePaths[0] })
+      if (preview.action !== 'preview') throw new Error('CONNECTOR_FAILED')
+      const summary = `版本 ${preview.version} · ${preview.fileCount} 个文件 · 入口 ${preview.entry}\n清单指纹 ${preview.manifestHash.slice(0, 16)}… · 包指纹 ${preview.packageHash.slice(0, 16)}…`
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认安装本地连接器',
+        message: `安装「${preview.displayName}」（${preview.slug}）到本设备？`,
+        detail: `${summary}\n\n安装会在本设备完成版本与依赖校验，并向平台登记仅属你的连接器身份（名称/版本/指纹）；随后生成受控配置：入口固定为受管副本，文件访问限定在该组件自己的数据目录。命令行、入口路径与环境配置不会离开本设备，也不会同步为其他设备可运行的配置。`,
+        buttons: ['取消', '确认安装'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('CONNECTOR_CANCELED')
+      // Step 2: the confirmed install re-validates the exact bytes and
+      // registers the canonical identity before the local commit.
+      const outcome = await runtime.connectors({ action: 'install', path: chosen.filePaths[0] })
+      if (outcome.action !== 'install') throw new Error('CONNECTOR_FAILED')
+      return outcome
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

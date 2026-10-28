@@ -336,6 +336,59 @@ export type SkillScriptCommand =
   | { action: 'list' }
   | { action: 'revoke'; authorizationId: string }
 export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[] }
+
+/** Issue 123: one installed connector — identity facts only, never a runnable binding. */
+export interface ConnectorView {
+  slug: string
+  displayName: string
+  version: string
+  entry: string
+  manifestHash: string
+  packageHash: string
+  serverConnectorId: string
+  state: 'installed'
+  createdAt: string
+}
+/** Issue 123: the read-only projection of a candidate connector package. */
+export interface ConnectorInstallPreview {
+  slug: string
+  displayName: string
+  version: string
+  manifestHash: string
+  packageHash: string
+  fileCount: number
+  entry: string
+  installed: boolean
+  unchanged?: boolean
+}
+/**
+ * Issue 123: the renderer names the action only; the candidate directory is
+ * located in the trusted main process. A confirmed install/remove is sent
+ * after the owner confirmed in a dialog — the wire always carries
+ * confirmed=true for them, and preview rides main-internal calls with the
+ * located path, which never routes through the renderer.
+ */
+export type ConnectorCommand =
+  | { action: 'install' }
+  | { action: 'remove'; slug: string }
+  | { action: 'list' }
+/**
+ * Main-internal: the read-only preview over a package path located in the
+ * trusted main process. Never accepted from the renderer.
+ */
+export type ConnectorPreviewCommand = { action: 'preview'; path: string }
+/** Main-internal: the confirmed install over the same located path. */
+export type ConnectorInstallCommand = { action: 'install'; path: string }
+export type ConnectorOutcome =
+  | { action: 'install'; installed: true; slug: string; displayName: string; version: string
+      manifestHash: string; packageHash: string; fileCount: number; entry: string
+      serverConnectorId: string; state: 'installed' }
+  | { action: 'remove'; removed: true; slug: string; displayName: string }
+  | { action: 'list'; connectors: ConnectorView[] }
+export type ConnectorInternalOutcome =
+  | { action: 'preview' } & ConnectorInstallPreview
+  | ConnectorOutcome
+
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -354,6 +407,8 @@ export interface RuntimeStatus {
   skillImportStorageError?: string
   skillScriptAuthorizations?: SkillScriptAuthorizationView[]
   skillScriptStorageError?: string
+  connectors?: ConnectorView[]
+  connectorStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -414,6 +469,13 @@ export interface DesktopBridge {
   skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
   /** Issue 122: list or revoke the device's remembered Skill script grants. */
   skillScripts(command: SkillScriptCommand): Promise<SkillScriptView>
+  /**
+   * Issue 123: optional local connector install; picking and confirmation
+   * stay in main. The renderer calls it with the renderer-facing ConnectorCommand
+   * shapes only; the path-carrying preview/confirmed-install forms are
+   * main-internal and typed here so the preload bridge can implement them.
+   */
+  connectors(command: ConnectorCommand | ConnectorPreviewCommand | ConnectorInstallCommand): Promise<ConnectorInternalOutcome>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>
