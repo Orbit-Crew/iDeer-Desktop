@@ -1,0 +1,15 @@
+// Actual NSIS installation, with no update-key or release fixture.
+const fs = require('node:fs'), path = require('node:path'), os = require('node:os')
+const assert = require('node:assert/strict'), { createHash } = require('node:crypto'), { spawnSync } = require('node:child_process')
+const { nsisInvocation } = require('../../../resources/nsis/command.cjs')
+const [installer, output] = process.argv.slice(2)
+assert(path.isAbsolute(installer) && path.isAbsolute(output))
+const program = fs.mkdtempSync(path.join(os.tmpdir(), 'ideer112-installed-'))
+const call = nsisInvocation(installer, program)
+const run = spawnSync(call.file, call.args, { ...call.options, timeout: 120000 })
+assert.equal(run.status, 0)
+const executable = path.join(program, 'ideer-desktop.exe')
+assert(fs.existsSync(executable))
+const sha = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+fs.writeFileSync(output, JSON.stringify({ program, executable, installerSHA256: sha(installer),
+  appASARSHA256: sha(path.join(program, 'resources/app.asar')), exitCode: run.status }, null, 2))

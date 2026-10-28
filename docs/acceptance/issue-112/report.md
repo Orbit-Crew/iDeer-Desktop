@@ -90,3 +90,44 @@ Not run here, staged with named dependencies:
 Desktop baseline recorded before the change: typecheck exit 0, vitest 22
 files / 94 tests passed, local-runtime pytest 395 passed / 11 skipped. All
 three hold after the change with the new tests added.
+
+## Installed combination re-acceptance prepared 2026-10-28
+
+The new task-only entry is `scripts/acceptance/issue-112/run.ps1`. It installs
+the actual NSIS package into a fresh TEMP directory, starts the real Gateway
+from the Server candidate, authenticates and pairs synthetic A/B devices
+through public APIs, and stores their credentials in the actual Windows
+secret store. The Desktop driver clicks the installed application's import
+controls. Only native picker and confirmation callbacks supply synthetic
+inputs. IPC, Runtime, HTTP and authorization are not replaced.
+
+Bound Desktop base: `b64e51d4a7f20740337dcbf7ac6c00544282b379`.
+Bound Server base: `f4bca92e7f467714d7eb5cf365cbbabc6584a6f3`.
+The actual Server Python files are hashed at startup, so any pending fixes in
+the candidate are visible in `server-source-files.json` and its aggregate
+digest rather than represented as an unchanged base commit.
+Installer SHA-256:
+`5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2`.
+
+Preparation checks completed with exit 0: Node `--check` for `desktop.cjs` and
+`install.cjs`, Python AST parsing for `server.py`, and PowerShell Parser for
+`run.ps1`. These establish script syntax only. The new T112-01/02/03/04
+installed runs remain **unexecuted** until the Server candidate is ready.
+
+The driver records identity-only upload observations without tokens or file
+content; independently computes canonical manifest hashes; checks protected,
+outside and junction paths; compares immutable R1/R2; restarts the actual
+installed process; checks A/D1 versus B/D2; and rejects workspace-directory
+generation drift. Every scenario starts unexecuted and becomes passed only
+after its assertions complete. Command, exit, cleanup and uninstallation
+records are retained under the fresh task-owned `artifacts/issue-112` state.
+The earlier scenario statuses above are not promoted by this preparation.
+Real Win7 remains unexecuted under #131.
+
+Execution update, 2026-10-28: the prepared driver ran end-to-end on this
+host. T112-01/02/04 passed against the installed application and the real
+isolated Gateway; T112-03's immutable R1/R2 case passed and its
+provider-gated prepare/publish refusal pair stays unexecuted with the
+recorded dependency (no RAGFlow provider in the isolated environment; the
+409 itself is covered Server-side). Bindings, results and sanitized evidence
+are in [installed-20261028.md](installed-20261028.md). Win7 remains with #131.

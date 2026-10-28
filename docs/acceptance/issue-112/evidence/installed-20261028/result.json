@@ -1,0 +1,525 @@
+{
+  "startedAt": "2026-10-28T14:10:13.946Z",
+  "status": "incomplete",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "b64e51d4a7f20740337dcbf7ac6c00544282b379",
+  "serverCandidate": "f4bca92e7f467714d7eb5cf365cbbabc6584a6f3",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "a08afb126fb3b31aaf443c3c13d74ea6563cdeba6eabf6cc023f3c670fa88aba",
+  "fixtureSHA256": "5f6f9dbecd9b908bdd25b43a4db7713beada82bb26f23cbfde94695eca09fbe8",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "B",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "originalSHA256": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+    "changedSHA256": "891bfdae0d733cd67e967350cfab6552fcda90ac5e6be8ce4f78deb312213efe"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP and authorization.",
+  "scenarios": {
+    "T112-01": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "identity-only-import-through-installed-ui",
+          "status": "passed",
+          "row": {
+            "id": "16460e4e3b7d7ceff1988aa3ad48faaa5d222f16ae378731ff4cc077600f4770",
+            "kbId": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revisionId": "6cc55665-ebdb-40f1-9f44-268e239fe7b8",
+            "revisionNo": 1,
+            "manifestHash": "71568f4ac08a52396dad5960a1a758448d8d01a0647374913ef375d2cf1a0349",
+            "documentCount": 1,
+            "status": "registered",
+            "errorCode": "",
+            "createdAt": "2026-10-28 14:10:21",
+            "documents": [
+              {
+                "filename": "guide.md",
+                "sha256": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                "bytes": 46,
+                "mime": "text/markdown"
+              }
+            ]
+          },
+          "revision": {
+            "id": "6cc55665-ebdb-40f1-9f44-268e239fe7b8",
+            "resource_id": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revision_no": 1,
+            "status": "draft",
+            "manifest_hash": "71568f4ac08a52396dad5960a1a758448d8d01a0647374913ef375d2cf1a0349",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T14:10:23.814920",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "e75fdfe8-210b-5721-96dd-99f1e71c981b",
+                "content_hash": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                "filename": "guide.md",
+                "size_bytes": 46,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "5246c54f-6ce3-462f-aa62-0783372161de"
+                }
+              }
+            ]
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/resources/9a32186a-367f-4c02-85fc-286315fa0a27/knowledge-revisions/local-imports",
+            "bodyKeys": [
+              "device_id",
+              "documents"
+            ],
+            "bytes": 226,
+            "requestSHA256": "5585c91d9613bcc032f79a986f3b0301cd89f1d8e668d918ef5c1e64f5a1ea48",
+            "containsOriginalMarker": false,
+            "documents": [
+              {
+                "filename": "guide.md",
+                "content_hash": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                "size_bytes": 46,
+                "mime_type": "text/markdown"
+              }
+            ],
+            "deviceId": "5246c54f-6ce3-462f-aa62-0783372161de",
+            "status": 201
+          },
+          "confirmation": {
+            "title": "确认本地知识导入",
+            "message": "在设备侧解析所选文件，并在平台登记你的私有知识库新版本？",
+            "detail": "仅登记文件名、大小、类型与 SHA-256 指纹清单；原文件与设备侧索引不会自动上传。每次导入生成一个新的不可变版本，不覆盖已登记版本。",
+            "buttons": [
+              "取消",
+              "确认导入"
+            ]
+          },
+          "owner": "8a3b05e9-e1b0-421a-9811-58cad73f3bb0",
+          "visibility": "private"
+        }
+      ]
+    },
+    "T112-02": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "unconfirmed-workspace",
+          "status": "passed",
+          "error": "Error: Error invoking remote method 'desktop:knowledge:import': Error: KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE",
+          "posts": 0
+        },
+        {
+          "name": "protected",
+          "status": "passed",
+          "row": {
+            "id": "39895c826585525f7688b1fa8870e536ff1ded8c2c3934964cf95064973ca031",
+            "kbId": "74dd12b9-0f17-4159-97e4-c993c653cb91",
+            "revisionId": "",
+            "revisionNo": 0,
+            "manifestHash": "",
+            "documentCount": 0,
+            "status": "failed",
+            "errorCode": "KNOWLEDGE_IMPORT_PROTECTED_PATH",
+            "createdAt": "2026-10-28 14:10:27",
+            "documents": []
+          },
+          "registrationPostsAdded": 0,
+          "serverRevisionCount": 0
+        },
+        {
+          "name": "unsupported",
+          "status": "passed",
+          "row": {
+            "id": "c8ae5c54526f16941ad1ed052f71d44777b27eb5c773b87c738eac608f213a5a",
+            "kbId": "3b421a06-c743-4146-a852-2d265ab95905",
+            "revisionId": "",
+            "revisionNo": 0,
+            "manifestHash": "",
+            "documentCount": 0,
+            "status": "failed",
+            "errorCode": "KNOWLEDGE_IMPORT_UNSUPPORTED_TYPE",
+            "createdAt": "2026-10-28 14:10:39",
+            "documents": []
+          },
+          "registrationPostsAdded": 0,
+          "serverRevisionCount": 0
+        },
+        {
+          "name": "outside",
+          "status": "passed",
+          "row": {
+            "id": "2c7e02f43cae918821bf705944179a82b4b09a90a76bdea08a403fcd01d3b6de",
+            "kbId": "3f4af351-3af3-45b4-a395-31975f1c1a18",
+            "revisionId": "",
+            "revisionNo": 0,
+            "manifestHash": "",
+            "documentCount": 0,
+            "status": "failed",
+            "errorCode": "KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS",
+            "createdAt": "2026-10-28 14:10:43",
+            "documents": []
+          },
+          "registrationPostsAdded": 0,
+          "serverRevisionCount": 0
+        },
+        {
+          "name": "junction",
+          "status": "passed",
+          "row": {
+            "id": "1b7728eaf60dad671de776ce3e264015fa65f198f61fed3b978817033defc4a1",
+            "kbId": "3415791f-e3da-4c83-a930-9a86ac7dfcb5",
+            "revisionId": "",
+            "revisionNo": 0,
+            "manifestHash": "",
+            "documentCount": 0,
+            "status": "failed",
+            "errorCode": "KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS",
+            "createdAt": "2026-10-28 14:10:47",
+            "documents": []
+          },
+          "registrationPostsAdded": 0,
+          "serverRevisionCount": 0
+        },
+        {
+          "name": "other-account-server-refusal",
+          "status": 404
+        }
+      ]
+    },
+    "T112-03": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "immutable-R1-and-R2",
+          "status": "passed",
+          "first": {
+            "id": "6cc55665-ebdb-40f1-9f44-268e239fe7b8",
+            "resource_id": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revision_no": 1,
+            "status": "draft",
+            "manifest_hash": "71568f4ac08a52396dad5960a1a758448d8d01a0647374913ef375d2cf1a0349",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T14:10:23.814920",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "e75fdfe8-210b-5721-96dd-99f1e71c981b",
+                "content_hash": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                "filename": "guide.md",
+                "size_bytes": 46,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "5246c54f-6ce3-462f-aa62-0783372161de"
+                }
+              }
+            ]
+          },
+          "second": {
+            "id": "5f9002dd-f57c-4bca-99a7-fa24892f4c4e",
+            "resource_id": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revision_no": 2,
+            "status": "draft",
+            "manifest_hash": "9e07acc1e92acc980fccaa5aac2522de7a71444223fc92224cf264f8f16e8dbd",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T14:10:54.727794",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "f83d0629-381d-5db6-9869-af5a28a20c26",
+                "content_hash": "891bfdae0d733cd67e967350cfab6552fcda90ac5e6be8ce4f78deb312213efe",
+                "filename": "guide.md",
+                "size_bytes": 48,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "5246c54f-6ce3-462f-aa62-0783372161de"
+                }
+              }
+            ]
+          },
+          "actualFileSHA256": "891bfdae0d733cd67e967350cfab6552fcda90ac5e6be8ce4f78deb312213efe"
+        },
+        {
+          "name": "draft-local-import-prepare-refusal",
+          "status": "unexecuted",
+          "expectedStatus": 409,
+          "actualStatus": 503,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "No knowledge provider is configured"
+            },
+            "detail": "No knowledge provider is configured"
+          },
+          "dependency": "A real configured knowledge provider is required before the facade reaches local-import validation. This response is not counted as the expected 409."
+        },
+        {
+          "name": "draft-local-import-publish-refusal",
+          "status": "unexecuted",
+          "expectedStatus": 409,
+          "actualStatus": 503,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "No knowledge provider is configured"
+            },
+            "detail": "No knowledge provider is configured"
+          },
+          "dependency": "A real configured knowledge provider is required before the facade reaches local-import validation. This response is not counted as the expected 409."
+        }
+      ]
+    },
+    "T112-04": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "installed-owner-restart",
+          "status": "passed",
+          "revisions": [
+            {
+              "id": "c9a32c9f99b9feb49f4b675f30409a878a5bf373f62b9960ff6d32b6db8f0587",
+              "kbId": "9a32186a-367f-4c02-85fc-286315fa0a27",
+              "revisionId": "5f9002dd-f57c-4bca-99a7-fa24892f4c4e",
+              "revisionNo": 2,
+              "manifestHash": "9e07acc1e92acc980fccaa5aac2522de7a71444223fc92224cf264f8f16e8dbd",
+              "documentCount": 1,
+              "status": "registered",
+              "errorCode": "",
+              "createdAt": "2026-10-28 14:10:51",
+              "documents": [
+                {
+                  "filename": "guide.md",
+                  "sha256": "891bfdae0d733cd67e967350cfab6552fcda90ac5e6be8ce4f78deb312213efe",
+                  "bytes": 48,
+                  "mime": "text/markdown"
+                }
+              ]
+            },
+            {
+              "id": "16460e4e3b7d7ceff1988aa3ad48faaa5d222f16ae378731ff4cc077600f4770",
+              "kbId": "9a32186a-367f-4c02-85fc-286315fa0a27",
+              "revisionId": "6cc55665-ebdb-40f1-9f44-268e239fe7b8",
+              "revisionNo": 1,
+              "manifestHash": "71568f4ac08a52396dad5960a1a758448d8d01a0647374913ef375d2cf1a0349",
+              "documentCount": 1,
+              "status": "registered",
+              "errorCode": "",
+              "createdAt": "2026-10-28 14:10:21",
+              "documents": [
+                {
+                  "filename": "guide.md",
+                  "sha256": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                  "bytes": 46,
+                  "mime": "text/markdown"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "account-and-device-isolation",
+          "status": "passed",
+          "rowsBefore": 0,
+          "hiddenListStatus": 404,
+          "refusal": {
+            "id": "1c564d8e3bde06f640e40b7762fceb13a6df84e4f910425f63064ead35af3110",
+            "kbId": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revisionId": "",
+            "revisionNo": 0,
+            "manifestHash": "",
+            "documentCount": 0,
+            "status": "failed",
+            "errorCode": "CHAT_NOT_FOUND",
+            "createdAt": "2026-10-28 14:11:15",
+            "documents": []
+          },
+          "deviceA": "5246c54f-6ce3-462f-aa62-0783372161de",
+          "deviceB": "792e0eac-2964-402c-ad02-f0b285ac3ed5"
+        },
+        {
+          "name": "workspace-generation-drift",
+          "status": "passed",
+          "error": "Error: Error invoking remote method 'desktop:knowledge:import': Error: KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE",
+          "registrationPostsAdded": 0,
+          "R1": {
+            "id": "6cc55665-ebdb-40f1-9f44-268e239fe7b8",
+            "resource_id": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revision_no": 1,
+            "status": "draft",
+            "manifest_hash": "71568f4ac08a52396dad5960a1a758448d8d01a0647374913ef375d2cf1a0349",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T14:10:23.814920",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "e75fdfe8-210b-5721-96dd-99f1e71c981b",
+                "content_hash": "6e0bd61b9cd6263ad7469c354a661519e3ff83a120a4e571c39e4cd75245dc24",
+                "filename": "guide.md",
+                "size_bytes": 46,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "5246c54f-6ce3-462f-aa62-0783372161de"
+                }
+              }
+            ]
+          },
+          "R2": {
+            "id": "5f9002dd-f57c-4bca-99a7-fa24892f4c4e",
+            "resource_id": "9a32186a-367f-4c02-85fc-286315fa0a27",
+            "revision_no": 2,
+            "status": "draft",
+            "manifest_hash": "9e07acc1e92acc980fccaa5aac2522de7a71444223fc92224cf264f8f16e8dbd",
+            "document_count": 1,
+            "failure_code": null,
+            "failure_message": null,
+            "integrity_status": null,
+            "integrity_checked_at": null,
+            "created_at": "2026-10-28T14:10:54.727794",
+            "published_at": null,
+            "publish_execution_token": null,
+            "documents": [
+              {
+                "document_id": "f83d0629-381d-5db6-9869-af5a28a20c26",
+                "content_hash": "891bfdae0d733cd67e967350cfab6552fcda90ac5e6be8ce4f78deb312213efe",
+                "filename": "guide.md",
+                "size_bytes": 48,
+                "mime_type": "text/markdown",
+                "metadata": {
+                  "origin": "local_import",
+                  "device_id": "5246c54f-6ce3-462f-aa62-0783372161de"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-28T14:11:29.012Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer112-files-N3L3xS"
+}
