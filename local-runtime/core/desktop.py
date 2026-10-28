@@ -21,6 +21,7 @@ from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
+from .skill_import import SkillImportError, SkillImportRegistry
 from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
@@ -45,6 +46,7 @@ def main() -> int:
     knowledge_publish_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
+    skill_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -133,6 +135,25 @@ def main() -> int:
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_wiki_commands.put_nowait(command)
                     continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'kind', 'paths', 'confirmed', 'scope'},
+                        {'type', 'id', 'action', 'resourceId', 'expectedDraftRevision', 'scope'})
+                        and command['type'] == 'skills' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'import', 'publish'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'import' or (
+                            command['kind'] in ('markdown', 'zip', 'directory')
+                            and isinstance(command['paths'], list)
+                            and 1 <= len(command['paths']) <= 1
+                            and all(isinstance(path, str) and 0 < len(path) <= 32768 for path in command['paths'])
+                            and command['confirmed'] in (True, False)))
+                        and (command['action'] != 'publish' or (
+                            isinstance(command['resourceId'], str) and len(command['resourceId']) <= 64
+                            and type(command['expectedDraftRevision']) is int
+                            and 1 <= command['expectedDraftRevision'] <= 1000000))):
+                    skill_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['path'], str)
@@ -194,6 +215,9 @@ def main() -> int:
         # Issue 115: explicit publications record the outcome of a confirmed
         # server copy attempt; a preview alone never writes a row.
         knowledge_publications = KnowledgePublicationRegistry(args.config.with_name('knowledge-publications.db'))
+        # Issue 120: explicit skill package imports keep the same registry
+        # discipline — device-local display facts, never package content.
+        skill_imports = SkillImportRegistry(args.config.with_name('skill-imports.db'))
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -217,7 +241,7 @@ def main() -> int:
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
-            knowledge_publications=knowledge_publications)
+            knowledge_publications=knowledge_publications, skill_imports=skill_imports)
 
         def chat_control():
             while not stop.is_set():
@@ -412,6 +436,27 @@ def main() -> int:
                 emit({'v': 1, 'type': 'knowledge-wiki', 'id': wiki_command['id'],
                       'result': result, 'error': error})
             try:
+                skill_command = skill_commands.get_nowait()
+            except queue.Empty:
+                skill_command = None
+            if skill_command:
+                error = ''
+                result = None
+                try:
+                    if skill_command['action'] == 'import':
+                        result = chat.import_skill_package(skill_command['kind'], skill_command['paths'],
+                                                           confirmed=skill_command['confirmed'] is True)
+                    else:
+                        result = chat.publish_skill(skill_command['resourceId'],
+                                                    skill_command['expectedDraftRevision'])
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'SKILL_IMPORT_', 'SKILL_PUBLISH_')) else 'SKILL_IMPORT_FAILED'
+                emit({'v': 1, 'type': 'skills', 'id': skill_command['id'],
+                      'result': result, 'error': error})
+            try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
                 selection = None
@@ -452,6 +497,10 @@ def main() -> int:
                 knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgePublishError:
                 knowledge_publication_rows = []
+            try:
+                skill_rows = skill_imports.view(current_receipt_owner) if current_receipt_owner else []
+            except SkillImportError:
+                skill_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -481,6 +530,8 @@ def main() -> int:
                       "knowledgeImportStorageError": knowledge_imports.error,
                       "knowledgePublications": knowledge_publication_rows[:20],
                       "knowledgePublishStorageError": knowledge_publications.error,
+                      "skillImports": skill_rows[:20],
+                      "skillImportStorageError": skill_imports.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPublishOutcome, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -23,6 +23,8 @@ export class RuntimeProcess {
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
   private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
+  private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
+  private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -218,6 +220,45 @@ export class RuntimeProcess {
       const wire: Record<string, unknown> = { type: 'knowledge-wiki', id, kbId: command.kbId, revisionId: command.revisionId, action: command.action, scope: this.selectionScope }
       if (command.action === 'read') wire.documentId = command.documentId
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /** Issue 120: one skill package step — the device-side preview or the confirmed upload. */
+  async importSkill(kind: 'markdown' | 'zip' | 'directory',
+      paths: string[], confirmed: boolean): Promise<SkillImportPreview | SkillImportOutcome> {
+    if (!['markdown', 'zip', 'directory'].includes(kind)) throw new Error('SKILL_COMMAND_INVALID')
+    if (!Array.isArray(paths) || paths.length !== 1 ||
+        paths.some((path) => typeof path !== 'string' || !path || path.length > 32768)) throw new Error('SKILL_COMMAND_INVALID')
+    if (typeof confirmed !== 'boolean') throw new Error('SKILL_COMMAND_INVALID')
+    if (this.skillImportRequests.size) throw new Error('SKILL_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.skillImportRequests.delete(id); reject(new Error('SKILL_IMPORT_TIMEOUT')) }, confirmed ? 120000 : 30000)
+      this.skillImportRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.skillImportRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.skillImportRequests.delete(id); reject(error) },
+        phase: confirmed ? 'confirm' : 'preview'
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'skills', id, action: 'import', kind, paths, confirmed, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 120: publish one confirmed import's draft through the platform's own flow. */
+  async publishSkill(resourceId: string, expectedDraftRevision: number): Promise<SkillPublishOutcome> {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    if (typeof resourceId !== 'string' || !uuid.test(resourceId)) throw new Error('SKILL_COMMAND_INVALID')
+    if (!Number.isSafeInteger(expectedDraftRevision) || expectedDraftRevision < 1 || expectedDraftRevision > 1000000) throw new Error('SKILL_COMMAND_INVALID')
+    if (this.skillPublishRequests.size) throw new Error('SKILL_PUBLISH_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.skillPublishRequests.delete(id); reject(new Error('SKILL_PUBLISH_TIMEOUT')) }, 60000)
+      this.skillPublishRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.skillPublishRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.skillPublishRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'skills', id, action: 'publish', resourceId, expectedDraftRevision, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -561,6 +602,75 @@ export class RuntimeProcess {
             })
             continue
           }
+          if (value.v === 1 && value.type === 'skills') {
+            // Issue 120: the preview (device-side, uploads nothing), the
+            // confirmed import (private draft), and the publication (version
+            // copy) each resolve only their own exact shape.
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            if (value.error) {
+              this.skillImportRequests.get(value.id)?.reject(new Error(value.error))
+              this.skillImportRequests.delete(value.id)
+              this.skillPublishRequests.get(value.id)?.reject(new Error(value.error))
+              this.skillPublishRequests.delete(value.id)
+              continue
+            }
+            const importer = this.skillImportRequests.get(value.id)
+            if (importer) {
+              const outcome = value.result
+              const files = (rows: unknown): SkillImportPreview['files'] => Array.isArray(rows) ? rows.slice(0, 200).map((row: Record<string, unknown>) => ({
+                path: text(row?.path, 255),
+                role: ['body', 'script', 'reference', 'attachment'].includes(row?.role as string) ? row.role as SkillImportPreview['files'][number]['role'] : 'attachment',
+                bytes: Number.isSafeInteger(row?.bytes) && (row.bytes as number) >= 0 ? row.bytes as number : 0,
+                sha256: text(row?.sha256, 64)
+              })).filter((row: SkillPackageFileView) => row.path !== '' && /^[0-9a-f]{64}$/.test(row.sha256)) : []
+              if (!outcome || typeof outcome.confirmed !== 'boolean' || typeof outcome.packageHash !== 'string' ||
+                  !/^[0-9a-f]{64}$/.test(outcome.packageHash) || typeof outcome.name !== 'string' ||
+                  !Number.isSafeInteger(outcome.fileCount) || !Number.isSafeInteger(outcome.totalBytes)) {
+                this.skillImportRequests.delete(value.id)
+                importer.reject(new Error('SKILL_IMPORT_FAILED'))
+                continue
+              }
+              if (outcome.confirmed === false) {
+                if (importer.phase !== 'preview' || !outcome.destination || outcome.destination.visibility !== 'private') {
+                  this.skillImportRequests.delete(value.id)
+                  importer.reject(new Error('SKILL_IMPORT_FAILED'))
+                  continue
+                }
+                importer.resolve({ confirmed: false, origin: outcome.origin === 'markdown' || outcome.origin === 'zip' || outcome.origin === 'directory' ? outcome.origin : 'zip',
+                  name: outcome.name, description: text(outcome.description, 1024), bodyExcerpt: text(outcome.body, 2000), files: files(outcome.files),
+                  fileCount: outcome.fileCount, totalBytes: outcome.totalBytes, packageHash: outcome.packageHash,
+                  destination: { resourceType: 'skill', visibility: 'private' } })
+                continue
+              }
+              const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+              if (importer.phase !== 'confirm' || typeof outcome.resourceId !== 'string' || !uuid.test(outcome.resourceId) ||
+                  typeof outcome.slug !== 'string' || !outcome.slug || !Number.isSafeInteger(outcome.revision) ||
+                  outcome.revision < 1 || typeof outcome.contentHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.contentHash)) {
+                this.skillImportRequests.delete(value.id)
+                importer.reject(new Error('SKILL_IMPORT_FAILED'))
+                continue
+              }
+              importer.resolve({ confirmed: true, resourceId: outcome.resourceId, slug: outcome.slug,
+                revision: outcome.revision, contentHash: outcome.contentHash,
+                fileCount: outcome.fileCount, totalBytes: outcome.totalBytes })
+              continue
+            }
+            const publisher = this.skillPublishRequests.get(value.id)
+            if (publisher) {
+              const outcome = value.result
+              const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+              if (!outcome || typeof outcome.resourceId !== 'string' || !uuid.test(outcome.resourceId) ||
+                  !Number.isSafeInteger(outcome.version) || outcome.version < 1 ||
+                  typeof outcome.contentHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.contentHash)) {
+                this.skillPublishRequests.delete(value.id)
+                publisher.reject(new Error('SKILL_PUBLISH_FAILED'))
+                continue
+              }
+              publisher.resolve({ resourceId: outcome.resourceId, version: outcome.version, contentHash: outcome.contentHash })
+              continue
+            }
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -644,6 +754,26 @@ export class RuntimeProcess {
                 documentCount: row.documentCount, createdAt: row.createdAt })
             }
           }
+          const skillImports: SkillImportView[] = []
+          if (Array.isArray(value.skillImports)) {
+            for (const row of value.skillImports.slice(0, 20)) {
+              // Issue 120: rows are device-local display facts; an imported
+              // row carries its draft handle, a published row its version
+              // copy, and a failed row only its fixed category.
+              if (!row || typeof row.id !== 'string' || typeof row.resourceId !== 'string' ||
+                  !['imported', 'published', 'failed'].includes(row.status) ||
+                  !Number.isSafeInteger(row.revision) || !Number.isSafeInteger(row.version) ||
+                  typeof row.createdAt !== 'string' ||
+                  (row.status !== 'failed' ? typeof row.contentHash !== 'string' || !/^[0-9a-f]{64}$/.test(row.contentHash) : false) ||
+                  (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false)) throw new Error('Invalid skill import status')
+              skillImports.push({ id: row.id, resourceId: row.resourceId, slug: typeof row.slug === 'string' ? row.slug : '',
+                revision: row.revision, contentHash: typeof row.contentHash === 'string' ? row.contentHash : '',
+                version: row.version, origin: typeof row.origin === 'string' ? row.origin : '',
+                fileCount: Number.isSafeInteger(row.fileCount) ? row.fileCount : 0,
+                totalBytes: Number.isSafeInteger(row.totalBytes) ? row.totalBytes : 0,
+                status: row.status, errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt })
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
@@ -652,6 +782,7 @@ export class RuntimeProcess {
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',
+            skillImports, skillImportStorageError: value.skillImportStorageError === 'SKILL_IMPORT_STORAGE_UNAVAILABLE' ? value.skillImportStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }

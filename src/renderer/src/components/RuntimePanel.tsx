@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
+import { SkillSection } from './SkillSection'
 import { WikiSection } from './WikiSection'
-import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -38,6 +39,16 @@ export default function RuntimePanel(): JSX.Element {
   const [wikiPage, setWikiPage] = useState<WikiPage | null>(null)
   const [wikiBusy, setWikiBusy] = useState(false)
   const [wikiError, setWikiError] = useState('')
+  const [skillBusy, setSkillBusy] = useState(false)
+  const [skillError, setSkillError] = useState('')
+  const runSkill = (command: SkillCommand) => {
+    setSkillError(''); setSkillBusy(true)
+    void window.ideer.skills(command)
+      .then(() => controller.current?.refresh(historyOffset))
+      .catch((caught: unknown) => setSkillError(caught instanceof Error && /^[A-Z0-9_]+$/.test(caught.message)
+        ? caught.message : '需要已认证会话，且本机包可读并与预览一致'))
+      .finally(() => setSkillBusy(false))
+  }
   const runWiki = (command: WikiCommand) => {
     setWikiError(''); setWikiBusy(true)
     if (command.action === 'view' || command.action === 'generate') {
@@ -217,6 +228,13 @@ export default function RuntimePanel(): JSX.Element {
       busy={wikiBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={wikiError}
       onCommand={runWiki}
+    />
+    <Typography.Title level={5} className="mt-5">技能包导入</Typography.Title>
+    <SkillSection
+      runtime={runtime}
+      busy={skillBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
+      error={skillError}
+      onCommand={runSkill}
     />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>
