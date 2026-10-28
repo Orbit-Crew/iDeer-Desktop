@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPublishOutcome, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -25,6 +25,7 @@ export class RuntimeProcess {
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
+  private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -259,6 +260,51 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.skillPublishRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify({ type: 'skills', id, action: 'publish', resourceId, expectedDraftRevision, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 121: configure per-Skill trigger preferences. The command only
+   * travels to the owned Runtime and on to the Server endpoints; the Desktop
+   * never matches keywords and never drives the model. */
+  async skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    const wire: Record<string, unknown> = { type: 'skill-preferences', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+    } else {
+      if (typeof command.skillId !== 'string' || !uuid.test(command.skillId)) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+      wire.skillId = command.skillId
+      if (command.action === 'clear') {
+        if (Object.keys(command).length !== 2) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+      } else {
+        const bounds =
+          Object.keys(command).length === 7 &&
+          typeof command.enabled === 'boolean' &&
+          typeof command.alwaysInject === 'boolean' &&
+          typeof command.priority === 'number' && Number.isSafeInteger(command.priority) && command.priority >= -1000 && command.priority <= 1000 &&
+          Array.isArray(command.keywords) && command.keywords.length <= 16 && command.keywords.every((keyword) => typeof keyword === 'string' && keyword.trim() !== '' && keyword.length <= 64) &&
+          Array.isArray(command.applicableAgentIds) && command.applicableAgentIds.length <= 32 && command.applicableAgentIds.every((agentId) => typeof agentId === 'string' && uuid.test(agentId))
+        if (!bounds) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+        wire.enabled = command.enabled
+        wire.keywords = command.keywords
+        wire.alwaysInject = command.alwaysInject
+        wire.applicableAgentIds = command.applicableAgentIds
+        wire.priority = command.priority
+      }
+    }
+    if (this.skillPreferenceRequests.size) throw new Error('SKILL_PREFERENCE_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.skillPreferenceRequests.delete(id); reject(new Error('SKILL_PREFERENCE_TIMEOUT')) }, 30000)
+      this.skillPreferenceRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.skillPreferenceRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.skillPreferenceRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
   }
 
@@ -669,6 +715,34 @@ export class RuntimeProcess {
               publisher.resolve({ resourceId: outcome.resourceId, version: outcome.version, contentHash: outcome.contentHash })
               continue
             }
+            continue
+          }
+          if (value.v === 1 && value.type === 'skill-preferences') {
+            // Issue 121: the Server's own preference projection, validated and
+            // bounded before it reaches the renderer. No content, no matching.
+            const pending = this.skillPreferenceRequests.get(value.id)
+            if (!pending) continue
+            this.skillPreferenceRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+            if (!result || !Array.isArray(result.skills)) { pending.reject(new Error('SKILL_PREFERENCE_FAILED')); continue }
+            const skills = result.skills.slice(0, 200).map((row: Record<string, unknown>) => ({
+              skillId: text(row?.skillId, 64),
+              slug: text(row?.slug, 255),
+              displayName: text(row?.displayName, 255),
+              latestVersion: Number.isSafeInteger(row?.latestVersion) && (row.latestVersion as number) >= 0 ? row.latestVersion as number : 0,
+              available: row?.available === true,
+              enabled: row?.enabled === true,
+              keywords: Array.isArray(row?.keywords) ? row.keywords.slice(0, 16).filter((keyword): keyword is string => typeof keyword === 'string') : [],
+              alwaysInject: row?.alwaysInject === true,
+              applicableAgentIds: Array.isArray(row?.applicableAgentIds)
+                ? row.applicableAgentIds.slice(0, 32).filter((agentId): agentId is string => typeof agentId === 'string' && uuid.test(agentId))
+                : [],
+              priority: Number.isSafeInteger(row?.priority) ? row.priority as number : 0
+            })).filter((row: SkillTriggerPreferenceView) => uuid.test(row.skillId))
+            pending.resolve({ skills })
             continue
           }
           if (value.v === 1 && value.type === 'workspace') {

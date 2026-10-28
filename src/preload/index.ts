@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, DesktopBridge, KnowledgeGraphCommand, SkillCommand, WikiCommand } from '../shared/desktop'
+import type { ChatCommand, DesktopBridge, KnowledgeGraphCommand, SkillCommand, SkillPreferenceCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -16,6 +16,7 @@ const bridge: DesktopBridge = Object.freeze({
   knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   knowledgeWiki: (command: WikiCommand) => ipcRenderer.invoke('desktop:knowledge:wiki', command),
   skills: (command: SkillCommand) => ipcRenderer.invoke('desktop:skills', command),
+  skillPreferences: (command: SkillPreferenceCommand) => ipcRenderer.invoke('desktop:skill-preferences', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
   installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),

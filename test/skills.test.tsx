@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 import { SkillSection } from '../src/renderer/src/components/SkillSection'
-import type { RuntimeStatus, SkillImportView } from '../src/shared/desktop'
+import type { RuntimeStatus, SkillImportView, SkillPreferencesView, SkillTriggerPreferenceView } from '../src/shared/desktop'
 
 const RESOURCE = '77777777-7777-4777-8777-777777777777'
 const PACKAGE_HASH = 'c'.repeat(64)
@@ -19,10 +19,16 @@ const importRow = (overrides: Partial<SkillImportView> = {}): SkillImportView =>
 const runtimeStatus = (overrides: Partial<RuntimeStatus> = {}): RuntimeStatus =>
   ({ process: 'running', connection: 'connected', tasks: [], skillImports: [importRow()], ...overrides })
 
+const preferenceRow = (overrides: Partial<SkillTriggerPreferenceView> = {}): SkillTriggerPreferenceView => ({
+  skillId: RESOURCE, slug: 'report-skill', displayName: 'Report skill', latestVersion: 2, available: true,
+  enabled: true, keywords: ['weekly report'], alwaysInject: false, applicableAgentIds: [], priority: 3, ...overrides
+})
+
 const renderSection = (overrides: {
   runtime?: RuntimeStatus
   busy?: boolean
   error?: string
+  initialPreferences?: SkillPreferencesView
 } = {}): string =>
   renderToStaticMarkup(
     <SkillSection
@@ -30,6 +36,8 @@ const renderSection = (overrides: {
       busy={overrides.busy ?? false}
       error={overrides.error ?? ''}
       onCommand={() => {}}
+      onPreferences={async () => ({ skills: [] })}
+      initialPreferences={overrides.initialPreferences}
     />
   )
 
@@ -105,4 +113,57 @@ describe('skill package preview import bridge (#120)', () => {
       rmSync(packages, { recursive: true, force: true })
     }
   }, 30000)
+})
+
+describe('skill trigger preference configuration bridge (#121)', () => {
+  it('validates the preference command before the owned Runtime and never matches locally', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-121/unused')
+    const good = { action: 'set' as const, skillId: RESOURCE, enabled: true, keywords: ['report'], alwaysInject: false, applicableAgentIds: [], priority: 5 }
+    for (const command of [
+      null, 'list', 7, {},
+      { action: 'remove' },
+      { action: 'list', extra: 1 },
+      { action: 'set', skillId: 'not-a-uuid' },
+      { action: 'set', skillId: `${RESOURCE}/extra` },
+      { action: 'clear' },
+      { action: 'clear', skillId: 'nope' },
+      { ...good, priority: 1001 },
+      { ...good, priority: -1001 },
+      { ...good, priority: 1.5 },
+      { ...good, keywords: new Array(17).fill('k') },
+      { ...good, keywords: [''] },
+      { ...good, keywords: ['x'.repeat(65)] },
+      { ...good, applicableAgentIds: ['nope'] },
+      { ...good, applicableAgentIds: new Array(33).fill(RESOURCE) },
+      { ...good, enabled: 'yes' },
+      { ...good, extra: 1 }
+    ]) {
+      await expect(runtime.skillPreferences(command as never)).rejects.toThrow('SKILL_PREFERENCE_COMMAND_INVALID')
+    }
+    // Well-formed commands still need the owned Runtime process: the Desktop
+    // owns no matching code and no model — the command only travels onward.
+    await expect(runtime.skillPreferences({ action: 'list' })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.skillPreferences(good)).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.skillPreferences({ action: 'clear', skillId: RESOURCE })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+
+  it('renders the preference surface with the Server-owned fields and honest availability', () => {
+    const html = renderSection({ initialPreferences: { skills: [preferenceRow()] } })
+    expect(html).toContain('触发偏好（Server 端匹配）')
+    // The configuration surface names the documented fields only.
+    expect(html).toContain('report-skill')
+    expect(html).toContain('可用')
+    expect(html).toContain('weekly report')
+    expect(html).toContain('始终注入')
+    expect(html).toContain('适用 Agent')
+    expect(html).toContain('优先级')
+    expect(html).toContain('保存偏好')
+    expect(html).toContain('清除')
+    // An unavailable Skill says so instead of pretending it can trigger.
+    const unavailable = renderSection({ initialPreferences: { skills: [preferenceRow({ available: false, latestVersion: 0 })] } })
+    expect(unavailable).toContain('不可用')
+    // Empty state: the account holds no preferences yet.
+    expect(renderSection()).toContain('正在加载触发偏好')
+  })
 })

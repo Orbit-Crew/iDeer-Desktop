@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -281,6 +281,18 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('SKILL_PUBLISH_CANCELED')
       return runtime.publishSkill(command.resourceId, command.expectedDraftRevision)
+    })
+    // Issue 121: the trigger-preference entry. The renderer only names the
+    // account's Skill and the preference fields; the Server stores the rows,
+    // performs every match at Run preparation, and re-validates visibility,
+    // publication and the dependency closure. Nothing here runs a model or
+    // matches locally — the Desktop has no matching code by design.
+    ipcMain.handle('desktop:skill-preferences', async (event, command: SkillPreferenceCommand): Promise<SkillPreferencesView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['list', 'set', 'clear'].includes(command.action)) throw new Error('SKILL_PREFERENCE_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('SKILL_PREFERENCE_UNAUTHENTICATED')
+      return runtime.skillPreferences(command)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

@@ -284,6 +284,25 @@ export interface SkillPublishOutcome { resourceId: string; version: number; cont
 export type SkillCommand =
   | { action: 'import'; kind: 'markdown' | 'zip' | 'directory' }
   | { action: 'publish'; resourceId: string; expectedDraftRevision: number }
+/** Issue 121: one account Skill with its Server-side trigger preference. */
+export interface SkillTriggerPreferenceView {
+  skillId: string
+  slug: string
+  displayName: string
+  latestVersion: number
+  available: boolean
+  enabled: boolean
+  keywords: string[]
+  alwaysInject: boolean
+  applicableAgentIds: string[]
+  priority: number
+}
+/** Issue 121: the account's preference projection; matching happens only on the Server. */
+export interface SkillPreferencesView { skills: SkillTriggerPreferenceView[] }
+export type SkillPreferenceCommand =
+  | { action: 'list' }
+  | { action: 'set'; skillId: string; enabled: boolean; keywords: string[]; alwaysInject: boolean; applicableAgentIds: string[]; priority: number }
+  | { action: 'clear'; skillId: string }
 /** Issue 120: device-local display fact for one explicit skill import or publication. */
 export interface SkillImportView {
   id: string
@@ -371,6 +390,8 @@ export interface DesktopBridge {
   knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation>
   /** Issue 120: skill package preview import; picking and confirmation stay in main. */
   skills(command: SkillCommand): Promise<SkillImportPreview | SkillImportOutcome | SkillPublishOutcome>
+  /** Issue 121: configure Skill trigger preferences; the Server matches, the Desktop never does. */
+  skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
   checkUpdates(mode?: 'staged'): Promise<UpdateCheckResult>
   importUpdate(): Promise<UpdateCheckResult>
   installUpdate(): Promise<InstallOutcome>

@@ -47,6 +47,7 @@ def main() -> int:
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
+    skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -153,6 +154,27 @@ def main() -> int:
                             and type(command['expectedDraftRevision']) is int
                             and 1 <= command['expectedDraftRevision'] <= 1000000))):
                     skill_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'set', 'clear'}
+                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                             or command['action'] == 'clear' and set(command) == {'type', 'id', 'action', 'skillId', 'scope'}
+                             and isinstance(command.get('skillId'), str) and len(command['skillId']) <= 64
+                             or command['action'] == 'set' and set(command) == {'type', 'id', 'action', 'skillId', 'enabled',
+                                                                                'keywords', 'alwaysInject', 'applicableAgentIds',
+                                                                                'priority', 'scope'}
+                             and isinstance(command.get('skillId'), str) and len(command['skillId']) <= 64
+                             and type(command.get('enabled')) is bool
+                             and isinstance(command.get('keywords'), list) and len(command['keywords']) <= 16
+                             and all(isinstance(keyword, str) and 0 < len(keyword.strip()) <= 64 for keyword in command['keywords'])
+                             and type(command.get('alwaysInject')) is bool
+                             and isinstance(command.get('applicableAgentIds'), list) and len(command['applicableAgentIds']) <= 32
+                             and all(isinstance(agent_id, str) and 0 < len(agent_id) <= 64 for agent_id in command['applicableAgentIds'])
+                             and type(command.get('priority')) is int and not isinstance(command.get('priority'), bool)
+                             and -1000 <= command['priority'] <= 1000)):
+                    skill_preference_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -455,6 +477,22 @@ def main() -> int:
                     message = str(exc)
                     error = message if message.startswith(('CHAT_', 'SKILL_IMPORT_', 'SKILL_PUBLISH_')) else 'SKILL_IMPORT_FAILED'
                 emit({'v': 1, 'type': 'skills', 'id': skill_command['id'],
+                      'result': result, 'error': error})
+            try:
+                preference_command = skill_preference_commands.get_nowait()
+            except queue.Empty:
+                preference_command = None
+            if preference_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.skill_preferences(preference_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'SKILL_PREFERENCE_')) else 'SKILL_PREFERENCE_FAILED'
+                emit({'v': 1, 'type': 'skill-preferences', 'id': preference_command['id'],
                       'result': result, 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
