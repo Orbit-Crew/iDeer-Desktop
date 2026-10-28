@@ -201,7 +201,7 @@ def test_malformed_view_is_a_protocol_error(tmp_path):
 def test_locate_resolves_the_source_in_the_workspace(tmp_path):
     with platform() as (origin, records):
         chat, _config, space = prepare(tmp_path, origin)
-        (space / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+        (space / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
         del records[:]
 
         located = chat.knowledge_graph(KB, REVISION, action='locate', document_id='doc-1')

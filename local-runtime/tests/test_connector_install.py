@@ -41,7 +41,8 @@ def build_package(root: Path, *, slug: str = "demo-echo", display_name: str = "D
                   version: str = "1.2.0", entry: str = "server.py", requirements: dict | None = None,
                   manifest_raw: str | None = None, extra: dict[str, bytes] | None = None,
                   write_entry: bool = True) -> Path:
-    package = root / f"candidate-{slug}-{version.replace('.', '_')}"
+    # Invalid manifest values must reach validation, never name fixture paths.
+    package = root / "candidate"
     package.mkdir(parents=True, exist_ok=True)
     manifest = {
         "connector": slug,
@@ -127,20 +128,51 @@ def test_package_validation_matrix(tmp_path: Path, service: ConnectorInstallServ
         with pytest.raises(ConnectorInstallError) as excinfo:
             service.preview(BINDING, str(broken))
         assert str(excinfo.value) == expected, entry
-    # A symlinked entry never masquerades as an ordinary file.
-    linked = build_package(tmp_path / "linked")
-    outside = tmp_path / "outside.py"
-    outside.write_text("print('evil')", encoding="utf-8")
-    (linked / "server.py").unlink()
-    (linked / "server.py").symlink_to(outside)
-    with pytest.raises(ConnectorInstallError) as excinfo:
-        service.preview(BINDING, str(linked))
-    assert str(excinfo.value) == "CONNECTOR_ENTRY_INVALID"
     # Forbidden native member.
     native = build_package(tmp_path / "native", extra={"helper.dll": b"MZ"})
     with pytest.raises(ConnectorInstallError) as excinfo:
         service.preview(BINDING, str(native))
     assert str(excinfo.value) == "CONNECTOR_PACKAGE_INVALID"
+
+
+def test_package_rejects_symlinked_entry(tmp_path: Path, service: ConnectorInstallService) -> None:
+    linked = build_package(tmp_path / "linked")
+    outside = tmp_path / "outside.py"
+    outside.write_bytes(b"print('outside entry must not run')")
+    (linked / "server.py").unlink()
+    try:
+        (linked / "server.py").symlink_to(outside)
+    except NotImplementedError:
+        pytest.skip("File symlinks are not supported on this platform")
+    except OSError as error:
+        if getattr(error, "winerror", None) == 1314:
+            pytest.skip("Windows account lacks CreateSymbolicLink privilege; file-symlink refusal unexecuted")
+        raise
+    with pytest.raises(ConnectorInstallError) as excinfo:
+        service.preview(BINDING, str(linked))
+    assert str(excinfo.value) == "CONNECTOR_ENTRY_INVALID"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows junction contract")
+def test_package_rejects_entry_below_junction(tmp_path: Path, service: ConnectorInstallService) -> None:
+    import subprocess
+
+    package = build_package(tmp_path / "linked", entry="link/server.py", write_entry=False)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    marker = b"print('outside entry must not run')"
+    (outside / "server.py").write_bytes(marker)
+    link = package / "link"
+    link.rmdir()
+    created = subprocess.run(["cmd.exe", "/c", "mklink", "/J", str(link), str(outside)], capture_output=True)
+    assert created.returncode == 0
+    try:
+        with pytest.raises(ConnectorInstallError) as excinfo:
+            service.preview(BINDING, str(package))
+        assert str(excinfo.value) == "CONNECTOR_ENTRY_INVALID"
+        assert (outside / "server.py").read_bytes() == marker
+    finally:
+        link.rmdir()
 
 
 def test_version_floor_mismatch_is_actionable(tmp_path: Path, service: ConnectorInstallService) -> None:

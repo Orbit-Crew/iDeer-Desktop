@@ -167,7 +167,7 @@ def prepare(tmp_path: Path, origin: str, *, work=True):
 
 def register_import(chat, space):
     guide = space / 'guide.md'
-    guide.write_text(GUIDE, encoding='utf-8')
+    guide.write_bytes(GUIDE.encode('utf-8'))
     return chat.register_local_import(KB, [str(guide)]), guide
 
 
@@ -249,7 +249,7 @@ def test_drifted_content_is_refused_before_any_byte_moves(tmp_path):
         chat, imports, publications, config, space, binding = prepare(tmp_path, origin)
         register_import(chat, space)
         drifted = space / 'guide.md'
-        drifted.write_text(DRIFTED, encoding='utf-8')
+        drifted.write_bytes(DRIFTED.encode('utf-8'))
         del records[:]
 
         with pytest.raises(KnowledgePublishError) as refused:
@@ -268,7 +268,7 @@ def test_unknown_revision_cannot_publish_from_this_device(tmp_path):
     with platform() as (origin, records, state):
         chat, imports, publications, config, space, binding = prepare(tmp_path, origin)
         guide = space / 'guide.md'
-        guide.write_text(GUIDE, encoding='utf-8')
+        guide.write_bytes(GUIDE.encode('utf-8'))
 
         with pytest.raises(KnowledgePublishError) as refused:
             chat.publish_local_revision(KB, REVISION, [str(guide)], confirmed=False)

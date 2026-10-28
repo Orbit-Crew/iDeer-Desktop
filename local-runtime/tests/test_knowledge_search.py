@@ -84,8 +84,8 @@ def _store(work_root):
 
 def test_frozen_match_returns_chunk_with_logical_position(tmp_path) -> None:
     (tmp_path / 'docs').mkdir()
-    (tmp_path / 'docs' / 'guide.txt').write_text(GUIDE, encoding='utf-8')
-    (tmp_path / 'notes.txt').write_text(NOTES, encoding='utf-8')
+    (tmp_path / 'docs' / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (tmp_path / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
     result = search_frozen_revision(_payload(''), files=_store(tmp_path), logical_root='/workspace')
 
     assert result['truncated'] is False
@@ -101,7 +101,7 @@ def test_frozen_match_returns_chunk_with_logical_position(tmp_path) -> None:
 def test_drifted_file_is_missing_and_never_substituted(tmp_path) -> None:
     """A file whose bytes no longer match the frozen digest reports missing."""
     (tmp_path / 'guide.txt').write_text('the launch code is ALPHA-7 CHANGED\n', encoding='utf-8')
-    (tmp_path / 'notes.txt').write_text(NOTES, encoding='utf-8')
+    (tmp_path / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
     result = search_frozen_revision(_payload(''), files=_store(tmp_path), logical_root='/workspace')
 
     assert [chunk['document_id'] for chunk in result['chunks']] == [_document('notes.txt', NOTES)['document_id']]
@@ -111,7 +111,7 @@ def test_drifted_file_is_missing_and_never_substituted(tmp_path) -> None:
 
 
 def test_removed_file_reports_unavailable_and_binary_reports_not_searchable(tmp_path) -> None:
-    (tmp_path / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (tmp_path / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     result = search_frozen_revision(_payload(''), files=_store(tmp_path), logical_root='/workspace')
 
     assert result['missing'] == [{'document_id': _document('notes.txt', NOTES)['document_id'], 'reason': 'file_unavailable'}]
@@ -131,7 +131,7 @@ def test_duplicate_names_still_find_the_frozen_bytes(tmp_path) -> None:
     """A drifted copy with the same name must not hide a frozen match."""
     (tmp_path / 'guide.txt').write_text('drifted\n', encoding='utf-8')
     (tmp_path / 'archive').mkdir()
-    (tmp_path / 'archive' / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (tmp_path / 'archive' / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     result = search_frozen_revision(
         _payload('', documents=[_document('guide.txt', GUIDE)]), files=_store(tmp_path), logical_root='/workspace')
 
@@ -172,8 +172,8 @@ def _service(config, work) -> tuple[WorkspaceFileService, str, dict]:
 def test_service_returns_verified_chunks_for_registered_revision(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
-    (work / 'notes.txt').write_text(NOTES, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (work / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     settings = _settings(config)
@@ -194,7 +194,7 @@ def test_service_returns_verified_chunks_for_registered_revision(tmp_path) -> No
 def test_unknown_or_foreign_revision_is_refused(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
@@ -219,7 +219,7 @@ def test_unknown_or_foreign_revision_is_refused(tmp_path) -> None:
 def test_local_policy_can_still_deny_the_capability(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     settings = _settings(config)
@@ -288,8 +288,8 @@ async def _outcome(socket):
 def test_signed_knowledge_search_returns_receipt_tied_to_the_run(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
-    (work / 'notes.txt').write_text(NOTES, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (work / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     service, root, binding = _service(config, work)
@@ -316,7 +316,7 @@ def test_signed_knowledge_search_returns_receipt_tied_to_the_run(tmp_path) -> No
 def test_signed_knowledge_search_unknown_revision_fails_without_result(tmp_path) -> None:
     work = tmp_path / 'work'
     work.mkdir()
-    (work / 'guide.txt').write_text(GUIDE, encoding='utf-8')
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
     config = tmp_path / 'profile' / 'settings.json'
     config.parent.mkdir(parents=True)
     service, root, _binding = _service(config, work)
