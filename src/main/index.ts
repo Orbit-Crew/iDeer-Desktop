@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { DesktopStatus, InstallOutcome, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult } from '../shared/desktop'
+import type { DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, UpdateCheckResult } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -213,6 +213,16 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_PUBLISH_CANCELED')
       return (await runtime.publishKnowledge(kbId, revisionId, chosen.filePaths, true)) as KnowledgePublishOutcome
+    })
+    // Issue 116: the controlled knowledge-graph entry. The renderer only
+    // names the authorized KB/Revision and the action; the Server owns the
+    // graph, and a source locate answers with this device's own workspace
+    // path, which never leaves the machine.
+    ipcMain.handle('desktop:knowledge:graph', (event, command: KnowledgeGraphCommand) => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_GRAPH_UNAUTHENTICATED')
+      return runtime.knowledgeGraph(command)
     })
     ipcMain.handle('desktop:runtime:stop', (event) => {
       requireMainFrame(event)

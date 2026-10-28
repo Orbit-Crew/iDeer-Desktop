@@ -53,7 +53,9 @@ class LocalFileService:
 READ_CAPABILITIES = ('local.files.list', 'local.files.read', 'local.files.search')
 # Issue 113: frozen-revision knowledge retrieval is announced beside the read
 # capabilities; it reads only files the user explicitly imported and froze.
-KNOWLEDGE_CAPABILITIES = ('local.knowledge.search',)
+# Issue 116: one frozen document's material answers a server-orchestrated
+# graph generation; the request is consent-gated and single-document.
+KNOWLEDGE_CAPABILITIES = ('local.knowledge.search', 'local.knowledge.material')
 WORKSPACE_CAPABILITIES = (*READ_CAPABILITIES, *KNOWLEDGE_CAPABILITIES, 'local.files.write')
 MAX_TEXT_BYTES = 65536
 MAX_ENTRIES = 500
@@ -332,6 +334,36 @@ class WorkspaceFileService(LocalFileService):
             identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(self.selection.config.parent,))
         return FileTaskResult(PolicyDecision.ALLOW, search_frozen_revision(parsed, files=files, logical_root=grant['logical_root']))
 
+    def _material_knowledge(self, args, settings, grant):
+        """Return one frozen document's text for graph generation (#116).
+
+        Only a revision this identity registered on this device is ever
+        answered; the manifest hash in the task must match the registry, the
+        request must carry exactly one document, and the text is returned
+        only for an exact content-addressed match. Every request is a local
+        consent decision: content leaves this device only after approval.
+        """
+        from pathlib import Path
+
+        from .files import RootConfig
+        from .knowledge_import import KnowledgeImportRegistry
+        from .knowledge_material import KnowledgeMaterialError, material_frozen_document, parse_material_payload
+        from .receipt_ledger import profile_binding
+
+        binding = profile_binding(settings)
+        if binding is None:
+            raise KnowledgeMaterialError('KNOWLEDGE_MATERIAL_IDENTITY_UNAVAILABLE')
+        parsed = parse_material_payload(args)
+        registry = KnowledgeImportRegistry(self.selection.config.with_name('knowledge-imports.db'))
+        registration = registry.find_registration(binding, parsed['revision_id'], parsed['manifest_hash'])
+        if registration is None:
+            # An unknown, foreign, or tampered manifest is refused outright:
+            # this device is not a generic material source for the platform.
+            raise KnowledgeMaterialError('KNOWLEDGE_MATERIAL_REVISION_UNKNOWN')
+        files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+            identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(self.selection.config.parent,))
+        return FileTaskResult(PolicyDecision.ALLOW, material_frozen_document(parsed, files=files, logical_root=grant['logical_root']))
+
     def remember_consent(self, payload):
         from .files import FileAccessError
         with self.selection.lock:
@@ -360,6 +392,8 @@ class WorkspaceFileService(LocalFileService):
             args = payload.get('arguments', payload.get('args', payload))
             if capability == 'local.knowledge.search':
                 return self._search_knowledge(args, settings, grant)
+            if capability == 'local.knowledge.material':
+                return self._material_knowledge(args, settings, grant)
             if not isinstance(args, dict) or not isinstance(args.get('path'), str):
                 raise FileAccessError('INVALID_PATH')
             path = args['path']

@@ -49,6 +49,65 @@ class ChatSession:
     token: str = field(repr=False)
 
 
+def _bounded_text(value, limit=200):
+    return value if isinstance(value, str) and 0 < len(value) <= limit else ""
+
+
+def _graph_view_payload(view):
+    """Project the platform graph view into the Desktop display shape.
+
+    Every row is validated and bounded; anything the platform did not state
+    is dropped rather than invented, so the panel can only show real
+    entity/relation/source facts bound to the frozen revision.
+    """
+    if not isinstance(view, dict) or not isinstance(view.get("manifest_hash"), str) \
+            or len(view["manifest_hash"]) != 64 or type(view.get("revision_no")) is not int:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    status = view.get("status")
+    if status not in {"not_generated", "completed", "partial", "failed"}:
+        raise ChatError("CHAT_PROTOCOL_ERROR")
+    sources = []
+    for row in (view.get("sources") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        document_id = _bounded_text(row.get("document_id"), 64)
+        if not document_id:
+            continue
+        sources.append({"documentId": document_id,
+                        "filename": _bounded_text(row.get("filename"), 255),
+                        "contentHash": _bounded_text(row.get("content_hash"), 64),
+                        "status": _bounded_text(row.get("status"), 32),
+                        "errorCode": _bounded_text(row.get("error_code"), 64)})
+    entities = []
+    for row in (view.get("entities") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        name = _bounded_text(row.get("name"))
+        if not name:
+            continue
+        entities.append({"name": name, "type": _bounded_text(row.get("type"), 64),
+                         "documentId": _bounded_text(row.get("document_id"), 64),
+                         "filename": _bounded_text(row.get("filename"), 255)})
+    relations = []
+    for row in (view.get("relations") or [])[:200]:
+        if not isinstance(row, dict):
+            continue
+        source = _bounded_text(row.get("source"))
+        target = _bounded_text(row.get("target"))
+        relation = _bounded_text(row.get("relation"))
+        if not source or not target or not relation:
+            continue
+        relations.append({"source": source, "target": target, "relation": relation,
+                          "documentId": _bounded_text(row.get("document_id"), 64),
+                          "filename": _bounded_text(row.get("filename"), 255)})
+    return {"kbId": "", "revisionId": _bounded_text(view.get("revision_id"), 64),
+            "revisionNo": view["revision_no"], "manifestHash": view["manifest_hash"],
+            "status": status,
+            "generated": view["generated"] if type(view.get("generated")) is int else 0,
+            "failed": view["failed"] if type(view.get("failed")) is int else 0,
+            "entities": entities, "relations": relations, "sources": sources}
+
+
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
@@ -777,6 +836,64 @@ class DesktopChat:
             manifest_hash=created['manifest_hash'], document_count=created['document_count'],
             documents=entries))
         return outcome
+
+    # --- Controlled knowledge-graph entry (issue 116) -----------------------
+
+    def knowledge_graph(self, kb_id, revision_id, *, action, document_id=None):
+        """View, generate, or locate one frozen revision's controlled graph.
+
+        The Server owns the graph: the view/generate answers carry entity,
+        relation, and source facts bound to the frozen KB/Revision identity,
+        projected exactly as the platform returned them (bounded for display).
+        ``locate`` never calls the Server for content: it resolves the source
+        document against this device's workspace by (filename, frozen digest)
+        and answers with the workspace logical path for the local user only.
+        """
+        from .knowledge_material import locate_frozen_document
+        kb_id = self._uuid(kb_id)
+        revision_id = self._uuid(revision_id)
+        session = self._session()
+        if action == "view":
+            payload = _graph_view_payload(self._json(
+                session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
+            payload["kbId"] = kb_id
+            return payload
+        if action == "generate":
+            self._json(session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph", body={})
+            payload = _graph_view_payload(self._json(
+                session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
+            payload["kbId"] = kb_id
+            return payload
+        if action == "locate":
+            if self.knowledge_files is None:
+                raise ChatError("CHAT_COMMAND_INVALID")
+            view = _graph_view_payload(self._json(
+                session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
+            source = next((row for row in view["sources"] if row["documentId"] == (document_id or "")), None)
+            if source is None:
+                raise ChatError("KNOWLEDGE_GRAPH_SOURCE_UNKNOWN")
+            from .files import FileAccessError
+            from .knowledge_material import KnowledgeMaterialError
+            try:
+                _settings, grant, files = self.knowledge_files()
+            except (FileAccessError, KnowledgeMaterialError) as exc:
+                from .knowledge_import import category_for
+                raise KnowledgeMaterialError(category_for(exc)) from exc
+            from .receipt_ledger import profile_binding
+            binding = profile_binding(load_settings(self.config))
+            if binding is None:
+                raise ChatError("KNOWLEDGE_GRAPH_IDENTITY_UNAVAILABLE")
+            payload = {"revision_id": revision_id, "manifest_hash": view["manifestHash"],
+                       "documents": [{"document_id": source["documentId"], "filename": source["filename"],
+                                      "content_hash": source["contentHash"]}]}
+            located = locate_frozen_document(payload, files=files, logical_root=grant["logical_root"])
+            if located.get("missing") is True:
+                return {"kbId": kb_id, "revisionId": revision_id, "documentId": source["documentId"],
+                        "missing": True, "reason": str(located.get("reason") or "document_unavailable")}
+            return {"kbId": kb_id, "revisionId": revision_id, "documentId": source["documentId"],
+                    "filename": located.get("filename", ""),
+                    "logicalPath": str(located.get("logical_path") or "")}
+        raise ChatError("CHAT_COMMAND_INVALID")
 
     # --- Explicit server-side publication (issue 115) -----------------------
 

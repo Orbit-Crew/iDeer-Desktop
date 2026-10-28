@@ -43,6 +43,7 @@ def main() -> int:
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_publish_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -100,6 +101,18 @@ def main() -> int:
                         and command['confirmed'] in (True, False)
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_publish_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'scope'},
+                        {'type', 'id', 'kbId', 'revisionId', 'action', 'documentId', 'scope'})
+                        and command['type'] == 'knowledge-graph' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and command['action'] in {'view', 'generate', 'locate'}
+                        and (command['action'] != 'locate' or isinstance(command.get('documentId'), str))
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_graph_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
@@ -342,6 +355,23 @@ def main() -> int:
                     error = category_for(exc) if isinstance(exc, KnowledgeImportError) else str(exc) \
                         if str(exc).startswith(('KNOWLEDGE_PUBLISH_', 'KNOWLEDGE_IMPORT_', 'CHAT_')) else 'KNOWLEDGE_PUBLISH_FAILED'
                 emit({'v': 1, 'type': 'knowledge-publish', 'id': publish_command['id'],
+                      'result': result, 'error': error})
+            try:
+                graph_command = knowledge_graph_commands.get_nowait()
+            except queue.Empty:
+                graph_command = None
+            if graph_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.knowledge_graph(graph_command['kbId'], graph_command['revisionId'],
+                                                  action=graph_command['action'],
+                                                  document_id=graph_command.get('documentId'))
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'KNOWLEDGE_')) else 'KNOWLEDGE_GRAPH_FAILED'
+                emit({'v': 1, 'type': 'knowledge-graph', 'id': graph_command['id'],
                       'result': result, 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
