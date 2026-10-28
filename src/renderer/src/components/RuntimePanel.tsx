@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
+import { ConnectorSection } from './ConnectorSection'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
 import { SkillSection } from './SkillSection'
 import { WikiSection } from './WikiSection'
-import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+import type { ConnectorCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -41,6 +42,16 @@ export default function RuntimePanel(): JSX.Element {
   const [wikiError, setWikiError] = useState('')
   const [skillBusy, setSkillBusy] = useState(false)
   const [skillError, setSkillError] = useState('')
+  const [connectorBusy, setConnectorBusy] = useState(false)
+  const [connectorError, setConnectorError] = useState('')
+  const runConnector = (command: ConnectorCommand) => {
+    setConnectorError(''); setConnectorBusy(true)
+    void window.ideer.connectors(command)
+      .then(() => controller.current?.refresh(historyOffset))
+      .catch((caught: unknown) => setConnectorError(caught instanceof Error && /^[A-Z0-9_]+$/.test(caught.message)
+        ? caught.message : '安装未完成：目录定位与确认在主进程完成，需已认证会话与有效组件'))
+      .finally(() => setConnectorBusy(false))
+  }
   const runSkill = (command: SkillCommand) => {
     setSkillError(''); setSkillBusy(true)
     void window.ideer.skills(command)
@@ -235,6 +246,13 @@ export default function RuntimePanel(): JSX.Element {
       busy={skillBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={skillError}
       onCommand={runSkill}
+    />
+    <Typography.Title level={5} className="mt-5">本地连接器组件</Typography.Title>
+    <ConnectorSection
+      runtime={runtime}
+      busy={connectorBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
+      error={connectorError}
+      onCommand={runConnector}
     />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>

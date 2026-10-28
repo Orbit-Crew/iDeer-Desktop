@@ -13,6 +13,7 @@ from pathlib import Path
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
 from .compatibility import CompatibilityGate
+from .connector_install import ConnectorInstallError
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .process_job import own_process_tree
@@ -50,6 +51,7 @@ def main() -> int:
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
+    connector_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -190,6 +192,22 @@ def main() -> int:
                              and -1000 <= command['priority'] <= 1000)):
                     skill_preference_commands.put_nowait(command)
                     continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'path', 'confirmed', 'scope'},
+                        {'type', 'id', 'action', 'slug', 'confirmed', 'scope'})
+                        and command['type'] == 'connectors' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'preview', 'install', 'remove', 'list'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] not in {'preview', 'install'} or (
+                            isinstance(command['path'], str) and 0 < len(command['path']) <= 32768
+                            and command['confirmed'] in (True, False)))
+                        and (command['action'] != 'remove' or (
+                            isinstance(command['slug'], str) and 0 < len(command['slug']) <= 64
+                            and command['confirmed'] in (True, False)))):
+                    connector_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'path', 'confirmed', 'scope'}
                         and command['type'] == 'workspace' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['path'], str)
@@ -326,6 +344,12 @@ def main() -> int:
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
             controller.client.local_results = local_results
+            connector_service = getattr(controller, 'connector_service', None)
+            if connector_service is not None:
+                # Issue 123: the platform canonical identity rides this
+                # device's own authenticated session; identity fields only.
+                connector_service.registrar = chat.register_connector_identity
+                connector_service.unregister = chat.unregister_connector_identity
             compatibility.bind()
             controller.client.compatibility_gate = compatibility
             controller.client.user_id = settings.user_id
@@ -534,6 +558,45 @@ def main() -> int:
                 emit({'v': 1, 'type': 'skill-scripts', 'id': script_command['id'],
                       'result': result, 'error': error})
             try:
+                connector_command = connector_commands.get_nowait()
+            except queue.Empty:
+                connector_command = None
+            if connector_command:
+                error = ''
+                result = None
+                try:
+                    if connector_command['scope'] != workspace.scope():
+                        raise ConnectorInstallError('CONNECTOR_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    if owner is None or controller is None or controller.connector_service is None:
+                        raise ConnectorInstallError('CONNECTOR_UNAVAILABLE')
+                    service = controller.connector_service
+                    action = connector_command['action']
+                    if action == 'preview':
+                        result = service.preview(owner, connector_command['path'])
+                    elif action == 'install':
+                        result = service.install(owner, connector_command['path'],
+                                                 confirmed=connector_command['confirmed'] is True)
+                        if connector_command['confirmed'] is True:
+                            # The controlled configuration changed: swap the
+                            # supervisor and republish the tool projection.
+                            controller.refresh_connectors()
+                    elif action == 'remove':
+                        result = service.remove(owner, connector_command['slug'],
+                                                confirmed=connector_command['confirmed'] is True)
+                        if connector_command['confirmed'] is True:
+                            controller.refresh_connectors()
+                    else:
+                        result = {'connectors': service.view(owner)}
+                except ConnectorInstallError as exc:
+                    # Only the fixed connector categories cross the Desktop
+                    # boundary; paths and package bytes never do.
+                    error = str(exc)
+                except Exception:
+                    error = 'CONNECTOR_FAILED'
+                emit({'v': 1, 'type': 'connectors', 'id': connector_command['id'],
+                      'result': result, 'error': error})
+            try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
                 selection = None
@@ -584,6 +647,11 @@ def main() -> int:
             except SkillScriptError:
                 script_rows = []
             script_registry_error = script_service.registry.error if script_service is not None else ''
+            connector_service = getattr(controller, 'connector_service', None) if controller is not None else None
+            try:
+                connector_rows = connector_service.view(current_receipt_owner) if current_receipt_owner and connector_service is not None else []
+            except ConnectorInstallError:
+                connector_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -617,6 +685,8 @@ def main() -> int:
                       "skillImportStorageError": skill_imports.error,
                       "skillScriptAuthorizations": script_rows[:20],
                       "skillScriptStorageError": script_registry_error,
+                      "connectors": connector_rows[:20],
+                      "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

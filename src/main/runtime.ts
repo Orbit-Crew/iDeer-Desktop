@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -27,6 +27,7 @@ export class RuntimeProcess {
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void }>()
+  private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   receiptOwnershipScope(): string { return this.receiptScope }
@@ -333,6 +334,48 @@ export class RuntimeProcess {
       this.skillScriptRequests.set(id, {
         resolve: (view) => { clearTimeout(timer); this.skillScriptRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.skillScriptRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 123: the device's connector installer. The wire command is a
+   * fixed per-action key set; the candidate path arrives only for the
+   * main-internal preview/confirmed-install calls and never routes through
+   * the renderer. Fixed CONNECTOR_* categories come back as rejections.
+   */
+  async connectors(command: ConnectorCommand): Promise<ConnectorOutcome>
+  async connectors(command: ConnectorPreviewCommand | ConnectorInstallCommand): Promise<ConnectorInternalOutcome>
+  async connectors(command: ConnectorCommand | ConnectorPreviewCommand | ConnectorInstallCommand): Promise<ConnectorInternalOutcome> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('CONNECTOR_COMMAND_INVALID')
+    if (!['preview', 'install', 'remove', 'list'].includes(command.action)) throw new Error('CONNECTOR_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'connectors', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('CONNECTOR_COMMAND_INVALID')
+    } else if (command.action === 'remove') {
+      if (typeof command.slug !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(command.slug) || Object.keys(command).length !== 2) throw new Error('CONNECTOR_COMMAND_INVALID')
+      wire.slug = command.slug
+      wire.confirmed = true
+    } else {
+      // Preview and the confirmed install both carry the located path; an
+      // install without one (renderer-shaped) is not a runtime command.
+      const path = (command as { path?: unknown }).path
+      if (typeof path !== 'string' || !path || path.length > 32768 || Object.keys(command).length !== 2) throw new Error('CONNECTOR_COMMAND_INVALID')
+      wire.path = path
+      wire.confirmed = command.action === 'install'
+    }
+    if (this.connectorRequests.size) throw new Error('CONNECTOR_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.connectorRequests.delete(id); reject(new Error('CONNECTOR_TIMEOUT')) }, 30000)
+      this.connectorRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.connectorRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.connectorRequests.delete(id); reject(error) },
+        action: command.action
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -801,6 +844,53 @@ export class RuntimeProcess {
             pending.resolve({ authorizations })
             continue
           }
+          if (value.v === 1 && value.type === 'connectors') {
+            // Issue 123: the connector installer's fixed categories and
+            // identity-only projections. Paths, package bytes and the
+            // controlled configuration never cross this boundary.
+            const pending = this.connectorRequests.get(value.id)
+            if (!pending) continue
+            this.connectorRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || typeof result !== 'object') { pending.reject(new Error('CONNECTOR_FAILED')); continue }
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            const hash = (input: unknown): string => typeof input === 'string' && /^[0-9a-f]{64}$/.test(input) ? input : ''
+            const slug = (input: unknown): string => typeof input === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(input) ? input : ''
+            if (pending.action === 'list') {
+              if (!Array.isArray(result.connectors)) { pending.reject(new Error('CONNECTOR_FAILED')); continue }
+              const connectors: ConnectorView[] = []
+              for (const row of result.connectors.slice(0, 20)) {
+                if (!row || !slug(row.slug) || row.state !== 'installed' || typeof row.createdAt !== 'string') throw new Error('Invalid connector status')
+                connectors.push({ slug: row.slug, displayName: text(row.displayName, 200), version: text(row.version, 32),
+                  entry: text(row.entry, 256), manifestHash: hash(row.manifestHash), packageHash: hash(row.packageHash),
+                  serverConnectorId: text(row.serverConnectorId, 64), state: 'installed', createdAt: row.createdAt })
+              }
+              pending.resolve({ action: 'list', connectors })
+              continue
+            }
+            if (pending.action === 'remove') {
+              if (result.removed !== true || !slug(result.slug)) { pending.reject(new Error('CONNECTOR_FAILED')); continue }
+              pending.resolve({ action: 'remove', removed: true, slug: result.slug, displayName: text(result.displayName, 200) })
+              continue
+            }
+            // Preview and install share the identity-projection shape.
+            if (!slug(result.slug) || typeof result.installed !== 'boolean' ||
+                !Number.isSafeInteger(result.fileCount) || !hash(result.manifestHash) || !hash(result.packageHash)) {
+              pending.reject(new Error('CONNECTOR_FAILED')); continue
+            }
+            const base = { slug: result.slug, displayName: text(result.displayName, 200), version: text(result.version, 32),
+              manifestHash: hash(result.manifestHash), packageHash: hash(result.packageHash),
+              fileCount: result.fileCount, entry: text(result.entry, 256) }
+            if (pending.action === 'preview') {
+              pending.resolve({ action: 'preview', ...base, installed: result.installed, ...(result.unchanged === true ? { unchanged: true } : {}) })
+              continue
+            }
+            if (result.installed !== true || result.state !== 'installed') { pending.reject(new Error('CONNECTOR_FAILED')); continue }
+            pending.resolve({ action: 'install', ...base, installed: true, state: 'installed',
+              serverConnectorId: text(result.serverConnectorId, 64) })
+            continue
+          }
           if (value.v === 1 && value.type === 'workspace') {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
@@ -923,6 +1013,22 @@ export class RuntimeProcess {
                 requirementsHash: row.requirementsHash, status: 'granted', createdAt: row.createdAt })
             }
           }
+          const connectorRows: ConnectorView[] = []
+          if (Array.isArray(value.connectors)) {
+            const connectorSlug = (input: unknown): string => typeof input === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(input) ? input : ''
+            const connectorText = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            const connectorHash = (input: unknown): string => typeof input === 'string' && /^[0-9a-f]{64}$/.test(input) ? input : ''
+            for (const row of value.connectors.slice(0, 20)) {
+              // Issue 123: installed connector identity facts for this
+              // profile; no device paths, no package bytes, no binding.
+              if (!row || !connectorSlug(row.slug) || row.state !== 'installed' ||
+                  typeof row.createdAt !== 'string') throw new Error('Invalid connector status')
+              connectorRows.push({ slug: row.slug, displayName: connectorText(row.displayName, 200),
+                version: connectorText(row.version, 32), entry: connectorText(row.entry, 256),
+                manifestHash: connectorHash(row.manifestHash), packageHash: connectorHash(row.packageHash),
+                serverConnectorId: connectorText(row.serverConnectorId, 64), state: 'installed', createdAt: row.createdAt })
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
@@ -934,6 +1040,8 @@ export class RuntimeProcess {
             skillImports, skillImportStorageError: value.skillImportStorageError === 'SKILL_IMPORT_STORAGE_UNAVAILABLE' ? value.skillImportStorageError : '',
             skillScriptAuthorizations: scriptAuthorizations,
             skillScriptStorageError: value.skillScriptStorageError === 'SKILL_SCRIPT_STORAGE_UNAVAILABLE' ? value.skillScriptStorageError : '',
+            connectors: connectorRows,
+            connectorStorageError: value.connectorStorageError === 'CONNECTOR_STORAGE_UNAVAILABLE' ? value.connectorStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
