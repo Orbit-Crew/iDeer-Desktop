@@ -41,6 +41,16 @@ const draftOf = (row: SkillTriggerPreferenceView): PreferenceDraft => ({
 const parseList = (value: string): string[] =>
   value.split(/[,，]/).map((item) => item.trim()).filter((item) => item !== '')
 
+// Issue 40: the default bridges are module-level so their identity never
+// changes. Fallback arrows created per render rebuilt the reload callbacks,
+// re-ran the load effects on every parent status tick, and re-sent the
+// single-slot list requests (SKILL_PREFERENCE_BUSY / SKILL_SCRIPT_BUSY)
+// while overwriting unsaved drafts.
+const defaultPreferencesApi = (command: SkillPreferenceCommand): Promise<SkillPreferencesView> =>
+  window.ideer.skillPreferences(command)
+const defaultScriptsApi = (command: SkillScriptCommand): Promise<SkillScriptView> =>
+  window.ideer.skillScripts(command)
+
 /**
  * Issue 120 Skill 入口：把本机的一个 Markdown、ZIP 或目录技能包显式导入为
  * 本人私有的平台技能草稿。设备侧预览展示正文、脚本与引用的完整上传范围，
@@ -54,8 +64,8 @@ const parseList = (value: string): string[] =>
  * 匹配代码，也不驱动模型。
  */
 export function SkillSection({ runtime, busy, error, onCommand, onPreferences, initialPreferences, onScriptCommands }: SkillSectionProps): JSX.Element {
-  const preferencesApi = onPreferences ?? ((command: SkillPreferenceCommand) => window.ideer.skillPreferences(command))
-  const scriptsApi = onScriptCommands ?? ((command: SkillScriptCommand) => window.ideer.skillScripts(command))
+  const preferencesApi = onPreferences ?? defaultPreferencesApi
+  const scriptsApi = onScriptCommands ?? defaultScriptsApi
   const [rows, setRows] = useState<SkillTriggerPreferenceView[] | null>(initialPreferences ? initialPreferences.skills : null)
   const [loadError, setLoadError] = useState('')
   const [drafts, setDrafts] = useState<Record<string, PreferenceDraft>>({})
