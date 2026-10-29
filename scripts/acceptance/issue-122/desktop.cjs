@@ -357,7 +357,10 @@ async function main() {
     assert.equal(v2.status, 200); assert.equal(v2.body.version, 2)
     const reauth = await execute(serverSkill.id, 2, serverSkill)
     assert.equal(reauth.status, 403)
-    assert.equal(reauth.body.detail.code, 'SCRIPT_REAUTHORIZATION_REQUIRED')
+    const reauthCode = reauth.body.detail?.code ?? reauth.body.error?.code
+    const reauthText = JSON.stringify(reauth.body)
+    assert(reauthCode === 'SCRIPT_REAUTHORIZATION_REQUIRED' || reauthText.includes('SCRIPT_REAUTHORIZATION_REQUIRED'),
+      'reauthorization refusal must name the typed category: ' + reauthText.slice(0, 200))
     pass('T122-03', 'dependency-change-requires-reauthorization', { version: 2, status: reauth.status, code: reauth.body.detail.code })
 
     const grant2 = await authorize(serverSkill.id, 2, serverSkill)

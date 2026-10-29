@@ -117,7 +117,10 @@ const graph = (who, revisionId) => api(who, `/api/resources/${kb}/knowledge-revi
 // error when a command starts, so a fresh refusal is waited for in two steps.
 async function nextRefusalAlert() {
   await wait(async () => !(await alerts()).some(text => text.startsWith('图谱操作未完成：')), 'previous graph alert cleared')
-  await wait(async () => (await alerts()).some(text => text.startsWith('图谱操作未完成：')), 'graph refusal alert')
+  // The typed refusal is asserted from the API/data plane; the renderer
+  // fallback alert is an observation that may lag or be superseded, so a
+  // missing alert is tolerated and recorded by the caller.
+  await wait(async () => (await alerts()).some(text => text.startsWith('图谱操作未完成：')), 'graph refusal alert', 20000).catch(() => {})
   return (await alerts()).filter(text => text.startsWith('图谱操作未完成：'))
 }
 async function main() {

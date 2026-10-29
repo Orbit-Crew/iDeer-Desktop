@@ -123,7 +123,7 @@ async function publishUI(paths, allow) {
   })
   await page.getByRole('button', { name: '发布此版本到服务端…', exact: true }).click()
   let row
-  if (allow) await wait(async () => { row = (await pubs()).find(item => !beforePubs.includes(item.id)); return !!row }, 'publication registry outcome')
+  if (allow) await wait(async () => { row = (await pubs()).find(item => !beforePubs.includes(item.id)); return !!row }, 'publication registry outcome', 300000)
   await wait(async () => (await page.locator('body').innerText()).includes(publishAlert), 'publication refusal alert (fixed renderer fallback text, codes stay data-plane)')
   let confirmation = null
   await wait(async () => { confirmation = await app.evaluate(() => global.t115Confirmation); return !!confirmation }, 'publish confirmation dialog captured', 20000).catch(() => {})

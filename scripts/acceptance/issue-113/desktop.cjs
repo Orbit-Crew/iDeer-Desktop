@@ -263,8 +263,13 @@ async function main() {
     const question = 'What is the depot access phrase stored in the authorized knowledge? Answer with the exact phrase only. Use no tools.'
     const refreshed = await chat({ action: 'refresh' }); assert.equal(refreshed.error, '')
     const scope = refreshed.scope
-    const threadA = await chat({ action: 'create', scope, agentId: agentA2.body.id })
-    assert.equal(threadA.error, '')
+    // The runtime's resource projection refreshes on the chat state cycle;
+    // retry the create until the freshly published agent is visible.
+    let threadA = null
+    await wait(async () => {
+      threadA = await chat({ action: 'create', scope, agentId: agentA2.body.id })
+      return threadA.error === ''
+    }, 'freshly published agent visible to the runtime chat', 60000)
     const sentA = await chat({ action: 'send', scope: threadA.scope, threadId: threadA.thread.id, turnId: randomUUID(), text: question })
     assert.equal(sentA.error, ''); assert(sentA.run)
     const midRun = api('A', `/api/threads/${threadA.thread.id}/runs/${sentA.run.id}`)
