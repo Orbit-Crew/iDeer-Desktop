@@ -359,7 +359,7 @@ async function main() {
     const unknown = api('A', 'PUT', '/api/resources/12100000-0000-4000-8000-000000000099/trigger-preference',
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [], priority: 0 })
     assert.equal(unknown.status, 404)
-    const nonSkill = api('A', 'PUT', `/api/resources/${agent.body.id}/trigger-preference`,
+    const nonSkill = api('A', 'PUT', `/api/resources/skills/${agent.body.id}/trigger-preference`,
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [], priority: 0 })
     assert.equal(nonSkill.status, 409)
     const tooManyKeywords = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
@@ -388,7 +388,7 @@ async function main() {
       && row.detail.requested_skill === outsiderSkill), 'explicit refusal audited', 30000)
     record('T121-02', 'explicit-outside-closure-hard-409', { status: explicitRejected.status, body: explicitRejected.body })
 
-    const outsiderPreference = api('A', 'PUT', `/api/resources/${outsiderSkill}/trigger-preference`,
+    const outsiderPreference = api('A', 'PUT', `/api/resources/skills/${outsiderSkill}/trigger-preference`,
       { enabled: true, keywords: ['T121_HIT'], always_inject: false, applicable_agent_ids: [], priority: 100 })
     assert.equal(outsiderPreference.status, 204)
     const skipThread = await chat({ action: 'create', scope: thread.scope, agentId: agent.body.id })
@@ -400,9 +400,9 @@ async function main() {
     await wait(() => auditActions('skill_trigger_preference_skipped').some(row => row.resourceId === outsiderSkill
       && row.detail.reason === 'skill_outside_agent_closure' && row.detail.run_attempt_id === skipDone.run.id), 'skip audited for this run', 30000)
     record('T121-02', 'out-of-closure-preference-skips-and-audits-run-proceeds', { runId: skipDone.run.id })
-    const removed = api('A', 'DELETE', `/api/resources/${outsiderSkill}/trigger-preference`)
+    const removed = api('A', 'DELETE', `/api/resources/skills/${outsiderSkill}/trigger-preference`)
     assert.equal(removed.status, 204)
-    const removedAgain = api('A', 'DELETE', `/api/resources/${outsiderSkill}/trigger-preference`)
+    const removedAgain = api('A', 'DELETE', `/api/resources/skills/${outsiderSkill}/trigger-preference`)
     assert.equal(removedAgain.status, 204)
     await wait(() => auditActions('skill_trigger_preference_removed').some(row => row.resourceId === outsiderSkill), 'removal audited', 30000)
     record('T121-02', 'delete-idempotent-and-audited', { statuses: [removed.status, removedAgain.status] })
