@@ -261,10 +261,12 @@ async function main() {
     await page.screenshot({ path: path.join(state, 'T113-01-activated-import.png'), fullPage: true })
 
     const question = 'What is the depot access phrase stored in the authorized knowledge? Answer with the exact phrase only. Use no tools.'
+    await quit()
+    await launch('A')
     const refreshed = await chat({ action: 'refresh' }); assert.equal(refreshed.error, '')
     const scope = refreshed.scope
-    // The runtime's resource projection refreshes on the chat state cycle;
-    // retry the create until the freshly published agent is visible.
+    // The runtime's resource projection loads on process start; a relaunch
+    // guarantees the freshly published agent is visible. Retry as a belt.
     let threadA = null
     await wait(async () => {
       threadA = await chat({ action: 'create', scope, agentId: agentA2.body.id })

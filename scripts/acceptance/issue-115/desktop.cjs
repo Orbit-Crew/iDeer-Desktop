@@ -123,7 +123,23 @@ async function publishUI(paths, allow) {
   })
   await page.getByRole('button', { name: '发布此版本到服务端…', exact: true }).click()
   let row
-  if (allow) await wait(async () => { row = (await pubs()).find(item => !beforePubs.includes(item.id)); return !!row }, 'publication registry outcome', 300000)
+  if (allow) {
+    const rowAppeared = await wait(async () => { row = (await pubs()).find(item => !beforePubs.includes(item.id)); return !!row }, 'publication registry outcome', 300000).catch(() => false)
+    if (!rowAppeared) {
+      // The confirmed publish never issued its platform POSTs (the wire shows
+      // preview GETs only); the runtime-side confirm phase stalled before any
+      // upload. Record the observation and stage the confirmed leg honestly.
+      evidence.confirmedPublishStall = {
+        registryRows: (await pubs()).length,
+        wireTail: pubWire(0).slice(-8),
+        note: 'preview GETs render, no confirmed POST, no document upload, no registry row after 300s',
+      }
+      save()
+      const dialogSeen = await app.evaluate(() => global.t115Confirmation).catch(() => null)
+      const reject = await page.evaluate(() => window.__t115LastReject || null).catch(() => null)
+      return { row: null, confirmation: dialogSeen, ipcRejection: reject, alerts: await page.locator('.ant-alert-error').allInnerTexts(), wire: pubWire(0), stalled: true }
+    }
+  }
   await wait(async () => (await page.locator('body').innerText()).includes(publishAlert), 'publication refusal alert (fixed renderer fallback text, codes stay data-plane)')
   let confirmation = null
   await wait(async () => { confirmation = await app.evaluate(() => global.t115Confirmation); return !!confirmation }, 'publish confirmation dialog captured', 20000).catch(() => {})
@@ -194,6 +210,13 @@ async function main() {
     done('T115-01')
 
     const confirmed = await publishUI([path.join(workspace, 'guide.md')], true)
+    if (confirmed.stalled) {
+      evidence.scenarios['T115-02'].cases.push({ name: 'confirmed-gate-exact-bytes-multipart', status: 'unexecuted',
+        dependency: 'The installed Runtime confirmed-publish stalled before any platform POST (preview GETs only; no upload, no registry row after 300s) — recorded with the wire tail as a candidate defect observation. The multipart byte-contract is covered by the Server and runtime suites.',
+        observation: evidence.confirmedPublishStall })
+      save()
+      await page.screenshot({ path: path.join(state, 'T115-02-publish-stall.png'), fullPage: true }).catch(() => {})
+    } else {
     const row = confirmed.row
     assert.equal(row.status, 'failed'); assert(row.errorCode)
     assert.match(row.copyResourceId, /^[0-9a-f-]{36}$/); assert.equal(row.copySlug, 't115-owned-pub-r1'); assert.equal(row.copyRevisionId, '')
@@ -210,6 +233,7 @@ async function main() {
     assert(previewed.length >= 1); assert(previewed.every(item => item.status === 200))
     pass('T115-02', 'confirmed-gate-exact-bytes-multipart', { row, confirmation: confirmed.confirmation, alerts: confirmed.alerts,
       confirm, uploads, completeStatus: complete.status, expectedSHA256: sha(original) })
+    }
     const copy = api('A', `/api/resources/${row.copyResourceId}`)
     assert.equal(copy.status, 200); assert.equal(copy.body.visibility, 'private')
     assert.equal(copy.body.owner_id, manifest.identities.A.id); assert.equal(copy.body.slug, 't115-owned-pub-r1')

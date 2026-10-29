@@ -192,7 +192,7 @@ async function main() {
     // The Server's preference list only carries rows that already exist, so the
     // account's first preference is created through the same Server endpoint the
     // pinned IPC relays to; the surface then edits exactly those five fields.
-    const initial = api('A', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const initial = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: ['T121_HIT'], always_inject: false, applicable_agent_ids: [], priority: 5 })
     assert.equal(initial.status, 204)
     await wait(() => auditActions('skill_trigger_preference_updated').some(row => row.resourceId === skillId
@@ -291,7 +291,7 @@ async function main() {
     const outsiderVersion = api('A', 'GET', `/api/resources/${outsiderSkill}/published?version=1`)
     assert.equal(outsiderVersion.status, 200); assert.equal(outsiderVersion.body.version.content_hash, outsider.packageHash)
 
-    const invisible = api('B', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const invisible = api('B', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [], priority: 0 })
     assert.equal(invisible.status, 404)
     const unknown = api('A', 'PUT', '/api/resources/12100000-0000-4000-8000-000000000099/trigger-preference',
@@ -300,13 +300,13 @@ async function main() {
     const nonSkill = api('A', 'PUT', `/api/resources/${agent.body.id}/trigger-preference`,
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [], priority: 0 })
     assert.equal(nonSkill.status, 409)
-    const tooManyKeywords = api('A', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const tooManyKeywords = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: Array.from({ length: 17 }, (_v, i) => 'k' + i), always_inject: false, applicable_agent_ids: [], priority: 0 })
     assert.equal(tooManyKeywords.status, 422)
-    const rangePriority = api('A', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const rangePriority = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [], priority: 1001 })
     assert.equal(rangePriority.status, 422)
-    const duplicateAgents = api('A', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const duplicateAgents = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: ['x'], always_inject: false, applicable_agent_ids: [agent.body.id, agent.body.id], priority: 0 })
     assert.equal(duplicateAgents.status, 422)
     record('T121-02', 'preference-endpoint-rejection-matrix', {
@@ -406,7 +406,7 @@ async function main() {
     const runningBefore = api('A', 'GET', overlapRoute)
     assert.equal(runningBefore.status, 200); assert(['pending', 'running'].includes(runningBefore.body.status), 'Run must still be in progress before the rewrite')
 
-    const rewrite = api('A', 'PUT', `/api/resources/${skillId}/trigger-preference`,
+    const rewrite = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: ['T121_LATE'], always_inject: false, applicable_agent_ids: [], priority: 70 })
     assert.equal(rewrite.status, 204)
     const nextDraft = api('A', 'PUT', `/api/resources/${skillId}/skill-draft`, { content: trigger.v2, expected_revision: 1 })
