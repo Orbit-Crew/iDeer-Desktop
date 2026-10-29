@@ -26,7 +26,7 @@ export class RuntimeProcess {
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
-  private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void }>()
+  private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
   private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
@@ -332,6 +332,7 @@ export class RuntimeProcess {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.skillScriptRequests.delete(id); reject(new Error('SKILL_SCRIPT_TIMEOUT')) }, 30000)
       this.skillScriptRequests.set(id, {
+        action: command.action,
         resolve: (view) => { clearTimeout(timer); this.skillScriptRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.skillScriptRequests.delete(id); reject(error) }
       })
@@ -821,12 +822,16 @@ export class RuntimeProcess {
           if (value.v === 1 && value.type === 'skill-scripts') {
             // Issue 122: the device's own binding-scoped grant list, bounded
             // before it reaches the renderer; hashes only, never script bytes.
+            // Issue 41: a revoke response also carries `revoked` (false when
+            // the identity was already gone) so success is not misread as a
+            // failure just because it is not a bare list.
             const pending = this.skillScriptRequests.get(value.id)
             if (!pending) continue
             this.skillScriptRequests.delete(value.id)
             if (value.error) { pending.reject(new Error(value.error)); continue }
             const result = value.result
             if (!result || !Array.isArray(result.authorizations)) { pending.reject(new Error('SKILL_SCRIPT_FAILED')); continue }
+            if (pending.action === 'revoke' && typeof result.revoked !== 'boolean') { pending.reject(new Error('SKILL_SCRIPT_FAILED')); continue }
             const authorizations: SkillScriptAuthorizationView[] = []
             for (const row of result.authorizations.slice(0, 20)) {
               if (!row || typeof row.id !== 'string' || !/^[0-9a-f]{64}$/.test(row.id) ||
@@ -841,7 +846,7 @@ export class RuntimeProcess {
                 scriptPath: row.scriptPath.slice(0, 512), scriptSha256: row.scriptSha256,
                 requirementsHash: row.requirementsHash, status: 'granted', createdAt: row.createdAt })
             }
-            pending.resolve({ authorizations })
+            pending.resolve(pending.action === 'revoke' ? { authorizations, revoked: result.revoked } : { authorizations })
             continue
           }
           if (value.v === 1 && value.type === 'connectors') {
