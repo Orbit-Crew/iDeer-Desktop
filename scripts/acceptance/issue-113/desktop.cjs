@@ -287,7 +287,7 @@ async function main() {
     if (!threadA) {
       // Gateway-side stand-in for the frozen-visibility drill: R2 activation
       // and the frozen R1 read are asserted through the run-scope view below.
-      const drill = { activated: activate(kb, secondR2.revisionId, 2) }
+      const drill = { note: 'R2 activation is asserted by the follow-up import/activate steps below; see T113-01 cases.' }
       evidence.scenarios['T113-01'].cases.push({ name: 'mid-run-R2-drift-drill', status: 'unexecuted',
         dependency: 'The runtime chat create keeps answering CHAT_NOT_FOUND for the freshly published agent (' + lastCreateError + '); the frozen-visibility semantics are asserted Gateway-side below and covered by the Server suite.',
         observation: drill })
