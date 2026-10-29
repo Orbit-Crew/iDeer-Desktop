@@ -244,8 +244,13 @@ async function main() {
     pass('T117-03', 'generate-device-budget-refusal-and-context-reset', { alertTexts: generateAlerts })
     const settledView = await wait(async () => {
       const read = graph('A', second.revisionId)
-      return read.status === 200 && read.body.status !== 'not_generated' ? read.body : null
-    }, 'server-side gapped generation settles', 540000)
+      if (read.status !== 200) { evidence.r2Poll = { status: read.status, body: read.body }; return null }
+      return read.body.status !== 'not_generated' ? read.body : null
+    }, 'server-side gapped generation settles', 540000).catch((error) => {
+      evidence.r2PollTimeout = { lastPoll: evidence.r2Poll }
+      save()
+      throw error
+    })
     // The per-document settlement is honest about its category: failed or
     // skipped both prove the gap was recorded rather than fabricated, and the
     // typed code stays within the fixed GRAPH_* family.

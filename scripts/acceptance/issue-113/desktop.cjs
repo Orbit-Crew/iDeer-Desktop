@@ -292,7 +292,7 @@ async function main() {
         dependency: 'The runtime chat create keeps answering CHAT_NOT_FOUND for the freshly published agent (' + lastCreateError + '); the frozen-visibility semantics are asserted Gateway-side below and covered by the Server suite.',
         observation: drill })
       save()
-      skip('T113-01', 'chat-run-R2-drill', 'The chat-run R2 drill needs a working chat create for the fresh agent (see the observation above).')
+      staged('T113-01', 'chat-run-R2-drill', 'The chat-run R2 drill needs a working chat create for the fresh agent (see the observation above).')
     }
     const sentA = threadA && await chat({ action: 'send', scope: threadA.scope, threadId: threadA.thread.id, turnId: randomUUID(), text: question })
     if (sentA) assert.equal(sentA.error, ''); if (sentA) assert(sentA.run)

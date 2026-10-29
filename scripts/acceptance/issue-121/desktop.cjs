@@ -204,26 +204,30 @@ async function main() {
     const rowSwitch = page.getByRole('switch', { name: `偏好启用开关 ${slug}` })
     await wait(async () => (await rowSwitch.count()) === 1, 'preference surface row')
     let rowText = await prefRow(slug).innerText()
-    if (!rowText.includes('可用')) {
-      // The availability badge rides the Server projection refresh; nudge it
-      // once through the preferences reload before asserting.
+    if (!rowText.includes('可用') || !rowText.includes('平台版本 V1')) {
+      // The availability badge and frozen-version label ride the Server
+      // projection refresh after the quit→relaunch; wait on the surface row
+      // itself re-rendering the saved state.
       await wait(async () => {
         rowText = await prefRow(slug).innerText()
         return rowText.includes('可用') && rowText.includes('平台版本 V1')
-      }, 'preference row shows availability and frozen version', 60000).catch(() => {})
+      }, 'preference row shows availability and frozen version', 90000)
     }
     assert.ok(rowText.includes('可用'), 'row text: ' + rowText.slice(0, 200))
     assert.ok(rowText.includes('平台版本 V1'), 'row text: ' + rowText.slice(0, 200))
     // The five-field surface: a missing control is recorded as an observation
     // (the row itself renders with the preference state asserted above), and
     // the enabled switch state is checked through whichever control exists.
+    // All five fields plus the save/clear controls must render; a missing
+    // control fails the leg with the missing list (the row state itself is
+    // asserted above).
     const missingControls = []
     for (const label of [`偏好启用开关 ${slug}`, `始终注入勾选 ${slug}`, `优先级输入 ${slug}`, `关键词输入 ${slug}`, `适用Agent输入 ${slug}`, `保存偏好 ${slug}`, `清除偏好 ${slug}`]) {
       if (await page.getByLabel(label).count() === 0) missingControls.push(label)
     }
     evidence.surfaceControls = { slug, missing: missingControls }
     save()
-    assert(missingControls.length <= 1, 'preference surface controls missing: ' + JSON.stringify(missingControls))
+    assert.equal(missingControls.length, 0, 'preference surface controls missing: ' + JSON.stringify(missingControls))
     await page.screenshot({ path: path.join(state, 'preference-surface.png'), fullPage: true })
     record('T121-01', 'five-field-surface-renders-server-truth', { slug, rowText })
 
