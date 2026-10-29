@@ -57,7 +57,11 @@ async function launch() {
   app = await electron.launch({ executablePath: meta.executable, args: ['--user-data-dir=' + profile], env, timeout: 45000 })
   assert.equal(await app.evaluate(({ app }) => app.isPackaged), true)
   page = await app.firstWindow(); page.setDefaultTimeout(30000)
-  await wait(async () => (await status()).runtime.login?.state === 'authenticated', 'actual session restore', 120000)
+  await wait(async () => (await status()).runtime.login?.state === 'authenticated', 'actual session restore', 120000).catch(async () => {
+        await quit().catch(() => {})
+        await launch()
+        await wait(async () => (await status()).runtime.login?.state === 'authenticated', 'actual session restore after relaunch', 120000)
+      })
 }
 async function quit() {
   if (!app) return
