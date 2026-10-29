@@ -356,7 +356,7 @@ async function main() {
     await activate(kb2, imported2.row.revisionId, 1)
     const agentB = api('A', '/api/resources', { type: 'agent', slug: 't113-two-doc-agent', display_name: 'T113 two doc agent', storage_kind: 'filesystem' })
     assert.equal(agentB.status, 201)
-    const draftB = api('A', `/api/resources/${agentB.body.id}/agent-draft`, { config: { name: 't113-two-doc-agent', model: manifest.model, thinking_enabled: false, memory_enabled: false, model_settings: { max_tokens: 3000 } },
+    const draftB = put('A', `/api/resources/${agentB.body.id}/agent-draft`, { config: { name: 't113-two-doc-agent', model: manifest.model, thinking_enabled: false, memory_enabled: false, model_settings: { max_tokens: 3000 } },
       soul: 'Answer only from the authorized knowledge sources and quote both exact stored phrases. Use no tools other than knowledge search.', expected_revision: 0,
       knowledge_dependencies: [{ resource_id: kb2, dependency_mode: 'live' }] })
     assert.equal(draftB.status, 200)

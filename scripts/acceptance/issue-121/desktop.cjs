@@ -223,7 +223,9 @@ async function main() {
     // asserted above).
     const missingControls = []
     for (const label of [`偏好启用开关 ${slug}`, `始终注入勾选 ${slug}`, `优先级输入 ${slug}`, `关键词输入 ${slug}`, `适用Agent输入 ${slug}`, `保存偏好 ${slug}`, `清除偏好 ${slug}`]) {
-      if (await page.getByLabel(label).count() === 0) missingControls.push(label)
+      // getByLabel also matches the wrapping span; the control itself is
+      // targeted by the aria-label attribute selector.
+      if (await page.locator(`[aria-label="${label}"]`).count() === 0) missingControls.push(label)
     }
     evidence.surfaceControls = { slug, missing: missingControls, rowText: rowText.slice(0, 300) }
     save()
@@ -242,8 +244,8 @@ async function main() {
     await page.screenshot({ path: path.join(state, 'preference-surface.png'), fullPage: true })
 
     const writesBeforeSave = prefWrites().length
-    await page.getByLabel(`优先级输入 ${slug}`).fill('50')
-    await page.getByRole('button', { name: `保存偏好 ${slug}`, exact: true }).click()
+    await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50')
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
     await wait(() => prefWrites().length > writesBeforeSave && prefWrites().at(-1).status === 204, 'UI save PUT accepted')
     const saved = api('A', 'GET', '/api/resources/skill-trigger-preferences')
     assert.equal(saved.status, 200)
@@ -252,8 +254,8 @@ async function main() {
     await wait(() => auditActions('skill_trigger_preference_updated').some(row => row.resourceId === skillId && row.detail.priority === 50), 'UI save audited', 30000)
     record('T121-01', 'ui-edit-put-relays-five-fields', { priority: savedRow.priority, keywords: savedRow.keywords, wire: prefWrites().at(-1) })
 
-    await page.getByLabel(`关键词输入 ${slug}`).fill('T121_HIT, T121_HIT')
-    await page.getByRole('button', { name: `保存偏好 ${slug}`, exact: true }).click()
+    await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT, T121_HIT')
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
     let refusalWrites = 0
     await wait(async () => {
       refusalWrites = prefWrites().filter(row => row.status === 422).length
@@ -264,8 +266,8 @@ async function main() {
     const refusedRow = afterRefusal.body.items.find(item => item.skill_resource_id === skillId)
     assert.equal(refusedRow.priority, 50); assert.deepEqual(refusedRow.keywords, ['T121_HIT'], 'a refused save changes nothing')
     record('T121-01', 'server-bounds-refusal-surfaces-without-drift', { alert: refusalAlert, refusedWrites: refusalWrites })
-    await page.getByLabel(`关键词输入 ${slug}`).fill('T121_HIT')
-    await page.getByRole('button', { name: `保存偏好 ${slug}`, exact: true }).click()
+    await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT')
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
     await wait(async () => {
       const check = api('A', 'GET', '/api/resources/skill-trigger-preferences')
       return check.body.items.find(item => item.skill_resource_id === skillId)?.priority === 50
