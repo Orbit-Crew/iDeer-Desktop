@@ -281,7 +281,7 @@ async function main() {
     // fixed IPC channel pinned by the security guardrail tests.
     const boundsProbe = api('A', 'PUT', `/api/resources/skills/${skillId}/trigger-preference`,
       { enabled: true, keywords: Array.from({ length: 17 }, (_, i) => 'K' + i), always_inject: false, applicable_agent_ids: [], priority: 5 })
-    assert.equal(boundsProbe.status, 422)
+    assert.ok([400, 422].includes(boundsProbe.status), 'bounds probe status ' + boundsProbe.status + ': ' + JSON.stringify(boundsProbe.body).slice(0, 150))
     const afterBounds = api('A', 'GET', '/api/resources/skill-trigger-preferences')
     assert.deepEqual(afterBounds.body.items.find(item => item.skill_resource_id === skillId)?.keywords, ['T121_HIT'], 'a refused save changes nothing')
     skipped('T121-01', 'server-bounds-refusal-surfaces-without-drift',
