@@ -219,6 +219,37 @@ async def test_environment_mismatch_and_unavailability(tmp_path) -> None:
     assert str(caught.value) == "SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE"
 
 
+@pytest.mark.asyncio
+async def test_declared_dependencies_are_verified_before_any_run(tmp_path) -> None:
+    """#170: a missing dependency/tool, an absurd interpreter floor, declared
+    data without a provisioning contract, and unsupported grammar all refuse
+    as unavailable — with zero executor calls, never a silent downgrade."""
+    gate = service(tmp_path)
+    for declaration in (
+        dict(DECLARATION, dependencies=["python>=999"]),
+        dict(DECLARATION, dependencies=["ideer-test-missing-package-xyz>=1"]),
+        dict(DECLARATION, dependencies=["python with extra prose"]),
+        dict(DECLARATION, software=["ideer-test-missing-tool-xyz"]),
+        dict(DECLARATION, tools=["ideer-test-missing-tool-xyz"]),
+        dict(DECLARATION, data=["quarterly CSV"]),
+    ):
+        with pytest.raises(SkillScriptError) as caught:
+            gate.evaluate(OWNER, payload_of(declaration=declaration))
+        assert str(caught.value) == "SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE"
+    assert gate._executor.calls == []
+
+
+@pytest.mark.asyncio
+async def test_satisfying_declaration_passes_the_environment_gate(tmp_path) -> None:
+    """#170 control: interpreter self-entries and empty tool lists verify, and
+    the scope-bound grant still authorizes its exact declaration."""
+    gate = service(tmp_path)
+    declaration = dict(DECLARATION, dependencies=["python3", "python>=3.0"])
+    gate.remember_grant(OWNER, payload_of(declaration=declaration))
+    decision, _verified = gate.evaluate(OWNER, payload_of(declaration=declaration))
+    assert decision.decision is PolicyDecision.ALLOW
+
+
 # --- DENY-first, identity binding, revocation --------------------------------
 
 @pytest.mark.asyncio
