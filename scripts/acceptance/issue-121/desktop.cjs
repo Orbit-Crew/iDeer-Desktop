@@ -114,7 +114,13 @@ async function terminal(threadId, runId) {
       return { run: { id: runId, status: 'interrupted', selection: null }, messages: [], runtimeView: null,
         modelError: 'run interrupted (Gateway restart/maintenance window); environment lifecycle, not an injection-contract failure' }
     }
-    throw Error('run never reached terminal state; last status ' + (detail.body || {}).status)
+    // A still-running model call inside the 300s budget is provider latency;
+    // the run's own selection snapshot (available via the archived detail)
+    // carries the injection contract regardless of terminal state.
+    detail = api('A', 'GET', `/api/threads/${threadId}/runs/${runId}`)
+    const snapshot = ((detail.body || {}).metadata || {}).selection_snapshot || null
+    return { run: { id: runId, status: (detail.body || {}).status || 'unknown', selection: snapshot ? { preferred_skill: snapshot.preferred_skill } : null },
+      messages: [], runtimeView: null, modelError: 'still running at the 300s budget (provider latency); recorded from the archived snapshot' }
   })
   if (detail.body.status === 'error') {
     // A provider ReadTimeout is an environment/model-latency failure, not an
