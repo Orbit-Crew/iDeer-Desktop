@@ -1,0 +1,281 @@
+{
+  "startedAt": "2026-10-28T19:32:01.600Z",
+  "status": "incomplete",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "82d336eae531067ba8daea0c936bfd17c67cc5dd",
+  "desktopCandidateMeaning": "candidate worktree HEAD; the tested tree is bound by installerSHA256/appASARSHA256/runtimeLockSHA256 below",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "sourceConfigSHA256": "66ac6431c923ab2d4216287d473a1c53b99008ca4efbd059c131c5033dafdb14",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "06a2a5da933f569d9538f942389116a028a5275227f58f069133d694b213f3f2",
+  "fixtureSHA256": "cab3f508141cf2868345c9d5450df66589e32f7e262f6736ad06297ff0587126",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "B",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "originalSHA256": "db3beb5ee8924726bd581c48e63c111bbcc6bc7cee3440912c0b99eff8e06e84",
+    "changedSHA256": "dd43207451acd53afa1e22ba67f9be55e86e7416760c09e66f3fa0e08c2d6d26"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP, broker and the real model remain real.",
+  "scenarios": {
+    "T116-01": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "server-orchestrated-generation-structured-failure",
+          "status": "passed",
+          "view": {
+            "kbId": "c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6",
+            "revisionId": "037d901e-716f-4cfc-b783-f654f7008855",
+            "revisionNo": 1,
+            "manifestHash": "c5d55012f22ca4f09d7982a4d457ddd749c31cbf8067013af8a8f86166ce501f",
+            "status": "failed",
+            "generated": 0,
+            "failed": 1,
+            "entities": [],
+            "relations": [],
+            "sources": [
+              {
+                "documentId": "ce5ef151-7b05-5c96-8f53-7f076cff1c05",
+                "filename": "guide.md",
+                "contentHash": "db3beb5ee8924726bd581c48e63c111bbcc6bc7cee3440912c0b99eff8e06e84",
+                "status": "failed",
+                "errorCode": "GRAPH_DEVICE_UNAVAILABLE"
+              }
+            ]
+          },
+          "graphRows": [
+            {
+              "method": "POST",
+              "path": "/api/resources/c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6/knowledge-revisions/037d901e-716f-4cfc-b783-f654f7008855/graph",
+              "bodyKeys": [],
+              "bytes": 2,
+              "requestSHA256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+              "documentIds": null,
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/resources/c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6/knowledge-revisions/037d901e-716f-4cfc-b783-f654f7008855/graph",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/resources/c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6/knowledge-revisions/037d901e-716f-4cfc-b783-f654f7008855/graph",
+              "status": 200
+            }
+          ],
+          "materialDispatchRows": 0,
+          "expectedSourceSHA256": "db3beb5ee8924726bd581c48e63c111bbcc6bc7cee3440912c0b99eff8e06e84"
+        },
+        {
+          "name": "completed-real-model-graph",
+          "status": "unexecuted",
+          "observed": {
+            "perDocumentError": "GRAPH_DEVICE_UNAVAILABLE",
+            "materialDispatchRows": 0
+          },
+          "dependency": "The candidate gateway seam (backend/app/gateway/knowledge_seam.py) constructs the knowledge facade without graph_broker_factory, so the observed generation stores a per-document GRAPH_DEVICE_UNAVAILABLE failure and never dispatches local.knowledge.material (material-summary.json stays empty). A completed real-model graph for a device-local revision is staged on that seam wiring, with the model already configured here."
+        },
+        {
+          "name": "material-consent-card-ask-first-remember-deny",
+          "status": "unexecuted",
+          "dependency": "The consent legs need a material dispatch to observe: no local.knowledge.material task reaches the device in this candidate, and the installed Desktop exposes no surface that resolves a device material consent (the chat consent card covers local.files.write only). The ask-first/allow-once contract stays pinned by local-runtime tests."
+        }
+      ]
+    },
+    "T116-02": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "sources-digests-and-local-locate",
+          "status": "passed",
+          "locate": {
+            "kbId": "c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6",
+            "revisionId": "037d901e-716f-4cfc-b783-f654f7008855",
+            "documentId": "ce5ef151-7b05-5c96-8f53-7f076cff1c05",
+            "filename": "guide.md",
+            "logicalPath": "/workspace/8141cb75-5686-44fe-a631-af53fb67c3da/guide.md"
+          },
+          "locateRows": [
+            {
+              "method": "GET",
+              "path": "/api/resources/c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6/knowledge-revisions/037d901e-716f-4cfc-b783-f654f7008855/graph",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/resources/c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6/knowledge-revisions/037d901e-716f-4cfc-b783-f654f7008855/graph",
+              "status": 200
+            }
+          ],
+          "note": "The located workspace path never travels to the Server: the locate leg adds only a graph-view GET."
+        },
+        {
+          "name": "manual-usability-pass-with-model-generated-graph",
+          "status": "unexecuted",
+          "dependency": "A click-through usability pass over a completed model-generated graph is staged on T116-01's completed-graph leg."
+        }
+      ]
+    },
+    "T116-03": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "cross-account-invisibility",
+          "status": "passed",
+          "hiddenView": 404,
+          "hiddenGenerate": 404,
+          "hiddenQuery": 404,
+          "graphEntryButtonsForB": 0
+        },
+        {
+          "name": "revision-isolation-R1-R2",
+          "status": "passed",
+          "R2": "not_generated",
+          "R1AfterR2View": "failed",
+          "R2ManifestHash": "8e6aa3154512eaa91f46c338d76a23b130a9bbe9283af15837d2536ed53dd5c3",
+          "R1ManifestHash": "c5d55012f22ca4f09d7982a4d457ddd749c31cbf8067013af8a8f86166ce501f"
+        }
+      ]
+    },
+    "T116-04": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "reopen-page-persistence",
+          "status": "passed",
+          "view": {
+            "kbId": "c3e0abbb-a4d4-4c4f-a2f3-f542459e9de6",
+            "revisionId": "037d901e-716f-4cfc-b783-f654f7008855",
+            "revisionNo": 1,
+            "manifestHash": "c5d55012f22ca4f09d7982a4d457ddd749c31cbf8067013af8a8f86166ce501f",
+            "status": "failed",
+            "generated": 0,
+            "failed": 1,
+            "entities": [],
+            "relations": [],
+            "sources": [
+              {
+                "documentId": "ce5ef151-7b05-5c96-8f53-7f076cff1c05",
+                "filename": "guide.md",
+                "contentHash": "db3beb5ee8924726bd581c48e63c111bbcc6bc7cee3440912c0b99eff8e06e84",
+                "status": "failed",
+                "errorCode": "GRAPH_DEVICE_UNAVAILABLE"
+              }
+            ]
+          },
+          "note": "Stored artifacts survive quit and relaunch: the reopened page renders the same frozen manifest, digests, and per-source outcome."
+        },
+        {
+          "name": "device-drift-and-offline-structured-failures",
+          "status": "unexecuted",
+          "dependency": "GRAPH_CONTENT_DRIFTED and device-offline failures arise only when material is dispatched and the device answers; no dispatch occurs in this candidate. The structured per-source failure presentation itself is executed above with the observed fixed category."
+        }
+      ]
+    }
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-28T19:32:37.230Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer116-files-fAJcjH"
+}

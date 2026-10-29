@@ -203,8 +203,17 @@ async function main() {
     const slug = trigger.slug
     const rowSwitch = page.getByRole('switch', { name: `偏好启用开关 ${slug}` })
     await wait(async () => (await rowSwitch.count()) === 1, 'preference surface row')
-    const rowText = await prefRow(slug).innerText()
-    assert.ok(rowText.includes('可用')); assert.ok(rowText.includes('平台版本 V1'))
+    let rowText = await prefRow(slug).innerText()
+    if (!rowText.includes('可用')) {
+      // The availability badge rides the Server projection refresh; nudge it
+      // once through the preferences reload before asserting.
+      await wait(async () => {
+        rowText = await prefRow(slug).innerText()
+        return rowText.includes('可用') && rowText.includes('平台版本 V1')
+      }, 'preference row shows availability and frozen version', 60000).catch(() => {})
+    }
+    assert.ok(rowText.includes('可用'), 'row text: ' + rowText.slice(0, 200))
+    assert.ok(rowText.includes('平台版本 V1'), 'row text: ' + rowText.slice(0, 200))
     for (const label of [`偏好启用开关 ${slug}`, `始终注入勾选 ${slug}`, `优先级输入 ${slug}`, `关键词输入 ${slug}`, `适用Agent输入 ${slug}`, `保存偏好 ${slug}`, `清除偏好 ${slug}`]) {
       assert.ok(await page.getByLabel(label).count() > 0, 'surface control ' + label)
     }
