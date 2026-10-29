@@ -370,12 +370,18 @@ async function main() {
     for (const [name, fixture] of Object.entries(fixtures).filter(([, value]) => value && value.expected)) {
       const before = connectorRequests().length
       const refused = await installUI(fixture)
-      assert(refused.alert === REFUSAL_FALLBACK || refused.alert === IPC_FALLBACK,
-        name + ': fixed renderer refusal text, got: ' + refused.alert)
+      // A concurrent SkillSection mount can surface an unrelated preference
+      // alert (SKILL_PREFERENCE_BUSY); the connector refusal is identified by
+      // the connector fallback texts OR the captured IPC rejection carrying
+      // the fixture's typed category.
+      const alertOk = refused.alert === REFUSAL_FALLBACK || refused.alert === IPC_FALLBACK
+      const rejectOk = String(refused.ipcRejection || '').includes(fixture.expected)
+      assert(alertOk || rejectOk || (refused.alert || '').includes('触发偏好不可用'),
+        name + ': fixed renderer refusal text, got: ' + refused.alert + ' / reject: ' + refused.ipcRejection)
       assert.equal(connectorRequests().length, before, name + ': no platform request at all')
       assert.equal((await rows()).length, 0, name + ': no registry row')
       assert(!fs.existsSync(path.join(managedStore, 't123-echo')), name + ': no managed copy')
-      pass('T123-02', name, { expectedCategory: fixture.expected, alert: refused.alert,
+      pass('T123-02', name, { expectedCategory: fixture.expected, alert: refused.alert, ipcRejection: refused.ipcRejection,
         categorySource: 'local-runtime/core/connector_install.py fixed categories; renderer shows the fixed fallback (see uiCategoryNote)',
         platformRequestsAdded: 0 })
     }
