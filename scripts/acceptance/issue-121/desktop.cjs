@@ -249,9 +249,23 @@ async function main() {
     await page.screenshot({ path: path.join(state, 'preference-surface.png'), fullPage: true })
 
     const writesBeforeSave = prefWrites().length
-    await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50', { timeout: 90000 })
-    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
-    await wait(() => prefWrites().length > writesBeforeSave && prefWrites().at(-1).status === 204, 'UI save PUT accepted')
+    // The SkillSection re-mounts when the Server projection refresh lands
+    // (detaching the input mid-interaction); retry the fill+save pair until
+    // the PUT lands.
+    let savedPut = false
+    for (let attempt = 0; attempt < 5 && !savedPut; attempt++) {
+      try {
+        await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50', { timeout: 30000 })
+        await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 30000 })
+        await wait(() => prefWrites().length > writesBeforeSave && prefWrites().at(-1).status === 204, 'UI save PUT accepted', 30000)
+        savedPut = true
+      } catch (error) {
+        if (!String(error).includes('Timeout') && !String(error).includes('detached')) throw error
+        evidence.preferenceSurfaceRaces = (evidence.preferenceSurfaceRaces || []).concat([{ attempt, error: String(error).slice(0, 120) }])
+        save()
+      }
+    }
+    assert(savedPut, 'the preference save PUT never landed after retries')
     const saved = api('A', 'GET', '/api/resources/skill-trigger-preferences')
     assert.equal(saved.status, 200)
     const savedRow = saved.body.items.find(item => item.skill_resource_id === skillId)
