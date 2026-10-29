@@ -49,7 +49,7 @@ def multipart_payload(content_type, body):
 
 
 @contextmanager
-def platform(confirm_status=200, complete_status=200, final_status='published'):
+def platform(confirm_status=200, complete_status=200, final_status='published', preview_display_name='Team · 服务端副本 R1'):
     records = []
     state = {'uploads': [], 'confirmed': False, 'completed': False}
 
@@ -79,13 +79,16 @@ def platform(confirm_status=200, complete_status=200, final_status='published'):
                                 sorted(d['content_hash'] for d in body['documents'])).encode()).hexdigest(),
                             document_count=len(body['documents']))
             elif self.path.endswith('/local-publication/preview') and self.command == 'GET':
+                destination = dict(kind='server_copy', slug='team-pub-r1',
+                                   visibility='private', governance='visibility_application_required')
+                if preview_display_name is not None:
+                    destination['display_name'] = preview_display_name
                 data = dict(
                     source=dict(resource_id=KB, revision_id=REVISION, revision_no=1,
                                 manifest_hash='a' * 64, document_count=1),
                     documents=[dict(document_id='doc-1', filename='guide.md', size_bytes=len(GUIDE),
                                     mime_type='text/markdown', content_hash=hashlib.sha256(GUIDE.encode()).hexdigest())],
-                    destination=dict(kind='server_copy', display_name='Team · 服务端副本 R1', slug='team-pub-r1',
-                                     visibility='private', governance='visibility_application_required'),
+                    destination=destination,
                     upload_policy=dict(requires_explicit_confirmation=True, device_kb_unchanged=True, two_way_sync=False))
             elif self.path.endswith('/local-publication') and self.command == 'POST':
                 state['confirmed'] = True
@@ -190,6 +193,10 @@ def test_preview_states_destination_and_uploads_nothing(tmp_path):
         assert preview['destination']['kind'] == 'server_copy'
         assert preview['destination']['visibility'] == 'private'
         assert preview['destination']['governance'] == 'visibility_application_required'
+        # Issue 42: the Server's `display_name` crosses this seam as the
+        # camelCase name the Desktop confirmation dialog renders.
+        assert preview['destination']['displayName'] == 'Team · 服务端副本 R1'
+        assert 'display_name' not in preview['destination']
         assert preview['source']['revision_id'] == REVISION
         assert preview['documents'][0]['sha256'] == hashlib.sha256(GUIDE.encode()).hexdigest()
         # Read-only: no confirm, no upload, no completion, and no recorded row.
@@ -197,6 +204,24 @@ def test_preview_states_destination_and_uploads_nothing(tmp_path):
                        for method, path, _, _ in records)
         assert state['uploads'] == [] and not state['confirmed'] and not state['completed']
         assert publications.view(binding) == []
+
+
+def test_preview_without_destination_name_fails_closed(tmp_path):
+    """Issue 42: a preview the dialog cannot render never becomes a silent pass."""
+    with platform(preview_display_name=None) as (origin, records, state):
+        chat, imports, publications, config, space, binding = prepare(tmp_path, origin)
+        register_import(chat, space)
+        del records[:]
+
+        with pytest.raises(KnowledgePublishError) as refused:
+            chat.publish_local_revision(KB, REVISION, [str(space / 'guide.md')], confirmed=False)
+        assert refused.value.args[0] == 'CHAT_PROTOCOL_ERROR'
+        # The refused preview uploaded nothing; the attempt is recorded as a
+        # real failed display fact, never as a published copy.
+        assert state['uploads'] == [] and not state['confirmed']
+        rows = publications.view(binding)
+        assert len(rows) == 1 and rows[0]['status'] == 'failed'
+        assert rows[0]['errorCode'] == 'CHAT_PROTOCOL_ERROR'
 
 
 def test_unconfirmed_server_refusal_is_mapped_and_recorded(tmp_path):
