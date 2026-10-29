@@ -1,0 +1,1320 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/4a8c8bd7-7b97-4297-89d2-1cb2f785d4f6/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/bcd18d00-5747-48f1-976b-b57adb57b751/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/df654f07-954b-4754-90f8-5ab579562317",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/preview",
+    "bytes": 542,
+    "requestSHA256": "604a6a874d22e9d8b15f387795b544eabe3e880f05ee631d2b7ce30415e2f022",
+    "contentType": "multipart/form-data; boundary=----ideer120aebb3fd4fe097ff030b2dca6319e0d8d",
+    "containsSyntheticMarker": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/confirm",
+    "bytes": 720,
+    "requestSHA256": "d2e7e99e92a19c66ad8be9c44a3af874f9018a97318714b8eb2e7d7dac92f99f",
+    "contentType": "multipart/form-data; boundary=----ideer12090d750b449272adcb871008205f364f3",
+    "containsSyntheticMarker": true,
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec/publish",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/preview",
+    "bytes": 937,
+    "requestSHA256": "5e8f3a9e63efe32b1bd0609996d8f6a67cc3aa6180e94b144e2202116ac13225",
+    "contentType": "multipart/form-data; boundary=----ideer1206ec1223e8c1a7cd260991fb936fd359e",
+    "containsSyntheticMarker": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/confirm",
+    "bytes": 1115,
+    "requestSHA256": "7b3aec65c6e0c6b336154f39ed06b805bf63edd483f0231c248809145bbd6d13",
+    "contentType": "multipart/form-data; boundary=----ideer120f2bd8c1bbade98625ce51cecf71839d4",
+    "containsSyntheticMarker": true,
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/publish",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/preview",
+    "bytes": 949,
+    "requestSHA256": "6f8608e8a9762c141e665ea9ca6253cea9011241da99a30bea6137b48ccd0623",
+    "contentType": "multipart/form-data; boundary=----ideer1201e0a01d5c256fe0b445e47f92a490333",
+    "containsSyntheticMarker": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/confirm",
+    "bytes": 1127,
+    "requestSHA256": "f0613fdd0960846b3773d3b3d0429d453e439dcf36d680528717b25b69439bff",
+    "contentType": "multipart/form-data; boundary=----ideer1207dcf781889f84b8f16ed04d3e3cdde96",
+    "containsSyntheticMarker": true,
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/50402dd8-5ee4-494e-9bd3-076862de187e",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/50402dd8-5ee4-494e-9bd3-076862de187e/publish",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/50402dd8-5ee4-494e-9bd3-076862de187e/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/published",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/skill-draft",
+    "status": 403
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/fork",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/import/skill/confirm",
+    "bytes": 1093,
+    "requestSHA256": "7bd41d5f3af0b5fdb36985f2e97fc5441653a1c2f30c169c6ccbcb678f116a2f",
+    "contentType": "multipart/form-data; boundary=T120d4a65d30eb2a4b79aab96409f15272cd",
+    "containsSyntheticMarker": true,
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000099/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/50402dd8-5ee4-494e-9bd3-076862de187e/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/277479f0-7de5-40dc-be81-836a79b3b356/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/agent-draft",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/publish",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/skill-draft",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/12000000-0000-4000-8000-000000000001/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/3e4a14a0-8517-4938-b583-bab313bf15ec/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/50402dd8-5ee4-494e-9bd3-076862de187e/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/277479f0-7de5-40dc-be81-836a79b3b356/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/publish",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/runs/a027818c-ce23-45d9-978a-860682f175a4",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/7a9b8912-78d8-4e9b-933a-6af3780e1d2d/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/state",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/0c47e096-d297-44a3-aa2e-c42bceabe420/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465/stream",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/runs/407393e5-421a-4c44-b778-bc6dd4362465",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/messages/page",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/local-tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/2ecfaef1-75f0-4a32-96df-63fd162b5fca/artifacts",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  }
+]

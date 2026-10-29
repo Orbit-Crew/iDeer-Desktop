@@ -1,0 +1,607 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/0b563867-0057-4171-ae97-c2ce3247c815/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/7e8280dd-b786-44cb-99c4-3bd9b3e031d1/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/knowledge-revisions/local-imports",
+    "bytes": 226,
+    "requestSHA256": "ecace9be2b2e026745ea8430e6507614dcbbd5e0925cf2c4ccb3b47574f08eff",
+    "bodyKeys": [
+      "device_id",
+      "documents"
+    ],
+    "containsContentMarker": false,
+    "deviceId": "654d1070-ef31-4587-8445-d709b1f99cb6",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/knowledge-revisions/68f69766-77f1-4857-9578-1e6be64d4533",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/knowledge-revisions/68f69766-77f1-4857-9578-1e6be64d4533/activate-local",
+    "bytes": 2,
+    "requestSHA256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "bodyKeys": [],
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/agent-draft",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/publish",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/published",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/c63c68e5-7519-4da4-94a6-7871666b659f/knowledge-revisions/local-imports",
+    "bytes": 226,
+    "requestSHA256": "ecace9be2b2e026745ea8430e6507614dcbbd5e0925cf2c4ccb3b47574f08eff",
+    "bodyKeys": [
+      "device_id",
+      "documents"
+    ],
+    "containsContentMarker": false,
+    "deviceId": "654d1070-ef31-4587-8445-d709b1f99cb6",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/c63c68e5-7519-4da4-94a6-7871666b659f/knowledge-revisions/906801a7-a839-48a3-bae0-650d37915395",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/knowledge-scope",
+    "scopeView": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/f8f270a0-9579-4135-a0be-33eaea41b159/runs",
+    "bytes": 212,
+    "requestSHA256": "8b1e2eb4ae26b175ec3830b88319e29a4cf8800d036d7db6ef7fee42c00dd602",
+    "bodyKeys": [
+      "assistant_id",
+      "context",
+      "input"
+    ],
+    "contextKeys": [
+      "runtime_knowledge_scope"
+    ],
+    "runtimeScopeEntries": 1,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/f8f270a0-9579-4135-a0be-33eaea41b159/runs/e69c38ff-1927-4a55-8245-c7b11053affe",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/f8f270a0-9579-4135-a0be-33eaea41b159/runs/e69c38ff-1927-4a55-8245-c7b11053affe",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/43930a4d-58e2-4181-9113-282dee405b26/runs",
+    "bytes": 212,
+    "requestSHA256": "fff1363c6359144af9b8f694b952e4a6023e1ac223dd2960e023941e07f4d408",
+    "bodyKeys": [
+      "assistant_id",
+      "context",
+      "input"
+    ],
+    "contextKeys": [
+      "runtime_knowledge_scope"
+    ],
+    "runtimeScopeEntries": 1,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/threads/43930a4d-58e2-4181-9113-282dee405b26/runs/0feeb7f9-6ca1-4cf6-aa44-005a3d191cd9",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/e2120ae7-793c-4781-ab03-9a6bf07b4914/agent-draft",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e2120ae7-793c-4781-ab03-9a6bf07b4914/publish",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e2120ae7-793c-4781-ab03-9a6bf07b4914/knowledge-scope",
+    "scopeView": true,
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/knowledge-scope",
+    "scopeView": true,
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/knowledge-revisions/68f69766-77f1-4857-9578-1e6be64d4533/activate-local",
+    "bytes": 2,
+    "requestSHA256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "bodyKeys": [],
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/knowledge-revisions/68f69766-77f1-4857-9578-1e6be64d4533",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/cd4355a7-59a8-4b4c-9dbf-80db04a4149d/runs",
+    "bytes": 145,
+    "requestSHA256": "19d328f035b6b8780c5cae7b603606b9b9b9d6cb87da97ac751860460e389b7b",
+    "bodyKeys": [
+      "assistant_id",
+      "context",
+      "input"
+    ],
+    "contextKeys": [],
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6/tasks/local",
+    "bytes": 665,
+    "requestSHA256": "add5f5aba8ab9201f81aeac9e56aaa0025741a5aec5c5183eb1521be61d97b5d",
+    "bodyKeys": [
+      "operation",
+      "payload",
+      "run_id",
+      "tool_call_id"
+    ],
+    "status": 403
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6/tasks/local",
+    "bytes": 665,
+    "requestSHA256": "bb35ddfb23972007691d38bc3fc30b412e6a6d2707deb942ce504b7275ba5947",
+    "bodyKeys": [
+      "operation",
+      "payload",
+      "run_id",
+      "tool_call_id"
+    ],
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/4027f387-8551-41a0-8084-7382c0cdb8f4",
+    "taskRead": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/tasks/4027f387-8551-41a0-8084-7382c0cdb8f4/consent",
+    "bytes": 70,
+    "requestSHA256": "b3aa2fbf9a8c2c086c098f4844ffd00eac11ab3a17035fa3766ccb8f4a7e1e67",
+    "bodyKeys": [
+      "actor_id",
+      "approved"
+    ],
+    "status": 403
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6/tasks/local",
+    "bytes": 665,
+    "requestSHA256": "89eaa6ab48fc7c6bd313e920c22f5630f5ee1ec6010847faf0fbe424a483c33b",
+    "bodyKeys": [
+      "operation",
+      "payload",
+      "run_id",
+      "tool_call_id"
+    ],
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/31a2bbde-4ec0-4c1a-9fef-13bae70b1364",
+    "taskRead": true,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/receipts/31a2bbde-4ec0-4c1a-9fef-13bae70b1364",
+    "receiptRead": true,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/knowledge-scope",
+    "scopeView": true,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6/tasks/local",
+    "bytes": 665,
+    "requestSHA256": "3f2527e3c8337b2bfa2702e503cdd1cfb21e1d0ee5dca2d1151f4a746acff12c",
+    "bodyKeys": [
+      "operation",
+      "payload",
+      "run_id",
+      "tool_call_id"
+    ],
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/6c1f5206-3665-4ed7-bf5b-0782d5a6c573",
+    "taskRead": true,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/654d1070-ef31-4587-8445-d709b1f99cb6",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/df3365f8-8b68-400c-98b1-c0e15c1a7296/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/4b234c98-1be4-4bb3-a114-1117f2897c91/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/receipts/4027f387-8551-41a0-8084-7382c0cdb8f4",
+    "receiptRead": true,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/tasks/4027f387-8551-41a0-8084-7382c0cdb8f4",
+    "taskRead": true,
+    "status": 200
+  }
+]

@@ -1,0 +1,237 @@
+{
+  "startedAt": "2026-10-29T11:53:33.147Z",
+  "status": "incomplete",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "82d336eae531067ba8daea0c936bfd17c67cc5dd",
+  "desktopCandidateMeaning": "base commit; actual tested app bound by installerSHA256/appASARSHA256",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "93c0368cc17d11c068208f2eaa383d7a88d72a89bb38bdfe32a9ac31335afc89",
+  "fixtureSHA256": "99758a60fb89632856d7908c033490f6dee826fa12179e3b355fd47527c03d72",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "B",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "originalSHA256": "c32df1a6af5a9a8a024e2572f3b370214f949fd382c98104bf7d6cb65418a2f2",
+    "changedSHA256": "b40fd4812aa0f1b4000e2f1c4e3a4979daa86a79028ac971cd01d03b4f39aa46"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP and authorization.",
+  "scenarios": {
+    "T119-01": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "generate-command-bounded-at-60s",
+          "status": "passed",
+          "rejection": "unexpected-success"
+        },
+        {
+          "name": "skipped-page-has-no-read-entry",
+          "status": "passed",
+          "view": {
+            "knowledge_base_id": "c2b822d2-2503-4bea-9abb-5cdb6140c315",
+            "revision_id": "d5cff531-e187-4273-8a7a-daba2fd5466a",
+            "revision_no": 1,
+            "manifest_hash": "8f3c3b5b18ce37298c1e8ca30a2608e16c5df41e4cee3d04aa455931d09158fd",
+            "status": "failed",
+            "generated": 0,
+            "failed": 0,
+            "skipped": 1,
+            "pages": [
+              {
+                "document_id": "790aa639-33ef-5f26-aaae-4b2eb94cc8dd",
+                "filename": "overview.md",
+                "title": "",
+                "content_hash": "c32df1a6af5a9a8a024e2572f3b370214f949fd382c98104bf7d6cb65418a2f2",
+                "status": "skipped",
+                "error_code": "GRAPH_DEVICE_UNAVAILABLE"
+              }
+            ]
+          },
+          "code": "GRAPH_DEVICE_UNAVAILABLE"
+        },
+        {
+          "name": "completed-target-qianwang-fanhui-walk",
+          "status": "unexecuted",
+          "dependency": "A completed page is unreachable in this environment: the frozen-document material ask (local.knowledge.material) is a LEVEL_1 local consent, and the installed app has no answerable surface for it (the tray decide path is tray-UI-only and the chat consent surface matches local.files.write only), so the ask times out and the page is honestly recorded as skipped. The isolated environment also has no knowledge provider (same dependency precedent as T112-03)."
+        },
+        {
+          "name": "backlinks-name-completed-sources",
+          "status": "unexecuted",
+          "dependency": "A completed page is unreachable in this environment: the frozen-document material ask (local.knowledge.material) is a LEVEL_1 local consent, and the installed app has no answerable surface for it (the tray decide path is tray-UI-only and the chat consent surface matches local.files.write only), so the ask times out and the page is honestly recorded as skipped. The isolated environment also has no knowledge provider (same dependency precedent as T112-03)."
+        }
+      ]
+    },
+    "T119-02": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "other-account-navigation-invisible",
+          "status": "passed",
+          "viewStatus": 404,
+          "navigationStatus": 404
+        }
+      ]
+    },
+    "T119-03": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "projection-shape-bounds-on-real-payload",
+          "status": "passed",
+          "pages": 1,
+          "associations": 1
+        },
+        {
+          "name": "missing-link-dead-end-presentation",
+          "status": "unexecuted",
+          "dependency": "A completed page is unreachable in this environment: the frozen-document material ask (local.knowledge.material) is a LEVEL_1 local consent, and the installed app has no answerable surface for it (the tray decide path is tray-UI-only and the chat consent surface matches local.files.write only), so the ask times out and the page is honestly recorded as skipped. The isolated environment also has no knowledge provider (same dependency precedent as T112-03)."
+        },
+        {
+          "name": "non-completed-target-not-clickable",
+          "status": "unexecuted",
+          "dependency": "A completed page is unreachable in this environment: the frozen-document material ask (local.knowledge.material) is a LEVEL_1 local consent, and the installed app has no answerable surface for it (the tray decide path is tray-UI-only and the chat consent surface matches local.files.write only), so the ask times out and the page is honestly recorded as skipped. The isolated environment also has no knowledge provider (same dependency precedent as T112-03)."
+        },
+        {
+          "name": "flood-bounds-200-100-100-200",
+          "status": "unexecuted",
+          "dependency": "Flooding the projection to its caps (200 pages / 100 resolved links / 100 missing targets / 200 association rows) needs that many completed model-generated pages or model-extracted graph rows; links only derive from completed bodies, and completed pages are unreachable here for the dependency recorded on T119-01. The caps themselves are pinned end to end by the runtime and Server unit suites."
+        }
+      ]
+    },
+    "T119-04": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "r1-frozen-beside-r2-server-truth",
+          "status": "passed",
+          "R1": "failed",
+          "R2": "not_generated",
+          "note": "The R1 index panel never renders in this fixture (navigation projection depends on the generation outcome, staged in T119-01); the context contract is asserted from the frozen navigation payloads."
+        },
+        {
+          "name": "revision-context-change-resets-index-and-body",
+          "status": "unexecuted",
+          "dependency": "The R1 index panel never renders in this fixture (staged in T119-01), so the UI context switch has no panel to exercise. The server-side contract is asserted above: R1 keeps its frozen manifest beside R2 and R2 carries its own manifest."
+        },
+        {
+          "name": "reopen-old-session-binds-old-revision",
+          "status": "unexecuted",
+          "dependency": "Same index-render dependency as the context leg; the reopened session binds the old revision server-side (asserted above against the frozen manifest hash)."
+        }
+      ]
+    }
+  },
+  "navigationRendered": false,
+  "r1IndexRendered": false,
+  "readOnlyProof": {
+    "wikiPostsTotal": 1,
+    "posts": [
+      {
+        "path": "/api/resources/c2b822d2-2503-4bea-9abb-5cdb6140c315/knowledge-revisions/d5cff531-e187-4273-8a7a-daba2fd5466a/wiki",
+        "status": 200
+      }
+    ]
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-29T11:57:22.315Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer119-files-3pu4S7"
+}

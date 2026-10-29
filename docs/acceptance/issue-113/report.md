@@ -103,3 +103,11 @@ green at the #112 candidate (orchestrator-recorded baseline: runtime 411
 passed / 11 skipped). After the change: typecheck exit 0, vitest 96 passed,
 runtime 421 passed / 11 skipped — only the new 10-test file was added, and it
 was created red before its implementation.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r14–r17,
+settling at r17). The three publication refusals (unactivated KB, draft
+local-import prepare, draft local-import publish) executed for real and
+returned 409; every chat/run-dependent leg is staged on the recorded
+`CHAT_NOT_FOUND` blocker (defects #167/#37, fresh-agent workaround included).
+Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.

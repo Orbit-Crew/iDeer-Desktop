@@ -128,3 +128,11 @@ and never mutates the device KB's frozen revisions, activations, or the
 device search contract; a published copy is retrieved from the platform
 provider, not from the device, so the device keeps serving nothing for
 teams.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r11). The
+unconfirmed-workspace guard and the UI preview-cancel walkthrough passed in
+the installed app (models not called). The installed Runtime confirmed-publish
+stalled before any platform POST (preview GETs only, wire tail recorded as a
+candidate defect observation) and stays the staged boundary. Bindings and
+sanitized evidence are in [installed-20261029.md](installed-20261029.md).
+Win7 remains with #131.

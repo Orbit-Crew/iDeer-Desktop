@@ -1,0 +1,31 @@
+{
+  "origin": "http://127.0.0.1:4457",
+  "identities": {
+    "A": {
+      "id": "73501b26-db27-4eb6-9bbf-892caf77f040",
+      "email": "t100-a@test.com",
+      "profile": "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-117\\exec-r23\\desktop\\profile-A\\settings.json",
+      "deviceId": "183e6029-dd90-4c96-8999-504ee041e4c5"
+    },
+    "B": {
+      "id": "fe80d6ed-296d-4dd1-ba00-0294506a9080",
+      "email": "t100-b@test.com",
+      "profile": "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-117\\exec-r23\\desktop\\profile-B\\settings.json",
+      "deviceId": "27086795-ad4f-45e4-8499-b8c05a423d6a"
+    }
+  },
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "serverRoot": "/mnt/g/code/iDeer-Desktop/.worktree/acceptance-112-123/server-candidate",
+  "authentication": "real registration/login/pairing APIs",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "sourceConfigSHA256": "66ac6431c923ab2d4216287d473a1c53b99008ca4efbd059c131c5033dafdb14",
+  "modelsCalled": false,
+  "gatewayTransport": {
+    "kind": "loopback-tcp-to-private-wsl",
+    "serverOrigin": "http://172.26.97.143:58057",
+    "publicOrigin": "http://127.0.0.1:4457"
+  }
+}

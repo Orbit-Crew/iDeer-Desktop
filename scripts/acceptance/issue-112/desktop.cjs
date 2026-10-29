@@ -150,7 +150,7 @@ async function main() {
     }
     const hidden = api('B', `/api/resources/${kb}/knowledge-revisions/${first.revisionId}`)
     assert.equal(hidden.status, 404)
-    pass('T112-02', 'other-account-server-refusal', { status: hidden.status })
+    pass('T112-02', 'other-account-server-refusal', { httpStatus: hidden.status })
     done('T112-02')
 
     fs.writeFileSync(path.join(workspace, 'guide.md'), changed)

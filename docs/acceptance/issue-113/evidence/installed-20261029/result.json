@@ -1,0 +1,167 @@
+{
+  "startedAt": "2026-10-29T04:52:52.792Z",
+  "status": "incomplete",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "2bf0b2f7151e9250ea69b86081c7aa4a41fcaf2a",
+  "desktopCandidateMeaning": "acceptance worktree base commit; actual installed app bytes bound by installerSHA256/appASARSHA256",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "8104315c07a70b5ed294a1fa4dcbed4650f16dcd0faf84bfcb66659569ef87b5",
+  "fixtureSHA256": "f666ed765a884c15b527714667b5081d07c8e091cfc43543469a6fa6a4c133ed",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "originalSHA256": "6df6987f8cf9ff8d4dc1a390a875815c7195e79f25063ecaf76b07dd6c905dc2",
+    "changedSHA256": "580701a7010ed6bc82052011764178bf9a89656b2c2f714fbaae40d98d7d9b5a",
+    "driftedSHA256": "d598e18e2f8fb78405f517d5276e8f73a6a58341c280fc7837a9d6ecdd46b5cf",
+    "notesSHA256": "e3173d7ab83b8c7f2de647e243583c7bffceafa70a25a44689f4d7637e7ede83"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "automation": "Native picker/confirmation callbacks supply synthetic paths/choices only; IPC, Runtime, HTTP, authorization, device broker and the model remain real.",
+  "runtimeStreamDefect": "Defect #37: the Runtime SSE consumer (platform_chat.py consume()) has a 15s read timeout with no reconnect, so long silent model phases drop the UI stream while the Run succeeds server-side. Run terminality and messages are asserted through the real Gateway API; the Runtime chat view is recorded as runtimeView observations.",
+  "scenarios": {
+    "T113-01": {
+      "status": "unexecuted",
+      "cases": [
+        {
+          "name": "unactivated-local-kb-refuses-publication",
+          "status": 409,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Required resource dependencies are not published: t113-frozen"
+            },
+            "detail": "Required resource dependencies are not published: t113-frozen"
+          }
+        },
+        {
+          "name": "draft-local-import-prepare-refused",
+          "status": 409,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Local import revisions stay device-local and cannot be prepared"
+            },
+            "detail": "Local import revisions stay device-local and cannot be prepared"
+          }
+        },
+        {
+          "name": "draft-local-import-publish-refused",
+          "status": 409,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Local import revisions stay device-local and cannot be published"
+            },
+            "detail": "Local import revisions stay device-local and cannot be published"
+          }
+        },
+        {
+          "name": "mid-run-R2-drift-drill",
+          "status": "unexecuted",
+          "dependency": "The runtime chat create keeps answering CHAT_NOT_FOUND for the freshly published agent (CHAT_NOT_FOUND); the frozen-visibility semantics are asserted Gateway-side below and covered by the Server suite.",
+          "observation": {
+            "note": "R2 activation is asserted by the follow-up import/activate steps below; see T113-01 cases."
+          }
+        },
+        {
+          "name": "chat-run-R2-drill",
+          "status": "unexecuted",
+          "dependency": "The chat-run R2 drill needs a working chat create for the fresh agent (see the observation above)."
+        }
+      ]
+    },
+    "T113-02": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T113-03": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T113-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "defect167DoublePublish": true,
+  "freshAgentChatCreateUnavailable": [
+    {
+      "phase": "mid-run-drill",
+      "agentId": "49d3619c-fa81-487e-973d-8365a5cfd1cd",
+      "lastError": "CHAT_NOT_FOUND"
+    },
+    {
+      "phase": "post-activation",
+      "agentId": "49d3619c-fa81-487e-973d-8365a5cfd1cd",
+      "lastError": "CHAT_NOT_FOUND"
+    }
+  ],
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-29T04:55:34.561Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer113-files-gD2gCK"
+}

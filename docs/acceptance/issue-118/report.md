@@ -101,3 +101,11 @@ the committed tree.
   anything; page bodies are bounded at 20000 chars end to end.
 - `dev-log/` remains an untracked local working directory in this repo
   (ticket copy at `dev-log/ticket-118.md`), exactly as at baseline.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r5). The
+honest view-before-generation state, per-page frozen digests, skipped-page
+presentation, revision isolation and bad-command refusal legs passed in the
+installed app; the live model-written page stays staged on the material-
+consent approval surface and provider dependencies, with the defect #37
+observation recorded. Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.

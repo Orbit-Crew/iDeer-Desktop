@@ -1,0 +1,288 @@
+{
+  "startedAt": "2026-10-28T22:41:00.246Z",
+  "status": "incomplete",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "2bf0b2f7151e9250ea69b86081c7aa4a41fcaf2a",
+  "desktopCandidateMeaning": "acceptance worktree base commit (no Desktop code change for #114); actual installed app bytes bound by installerSHA256/appASARSHA256",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "11b89201e6d7a0446c28e7d43e61e2609a99230e62ada56d54af677bb4eff666",
+  "fixtureSHA256": "1e431e728f368c19b7b5d78b0b138fe704631ab12c0226ffa655d0aae6edfed1",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "localSHA256": "fadfa87e99322435ab2f18c65b9cc9bb1ff28d53825e15a026001fd05c672f18"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "automation": "Native picker/confirmation callbacks supply synthetic paths/choices only; IPC, Runtime, HTTP, authorization and the device broker remain real. No model is configured: hybrid model answers stay unexecuted on that dependency.",
+  "scenarios": {
+    "T114-01": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "scope-view-reads-the-frozen-run-surface",
+          "status": "passed",
+          "scopeView": {
+            "agent_id": "df3365f8-8b68-400c-98b1-c0e15c1a7296",
+            "sources": [
+              {
+                "resource_id": "4b234c98-1be4-4bb3-a114-1117f2897c91",
+                "slug": "t114-hybrid",
+                "display_name": "T114 hybrid local",
+                "origin": "local_import",
+                "dataset": "local:68f69766-77f1-4857-9578-1e6be64d4533",
+                "revision_id": "68f69766-77f1-4857-9578-1e6be64d4533",
+                "revision_no": 1,
+                "manifest_hash": "cc2c71bc02038c647e7f3bbb62852512be1763f0e66f58b614d1afc782851def",
+                "device_id": "654d1070-ef31-4587-8445-d709b1f99cb6",
+                "device_online": true
+              }
+            ],
+            "selection": "narrow_only"
+          },
+          "frozenRow": {
+            "revisionId": "68f69766-77f1-4857-9578-1e6be64d4533",
+            "manifestHash": "cc2c71bc02038c647e7f3bbb62852512be1763f0e66f58b614d1afc782851def"
+          }
+        },
+        {
+          "name": "runtime-selection-binds-the-authorized-frozen-scope",
+          "status": "passed",
+          "runId": "e69c38ff-1927-4a55-8245-c7b11053affe",
+          "runStatus": "error",
+          "knowledgeScope": {
+            "logical_selectors": [
+              "4b234c98-1be4-4bb3-a114-1117f2897c91"
+            ]
+          },
+          "note": "The isolated Gateway intentionally configures no real model, so the Run ends in a synthetic-model error after freeze; the scope evidence is the prep-time frozen fact, which is why the terminal status is recorded, not asserted. The local:<revision> dataset binding behind the selector is evidenced by the scope view and the receipt identity fields."
+        },
+        {
+          "name": "runtime-restriction-cannot-add-unknown-knowledge",
+          "status": "passed",
+          "runId": "0feeb7f9-6ca1-4cf6-aa44-005a3d191cd9",
+          "runStatus": "error",
+          "knowledgeScope": {
+            "logical_selectors": []
+          }
+        },
+        {
+          "name": "unanchored-local-kb-stays-out-of-the-view",
+          "status": "passed",
+          "publishStatus": 409,
+          "scopeViewStatus": 409
+        },
+        {
+          "name": "installed-dual-ui-walkthrough",
+          "status": "unexecuted",
+          "dependency": "The Web chat entry needs the Next.js frontend served against this Gateway plus a browser login; the selector contract is exercised here through the scope-view API it reads, and the component itself is covered by knowledge-scope-selector tests recorded in the Server report."
+        }
+      ]
+    },
+    "T114-02": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "unauthorized-kb-invisible-to-a-teammate",
+          "status": "passed",
+          "scopeViewStatus": 404,
+          "activationStatus": 404,
+          "revisionStatus": 404,
+          "runStatus": 404,
+          "deviceTaskStatus": 403,
+          "deviceTaskCode": "INTERNAL_ERROR"
+        }
+      ]
+    },
+    "T114-03": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "device-search-completes-with-validated-chunks",
+          "status": "passed",
+          "taskId": "4027f387-8551-41a0-8084-7382c0cdb8f4",
+          "result": {
+            "chunks": [
+              {
+                "document_id": "d55800fc-a493-5f1a-a01f-2d7af8f276d2",
+                "document_keyword": "guide.md",
+                "content": "The frozen local phrase is COPPER-HARBOR-7 and the shelf code is SHELF-114.",
+                "position": {
+                  "logical_path": "/workspace/833af337-ac8c-4820-b69b-2b0f41c49df6/guide.md",
+                  "line": 2
+                }
+              }
+            ],
+            "missing": [],
+            "truncated": false,
+            "documentsMatched": 1
+          },
+          "receipt": {
+            "run_id": "t114-direct-e0361591",
+            "task_id": "4027f387-8551-41a0-8084-7382c0cdb8f4",
+            "capability": "local.knowledge.search",
+            "policy_decision": "allow",
+            "status": "completed",
+            "payload_hash": "8fadc02965f90b24f09ba3c89704036fb8887e85c04eb86e3c798eb907d6305b",
+            "request_hash": "8fadc02965f90b24f09ba3c89704036fb8887e85c04eb86e3c798eb907d6305b",
+            "result_hash": "760074e957d9334e54e29c6c01d12a9602b71a0ad9400fa6872f12ba0cc0911d",
+            "policy_version": "1",
+            "consent_decision": null,
+            "stdout_hash": null,
+            "stderr_hash": null,
+            "artifact_refs": [],
+            "runtime_version": null,
+            "exit_code": null,
+            "started_at": null,
+            "finished_at": null,
+            "error_code": null,
+            "skill_id": null,
+            "skill_version": null,
+            "skill_content_hash": null,
+            "authorization_basis": null
+          }
+        },
+        {
+          "name": "remote-consent-cannot-approve-device-gated-search",
+          "status": 403,
+          "taskId": "4027f387-8551-41a0-8084-7382c0cdb8f4",
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Approve this operation on the original Desktop"
+            },
+            "detail": {
+              "code": "LOCAL_APPROVAL_REQUIRED",
+              "message": "Approve this operation on the original Desktop"
+            }
+          }
+        },
+        {
+          "name": "tampered-manifest-refused-with-typed-error",
+          "status": "failed",
+          "taskId": "31a2bbde-4ec0-4c1a-9fef-13bae70b1364",
+          "errorCode": "KNOWLEDGE_SEARCH_REVISION_UNKNOWN"
+        },
+        {
+          "name": "offline-device-reported-in-the-scope-view",
+          "status": "passed",
+          "device_online": false
+        },
+        {
+          "name": "offline-device-task-is-structured-not-raised",
+          "status": "device_offline",
+          "taskId": "6c1f5206-3665-4ed7-bf5b-0782d5a6c573",
+          "error": "no outbound device session is connected"
+        },
+        {
+          "name": "paused-local-required-live-run",
+          "status": "unexecuted",
+          "dependency": "A local-only Run that pauses instead of answering needs the model to invoke retrieval against the paused projection; the isolated Gateway has no real model, and paused_local_required receipts are covered by backend automated evidence."
+        },
+        {
+          "name": "mid-retrieval-disconnect",
+          "status": "unexecuted",
+          "dependency": "A disconnect injected between task dispatch and completion needs broker fault injection against the paired device; covered by backend automated evidence (test_mid_disconnect_failure_is_structured_not_raised)."
+        }
+      ]
+    },
+    "T114-04": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "device-receipt-consistent-across-archive-and-ledger",
+          "status": "passed",
+          "archived": {
+            "receipt_id": "e0604bf9-5530-43c8-b406-74e325ca23da",
+            "capability": "local.knowledge.search",
+            "run_id": "t114-direct-e0361591",
+            "result_hash": "760074e957d9334e54e29c6c01d12a9602b71a0ad9400fa6872f12ba0cc0911d"
+          },
+          "ledger": {
+            "task_id": "4027f387-8551-41a0-8084-7382c0cdb8f4",
+            "run_id": "t114-direct-e0361591",
+            "capability": "local.knowledge.search",
+            "status": "completed",
+            "deliveryState": "confirmed"
+          }
+        },
+        {
+          "name": "retrieval-receipt-engine-labels-and-statuses-in-run-evidence",
+          "status": "unexecuted",
+          "dependency": "engine=local_device/server_provider attribution and source_unavailable/paused_local_required retrieval-receipt statuses are produced inside a Run; that needs a real model to invoke retrieval, staged on the model-credentials dependency."
+        },
+        {
+          "name": "no-cross-engine-score-merge-live",
+          "status": "unexecuted",
+          "dependency": "Merging never happens across engines; the provider engine itself requires a configured knowledge provider (RAGFlow), which is unavailable in the isolated Gateway — recorded like the T112-03 provider dependency."
+        },
+        {
+          "name": "web-knowledge-scope-selector-visual-walkthrough",
+          "status": "unexecuted",
+          "dependency": "The Web selector (frontend/src/components/workspace/chats/knowledge-scope-selector.tsx) needs the Next.js frontend served and a browser session; the selection surface it reads (GET knowledge-scope, narrow_only, device_online) is verified live above and the component is covered by frontend unit tests in the Server report."
+        }
+      ]
+    }
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-28T22:41:56.652Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer114-files-oo3Ebt"
+}

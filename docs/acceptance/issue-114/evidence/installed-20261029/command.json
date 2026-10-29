@@ -1,0 +1,38 @@
+{
+    "installer":  "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\dist\\ideer-desktop-0.2.0-windows-x64-setup.exe",
+    "finishedAt":  "2026-10-28T22:42:00.0733822Z",
+    "exitCode":  1,
+    "node":  "G:\\code\\iDeer-worktrees\\.tools\\node-v22.14.0-win-x64\\node.exe",
+    "state":  "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-114\\exec-r4",
+    "serverPython":  "/home/neowyh/orch-worktrees/issue-112-server/backend/.venv/bin/python",
+    "startedAt":  "2026-10-28T22:40:21.1765397Z",
+    "steps":  [
+                  {
+                      "name":  "install",
+                      "exitCode":  0
+                  },
+                  {
+                      "name":  "real-profile-prepare",
+                      "exitCode":  0
+                  },
+                  {
+                      "name":  "installed-scenarios",
+                      "exitCode":  1
+                  },
+                  {
+                      "exited":  true,
+                      "name":  "server-cleanup",
+                      "exitCode":  null
+                  },
+                  {
+                      "exited":  true,
+                      "name":  "proxy-cleanup",
+                      "exitCode":  null
+                  },
+                  {
+                      "name":  "uninstall",
+                      "exitCode":  0
+                  }
+              ],
+    "serverRoot":  "/mnt/g/code/iDeer-Desktop/.worktree/acceptance-112-123/server-candidate"
+}

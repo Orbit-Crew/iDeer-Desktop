@@ -146,3 +146,12 @@ stays a recorded-pending step (see Pending).
 - Win7 compatibility verification — explicitly deferred to #131; the modern
   Windows results above must not be read as Win7 results.
 - `dist:win` packaging — recorded pending; not run in this ticket.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r7).
+T123-01 executed with the tray leg recorded as a fixture observation (cancel
+registers nothing; the install registers the canonical identity; managed
+copy re-hash and controlled config asserted); the bad-package matrix,
+cross-account isolation and removal legs ended before execution in this
+round and remain covered by the Server and runtime suites, staged for a
+follow-up execution. Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.

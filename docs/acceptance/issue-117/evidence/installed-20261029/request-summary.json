@@ -1,0 +1,901 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/e9979e8d-ca95-4dc5-a4b0-6ee9e815a677/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/2a713bca-2a5d-40c0-8d8d-90b074f3c0c0/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/183e6029-dd90-4c96-8999-504ee041e4c5",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/local-imports",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/local-imports",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 75,
+    "requestSHA256": "a78d9236027beac318f189a87df70377b5d671bd12d657334a09e89ad34182a9",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 115,
+    "requestSHA256": "c38ff5a71a84a745245b4f57380b805a8f005c141086796eb619fa636db7d31b",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 2,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 75,
+    "requestSHA256": "a78d9236027beac318f189a87df70377b5d671bd12d657334a09e89ad34182a9",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/ask",
+    "bytes": 79,
+    "requestSHA256": "fdefd2e705e6b994dee41f8f9b1f60b0154088dd04e50a325417f2293b9ed82f",
+    "bodyKeys": [
+      "document_ids",
+      "question"
+    ],
+    "documentCount": 1,
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 75,
+    "requestSHA256": "ef17074eb1709cd2b37314faf8bf2cfde3e0ac235273af2118f2294dbc1922a7",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 409
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/ask",
+    "bytes": 79,
+    "requestSHA256": "9ea1f99326d82ad4a51f23ab20501ace08f7631d07b976b074607774c7b7dd76",
+    "bodyKeys": [
+      "document_ids",
+      "question"
+    ],
+    "documentCount": 1,
+    "status": 409
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 37,
+    "requestSHA256": "9da37ad18a6cb15dd95d78954f8934c350fc1e9e7c56d41fa5d8b73d836b11f2",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 0,
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/ask",
+    "bytes": 74,
+    "requestSHA256": "c22ee27187fa4b3ed42b81b21d72c88a34b3fb36bd0d35214b9271d216e1c069",
+    "bodyKeys": [
+      "document_ids",
+      "question"
+    ],
+    "documentCount": 1,
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/query",
+    "bytes": 43,
+    "requestSHA256": "b821bad5d894fcee4423e7306d4ccc3e1ba4ed034d431be98dc17983246ad541",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph/ask",
+    "bytes": 132,
+    "requestSHA256": "0d4472d98c458640ad1c30b655c994826241755b4d382785635c15c752eb5e92",
+    "bodyKeys": [
+      "document_ids",
+      "question"
+    ],
+    "documentCount": 1,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph/query",
+    "bytes": 75,
+    "requestSHA256": "ef17074eb1709cd2b37314faf8bf2cfde3e0ac235273af2118f2294dbc1922a7",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph/query",
+    "bytes": 75,
+    "requestSHA256": "ef17074eb1709cd2b37314faf8bf2cfde3e0ac235273af2118f2294dbc1922a7",
+    "bodyKeys": [
+      "document_ids",
+      "query"
+    ],
+    "documentCount": 1,
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/183e6029-dd90-4c96-8999-504ee041e4c5",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/65a5e9f4-371a-44d4-9d5b-731aaa2f4cfd/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/d27579e3-0d42-42b0-bed9-9a76049caedb/knowledge-revisions/3441d2ac-e7b7-4a02-bb49-7f91bf4c3800/graph",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  }
+]

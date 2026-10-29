@@ -1,0 +1,5904 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/cfb94f29-b226-40cb-9e96-228d0f0d4243/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/b215e4f8-9ed6-4ff8-b2fd-3ba4a6ee29c2/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/0374f3c5-b38d-43da-8c3a-72e1a43cb983/agent-draft",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/0374f3c5-b38d-43da-8c3a-72e1a43cb983/publish",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/4085f6ca-661d-4211-bb27-73284a04a935",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/local-imports",
+    "bytes": 226,
+    "requestSHA256": "ac7ddc1c43f33d89b6f1f51e2b81e505cc92053fcff3bf7f5be70182b974ae4b",
+    "bodyKeys": [
+      "device_id",
+      "documents"
+    ],
+    "containsContentMarker": false,
+    "deviceId": "4085f6ca-661d-4211-bb27-73284a04a935",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/eb8f6415-5ee4-48f0-ade3-c63c55607576",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/eb8f6415-5ee4-48f0-ade3-c63c55607576/activate-local",
+    "bytes": 2,
+    "requestSHA256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "bodyKeys": [],
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "PUT",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/agent-draft",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/publish",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/eb8f6415-5ee4-48f0-ade3-c63c55607576/prepare",
+    "status": 409
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/eb8f6415-5ee4-48f0-ade3-c63c55607576/publish",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/4085f6ca-661d-4211-bb27-73284a04a935",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/local-imports",
+    "bytes": 226,
+    "requestSHA256": "922e72b84332cefcaad5495966767bee845104ad26460d358c90e81fd6747b81",
+    "bodyKeys": [
+      "device_id",
+      "documents"
+    ],
+    "containsContentMarker": false,
+    "deviceId": "4085f6ca-661d-4211-bb27-73284a04a935",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/9993166e-a6e7-4ae4-8aa7-d50abde8358e",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/knowledge-revisions/9993166e-a6e7-4ae4-8aa7-d50abde8358e/activate-local",
+    "bytes": 2,
+    "requestSHA256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "bodyKeys": [],
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/49d3619c-fa81-487e-973d-8365a5cfd1cd/published",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/e211b1bc-5450-415b-af5c-7ddd59adb17a/published",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  }
+]

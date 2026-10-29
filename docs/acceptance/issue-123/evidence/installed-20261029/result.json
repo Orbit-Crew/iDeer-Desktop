@@ -1,0 +1,272 @@
+{
+  "startedAt": "2026-10-28T23:54:56.916Z",
+  "status": "failed",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "b64e51d4a7f20740337dcbf7ac6c00544282b379",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "desktop base merge commit (issue-112 precedent); server base commit with the actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "bb27b0604f02b6cd4f24025d404dd688f21950778e1ce36350c5305366929084",
+  "fixtureSHA256": "bddb9b911cdf6e5592da2068be6103ca8e4cb0c2fed4aa3eb2031257c70ff032",
+  "fixturesSHA256": "6e46901a0aef58f937cc37cc629ed28f539cad97274c3675bfb27d7623aeed32",
+  "fixtureEntrySHA256": "33680a1e57a2c343091e90c5e4adb19c38e4ed96daba9cce6cc41cc2c405597a",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "authentication": "real registration/login/pairing APIs",
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP and authorization.",
+  "uiCategoryNote": "Per the issue-120 first-run lesson, refusal paths wait for the error Alert and record its exact text; the renderer maps every prefixed IPC failure to the fixed fallback (RuntimePanel.runConnector), so the specific CONNECTOR_* category is asserted from the data plane (request-summary statuses, platform rows, registry/store state) wherever one exists. The category drop in the renderer is recorded as a candidate finding consistent with Orbit-Crew/iDeer-Desktop#37.",
+  "toolCallNote": "Echo/managed-write/escape calls ride the real admin route POST /api/devices/{id}/tasks/local (the MCP dispatch has no fixed wire-key constraint, unlike local.skill.script). The recorded user consent decision is the explicit settings always-allow rule for the one tool capability (same product configuration surface as the issue-102 deny precedent); the chat consent card filters to local.files.write, so the payload-bound consent card itself is staged.",
+  "scenarios": {
+    "T123-01": {
+      "status": "unexecuted",
+      "cases": [
+        {
+          "name": "preview-then-cancel-registers-nothing",
+          "status": "passed",
+          "confirmation": {
+            "title": "确认安装本地连接器",
+            "message": "安装「T123 Echo Connector」（t123-echo）到本设备？",
+            "detail": "版本 1.2.0 · 2 个文件 · 入口 server.py\n清单指纹 cdf9f35bb6f0529a… · 包指纹 ff94806419c7b24a…\n\n安装会在本设备完成版本与依赖校验，并向平台登记仅属你的连接器身份（名称/版本/指纹）；随后生成受控配置：入口固定为受管副本，文件访问限定在该组件自己的数据目录。命令行、入口路径与环境配置不会离开本设备，也不会同步为其他设备可运行的配置。",
+            "buttons": [
+              "取消",
+              "确认安装"
+            ]
+          },
+          "alert": "触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY",
+          "registrationPosts": 0
+        },
+        {
+          "name": "installed-ui-registers-canonical-identity",
+          "status": "passed",
+          "row": {
+            "slug": "t123-echo",
+            "displayName": "T123 Echo Connector",
+            "version": "1.2.0",
+            "entry": "server.py",
+            "manifestHash": "cdf9f35bb6f0529a41f6f40401e8be9ef2ff52aab2e9c597ee479e80100b4365",
+            "packageHash": "ff94806419c7b24a01ac9b883fff1ca21574035635084416e56f1d05e1c8cae7",
+            "serverConnectorId": "d6587963-2aac-4e96-86bf-7037d2be6d5a",
+            "state": "installed",
+            "createdAt": "2026-10-28 23:55:04"
+          },
+          "registration": {
+            "method": "POST",
+            "path": "/api/connectors",
+            "bytes": 165,
+            "requestSHA256": "849cbb0a0be742bee94e6411d205bb87b4140f37fb17e9dd778168c4ed6c7a68",
+            "containsManagedBinding": false,
+            "containsEntrySource": false,
+            "containsOutsideMarker": false,
+            "bodyKeys": [
+              "display_name",
+              "manifest_hash",
+              "slug",
+              "version"
+            ],
+            "status": 200
+          },
+          "platformRow": {
+            "connectorId": "d6587963-2aac-4e96-86bf-7037d2be6d5a",
+            "slug": "t123-echo",
+            "displayName": "T123 Echo Connector",
+            "version": "1.2.0",
+            "manifestHash": "cdf9f35bb6f0529a41f6f40401e8be9ef2ff52aab2e9c597ee479e80100b4365"
+          },
+          "confirmation": {
+            "title": "确认安装本地连接器",
+            "message": "安装「T123 Echo Connector」（t123-echo）到本设备？",
+            "detail": "版本 1.2.0 · 2 个文件 · 入口 server.py\n清单指纹 cdf9f35bb6f0529a… · 包指纹 ff94806419c7b24a…\n\n安装会在本设备完成版本与依赖校验，并向平台登记仅属你的连接器身份（名称/版本/指纹）；随后生成受控配置：入口固定为受管副本，文件访问限定在该组件自己的数据目录。命令行、入口路径与环境配置不会离开本设备，也不会同步为其他设备可运行的配置。",
+            "buttons": [
+              "取消",
+              "确认安装"
+            ]
+          }
+        },
+        {
+          "name": "managed-copy-rehashed-and-controlled-config",
+          "status": "passed",
+          "copy": {
+            "packageHash": "ff94806419c7b24a01ac9b883fff1ca21574035635084416e56f1d05e1c8cae7",
+            "files": [
+              "connector.json",
+              "server.py"
+            ]
+          },
+          "spec": {
+            "name": "t123-echo",
+            "transport": "stdio",
+            "command": [
+              "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer112-installed-Cqzrzt\\resources\\runtime\\python.exe",
+              "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-123\\exec-r7\\desktop\\appdata\\iDeer Desktop\\Runtime\\connectors\\t123-echo\\server.py"
+            ],
+            "env": {
+              "MCP_ROOT": "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-123\\exec-r7\\desktop\\appdata\\iDeer Desktop\\Runtime\\connectors\\t123-echo\\data"
+            },
+            "enabled": true
+          }
+        },
+        {
+          "name": "controlled-mcp-tool-discovery-and-consented-echo",
+          "status": "unexecuted",
+          "dependency": "The tray supervisor (tray.py desktop-mode combination) did not announce the controlled MCP tools to the paired device inside the driver window in this Playwright-driven fixture; the controlled configuration, managed copy re-hash, platform registration and removal legs are asserted above and below. The stdio echo chain is covered end-to-end by the runtime tests (test_connector_install.py) per the Desktop report.",
+          "capabilities": [
+            "local.files.list",
+            "local.files.read",
+            "local.files.search",
+            "local.files.write",
+            "local.knowledge.material",
+            "local.knowledge.search",
+            "local.skill.script"
+          ]
+        },
+        {
+          "name": "consented-echo-known-output",
+          "status": "unexecuted",
+          "dependency": "Tray-started MCP discovery never announced the tools in this fixture; the echo/write/escape legs stay unexecuted here and remain covered by the runtime stdio tests.",
+          "capabilities": [
+            "local.files.list",
+            "local.files.read",
+            "local.files.search",
+            "local.files.write",
+            "local.knowledge.material",
+            "local.knowledge.search",
+            "local.skill.script"
+          ]
+        }
+      ]
+    },
+    "T123-02": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T123-03": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T123-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "dependencies": "No LLM is required: the connector tool call is a direct broker dispatch and every registration is a plain HTTP call. Isolated environment has no RAGFlow provider, so provider-dependent surfaces follow the issue-112 T112-03 precedent (unexecuted+dependency).",
+  "cancelInstallObservation": {
+    "confirmation": {
+      "title": "确认安装本地连接器",
+      "message": "安装「T123 Echo Connector」（t123-echo）到本设备？",
+      "detail": "版本 1.2.0 · 2 个文件 · 入口 server.py\n清单指纹 cdf9f35bb6f0529a… · 包指纹 ff94806419c7b24a…\n\n安装会在本设备完成版本与依赖校验，并向平台登记仅属你的连接器身份（名称/版本/指纹）；随后生成受控配置：入口固定为受管副本，文件访问限定在该组件自己的数据目录。命令行、入口路径与环境配置不会离开本设备，也不会同步为其他设备可运行的配置。",
+      "buttons": [
+        "取消",
+        "确认安装"
+      ]
+    },
+    "ipcRejection": null,
+    "alert": "触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY"
+  },
+  "discoveredCapabilities": [
+    "local.files.list",
+    "local.files.read",
+    "local.files.search",
+    "local.files.write",
+    "local.knowledge.material",
+    "local.knowledge.search",
+    "local.skill.script"
+  ],
+  "error": "TypeError: Cannot read properties of undefined (reading 'detail')",
+  "stack": "TypeError: Cannot read properties of undefined (reading 'detail')\n    at main (G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\scripts\\acceptance\\issue-123\\desktop.cjs:348:39)",
+  "failureStatus": {
+    "version": "0.2.0",
+    "server": "connected",
+    "runtime": {
+      "process": "running",
+      "connection": "connected",
+      "tasks": [],
+      "pid": 284900,
+      "login": {
+        "state": "authenticated",
+        "account": "t100-a@test.com",
+        "device": "T100 isolated device A",
+        "error": ""
+      },
+      "workspace": {
+        "state": "ready",
+        "logicalRoot": "/workspace/dda9f224-33f5-4a0b-9016-e9662949f527"
+      },
+      "compatibility": {
+        "level": "compatible",
+        "disabledCapabilities": [],
+        "error": "",
+        "notes": "未发布兼容声明，仅保留已支持的旧协议 1 行为。",
+        "advice": "旧协议 1 兼容。权限仍由 Server 与本地策略决定。",
+        "candidateCombo": {
+          "desktop": "0.2.0",
+          "runtime": "3.12.10",
+          "server": "591f80c-runtime-compat-20261025"
+        },
+        "actualCombo": {
+          "desktop": "0.2.0",
+          "runtime": "3.12.10",
+          "server": "591f80c-runtime-compat-20261025"
+        },
+        "declarationHash": "",
+        "legacy": true
+      },
+      "installDrain": false,
+      "activeTasks": 0,
+      "unknownWriteEffects": 0,
+      "directoryGrants": [],
+      "knowledgeImports": [],
+      "knowledgeImportStorageError": "",
+      "knowledgePublications": [],
+      "knowledgePublishStorageError": "",
+      "skillImports": [],
+      "skillImportStorageError": "",
+      "skillScriptAuthorizations": [],
+      "skillScriptStorageError": "",
+      "connectors": [],
+      "connectorStorageError": "",
+      "receiptStorageError": "",
+      "receiptScope": "b68a0a1413d44f3f7b36de6b9b8143b24eee0ca42de0d39fc486f86ffd718dac"
+    }
+  },
+  "failureUI": "iDeer Desktop\n平台连接\n\n在本机 Runtime 面板查看设备连接与任务状态。\n\n版本 0.1.0\n\n退出应用\n平台连接\n平台登录与设备连接\n登录后可选择平台已有 Agent/Skill，继续平台聊天与历史\n配对后的设备可通过 Runtime 接收 Server 签名任务。尚未配置设备时，任务不可用。\n原 linz 安装和数据保留在原位置，可继续通过原应用查阅。\n平台聊天与历史\n刷新资源与历史\n由 Server 编排，凭证保留在系统安全存储中\n选择已发布 Agent\n可选：选择 Agent 已包含的 Skill\n新建平台聊天\n重新打开平台 Thread\n本机 Runtime\n平台账号与设备绑定\n在系统浏览器登录已有账号或 SSO，核对设备后确认绑定。完成交换前，桌面业务会话为未认证。\n在浏览器登录并绑定此设备\n桌面业务会话：已认证\n账号：t100-a@test.com · 设备：T100 isolated device A\n退出账号\n切换账号或重新绑定设备\n退出会停止任务并取消待审批，保留隔离记录。同账号原设备重登可恢复授权；切换账号将建立新的设备绑定。\n进程：运行中 （PID 284900）\n设备连接：已连接\n启动 Runtime\n停止 Runtime\n工作目录\n按会话需要将文件名或文本发送到 Server 和模型，不自动上传整目录。目录不登记为平台 Resource。授权限当前账号与设备，切换目录后旧路径失效。\n/workspace/dda9f224-33f5-4a0b-9016-e9662949f527\n选择并授权目录\n在原聊天中可选择仅允许一次，或持续允许所选目录及子目录的文本新建与覆盖。目录授权不允许执行脚本。\n持续目录授权\n当前账号与设备没有持续文本写入授权。\n本地知识导入\n把工作目录中的文件显式导入为你的私有平台知识库版本：设备侧解析并计算指纹，平台只登记文件名、大小、类型与 SHA-256 清单，原文件与设备索引不会自动上传。每次导入生成新的不可变版本。\n选择文件并导入\n当前账号与设备尚无导入记录。\n服务端发布记录\n把你登记过的私有版本显式发布为平台上的独立服务端知识库副本：先预览内容与去向，确认后才上传；副本初始为私有，团队访问须经平台可见性申请与审批。设备端知识库保持私有，发布不会自动双向同步，也不会替换正在运行的知识版本。\n当前账号与设备尚无发布记录。\n知识图谱\n知识图谱\n针对已登记的知识库版本，由平台统一编排生成实体与关系；来源始终绑定冻结版本与文档指纹，可定位回本机授权来源。跨账号或其他范围的版本不会显示。\n当前账号与设备尚无可查看图谱的已登记版本。\n知识 Wiki\n知识 Wiki\n针对已登记的知识库版本，由平台统一编排生成 Wiki 页面；页面与来源始终绑定冻结版本与文档指纹，进度、跳过和部分失败如实展示。导航索引、链接反链与关联图均由该冻结版本自身的产物推导，缺失目标如实标注，不会伪造可访问页面。跨账号或其他范围的版本不会显示。\n当前账号与设备尚无可查看 Wiki 的已登记版本。\n技能包导入\n技能包导入\n选择一个 Markdown、ZIP 或目录技能包：先在设备侧预览正文、脚本、引用与指纹，确认后才上传为你的私有平台技能草稿；发布版本需再次确认，走平台既有的草稿校验与发布流程。取消或未确认的包不会上传，本地草稿也不会在设备上执行。\n导入 Markdown 技能…\n导入 ZIP 技能…\n导入目录技能…\n触发偏好（Server 端匹配）\n为本人账号的技能配置启用、关键词、始终注入、适用 Agent 与优先级。配置仅保存到 Server；Server 在 Run 准备时按既有规则完成匹配注入（明确选用优先、空关键词始终注入、每次最多注入一个、可见性/发布/依赖闭包重新校验）。桌面端不匹配、不驱动模型；进行中的 Run 不受后续修改影响。\n触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY\n当前账号尚无技能触发偏好。\n脚本授权（设备本地）\n自定义技能脚本默认关闭。每次执行都会先在本机确认；勾选“记住”只对当前脚本内容与声明的环境范围生效——脚本或范围变化会重新询问。撤销后再次执行需要重新批准；目录授权、技能共享和内置身份都不能代替脚本审批。\n脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY\n本地连接器组件\n把本机的一个组件目录安装为仅本人可用的受管 Connector：本机校验版本、依赖与入口后生成受控配置， 平台只登记名称、版本与指纹身份。运行绑定与数据目录留在本设备，不会同步为其他设备可运行的配置。\n安装本地连接器组件…\nT123 Echo Connector（t123-echo） · 版本 1.2.0 · 入口 server.py\n已安装 · 2026-10-28 23:55:04\n清单指纹：cdf9f35bb6f0529a41f6f40401e8be9ef2ff52aab2e9c597ee479e80100b4365\n移除此连接器…\n执行回执历史\n重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。\n共 0 条 · 待确认 0 · 已确认 0 · 结果待核实 0 · 已清理标记 0\n清理已确认回执\n较新回执\n较早回执\n近期任务\n暂无任务记录\n更新检查与离线导入\n在线检查使用已配对 Server 提供的受控地址；离线导入选择 manifest.json（同目录需有 manifest.sig）。 两条路径都只做签名、完整性与兼容性校验，并停在待安装状态——检查或导入不等于安装同意，也不会修改任何文件。\n检查更新（在线）\n导入离线补丁清单\n组合兼容状态\n兼容声明由已配对 Server 的受控地址提供并验签。单项不兼容只停该能力；核心不兼容停止新的本地任务， 历史与未确认执行记录完整保留，未知任务不会当作未执行。功能开关不替代权限：Server 授权与本地策略仍决定每个请求。\n刷新兼容声明\n级别：组合兼容\n候选组合：Desktop 0.2.0 · Runtime 3.12.10 · Server 591f80c-runtime-compat-20261025\n当前组合：Desktop 0.2.0 · Runtime 3.12.10 · Server 591f80c-runtime-compat-20261025\n未发布兼容声明，仅保留已支持的旧协议 1 行为。\n旧协议 1 兼容。权限仍由 Server 与本地策略决定。",
+  "orphanCheck": {
+    "remaining": [],
+    "method": "Win32_Process scan for python.exe whose command line carries the managed slug t123-echo"
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-28T23:57:17.305Z"
+}

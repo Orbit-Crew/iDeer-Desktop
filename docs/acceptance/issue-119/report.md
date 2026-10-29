@@ -107,3 +107,12 @@ the committed tree.
   and navigation rows are bounded (200 pages / 100 links) end to end.
 - `dev-log/` remains an untracked local working directory in this repo
   (ticket copy at `dev-log/ticket-119.md`), exactly as at baseline.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r8–r10,
+settling at r10). The 60 s bounded generate, the honest skipped-page record,
+the cross-account invisibility and the projection-shape bounds executed for
+real; T119-04 asserts the frozen-manifest contract beside the new revision
+server-side. The completed-target walk, the presentation legs and the flood
+bounds stay staged on the material-consent approval-surface and provider
+dependencies. Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.

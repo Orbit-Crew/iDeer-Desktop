@@ -107,3 +107,10 @@ the committed tree.
   session surface as the platform chat) with its verifiable sources; chat
   threads themselves remain Server-owned history and scoped QA does not
   fabricate synthetic chat messages.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r23) with
+the real external model. T117-01/02/04 passed fully; T117-03 passed its four
+executable cases and stages the structured per-document refusal display, the
+gapped-generation category and the drift presentation on the #116
+material-consent approval-surface dependency. Bindings and sanitized evidence
+are in [installed-20261029.md](installed-20261029.md). Win7 remains with #131.

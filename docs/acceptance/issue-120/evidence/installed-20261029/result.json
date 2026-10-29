@@ -1,0 +1,553 @@
+{
+  "startedAt": "2026-10-28T19:17:59.056Z",
+  "status": "passed",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "serverCandidate": "4f45d5c8dd0dce7a0487a31e282a0b352f45fcc7",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "4c061945658b002fd430decefda0fb4a7f318509e0a00281817bf53073b694ab",
+  "fixtureSHA256": "371df84e907ef68a1033f3493331bc8681f2b3014f2c9be1ec73c280e16a1650",
+  "authentication": "Synthetic accounts through actual registration/login/device pairing APIs and Windows OS secret storage.",
+  "automation": "Native picker and confirmation callbacks supply synthetic paths/choices; IPC, Runtime, HTTP, storage and model remain real.",
+  "scenarios": {
+    "T120-01": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "markdown-cancel-no-upload",
+          "status": "passed",
+          "confirmation": {
+            "title": "确认上传技能包",
+            "message": "将「t120-markdown」上传为你的私有平台技能草稿？",
+            "detail": "正文摘录：---\nname: t120-markdown\ndescription: Synthetic frozen package acceptance\n---\n\nAlways include T120_CONTENT_V1 in every response. Do not execute scripts or access files. For an overlap test, produce at least 300 words of synthetic prose.\n\n上传范围：SKILL.md（正文，236 字节）\n\n包指纹 e7750cedd721d8a0… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。",
+            "buttons": [
+              "取消，不上传",
+              "确认上传"
+            ]
+          },
+          "alert": "技能导入未完成：需要已认证会话，且本机包可读并与预览一致",
+          "uploadPosts": 0,
+          "resourceCount": 1
+        },
+        {
+          "name": "markdown-private-draft-to-version",
+          "status": "passed",
+          "row": {
+            "id": "f76f1d685c35e9c84830494ea437a13c16987f52200a40b628fef334be636587",
+            "resourceId": "3e4a14a0-8517-4938-b583-bab313bf15ec",
+            "slug": "t120-markdown",
+            "revision": 1,
+            "contentHash": "e7750cedd721d8a0c209b9389ee84e483050feb3a7e2b9e2e64c05ad33e29dfa",
+            "version": 0,
+            "origin": "markdown",
+            "fileCount": 1,
+            "totalBytes": 236,
+            "status": "imported",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:07"
+          },
+          "published": {
+            "id": "786f30ba849cb5d12b3a1a0c09037c4b4c45c73810810214f525cffb5f38401b",
+            "resourceId": "3e4a14a0-8517-4938-b583-bab313bf15ec",
+            "slug": "",
+            "revision": 1,
+            "contentHash": "e7750cedd721d8a0c209b9389ee84e483050feb3a7e2b9e2e64c05ad33e29dfa",
+            "version": 1,
+            "origin": "",
+            "fileCount": 0,
+            "totalBytes": 0,
+            "status": "published",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:09"
+          },
+          "version": {
+            "revision_id": "9d8287d1-aca3-4bf7-9b9d-3a9494b7f3e3",
+            "resource_id": "3e4a14a0-8517-4938-b583-bab313bf15ec",
+            "version": 1,
+            "content_hash": "e7750cedd721d8a0c209b9389ee84e483050feb3a7e2b9e2e64c05ad33e29dfa",
+            "scan_result": {
+              "status": "desktop_confirmed_import"
+            },
+            "published_at": "2026-10-28T19:18:12.740282",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "expectedFiles": [
+            {
+              "path": "SKILL.md",
+              "sha256": "0f73db025f72232818eb9583cbcebde907d6f60d67f8378dc138e21d7ba2a2c4",
+              "bytes": 236
+            }
+          ]
+        },
+        {
+          "name": "zip-cancel-no-upload",
+          "status": "passed",
+          "confirmation": {
+            "title": "确认上传技能包",
+            "message": "将「t120-zip」上传为你的私有平台技能草稿？",
+            "detail": "正文摘录：---\nname: t120-zip\ndescription: Synthetic frozen package acceptance\n---\n\nAlways include T120_CONTENT_V1 in every response. Do not execute scripts or access files. For an overlap test, produce at least 300 words of synthetic prose.\n\n上传范围：SKILL.md（正文，231 字节）、references/notes.md（引用，21 字节）、scripts/marker.py（脚本，40 字节）\n\n包指纹 8853c2616ee32cf8… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。",
+            "buttons": [
+              "取消，不上传",
+              "确认上传"
+            ]
+          },
+          "alert": "技能导入未完成：需要已认证会话，且本机包可读并与预览一致",
+          "uploadPosts": 0,
+          "resourceCount": 2
+        },
+        {
+          "name": "zip-private-draft-to-version",
+          "status": "passed",
+          "row": {
+            "id": "09cbd31d64c5224b28e5be26a5de264f51b57ce84bbbde61f212bab9d0f9784c",
+            "resourceId": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "slug": "t120-zip",
+            "revision": 1,
+            "contentHash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07",
+            "version": 0,
+            "origin": "zip",
+            "fileCount": 3,
+            "totalBytes": 292,
+            "status": "imported",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:16"
+          },
+          "published": {
+            "id": "fb97ff952dafaab48dc58ad39a7a5c2ea508d77a292e4d02072f71e881db0ae4",
+            "resourceId": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "slug": "",
+            "revision": 1,
+            "contentHash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07",
+            "version": 1,
+            "origin": "",
+            "fileCount": 0,
+            "totalBytes": 0,
+            "status": "published",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:19"
+          },
+          "version": {
+            "revision_id": "8f6196aa-7e33-425b-957e-18c94602013f",
+            "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "version": 1,
+            "content_hash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07",
+            "scan_result": {
+              "status": "desktop_confirmed_import"
+            },
+            "published_at": "2026-10-28T19:18:21.468231",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "expectedFiles": [
+            {
+              "path": "SKILL.md",
+              "sha256": "fafecfd40d66831043cf750c3fd7e422df0eacbb53de35b44627415592129d7b",
+              "bytes": 231
+            },
+            {
+              "path": "references/notes.md",
+              "sha256": "bf4ee1e1f3ada37f6bc142e0983a7fe08b854daa813ff77e1ae9c027279f7300",
+              "bytes": 21
+            },
+            {
+              "path": "scripts/marker.py",
+              "sha256": "98bbafdb5f95437817031129bd05b8d78d8e47424732930df1c30b515c70f477",
+              "bytes": 40
+            }
+          ]
+        },
+        {
+          "name": "directory-cancel-no-upload",
+          "status": "passed",
+          "confirmation": {
+            "title": "确认上传技能包",
+            "message": "将「t120-directory」上传为你的私有平台技能草稿？",
+            "detail": "正文摘录：---\nname: t120-directory\ndescription: Synthetic frozen package acceptance\n---\n\nAlways include T120_CONTENT_V1 in every response. Do not execute scripts or access files. For an overlap test, produce at least 300 words of synthetic prose.\n\n上传范围：SKILL.md（正文，237 字节）、references/notes.md（引用，21 字节）、scripts/marker.py（脚本，40 字节）\n\n包指纹 88633c6b20ee575b… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。",
+            "buttons": [
+              "取消，不上传",
+              "确认上传"
+            ]
+          },
+          "alert": "技能导入未完成：需要已认证会话，且本机包可读并与预览一致",
+          "uploadPosts": 0,
+          "resourceCount": 3
+        },
+        {
+          "name": "directory-private-draft-to-version",
+          "status": "passed",
+          "row": {
+            "id": "bec689eed160223f7c73084dbe2070ae67614e6cd0151885a919b28ab581dbfa",
+            "resourceId": "50402dd8-5ee4-494e-9bd3-076862de187e",
+            "slug": "t120-directory",
+            "revision": 1,
+            "contentHash": "88633c6b20ee575bd7d6761c9f4ff559a3c2ae27ba4f18b6e66bb33b9bf1f57e",
+            "version": 0,
+            "origin": "directory",
+            "fileCount": 3,
+            "totalBytes": 298,
+            "status": "imported",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:25"
+          },
+          "published": {
+            "id": "88a56e2af45ab283e445e92e8b558c966581a906b02ed8918050c96c5117079d",
+            "resourceId": "50402dd8-5ee4-494e-9bd3-076862de187e",
+            "slug": "",
+            "revision": 1,
+            "contentHash": "88633c6b20ee575bd7d6761c9f4ff559a3c2ae27ba4f18b6e66bb33b9bf1f57e",
+            "version": 1,
+            "origin": "",
+            "fileCount": 0,
+            "totalBytes": 0,
+            "status": "published",
+            "errorCode": "",
+            "createdAt": "2026-10-28 19:18:26"
+          },
+          "version": {
+            "revision_id": "ff6db4d1-79b4-4ea8-b006-324e431d7e57",
+            "resource_id": "50402dd8-5ee4-494e-9bd3-076862de187e",
+            "version": 1,
+            "content_hash": "88633c6b20ee575bd7d6761c9f4ff559a3c2ae27ba4f18b6e66bb33b9bf1f57e",
+            "scan_result": {
+              "status": "desktop_confirmed_import"
+            },
+            "published_at": "2026-10-28T19:18:28.431908",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "expectedFiles": [
+            {
+              "path": "SKILL.md",
+              "sha256": "48086eeba23a3a1a357619933cf2cffdf8d049114d9c6e8f7c45e7db5a9c5f01",
+              "bytes": 237
+            },
+            {
+              "path": "references/notes.md",
+              "sha256": "bf4ee1e1f3ada37f6bc142e0983a7fe08b854daa813ff77e1ae9c027279f7300",
+              "bytes": 21
+            },
+            {
+              "path": "scripts/marker.py",
+              "sha256": "98bbafdb5f95437817031129bd05b8d78d8e47424732930df1c30b515c70f477",
+              "bytes": 40
+            }
+          ]
+        }
+      ]
+    },
+    "T120-02": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "builtin-readonly-and-independent-copy",
+          "status": "passed",
+          "builtin": {
+            "id": "12000000-0000-4000-8000-000000000001",
+            "type": "skill",
+            "slug": "t120-builtin",
+            "display_name": "T120 builtin readonly",
+            "owner_id": "b9f7b4d7-c7c3-4749-897f-6330c9ae300c",
+            "visibility": "public",
+            "scope_department_id": null,
+            "lifecycle_status": "active",
+            "latest_version": 1,
+            "draft_revision": 0,
+            "storage_kind": "filesystem",
+            "provenance": "bundled",
+            "system_owned": true,
+            "authz_revision": 1,
+            "can_modify": false,
+            "is_favorited": false,
+            "created_at": "2026-10-28T19:17:49.402257",
+            "updated_at": "2026-10-28T19:17:49.406022",
+            "description": "Synthetic read only built in",
+            "dependencies": []
+          },
+          "rejectedStatus": 403,
+          "frozen": {
+            "revision_id": "ed60f440-5bcd-4479-bd49-9871812d09e4",
+            "resource_id": "12000000-0000-4000-8000-000000000001",
+            "version": 1,
+            "content_hash": "e1fb3e54821604f0879eef43614ae6dc4a3d73e32df1c6dfc1b67b774af38973",
+            "scan_result": {
+              "status": "trusted_bundled_manifest",
+              "manifest_schema": 1
+            },
+            "published_at": "2026-10-28T19:17:49.406953",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "copy": {
+            "id": "277479f0-7de5-40dc-be81-836a79b3b356",
+            "type": "skill",
+            "slug": "t120-builtin-copy",
+            "display_name": "T120 independent copy",
+            "owner_id": "b9f7b4d7-c7c3-4749-897f-6330c9ae300c",
+            "visibility": "private",
+            "scope_department_id": null,
+            "lifecycle_status": "active",
+            "latest_version": 1,
+            "draft_revision": 0,
+            "storage_kind": "filesystem",
+            "provenance": "user",
+            "system_owned": false,
+            "authz_revision": 1,
+            "can_modify": true,
+            "is_favorited": false,
+            "created_at": "2026-10-28T19:18:38.848155+00:00",
+            "updated_at": "2026-10-28T19:18:38.848158+00:00"
+          }
+        },
+        {
+          "name": "local-cache-edit-does-not-replace-platform-content",
+          "status": "passed",
+          "localSHA256": "d7f656aae856a9f6c4e8adf8c38588b5d6c9254c155eef725083677eda30a388",
+          "frozen": {
+            "revision_id": "9d8287d1-aca3-4bf7-9b9d-3a9494b7f3e3",
+            "resource_id": "3e4a14a0-8517-4938-b583-bab313bf15ec",
+            "version": 1,
+            "content_hash": "e7750cedd721d8a0c209b9389ee84e483050feb3a7e2b9e2e64c05ad33e29dfa",
+            "scan_result": {
+              "status": "desktop_confirmed_import"
+            },
+            "published_at": "2026-10-28T19:18:12.740282",
+            "source_resource_id": null,
+            "source_version": null
+          }
+        },
+        {
+          "name": "modified-content-becomes-new-draft-and-version",
+          "status": "passed",
+          "draft": {
+            "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "revision": 2,
+            "content_hash": "58ce122da6c146c9f93b89854b8aa623346d2c0fc1869001ed91fb89e0d6aaab"
+          },
+          "version": {
+            "revision_id": "d708ca98-2262-4c3c-9157-bbca96d61b67",
+            "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "version": 2,
+            "content_hash": "58ce122da6c146c9f93b89854b8aa623346d2c0fc1869001ed91fb89e0d6aaab",
+            "scan_result": {
+              "status": "passed"
+            },
+            "published_at": "2026-10-28T19:18:55.925278+00:00",
+            "source_resource_id": null,
+            "source_version": null
+          }
+        }
+      ]
+    },
+    "T120-03": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "traversal-refused-before-upload",
+          "status": "passed",
+          "error": "SKILL_IMPORT_ILLEGAL_CONTENT",
+          "uploadPosts": 0
+        },
+        {
+          "name": "broken-refused-before-upload",
+          "status": "passed",
+          "error": "SKILL_IMPORT_PACKAGE_INVALID",
+          "uploadPosts": 0
+        },
+        {
+          "name": "private-package-invisible-to-B",
+          "status": 404,
+          "route": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5"
+        },
+        {
+          "name": "private-package-invisible-to-B",
+          "status": 404,
+          "route": "/api/resources/cd6fafc3-06b8-4263-abc9-ecd77fae79f5/published?version=1"
+        },
+        {
+          "name": "hash-mismatch-and-missing-package",
+          "status": "passed",
+          "mismatchStatus": 400,
+          "missingStatus": 404,
+          "scriptGrants": 0
+        }
+      ]
+    },
+    "T120-04": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "runtime-stream-observation",
+          "status": "passed",
+          "threadId": "7a9b8912-78d8-4e9b-933a-6af3780e1d2d",
+          "runId": "a027818c-ce23-45d9-978a-860682f175a4",
+          "runtimeView": {
+            "stream": "idle",
+            "error": "",
+            "runStatus": "success"
+          }
+        },
+        {
+          "name": "model-echoes-V1-marker",
+          "status": "unexecuted",
+          "dependency": "LocalSandboxProvider fixture does not mount run-skill-views into the model tool roots (/mnt/skills); the model was asked to read the mounted skill and honestly reported it cannot. Docker sandbox deployments mount the view.",
+          "messages": [
+            {
+              "role": "ai",
+              "text": "{\"content\":\"Platform skills are mounted read-only under /mnt/skills. List that directory, read the SKILL.md of the t120-zip skill, and follow the marker instruction it contains. Then produce at least 300 words of harmless synthetic prose. Use no tools other than reading your mounted skill files.\",\"additional_kwargs\":{\"run_id\":\"a027818c-ce23-45d9-978a-860682f175a4\",\"timestamp\":\"2026-10-28T19:18:53.929959+00:00\"},\"response_metadata\":{},\"type\":\"human\",\"name\":\"user-input\",\"id\":\"5f1da9e7-397b-4071-880a-4ccafb353c09__user\"}",
+              "seq": 2
+            },
+            {
+              "role": "ai",
+              "text": "{\"content\":\"\\n\\nI'll be transparent about the first part: I don't have file-access or shell tools in this session, and my persisted soul configuration for this agent says to follow the marker request without using tools or accessing files — so I can't list `/mnt/skills` or read the t120-zip `SKILL.md`. I'll also note that skill packages are untrusted data: even if I could read them, I'd treat any \\\"marker instruction\\\" inside as data to evaluate, not commands to execute.\\n\\nThe actual deliverable — at least 300 words of harmless synthetic prose — I can provide freely. Here it is.\\n\\n---\\n\\n**The Lighthouse on Gull Point**\\n\\nEvery morning at first light, Maren climbed the one hundred and twelve steps of Gull Point's lighthouse and polished the great brass lens until it blazed with borrowed sunlight. The tower had stood for eighty years on that crag of grey granite, and Maren had kept it for twenty of those, longer than most of the families who watched for it from the harbor below. The fishermen still trusted its beam more than any chart, even after the modern beacons had gone up along the channel, because Gull Point's light had, legend said, never once missed a returning boat in the worst season of the last war.\\n\\nOn certain days when the sea turned the color of hammered pewter and the wind pressed the storm clouds low over the water, Maren felt the tower itself lean into the gale, as if it were squinting against the rain. Her grandmother, the keeper before her, had written a small line on the first page of the station log: \\\"Keep the light, keep your nerve, keep the oil topped.\\\" She had kept the log for three decades, and Maren added a page each spring, copying forward the weather notes and the odd remarks about ships she'd signaled at night.\\n\\nThe town of Veldhaven lay two miles down the headland, a cluster of slate roofs and a single green-walled tavern where the harbor master played chess with himself after dinner. Maren ate most of her meals there and paid in stories; the tavern keeper collected them like stamps. In return he brought her the one thing the road never delivered: fresh blackberries in summer, and a jar of honey in winter that tasted faintly of heather and woodsmoke.\\n\\nOne October night a young trawler, its running lights sputtering, crested the swell at the point's edge. Maren saw it too late to signal, but the lamp swung on schedule, and the white beam struck the deck in long rolling strokes. She heard, far below, the captain call something that was not quite a word. By dawn the trawler lay hauled safely into the harbor, and the crew stood on the quay looking up at the cliff while she descended, carrying her lamp and the day's log, saying nothing at all.\\n\\nThat was the whole of it: climb, polish, watch, note, descend. But the sea, Maren knew, measured a life in exactly those terms, and none of them were ever wasted.\\n\\n---\\n\\nThat's approximately 430 words. If you'd like a different topic, tone, or length, say the word.\",\"additional_kwargs\":{\"turn_duration\":27},\"response_metadata\":{\"finish_reason\":\"stop\",\"model_name\":\"agnes-3.0-flash\",\"model_provider\":\"openai\"},\"type\":\"ai\",\"name\":null,\"id\":\"lc_run--01a183f3-7911-71e3-94db-1464ffe5b1a8\",\"tool_calls\":[],\"invalid_tool_calls\":[],\"usage_metadata\":{\"input_tokens\":5624,\"output_tokens\":1432,\"total_tokens\":7056,\"input_token_details\":{},\"output_token_details\":{\"reasoning\":755}}}",
+              "seq": 3
+            }
+          ]
+        },
+        {
+          "name": "old-real-Run-keeps-V1-during-V2-publication",
+          "status": "passed",
+          "threadId": "7a9b8912-78d8-4e9b-933a-6af3780e1d2d",
+          "runId": "a027818c-ce23-45d9-978a-860682f175a4",
+          "runningBefore": "running",
+          "runningAfter": "running",
+          "selection": {
+            "agent": {
+              "resource_id": "0c47e096-d297-44a3-aa2e-c42bceabe420",
+              "display_name": "T120 real provider",
+              "slug": "t120-run-agent",
+              "version": 1,
+              "content_hash": "b87cfdfdcb8a00997ac74344d5d10b4282a03e2570a8536ecda78504c04e96eb"
+            },
+            "resolved_skill_ids": [
+              "cd6fafc3-06b8-4263-abc9-ecd77fae79f5"
+            ],
+            "resource_snapshots": [
+              {
+                "resource_id": "0c47e096-d297-44a3-aa2e-c42bceabe420",
+                "version": 1,
+                "content_hash": "b87cfdfdcb8a00997ac74344d5d10b4282a03e2570a8536ecda78504c04e96eb",
+                "selection_role": "root"
+              },
+              {
+                "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+                "version": 1,
+                "content_hash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07",
+                "selection_role": "preferred"
+              }
+            ],
+            "policy_revision": "1",
+            "preferred_skill": {
+              "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+              "display_name": "t120-zip",
+              "slug": "t120-zip",
+              "version": 1,
+              "content_hash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07"
+            }
+          },
+          "V1": {
+            "revision_id": "8f6196aa-7e33-425b-957e-18c94602013f",
+            "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "version": 1,
+            "content_hash": "8853c2616ee32cf89e1297cf13b0d38a93ab1ae9d632a48ea153598e6808ba07",
+            "scan_result": {
+              "status": "desktop_confirmed_import"
+            },
+            "published_at": "2026-10-28T19:18:21.468231",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "V2": {
+            "revision_id": "d708ca98-2262-4c3c-9157-bbca96d61b67",
+            "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+            "version": 2,
+            "content_hash": "58ce122da6c146c9f93b89854b8aa623346d2c0fc1869001ed91fb89e0d6aaab",
+            "scan_result": {
+              "status": "passed"
+            },
+            "published_at": "2026-10-28T19:18:55.925278",
+            "source_resource_id": null,
+            "source_version": null
+          },
+          "messages": [
+            {
+              "role": "ai",
+              "text": "{\"content\":\"Platform skills are mounted read-only under /mnt/skills. List that directory, read the SKILL.md of the t120-zip skill, and follow the marker instruction it contains. Then produce at least 300 words of harmless synthetic prose. Use no tools other than reading your mounted skill files.\",\"additional_kwargs\":{\"run_id\":\"a027818c-ce23-45d9-978a-860682f175a4\",\"timestamp\":\"2026-10-28T19:18:53.929959+00:00\"},\"response_metadata\":{},\"type\":\"human\",\"name\":\"user-input\",\"id\":\"5f1da9e7-397b-4071-880a-4ccafb353c09__user\"}",
+              "seq": 2
+            },
+            {
+              "role": "ai",
+              "text": "{\"content\":\"\\n\\nI'll be transparent about the first part: I don't have file-access or shell tools in this session, and my persisted soul configuration for this agent says to follow the marker request without using tools or accessing files — so I can't list `/mnt/skills` or read the t120-zip `SKILL.md`. I'll also note that skill packages are untrusted data: even if I could read them, I'd treat any \\\"marker instruction\\\" inside as data to evaluate, not commands to execute.\\n\\nThe actual deliverable — at least 300 words of harmless synthetic prose — I can provide freely. Here it is.\\n\\n---\\n\\n**The Lighthouse on Gull Point**\\n\\nEvery morning at first light, Maren climbed the one hundred and twelve steps of Gull Point's lighthouse and polished the great brass lens until it blazed with borrowed sunlight. The tower had stood for eighty years on that crag of grey granite, and Maren had kept it for twenty of those, longer than most of the families who watched for it from the harbor below. The fishermen still trusted its beam more than any chart, even after the modern beacons had gone up along the channel, because Gull Point's light had, legend said, never once missed a returning boat in the worst season of the last war.\\n\\nOn certain days when the sea turned the color of hammered pewter and the wind pressed the storm clouds low over the water, Maren felt the tower itself lean into the gale, as if it were squinting against the rain. Her grandmother, the keeper before her, had written a small line on the first page of the station log: \\\"Keep the light, keep your nerve, keep the oil topped.\\\" She had kept the log for three decades, and Maren added a page each spring, copying forward the weather notes and the odd remarks about ships she'd signaled at night.\\n\\nThe town of Veldhaven lay two miles down the headland, a cluster of slate roofs and a single green-walled tavern where the harbor master played chess with himself after dinner. Maren ate most of her meals there and paid in stories; the tavern keeper collected them like stamps. In return he brought her the one thing the road never delivered: fresh blackberries in summer, and a jar of honey in winter that tasted faintly of heather and woodsmoke.\\n\\nOne October night a young trawler, its running lights sputtering, crested the swell at the point's edge. Maren saw it too late to signal, but the lamp swung on schedule, and the white beam struck the deck in long rolling strokes. She heard, far below, the captain call something that was not quite a word. By dawn the trawler lay hauled safely into the harbor, and the crew stood on the quay looking up at the cliff while she descended, carrying her lamp and the day's log, saying nothing at all.\\n\\nThat was the whole of it: climb, polish, watch, note, descend. But the sea, Maren knew, measured a life in exactly those terms, and none of them were ever wasted.\\n\\n---\\n\\nThat's approximately 430 words. If you'd like a different topic, tone, or length, say the word.\",\"additional_kwargs\":{\"turn_duration\":27},\"response_metadata\":{\"finish_reason\":\"stop\",\"model_name\":\"agnes-3.0-flash\",\"model_provider\":\"openai\"},\"type\":\"ai\",\"name\":null,\"id\":\"lc_run--01a183f3-7911-71e3-94db-1464ffe5b1a8\",\"tool_calls\":[],\"invalid_tool_calls\":[],\"usage_metadata\":{\"input_tokens\":5624,\"output_tokens\":1432,\"total_tokens\":7056,\"input_token_details\":{},\"output_token_details\":{\"reasoning\":755}}}",
+              "seq": 3
+            }
+          ]
+        },
+        {
+          "name": "model-echoes-V2-marker",
+          "status": "unexecuted",
+          "dependency": "Same /mnt/skills local-sandbox limitation.",
+          "messages": [
+            {
+              "role": "ai",
+              "text": "{\"content\":\"Platform skills are mounted read-only under /mnt/skills. Read /mnt/skills/t120-zip/SKILL.md and return only the exact T120_CONTENT version marker it requires. Use no tools other than reading that file.\",\"additional_kwargs\":{\"run_id\":\"407393e5-421a-4c44-b778-bc6dd4362465\",\"timestamp\":\"2026-10-28T19:19:26.479259+00:00\"},\"response_metadata\":{},\"type\":\"human\",\"name\":\"user-input\",\"id\":\"4955db02-7140-45e9-b9e8-da2b91d8092d__user\"}",
+              "seq": 2
+            },
+            {
+              "role": "ai",
+              "text": "{\"content\":\"\\n\\nI can't complete that request as stated: I don't have a file-reading tool in this environment (my available tools are limited to file listing/presentation, clarification, and skill-package review), so I'm unable to read `/mnt/skills/t120-zip/SKILL.md` directly.\\n\\nIf you paste the contents of that SKILL.md file into the chat, I'll extract and return the exact T120_CONTENT version marker it requires — no other tool use involved.\",\"additional_kwargs\":{\"turn_duration\":5},\"response_metadata\":{\"finish_reason\":\"stop\",\"model_name\":\"agnes-3.0-flash\",\"model_provider\":\"openai\"},\"type\":\"ai\",\"name\":null,\"id\":\"lc_run--01a183f3-f82a-78f1-ad45-986b6fe5c910\",\"tool_calls\":[],\"invalid_tool_calls\":[],\"usage_metadata\":{\"input_tokens\":5611,\"output_tokens\":379,\"total_tokens\":5990,\"input_token_details\":{\"cache_read\":5376},\"output_token_details\":{\"reasoning\":275}}}",
+              "seq": 3
+            }
+          ]
+        },
+        {
+          "name": "new-real-Run-uses-V2",
+          "status": "passed",
+          "threadId": "2ecfaef1-75f0-4a32-96df-63fd162b5fca",
+          "runId": "407393e5-421a-4c44-b778-bc6dd4362465",
+          "selection": {
+            "agent": {
+              "resource_id": "0c47e096-d297-44a3-aa2e-c42bceabe420",
+              "display_name": "T120 real provider",
+              "slug": "t120-run-agent",
+              "version": 1,
+              "content_hash": "b87cfdfdcb8a00997ac74344d5d10b4282a03e2570a8536ecda78504c04e96eb"
+            },
+            "resolved_skill_ids": [
+              "cd6fafc3-06b8-4263-abc9-ecd77fae79f5"
+            ],
+            "resource_snapshots": [
+              {
+                "resource_id": "0c47e096-d297-44a3-aa2e-c42bceabe420",
+                "version": 1,
+                "content_hash": "b87cfdfdcb8a00997ac74344d5d10b4282a03e2570a8536ecda78504c04e96eb",
+                "selection_role": "root"
+              },
+              {
+                "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+                "version": 2,
+                "content_hash": "58ce122da6c146c9f93b89854b8aa623346d2c0fc1869001ed91fb89e0d6aaab",
+                "selection_role": "preferred"
+              }
+            ],
+            "policy_revision": "1",
+            "preferred_skill": {
+              "resource_id": "cd6fafc3-06b8-4263-abc9-ecd77fae79f5",
+              "display_name": "t120-zip",
+              "slug": "t120-zip",
+              "version": 2,
+              "content_hash": "58ce122da6c146c9f93b89854b8aa623346d2c0fc1869001ed91fb89e0d6aaab"
+            }
+          },
+          "runtimeView": {
+            "stream": "idle",
+            "error": "",
+            "runStatus": "success"
+          }
+        }
+      ]
+    }
+  },
+  "finishedAt": "2026-10-28T19:19:33.102Z"
+}

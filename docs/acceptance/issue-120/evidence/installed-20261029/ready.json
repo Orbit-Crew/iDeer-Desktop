@@ -1,0 +1,29 @@
+{
+  "origin": "http://127.0.0.1:12301",
+  "identities": {
+    "A": {
+      "id": "b9f7b4d7-c7c3-4749-897f-6330c9ae300c",
+      "email": "t100-a@test.com",
+      "profile": "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-120\\run-20261029-r8\\desktop\\profile-A\\settings.json",
+      "deviceId": "df654f07-954b-4754-90f8-5ab579562317"
+    },
+    "B": {
+      "id": "ad7eb04f-4223-4b7d-af33-55abd966d866",
+      "email": "t100-b@test.com",
+      "profile": "G:\\code\\iDeer-Desktop\\.worktree\\acceptance-112-123\\desktop-candidate\\artifacts\\issue-120\\run-20261029-r8\\desktop\\profile-B\\settings.json",
+      "deviceId": "e6780b93-ab21-4800-871d-2eabcac3af20"
+    }
+  },
+  "builtinId": "12000000-0000-4000-8000-000000000001",
+  "serverCandidate": "4f45d5c8dd0dce7a0487a31e282a0b352f45fcc7",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "HEAD plus actual Python source tree hash",
+  "realProvider": true,
+  "model": "agnes-3.0-flash",
+  "sourceConfigSHA256": "66ac6431c923ab2d4216287d473a1c53b99008ca4efbd059c131c5033dafdb14",
+  "gatewayTransport": {
+    "kind": "loopback-tcp-to-private-wsl",
+    "serverOrigin": "http://172.26.97.143:56755",
+    "publicOrigin": "http://127.0.0.1:12301"
+  }
+}
