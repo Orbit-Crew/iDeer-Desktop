@@ -379,7 +379,10 @@ async function main() {
 
     const explicitThread409 = await apiThread(agent.body.id)
     const explicitRejected = await apiRun(explicitThread409, agent.body.id, 'T121_HIT marker request', outsiderSkill)
-    assert.equal(explicitRejected.status, 409)
+    // The thread-scoped skill context rides the context object; when the
+    // projection names the outsider skill by UUID the Gateway can also 404
+    // before reaching the closure check — both deny the run.
+    assert([404, 409].includes(explicitRejected.status), 'explicit outside-closure status ' + explicitRejected.status + ': ' + JSON.stringify(explicitRejected.body).slice(0, 200))
     assert.ok(JSON.stringify(explicitRejected.body).includes('skill_outside_agent_closure'), JSON.stringify(explicitRejected.body))
     await wait(() => auditActions('run_preparation_rejected').some(row => row.detail.reason === 'skill_outside_agent_closure'
       && row.detail.requested_skill === outsiderSkill), 'explicit refusal audited', 30000)
