@@ -280,7 +280,7 @@ async function main() {
       // the #167 re-draft note). The chat-run leg is recorded as a defect
       // observation; the run-scope and receipt contracts below are asserted
       // through the Gateway.
-      evidence.freshAgentChatCreateUnavailable = { agentId: agentA2.body.id, lastError: lastCreateError }
+      evidence.freshAgentChatCreateUnavailable = (evidence.freshAgentChatCreateUnavailable || []).concat([{ phase: 'mid-run-drill', agentId: agentA2.body.id, lastError: lastCreateError }])
       save()
       threadA = null
     })

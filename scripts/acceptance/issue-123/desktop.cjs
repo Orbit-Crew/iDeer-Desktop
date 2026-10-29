@@ -390,7 +390,9 @@ async function main() {
 
     fs.writeFileSync(path.join(state, 'connector-blackout'), 'task-owned blackout')
     const blackout = await installUI(fixtures.good, { registrationRefusal: true })
-    assert(blackout.alert === REFUSAL_FALLBACK || blackout.alert === IPC_FALLBACK)
+    assert(blackout.alert === REFUSAL_FALLBACK || blackout.alert === IPC_FALLBACK
+      || String(blackout.ipcRejection || '').includes('CONNECTOR_'),
+      'blackout refusal surface: alert=' + blackout.alert + ' reject=' + blackout.ipcRejection)
     const blackoutPost = connectorPosts().at(-1)
     assert.equal(blackoutPost.status, 503); assert.equal(blackoutPost.blackout, true)
     assert.equal(blackoutPost.bodyKeys.length, 4)

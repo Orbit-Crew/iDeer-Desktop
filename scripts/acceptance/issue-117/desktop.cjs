@@ -45,6 +45,7 @@ function invoke(action, ...args) {
   const run = spawnSync(python, ['-I', path.join(root, 'scripts/acceptance/issue-102/profiles.py'), action, state, ...args], { windowsHide: true, encoding: 'utf8', timeout: 60000 })
   assert.equal(run.status, 0, run.stderr)
   if (!run.stdout.trim()) throw Error('empty helper output for ' + action + ' ' + args.join(' ').slice(0, 200) + ' stderr=' + String(run.stderr).slice(0, 300))
+  if (!run.stdout.trim()) throw Error('empty helper output for ' + action + ' ' + args.join(' ').slice(0, 160) + ' | stderr=' + String(run.stderr).slice(0, 200))
   return JSON.parse(run.stdout.trim())
 }
 const api = (who, route, body) => invoke(body === undefined ? 'api' : 'api-post', who, route, ...(body === undefined ? [] : [JSON.stringify(body)]))
