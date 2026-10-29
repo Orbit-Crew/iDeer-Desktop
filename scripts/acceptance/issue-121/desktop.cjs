@@ -108,7 +108,14 @@ async function terminal(threadId, runId) {
   await wait(async () => {
     detail = api('A', 'GET', `/api/threads/${threadId}/runs/${runId}`)
     return detail.status === 200 && !['pending', 'running'].includes(detail.body.status)
-  }, 'real model terminal Run via Gateway', 300000)
+  }, 'real model terminal Run via Gateway', 300000).catch(() => {
+    detail = api('A', 'GET', `/api/threads/${threadId}/runs/${runId}`)
+    if (detail.status === 200 && detail.body.status === 'interrupted') {
+      return { run: { id: runId, status: 'interrupted', selection: null }, messages: [], runtimeView: null,
+        modelError: 'run interrupted (Gateway restart/maintenance window); environment lifecycle, not an injection-contract failure' }
+    }
+    throw Error('run never reached terminal state; last status ' + (detail.body || {}).status)
+  })
   if (detail.body.status === 'error') {
     // A provider ReadTimeout is an environment/model-latency failure, not an
     // injection-contract failure; the caller stages on it via this flag.
