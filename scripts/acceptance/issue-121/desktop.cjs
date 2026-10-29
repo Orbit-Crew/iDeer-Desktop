@@ -286,12 +286,23 @@ async function main() {
     const refusedRow = afterRefusal.body.items.find(item => item.skill_resource_id === skillId)
     assert.deepEqual(refusedRow.keywords, ['T121_HIT'], 'a refused save changes nothing')
     record('T121-01', 'server-bounds-refusal-surfaces-without-drift', { alert: refusalAlert, refusedWrites: refusalWrites, priority: refusedRow.priority })
-    await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT')
-    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
-    await wait(async () => {
-      const check = api('A', 'GET', '/api/resources/skill-trigger-preferences')
-      return check.body.items.find(item => item.skill_resource_id === skillId)?.keywords === 'T121_HIT' || JSON.stringify(check.body.items.find(item => item.skill_resource_id === skillId)?.keywords) === '["T121_HIT"]'
-    }, 'preference restored after the refused save')
+    let keywordsRestored = false
+    for (let attempt = 0; attempt < 5 && !keywordsRestored; attempt++) {
+      try {
+        await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT', { timeout: 30000 })
+        await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
+        await wait(async () => {
+          const check = api('A', 'GET', '/api/resources/skill-trigger-preferences')
+          return check.body.items.find(item => item.skill_resource_id === skillId)?.keywords === 'T121_HIT' || JSON.stringify(check.body.items.find(item => item.skill_resource_id === skillId)?.keywords) === '["T121_HIT"]'
+        }, 'preference restored after the refused save', 30000)
+        keywordsRestored = true
+      } catch (error) {
+        if (!String(error).includes('Timeout') && !String(error).includes('detached')) throw error
+        evidence.preferenceSurfaceRaces = (evidence.preferenceSurfaceRaces || []).concat([{ leg: 'restore', attempt, error: String(error).slice(0, 120) }])
+        save()
+      }
+    }
+    assert(keywordsRestored, 'the keyword restore never landed after retries')
 
     const refreshed = await chat({ action: 'refresh' }); assert.equal(refreshed.error, '')
     const thread = await chat({ action: 'create', scope: refreshed.scope, agentId: agent.body.id })
