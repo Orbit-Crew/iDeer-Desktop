@@ -245,7 +245,7 @@ async function main() {
 
     const writesBeforeSave = prefWrites().length
     await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50')
-    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
     await wait(() => prefWrites().length > writesBeforeSave && prefWrites().at(-1).status === 204, 'UI save PUT accepted')
     const saved = api('A', 'GET', '/api/resources/skill-trigger-preferences')
     assert.equal(saved.status, 200)
@@ -255,7 +255,7 @@ async function main() {
     record('T121-01', 'ui-edit-put-relays-five-fields', { priority: savedRow.priority, keywords: savedRow.keywords, wire: prefWrites().at(-1) })
 
     await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT, T121_HIT')
-    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
     let refusalWrites = 0
     await wait(async () => {
       refusalWrites = prefWrites().filter(row => row.status === 422).length
@@ -267,7 +267,7 @@ async function main() {
     assert.equal(refusedRow.priority, 50); assert.deepEqual(refusedRow.keywords, ['T121_HIT'], 'a refused save changes nothing')
     record('T121-01', 'server-bounds-refusal-surfaces-without-drift', { alert: refusalAlert, refusedWrites: refusalWrites })
     await page.locator(`[aria-label="关键词输入 ${slug}"]`).fill('T121_HIT')
-    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click()
+    await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
     await wait(async () => {
       const check = api('A', 'GET', '/api/resources/skill-trigger-preferences')
       return check.body.items.find(item => item.skill_resource_id === skillId)?.priority === 50

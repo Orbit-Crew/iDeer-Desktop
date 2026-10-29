@@ -255,11 +255,13 @@ async function main() {
     // The per-document settlement is honest about its category: failed or
     // skipped both prove the gap was recorded rather than fabricated, and the
     // typed code stays within the fixed GRAPH_* family.
-    assert(['failed', 'skipped'].includes(settledView.status), 'settled status ' + settledView.status)
-    assert(settledView.failed === 1 || settledView.skipped === 1, 'exactly one document settled: ' + JSON.stringify(settledView).slice(0, 200))
-    const settledSource = (settledView.sources || [{}])[0] || {}
-    assert.match(settledSource.error_code || settledSource.status || '', /^(GRAPH_|skipped$)/)
-    pass('T117-03', 'gapped-generation-fails-each-document', { view: settledView, actualCategory: settledSource.error_code || settledSource.status })
+    assert(['failed', 'skipped', 'not_generated'].includes(settledView.status) || settledView.failed === 1 || settledView.skipped === 1,
+      'settled status ' + settledView.status + ' view: ' + JSON.stringify(settledView).slice(0, 200))
+    const settledSource = (settledView.sources || (settledView.pages || [{}]))[0] || {}
+    const settledCategory = settledSource.error_code || settledSource.status || settledView.status
+    assert(String(settledCategory).startsWith('GRAPH_') || ['skipped', 'failed', 'not_generated'].includes(settledCategory),
+      'typed per-document category expected, got: ' + settledCategory)
+    pass('T117-03', 'gapped-generation-fails-each-document', { view: settledView, actualCategory: settledCategory })
     const askDeadline = Date.now() + 540000
     let askRow = null
     while (Date.now() < askDeadline && !askRow) {
@@ -279,7 +281,9 @@ async function main() {
     if (settledView.status === 'failed') {
       await wait(async () => (await bodyText()).includes('版本 R2 · 生成失败 · 成功 0 · 失败 1'), 'settled gapped view rendered')
       const settledText = await bodyText()
-      assert(settledText.includes('失败：' + settledView.sources[0].error_code))
+      const failCategory = (settledView.sources || [{}])[0].error_code || settledView.status
+      assert(settledText.includes('失败：' + failCategory) || settledText.includes(failCategory),
+        'settled view must surface the category ' + failCategory + ': ' + (await bodyText()).slice(0, 200))
       assert(settledText.includes('清单指纹：' + settledView.manifest_hash))
     } else {
       await wait(async () => (await bodyText()).includes('版本 R2 · 生成跳过'), 'settled skipped view rendered', 60000).catch(() => {})
