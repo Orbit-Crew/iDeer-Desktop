@@ -323,7 +323,7 @@ async function main() {
       && row.detail.origin === 'preference' && row.detail.run_attempt_id === finished.run.id), 'applied audit pins the frozen identity', 30000)
     const runPosts = wire().filter(row => row.path.endsWith('/runs') && row.method === 'POST')
     assert(runPosts.length >= 1); assert(runPosts.every(row => row.path.includes(thread.thread.id)))
-    if (finished.run.status === 'success') record('T121-01', 'preference-hit-injects-frozen-v1-through-real-run', { runId: finished.run.id, selection: matched, audit: 'skill_trigger_preference_applied' })
+    if (finished.run.status === 'success') record('T121-01', 'preference-hit-injects-frozen-v1-through-real-run', { runId: finished.run.id, selection: (finished.run.selection || {}).preferred_skill, audit: 'skill_trigger_preference_applied' })
 
     const explicitThread = await chat({ action: 'create', scope: thread.scope, agentId: agent.body.id, skillId })
     assert.equal(explicitThread.error, '')
