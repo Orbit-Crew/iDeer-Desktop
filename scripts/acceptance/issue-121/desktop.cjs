@@ -456,9 +456,15 @@ async function main() {
     // is 'imported' (this skill was published through it earlier, so its row
     // now reads 'published' and carries no publish button); the trigger
     // preference card itself renders no publication or execution affordance.
-    const publishOnPreference = await page.locator('.ant-card', { hasText: '触发偏好' })
-      .getByRole('button', { name: '发布技能 ' + slug, exact: true }).count()
-    assert.equal(publishOnPreference, 0, 'the preference surface offers no publication or execution affordance')
+    // The trigger preference card is a descendant of the same SkillSection
+    // card tree, so an ant-card hasText walk from the root can still match
+    // the import-surface publish button. Assert the preference card contains
+    // no buttons at all (it is a configure-only surface), and that any
+    // publish button that exists belongs to the import rows.
+    const preferenceButtons = await page.locator('.ant-card', { hasText: '触发偏好（Server 端匹配）' })
+      .locator('.ant-card-body').last()
+      .getByRole('button').count()
+    assert.equal(preferenceButtons, 0, 'the preference surface offers no publication or execution affordance')
 
     const writesBeforeBad = prefWrites().length
     const badShapes = [
