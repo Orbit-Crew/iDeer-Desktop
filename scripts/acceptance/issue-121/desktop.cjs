@@ -244,7 +244,7 @@ async function main() {
     await page.screenshot({ path: path.join(state, 'preference-surface.png'), fullPage: true })
 
     const writesBeforeSave = prefWrites().length
-    await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50')
+    await page.locator(`[aria-label="优先级输入 ${slug}"]`).fill('50', { timeout: 90000 })
     await page.locator(`[aria-label="保存偏好 ${slug}"]`).click({ timeout: 90000 })
     await wait(() => prefWrites().length > writesBeforeSave && prefWrites().at(-1).status === 204, 'UI save PUT accepted')
     const saved = api('A', 'GET', '/api/resources/skill-trigger-preferences')

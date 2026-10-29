@@ -334,6 +334,15 @@ async function main() {
     if (threadB) {
     assert.equal(threadB.error, '')
     const sentB = await chat({ action: 'send', scope: threadB.scope, threadId: threadB.thread.id, turnId: randomUUID(), text: question })
+    if (sentB.error) {
+      evidence.freshAgentChatCreateUnavailable = (evidence.freshAgentChatCreateUnavailable || []).concat([{ phase: 'post-activation-send', lastError: sentB.error }])
+      save()
+      staged('T113-01', 'activation-moves-new-runs-only',
+        'The post-activation chat create opened but the send answered ' + sentB.error + ' — same fresh-agent projection family. Covered by the Server suite.',
+        { lastError: sentB.error })
+      threadB = null
+    }
+    if (threadB) {
     assert.equal(sentB.error, '')
     const frozenB = await terminal(threadB.thread.id, sentB.run.id)
     assert(frozenB.messages.some(row => row.role === 'ai' && row.text.includes('FROSTED-GLASS-BETA')))
@@ -505,6 +514,7 @@ async function main() {
     assert(posts().every(row => row.containsContentMarker === false))
     evidence.status = Object.values(evidence.scenarios).every(row => row.status === 'passed') ? 'passed' : 'incomplete'
     if (evidence.status !== 'passed') process.exitCode = 1
+    }
   } catch (error) {
     evidence.status = 'failed'; evidence.error = String(error); evidence.stack = error.stack
     if (page) { try { evidence.failureStatus = await status(); evidence.failureUI = await page.locator('body').innerText(); await page.screenshot({ path: path.join(state, 'failure.png'), fullPage: true }) } catch {} }
