@@ -257,8 +257,9 @@ async function main() {
     // typed code stays within the fixed GRAPH_* family.
     assert(['failed', 'skipped', 'not_generated'].includes(settledView.status) || settledView.failed === 1 || settledView.skipped === 1,
       'settled status ' + settledView.status + ' view: ' + JSON.stringify(settledView).slice(0, 200))
-    const settledSource = (settledView.sources || (settledView.pages || [{}]))[0] || {}
-    const settledCategory = settledSource.error_code || settledSource.status || settledView.status
+    const settledSource = ((settledView.sources || (settledView.pages || [{}]))[0]) || {}
+    const settledSourceStatus = settledSource ? settledSource.status : undefined
+    const settledCategory = settledSource.error_code || settledSourceStatus || settledView.status
     assert(String(settledCategory).startsWith('GRAPH_') || ['skipped', 'failed', 'not_generated'].includes(settledCategory),
       'typed per-document category expected, got: ' + settledCategory)
     pass('T117-03', 'gapped-generation-fails-each-document', { view: settledView, actualCategory: settledCategory })

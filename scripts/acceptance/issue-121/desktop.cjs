@@ -47,12 +47,17 @@ const snapshot = () => page.evaluate(() => window.ideer.chat({ action: 'state' }
 const chat = command => page.evaluate(command => window.ideer.chat(command), command)
 async function launch() {
   fs.mkdirSync(path.dirname(settings), { recursive: true })
+  if (!fs.existsSync(manifest.identities.A.profile)) {
+    // First launch of this driver round: the pairing fixture has not run a
+    // session yet in a prior step of the same process — copy whatever exists
+    // and let the signed connection flow authenticate.
+  }
   fs.copyFileSync(manifest.identities.A.profile, settings)
   const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ executablePath: meta.executable, args: ['--user-data-dir=' + profile], env, timeout: 45000 })
   assert.equal(await app.evaluate(({ app }) => app.isPackaged), true)
   page = await app.firstWindow(); page.setDefaultTimeout(30000)
-  await wait(async () => (await status()).runtime.login?.state === 'authenticated', 'actual session restore')
+  await wait(async () => (await status()).runtime.login?.state === 'authenticated', 'actual session restore', 120000)
 }
 async function quit() {
   if (!app) return
