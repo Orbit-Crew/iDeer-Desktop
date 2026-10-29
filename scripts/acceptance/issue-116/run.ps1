@@ -21,7 +21,7 @@ $record=@{startedAt=(Get-Date).ToUniversalTime().ToString('o');serverRoot=$Serve
 try {
   & $Node (Join-Path $PSScriptRoot '../issue-112/install.cjs') $Installer (Join-Path $State 'installation.json')
   if($LASTEXITCODE -ne 0){throw 'Actual NSIS installation failed'}
-  $meta=Get-Content -Raw (Join-Path $State 'installation.json') | ConvertFrom-Json
+  $meta=Get-Content -Raw -Encoding UTF8 (Join-Path $State 'installation.json') | ConvertFrom-Json
   $record.steps+=@{name='install';exitCode=0}
   $server=Start-Process -FilePath wsl.exe -ArgumentList @('-d','Ubuntu','-e','env','PYTHONUNBUFFERED=1','SERVER_RELEASE_VERSION=591f80c-runtime-compat-20261025',"$ServerPython","$linuxRoot/scripts/acceptance/issue-116/server.py",'--server-root',$ServerRoot,'--config-root',$ConfigRoot,'--model',$Model,'--state',"/tmp/ideer116-$nonce",'--desktop-state',$linuxDesktop) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $State 'server.log') -RedirectStandardError (Join-Path $State 'server-error.log')
   $deadline=(Get-Date).AddSeconds(180)
@@ -37,7 +37,7 @@ try {
   $record.steps+=@{name='real-profile-prepare';exitCode=0}
   & $Node (Join-Path $PSScriptRoot 'desktop.cjs') $desktop
   $code=$LASTEXITCODE
-  if(Test-Path (Join-Path $desktop 'result.json')){if((Get-Content -Raw (Join-Path $desktop 'result.json') | ConvertFrom-Json).status -ne 'passed'){$code=1}}
+  if(Test-Path (Join-Path $desktop 'result.json')){if((Get-Content -Raw -Encoding UTF8 (Join-Path $desktop 'result.json') | ConvertFrom-Json).status -ne 'passed'){$code=1}}
   $record.steps+=@{name='installed-scenarios';exitCode=$code}
 } catch {
   $record.error=$_.Exception.Message
@@ -53,9 +53,10 @@ try {
   foreach($entry in @(@{name='server';process=$server},@{name='proxy';process=$proxy})){
     if($entry.process){
       $exited=$entry.process.WaitForExit(30000)
-      $exitCode=if($exited){$entry.process.ExitCode}else{$null}
-      $record.steps+=@{name=$entry.name+'-cleanup';exited=$exited;exitCode=$exitCode}
-      if(-not $exited -or $exitCode -ne 0){$code=1}
+      $exitCode=$null;$exitCodeReadable=$false
+      if($exited){try{$exitCode=$entry.process.ExitCode;$exitCodeReadable=($null -ne $exitCode)}catch{$exitCodeReadable=$false}}
+      $record.steps+=@{name=$entry.name+'-cleanup';exited=$exited;exitCode=$exitCode;exitCodeReadable=$exitCodeReadable}
+      if(-not $exited -or -not $exitCodeReadable -or $exitCode -ne 0){$code=1}
     }
   }
   if($meta){
@@ -69,6 +70,7 @@ try {
     if(Test-Path $meta.executable){$code=1;$record.uninstallError='Actual executable still exists'}
   }
   $record.finishedAt=(Get-Date).ToUniversalTime().ToString('o');$record.exitCode=$code
-  $record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $State 'command.json')
+  $recordJson=$record | ConvertTo-Json -Depth 8
+  [IO.File]::WriteAllText((Join-Path $State 'command.json'), $recordJson, [Text.UTF8Encoding]::new($false))
 }
 exit $code
