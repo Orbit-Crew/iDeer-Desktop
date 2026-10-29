@@ -434,7 +434,13 @@ async function main() {
     assert.ok(!JSON.stringify(projection.body).includes('SKILL.md'), 'the projection never carries Skill content')
     record('T121-03', 'projection-carries-identity-and-availability-only', { keys: Object.keys(item).sort() })
     assert.equal(((await status()).runtime.skillScriptAuthorizations || []).length, 0, 'configuring a preference activates nothing')
-    assert.equal(await page.getByRole('button', { name: '发布技能 ' + slug, exact: true }).count(), 0, 'the preference surface offers no publication or execution affordance')
+    // The publish affordance belongs to the import surface rows whose status
+    // is 'imported' (this skill was published through it earlier, so its row
+    // now reads 'published' and carries no publish button); the trigger
+    // preference card itself renders no publication or execution affordance.
+    const publishOnPreference = await page.locator('.ant-card', { hasText: '触发偏好' })
+      .getByRole('button', { name: '发布技能 ' + slug, exact: true }).count()
+    assert.equal(publishOnPreference, 0, 'the preference surface offers no publication or execution affordance')
 
     const writesBeforeBad = prefWrites().length
     const badShapes = [
