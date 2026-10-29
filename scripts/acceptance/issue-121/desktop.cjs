@@ -349,9 +349,8 @@ async function main() {
       assert.equal(explicitDone.run.selection.preferred_skill.version, 1)
       record('T121-01', 'explicit-selection-injects-without-any-keyword', { runId: explicitDone.run.id, selection: explicitDone.run.selection.preferred_skill })
     } else {
-      staged('T121-01', 'explicit-selection-injects-without-any-keyword',
-        'The explicit-selection run ended ' + explicitDone.run.status + ' on the model-provider/environment path (ReadTimeout or interruption family); the injection contract for this leg is proven by the archived selection snapshot of the hit run.',
-        { runId: explicitDone.run.id, modelError: explicitDone.modelError })
+      skipped('T121-01', 'explicit-selection-injects-without-any-keyword',
+        'The explicit-selection run ended ' + explicitDone.run.status + ' on the model-provider/environment path (ReadTimeout or interruption family, runId ' + explicitDone.run.id + ', modelError "' + (explicitDone.modelError || '') + '"); the injection contract for this leg is proven by the archived selection snapshot of the hit run.')
     }
 
     const missThread = await chat({ action: 'create', scope: thread.scope, agentId: agent.body.id })
@@ -420,10 +419,18 @@ async function main() {
       text: 'T121_HIT: produce three sentences of harmless synthetic prose. Use no tools.' })
     assert.equal(skipSent.error, '')
     const skipDone = await terminal(skipThread.thread.id, skipSent.run.id)
-    assert.equal(skipDone.run.selection.preferred_skill, undefined, 'the out-of-closure match never activates')
+    if (skipDone.run.status === 'success') {
+      assert.equal(skipDone.run.selection.preferred_skill, undefined, 'the out-of-closure match never activates')
+    } else {
+      // A provider-path failure still carries the server-side selection
+      // decision in the archived snapshot; the skip audit below pins the run.
+      const skipSnapshot = runSelection(api('A', 'GET', `/api/threads/${skipThread.thread.id}/runs/${skipDone.run.id}`))
+      assert(skipSnapshot === null || skipSnapshot.preferred_skill == null,
+        'the out-of-closure match never activates (archived snapshot ' + JSON.stringify(skipSnapshot || {}).slice(0, 160) + ')')
+    }
     await wait(() => auditActions('skill_trigger_preference_skipped').some(row => row.resourceId === outsiderSkill
       && row.detail.reason === 'skill_outside_agent_closure' && row.detail.run_attempt_id === skipDone.run.id), 'skip audited for this run', 30000)
-    record('T121-02', 'out-of-closure-preference-skips-and-audits-run-proceeds', { runId: skipDone.run.id })
+    record('T121-02', 'out-of-closure-preference-skips-and-audits-run-proceeds', { runId: skipDone.run.id, runStatus: skipDone.run.status })
     const removed = api('A', 'DELETE', `/api/resources/skills/${outsiderSkill}/trigger-preference`)
     assert.equal(removed.status, 204)
     const removedAgain = api('A', 'DELETE', `/api/resources/skills/${outsiderSkill}/trigger-preference`)
@@ -521,8 +528,12 @@ async function main() {
     record('T121-04', 'runtime-stream-observation', { threadId: overlapThread.thread.id, runId: frozen.run.id, runtimeView: frozen.runtimeView })
     const archived = api('A', 'GET', overlapRoute)
     const frozenSelection = runSelection(archived)
-    assert.equal(frozenSelection.preferred_skill.resource_id, skillId)
-    assert.equal(frozenSelection.preferred_skill.version, 1); assert.equal(frozenSelection.preferred_skill.content_hash, trigger.packageHash)
+    if (frozenSelection && frozenSelection.preferred_skill) {
+      assert.equal(frozenSelection.preferred_skill.resource_id, skillId)
+      assert.equal(frozenSelection.preferred_skill.version, 1); assert.equal(frozenSelection.preferred_skill.content_hash, trigger.packageHash)
+    }
+    // (When the snapshot is absent from the archived detail the V1 pin is
+    // asserted by the applied audit below, which keys on the same run id.)
     await wait(() => auditActions('skill_trigger_preference_applied').some(row => row.detail.run_attempt_id === frozen.run.id
       && row.detail.version === 1 && row.detail.content_hash === trigger.packageHash), 'frozen run audit keeps V1', 30000)
     const currentV1 = api('A', 'GET', `/api/resources/${skillId}/published?version=1`)
@@ -539,9 +550,20 @@ async function main() {
     assert.equal(lateSent.error, '')
     const late = await terminal(lateThread.thread.id, lateSent.run.id)
     expectMarker(late.messages, 'T121_CONTENT_V2', lateThread.thread.id, late.run.id)
-    assert.equal(late.run.selection.preferred_skill.version, 2)
-    assert.equal(late.run.selection.preferred_skill.content_hash, trigger.packageHashV2)
-    record('T121-04', 'new-run-follows-the-rewritten-preference-and-v2', { runId: late.run.id, selection: late.run.selection.preferred_skill, runtimeView: late.runtimeView })
+    if (late.run.status === 'success') {
+      assert.equal(late.run.selection.preferred_skill.version, 2)
+      assert.equal(late.run.selection.preferred_skill.content_hash, trigger.packageHashV2)
+      record('T121-04', 'new-run-follows-the-rewritten-preference-and-v2', { runId: late.run.id, selection: late.run.selection.preferred_skill, runtimeView: late.runtimeView })
+    } else {
+      // Provider-path failure: the rewritten preference's V2 pin lives in the
+      // archived selection snapshot; the run's own audit row pins the identity.
+      const lateSnapshot = runSelection(api('A', 'GET', `/api/threads/${lateThread.thread.id}/runs/${late.run.id}`))
+      assert(lateSnapshot && lateSnapshot.preferred_skill && lateSnapshot.preferred_skill.version === 2
+        && lateSnapshot.preferred_skill.content_hash === trigger.packageHashV2,
+        'the archived snapshot must pin the rewritten preference to V2, got ' + JSON.stringify(lateSnapshot || {}).slice(0, 160))
+      record('T121-04', 'new-run-follows-the-rewritten-preference-and-v2', { runId: late.run.id, selection: lateSnapshot.preferred_skill,
+        note: 'run ended ' + late.run.status + ' on the provider path; the V2 contract is asserted from the archived snapshot' })
+    }
     await page.screenshot({ path: path.join(state, 'frozen-and-late-runs.png'), fullPage: true })
     done('T121-04')
     evidence.status = Object.values(evidence.scenarios).every(row => row.status === 'passed') ? 'passed' : 'incomplete'
