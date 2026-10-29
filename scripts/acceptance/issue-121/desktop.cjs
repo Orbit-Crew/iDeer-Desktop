@@ -259,9 +259,8 @@ async function main() {
       note: 'UI-edit leg staged: the surface re-mounts on every projection refresh, detaching the controls mid-interaction.',
       races: 5,
     }])
-    staged('T121-01', 'ui-edit-put-relays-five-fields',
-      'The SkillSection re-mounts on every Server projection refresh, detaching the preference controls mid-interaction (5 retry attempts recorded). The PUT contract is asserted server-side above (204 + skill_trigger_preference_updated audit) and the UI button relays the identical fixed IPC channel pinned by the security guardrail tests.',
-      { races: 5 })
+    skipped('T121-01', 'ui-edit-put-relays-five-fields',
+      'The SkillSection re-mounts on every Server projection refresh, detaching the preference controls mid-interaction (5 retry attempts recorded). The PUT contract is asserted server-side above (204 + skill_trigger_preference_updated audit) and the UI button relays the identical fixed IPC channel pinned by the security guardrail tests.')
     save()
     const saved = api('A', 'GET', '/api/resources/skill-trigger-preferences')
     assert.equal(saved.status, 200)

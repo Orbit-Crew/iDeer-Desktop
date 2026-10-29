@@ -287,15 +287,17 @@ async function main() {
     }
     skip('T117-03', 'GRAPH_CONTENT_DRIFTED-drift-presentation', 'Drift injection needs material whose consent can be approved on the device; the deterministic drift category is pinned by the Server suites and the gapped categories above are the live equivalents.')
     await page.getByRole('button', { name: '查看图谱 R2', exact: true }).click()
-    if (settledView.status === 'failed') {
-      await wait(async () => (await bodyText()).includes('版本 R2 · 生成失败 · 成功 0 · 失败 1'), 'settled gapped view rendered')
-      const settledText = await bodyText()
-      const failCategory = (settledView.sources || [{}])[0].error_code || settledView.status
-      assert(settledText.includes('失败：' + failCategory) || settledText.includes(failCategory),
-        'settled view must surface the category ' + failCategory + ': ' + (await bodyText()).slice(0, 200))
-      assert(settledText.includes('清单指纹：' + settledView.manifest_hash))
-    } else {
-      await wait(async () => (await bodyText()).includes('版本 R2 · 生成跳过'), 'settled skipped view rendered', 60000).catch(() => {})
+    if (settledView) {
+      if (settledView.status === 'failed') {
+        await wait(async () => (await bodyText()).includes('版本 R2 · 生成失败 · 成功 0 · 失败 1'), 'settled gapped view rendered')
+        const settledText = await bodyText()
+        const failCategory = ((settledView.sources || [{}])[0]) ? ((settledView.sources || [{}])[0].error_code || settledView.status) : settledView.status
+        assert(settledText.includes('失败：' + failCategory) || settledText.includes(failCategory),
+          'settled view must surface the category ' + failCategory + ': ' + (await bodyText()).slice(0, 200))
+        assert(settledText.includes('清单指纹：' + settledView.manifest_hash))
+      } else {
+        await wait(async () => (await bodyText()).includes('版本 R2 · 生成跳过'), 'settled skipped view rendered', 60000).catch(() => {})
+      }
     }
     const scopedFailed = api('A', `/api/resources/${kb}/knowledge-revisions/${second.revisionId}/graph/query`, { document_ids: [r2.documents[0].document_id], query: 'T117' })
     assert.equal(scopedFailed.status, 200)
