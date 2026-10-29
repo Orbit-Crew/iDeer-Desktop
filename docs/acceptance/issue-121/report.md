@@ -104,3 +104,13 @@ commands run 2026-10-27 against the working tree at this candidate.
   remain visible and clearable; no content is displayed.
 - `dev-log/` remains an untracked local working directory (ticket copy at
   `dev-log/ticket-121.md`), exactly as at baseline.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r39,
+settled after the driver-hardening series). T121-01/03/04 passed with the
+real model and the frozen-identity injection asserted from the archived
+selection snapshots and the applied/skipped audits; T121-02 passed its
+rejection matrix, closure and delete legs and stages only the
+visibility-reduction dependency. The projection-refresh re-mount race and
+the provider-latency legs are recorded verbatim. Bindings and sanitized
+evidence are in [installed-20261029.md](installed-20261029.md). Win7
+remains with #131.
