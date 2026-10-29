@@ -64,6 +64,7 @@ const rows = async () => (await status()).runtime.knowledgeImports || []
 const wire = () => JSON.parse(fs.readFileSync(path.join(state, 'request-summary.json')))
 const posts = () => wire().filter(row => row.method === 'POST' && row.path.endsWith('/knowledge-revisions/local-imports'))
 const snapshot = () => page.evaluate(() => window.ideer.chat({ action: 'state' }))
+const chatResources = () => (snapshot().resources || [])
 const chat = command => page.evaluate(command => window.ideer.chat(command), command)
 const answer = messages => messages.filter(row => row.role === 'ai').map(row => row.text).join('\n')
 const runEvidence = detail => (detail.body && detail.body.run_evidence) || ((detail.body && detail.body.metadata) || {}).run_evidence || {}

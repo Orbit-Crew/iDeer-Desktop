@@ -233,7 +233,6 @@ async function main() {
     assert(previewed.length >= 1); assert(previewed.every(item => item.status === 200))
     pass('T115-02', 'confirmed-gate-exact-bytes-multipart', { row, confirmation: confirmed.confirmation, alerts: confirmed.alerts,
       confirm, uploads, completeStatus: complete.status, expectedSHA256: sha(original) })
-    }
     const copy = api('A', `/api/resources/${row.copyResourceId}`)
     assert.equal(copy.status, 200); assert.equal(copy.body.visibility, 'private')
     assert.equal(copy.body.owner_id, manifest.identities.A.id); assert.equal(copy.body.slug, 't115-owned-pub-r1')
@@ -331,6 +330,7 @@ async function main() {
     save()
     evidence.status = Object.values(evidence.scenarios).every(item => item.status === 'passed') ? 'passed' : 'incomplete'
     if (evidence.status !== 'passed') process.exitCode = 1
+    }
   } catch (error) {
     evidence.status = 'failed'; evidence.error = String(error); evidence.stack = error.stack
     if (page) { try { evidence.failureStatus = await status(); evidence.failureUI = await page.locator('body').innerText(); await page.screenshot({ path: path.join(state, 'failure.png'), fullPage: true }) } catch {} }
