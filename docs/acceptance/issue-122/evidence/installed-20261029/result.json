@@ -1,0 +1,415 @@
+{
+  "startedAt": "2026-10-29T13:14:54.029Z",
+  "status": "incomplete",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "b64e51d4a7f20740337dcbf7ac6c00544282b379",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "desktop base merge commit (issue-112 precedent); server base commit with the actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "5e0d34a8f7cc23dae0f8a52b5a1b3a0fa05248c095739db2892f26177157fa07",
+  "fixtureSHA256": "5485c600f0521a88a6897db5b30630e9e02fc6a5ce5c1faf5790702e037b84fd",
+  "fixturesSHA256": "c8ce93640331922a350ed27f9f36c93948a7bc11ab3d9abea9d3ba4ba552274c",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    },
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "authentication": "real registration/login/pairing APIs",
+  "dispatchNote": "local.skill.script reaches the device two ways: the real admin route POST /api/devices/{id}/tasks/local (its extra path key is refused by the fixed wire gate, recorded) and a contract-shaped envelope built in the task-owned server fixture over the real broker session (real persistent broker key, real signed websocket, real receipt-archive admission, real TaskRecord). Approvals for local.skill.script have no reachable surface in this candidate (the chat consent card filters to local.files.write), so a completed DEVICE execution with a confirming receipt is recorded unexecuted+dependency rather than simulated.",
+  "scenarios": {
+    "T122-01": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "server-authorize-content-bound",
+          "status": "passed",
+          "grant": {
+            "authorization_id": "946a420c0f06ac562d5d2f20072483d721c1519c2b845098a421ce4b19741c68",
+            "skill_resource_id": "4ad700fe-0586-4d8d-98ee-4e5c312a9f6d",
+            "slug": "t122-server-decl",
+            "execution_target": "server",
+            "device_id": "",
+            "skill_version": 1,
+            "skill_content_hash": "95c6e10ea2d6f40b74241976c250f3e4ae07c1cd8c98f52cd902b7b0c241fd12",
+            "script_path": "scripts/weekly_report.py",
+            "script_sha256": "ca4dac6fb305129b087f0d9621a7a9869f3a9ea1262447c4802817d6b8e7c23b",
+            "requirements_hash": "aee9ed805a4e92c3f3aa94f0104f3329b770f67e2a30febc51dcbb7ca1190082",
+            "created_at": "2026-10-29T13:15:11.835953Z",
+            "revoked_at": null
+          }
+        },
+        {
+          "name": "server-execute-receipt-binding",
+          "status": "passed",
+          "receipt": {
+            "skill_resource_id": "4ad700fe-0586-4d8d-98ee-4e5c312a9f6d",
+            "slug": "t122-server-decl",
+            "skill_version": 1,
+            "package_hash": "95c6e10ea2d6f40b74241976c250f3e4ae07c1cd8c98f52cd902b7b0c241fd12",
+            "script_path": "scripts/weekly_report.py",
+            "script_sha256": "ca4dac6fb305129b087f0d9621a7a9869f3a9ea1262447c4802817d6b8e7c23b",
+            "requirements_hash": "aee9ed805a4e92c3f3aa94f0104f3329b770f67e2a30febc51dcbb7ca1190082",
+            "execution_target": "server",
+            "authorization_basis": "skill_script_authorization:946a420c0f06ac562d5d2f20072483d721c1519c2b845098a421ce4b19741c68",
+            "status": "completed",
+            "command": "python3 /tmp/ideer122-ac2ab426fce4/resources/skills/4ad700fe-0586-4d8d-98ee-4e5c312a9f6d/versions/1/scripts/weekly_report.py",
+            "stdout": "server-fixed-ok\n",
+            "stdout_sha256": "454b181ac9205a37be753de0ee39087fc8fe5d4212d4e298d59070d2bda4c4ae",
+            "executed_at": "2026-10-29T13:15:14.194707+00:00"
+          },
+          "grantId": "946a420c0f06ac562d5d2f20072483d721c1519c2b845098a421ce4b19741c68"
+        },
+        {
+          "name": "user-device-declaration-refuses-server-authorization",
+          "status": 400,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "Skill scripts are declared for the user device; authorize them there"
+            },
+            "detail": "Skill scripts are declared for the user device; authorize them there"
+          }
+        },
+        {
+          "name": "device-representative-execution-with-bound-receipt",
+          "status": "unexecuted",
+          "dependency": "No reachable approval surface exists for local.skill.script on the installed Desktop: the chat consent card filters to local.files.write (platform_chat.py _consents) and the tray decision surface is not attached in desktop mode. The settings-rule bypass would execute but stamp basis \"policy\", which the Server receipt archive refuses for completed skill receipts (receipt_archive.py), poisoning the session. Covered at runtime-test level per the Desktop report; recorded here as unexecuted+dependency.",
+          "attemptedPayloadKeys": [
+            "skill_id",
+            "script_path",
+            "script_sha256",
+            "skill_version",
+            "skill_content_hash",
+            "script",
+            "declaration"
+          ]
+        },
+        {
+          "name": "device-consent-approve-then-remember-silent",
+          "status": "unexecuted",
+          "dependency": "Same approval-surface dependency; remember additionally requires a tray-origin always decision (consent_coord.py), which no installed-UI surface can express."
+        },
+        {
+          "name": "server-declared-skill-refused-on-device",
+          "status": "passed",
+          "errorCode": "SKILL_SCRIPT_ENVIRONMENT_MISMATCH"
+        },
+        {
+          "name": "os-mismatch-explicitly-unavailable",
+          "status": "passed",
+          "errorCode": "SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE"
+        }
+      ],
+      "blocker": "device representative execution with a bound receipt plus consent-then-execute/remember legs are staged: no reachable approval surface for local.skill.script on the installed Desktop (see the staged case dependency)"
+    },
+    "T122-02": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "server-execute-default-off",
+          "status": "passed",
+          "httpStatus": 403,
+          "code": "INTERNAL_ERROR",
+          "sandboxTouched": false
+        },
+        {
+          "name": "admin-route-extra-path-key-refused",
+          "status": "denied",
+          "errorCode": "SKILL_SCRIPT_INVALID",
+          "note": "the admin route always carries an extra path key; the device fixed wire gate refuses it before anything runs"
+        },
+        {
+          "name": "device-default-off-asks-and-executes-nothing",
+          "status": "unexecuted",
+          "dependency": "No reachable approval surface exists for local.skill.script on the installed Desktop (chat consent card filters to local.files.write; tray decision surface not attached in desktop mode), so the ask never settles to consent_required within the driver window. Nothing executed: the task carries no result and the archive stays empty (asserted).",
+          "taskId": "a90c2d3b-9a3d-4f88-b7d2-b2c68b78b4d9",
+          "observedStatus": "acked"
+        },
+        {
+          "name": "offline-dispatch-device-offline-queued",
+          "status": "device_offline",
+          "error": "no outbound device session is connected"
+        },
+        {
+          "name": "retry-after-relaunch-asks-again",
+          "status": "unexecuted",
+          "dependency": "Same approval-surface dependency as device-default-off-asks-and-executes-nothing; the retried ask also stays unsettled.",
+          "taskId": "459f67d2-2741-496f-b6be-8eb505df180e",
+          "observedStatus": "acked"
+        },
+        {
+          "name": "receipt-ledger-and-registry-projection-survive-restart",
+          "status": "passed",
+          "tasksAfter": [
+            "459f67d2-2741-496f-b6be-8eb505df180e",
+            "a90c2d3b-9a3d-4f88-b7d2-b2c68b78b4d9",
+            "a0c0263f-4153-4603-bf01-2c98d217a35d"
+          ]
+        }
+      ]
+    },
+    "T122-03": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "dependency-change-requires-reauthorization",
+          "status": 403,
+          "version": 2,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "{'code': 'SCRIPT_REAUTHORIZATION_REQUIRED', 'message': 'skill script execution refused'}"
+            },
+            "detail": "{'code': 'SCRIPT_REAUTHORIZATION_REQUIRED', 'message': 'skill script execution refused'}"
+          }
+        },
+        {
+          "name": "regrant-replaces-binding-and-executes",
+          "status": "passed",
+          "grant2": {
+            "authorization_id": "dd719220085500c355d29a9350fe7320bd10b6ec929d2b2e31ca8a34a699be4f",
+            "skill_resource_id": "4ad700fe-0586-4d8d-98ee-4e5c312a9f6d",
+            "slug": "t122-server-decl",
+            "execution_target": "server",
+            "device_id": "",
+            "skill_version": 2,
+            "skill_content_hash": "7eeaf9d3d5c48aedb536b9e364cecb912377f004631d1309d28b8854f2623dc3",
+            "script_path": "scripts/weekly_report.py",
+            "script_sha256": "ca4dac6fb305129b087f0d9621a7a9869f3a9ea1262447c4802817d6b8e7c23b",
+            "requirements_hash": "a0410f2f2ece46a446c73ca4d5e8c9964aa5eb70243ac4a18394e57541b299a9",
+            "created_at": "2026-10-29T13:21:09.536672Z",
+            "revoked_at": null
+          },
+          "receiptRequirementsHash": "a0410f2f2ece46a446c73ca4d5e8c9964aa5eb70243ac4a18394e57541b299a9"
+        },
+        {
+          "name": "prose-only-bump-executes-on-old-grant",
+          "status": "passed",
+          "version": 3,
+          "basis": "skill_script_authorization:dd719220085500c355d29a9350fe7320bd10b6ec929d2b2e31ca8a34a699be4f"
+        },
+        {
+          "name": "changed-script-bytes-reauthorization-on-server",
+          "status": "unexecuted",
+          "dependency": "No real surface republishes different script bytes into the same frozen resource (skill-draft carries script members forward; re-import collides on slug). The device leg covers byte drift with SKILL_SCRIPT_CONTENT_MISMATCH (T122-01) and the unit suite covers the server-side category."
+        }
+      ]
+    },
+    "T122-04": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "local-deny-outranks-every-grant",
+          "status": "denied",
+          "errorCode": "LOCAL_POLICY_DENIED",
+          "receipt": {
+            "capability": "local.skill.script",
+            "policy_decision": "deny"
+          }
+        },
+        {
+          "name": "authorization-card-list-and-empty-state",
+          "status": "unexecuted",
+          "dependency": "The mount-time list IPC raced the runtime-restart window (RUNTIME_UNAVAILABLE/timeout family) and the Alert replaced the honest empty-state text inside the driver window. The registry itself is honestly empty: the direct list returns zero authorizations (asserted) and the runtime snapshot carries skillScriptAuthorizations: [].",
+          "tail": "脚本授权（设备本地）\n自定义技能脚本默认关闭。每次执行都会先在本机确认；勾选“记住”只对当前脚本内容与声明的环境范围生效——脚本或范围变化会重新询问。撤销后再次执行需要重新批准；目录授权、技能共享和内置身份都不能代替脚本审批。\n脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY\n本地连接器组件\n把本机的一个组件目录安装为仅本人可用的受管 Connector：本机校验版本、依赖与入口后生成受控配置",
+          "grants": null,
+          "revokeUnknown": "Error: Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY"
+        },
+        {
+          "name": "grants-never-cross-accounts",
+          "status": "passed",
+          "hiddenExecute": 404,
+          "hiddenGrants": {
+            "authorizations": []
+          },
+          "hiddenRevision": 404
+        },
+        {
+          "name": "revoke-roundtrip-refuses-execution",
+          "status": 403,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "{'code': 'SCRIPT_AUTHORIZATION_REVOKED', 'message': 'skill script execution refused'}"
+            },
+            "detail": "{'code': 'SCRIPT_AUTHORIZATION_REVOKED', 'message': 'skill script execution refused'}"
+          }
+        }
+      ]
+    },
+    "T122-05": {
+      "status": "incomplete",
+      "cases": [
+        {
+          "name": "drifted-frozen-bytes-refused-before-execution",
+          "status": 409,
+          "body": {
+            "success": false,
+            "data": null,
+            "error": {
+              "code": "INTERNAL_ERROR",
+              "message": "{'code': 'SKILL_PACKAGE_CORRUPTED', 'message': 'skill script execution refused'}"
+            },
+            "detail": "{'code': 'SKILL_PACKAGE_CORRUPTED', 'message': 'skill script execution refused'}"
+          }
+        },
+        {
+          "name": "interrupted-receipt-upload-server-restart-recovery",
+          "status": "unexecuted",
+          "dependency": "Rides the durable outbox covered by the runtime suite; a dedicated Server-restart exercise stays staged per both reports."
+        },
+        {
+          "name": "durable-projections-survive-power-cycle",
+          "status": "unexecuted",
+          "dependency": "Same mount-time list-IPC/restart race as the T122-04 empty-state leg; the durable projection is asserted from the direct list (zero authorizations) and the restored task ledger (asserted).",
+          "tail": "脚本授权（设备本地）\n自定义技能脚本默认关闭。每次执行都会先在本机确认；勾选“记住”只对当前脚本内容与声明的环境范围生效——脚本或范围变化会重新询问。撤销后再次执行需要重新批准；目录授权、技能共享和内置身份都不能代替脚本审批。\n脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY\n本地连接器组件\n把本机的一个组件目录安装为仅本人可用的受管 Connector：本机校验版本、依赖与入口后生成受控配置",
+          "restoredTasks": [
+            "13a35610-8b6d-4e4a-9121-7bf00690cc2b",
+            "0fdf5c75-9709-4917-8088-fe038b5c3372",
+            "b282377e-3d56-49b2-bdcd-31f317f1e841",
+            "a2102f26-155b-4c19-8b0f-5e8012269fcc",
+            "459f67d2-2741-496f-b6be-8eb505df180e",
+            "a90c2d3b-9a3d-4f88-b7d2-b2c68b78b4d9",
+            "a0c0263f-4153-4603-bf01-2c98d217a35d"
+          ],
+          "registryRows": 0
+        }
+      ]
+    }
+  },
+  "dependencies": "No LLM is required by any executed leg: the SERVER execute runs the platform sandbox python3 directly and the DEVICE gate never consults a model. Isolated environment has no RAGFlow provider, so provider-dependent surfaces follow the issue-112 T112-03 precedent (unexecuted+dependency).",
+  "errorEnvelopeFlattening": [
+    {
+      "route": "scripts/execute",
+      "status": 403,
+      "body": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "INTERNAL_ERROR",
+          "message": "{'code': 'SCRIPT_APPROVAL_REQUIRED', 'message': 'skill script execution refused'}"
+        },
+        "detail": "{'code': 'SCRIPT_APPROVAL_REQUIRED', 'message': 'skill script execution refused'}"
+      }
+    }
+  ],
+  "announcedCapabilities": [
+    "local.skill.script"
+  ],
+  "tamperRefusal": {
+    "errorCode": "SKILL_SCRIPT_CONTENT_MISMATCH"
+  },
+  "grantListStormObservation": {
+    "note": "the direct list stayed SKILL_SCRIPT_BUSY through 8 bounded retries (the mount-render loop re-fires the list and occupies the single-slot gate); asserted from the status snapshot instead",
+    "lastError": "Error: page.evaluate: Error: Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY"
+  },
+  "revokeUnknownObservation": {
+    "rejection": "Error: Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY",
+    "finding": "desktop.py returns {\"revoked\": bool} for revoke while the Electron bridge only accepts {\"authorizations\": [...]}; every revoke outcome surfaces as SKILL_SCRIPT_FAILED. Recorded as a candidate finding; revoke of a real grant is unreachable because no grant surface exists (see T122-01 dependency)."
+  },
+  "wireObservation": {
+    "executeRequests": 8,
+    "brokerDispatches": 6,
+    "sample": {
+      "method": "BROKER",
+      "path": "/app/device_control/broker.py send_task(contract)",
+      "taskKeyShape": [
+        "declaration",
+        "operation",
+        "run_id",
+        "script",
+        "script_path",
+        "script_sha256",
+        "skill_content_hash",
+        "skill_id",
+        "skill_version",
+        "tool_call_id"
+      ],
+      "scriptBytes": 25,
+      "scriptSHA256": "dfd9582cd163586fce0d58fe7b5087c1033c9cdfca9c7bd9aa2dbb8d76ba0937",
+      "taskId": "a90c2d3b-9a3d-4f88-b7d2-b2c68b78b4d9",
+      "status": "sent"
+    }
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-29T13:22:44.041Z"
+}

@@ -187,7 +187,14 @@ def broker_dispatch(request):
 
 
 def corrupt_version(request):
-    """Append drifted bytes to one frozen version's script (T122-05 corruption leg)."""
+    """Append drifted bytes to one frozen version's script (T122-05 corruption leg).
+
+    Frozen storage is chmod 0o444 inside 0o555 directories; lift the two
+    permissions around the write and restore them so the drifted bytes stay
+    behind the same immutability contract.
+    """
+    import os
+
     from app.agentplatform.resources.storage import ResourceStorage
     from deerflow.config.paths import get_paths
 
@@ -197,7 +204,13 @@ def corrupt_version(request):
     if not target.is_file() or version_dir not in target.parents:
         return {'error': 'VERSION_SCRIPT_NOT_FOUND'}
     before = target.read_bytes()
-    target.write_bytes(before + b'\nT122_DRIFTED_BYTES\n')
+    os.chmod(target.parent, 0o755)
+    os.chmod(target, 0o644)
+    try:
+        target.write_bytes(before + b'\nT122_DRIFTED_BYTES\n')
+    finally:
+        os.chmod(target, 0o444)
+        os.chmod(target.parent, 0o555)
     return {'relative': target.relative_to(storage.resources_root).as_posix(),
         'beforeSHA256': hashlib.sha256(before).hexdigest(), 'afterSHA256': hashlib.sha256(target.read_bytes()).hexdigest()}
 

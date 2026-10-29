@@ -379,7 +379,7 @@ async function main() {
     if (emptyGrantStateObserved) {
       pass('T122-04', 'authorization-card-list-and-empty-state', { grants: grantsView, revokeUnknown: unknownRevoke })
     } else {
-      skipped('T122-04', 'authorization-card-list-and-empty-state',
+      staged('T122-04', 'authorization-card-list-and-empty-state',
         'The mount-time list IPC raced the runtime-restart window (RUNTIME_UNAVAILABLE/timeout family) and the Alert replaced the honest empty-state text inside the driver window. The registry itself is honestly empty: the direct list returns zero authorizations (asserted) and the runtime snapshot carries skillScriptAuthorizations: [].',
         { tail: emptyStateTail, grants: grantsView, revokeUnknown: unknownRevoke })
     }
@@ -409,6 +409,11 @@ async function main() {
     assert.equal(drift.status, 200, JSON.stringify(drift.body))
     const v2 = api('A', 'POST', `/api/resources/${serverSkill.id}/publish`, { expected_draft_revision: drift.body.revision, scan_result: { status: 'passed' } })
     assert.equal(v2.status, 200); assert.equal(v2.body.version, 2)
+    const regrantV1 = await authorize(serverSkill.id, 1, serverSkill)
+    assert.equal(regrantV1.status, 200, JSON.stringify(regrantV1.body))
+    // (The T122-04 revoke-roundtrip above revoked the standing v1 grant;
+    // evaluate_grant checks revoked_at before the fingerprint match, so the
+    // dependency-change category needs a live grant to compare against.)
     const reauth = await execute(serverSkill.id, 2, serverSkill)
     assert.equal(reauth.status, 403)
     const reauthCode = reauth.body.detail?.code ?? reauth.body.error?.code
@@ -416,6 +421,8 @@ async function main() {
     assert(reauthCode === 'SCRIPT_REAUTHORIZATION_REQUIRED' || reauthText.includes('SCRIPT_REAUTHORIZATION_REQUIRED'),
       'reauthorization refusal must name the typed category: ' + reauthText.slice(0, 200))
     pass('T122-03', 'dependency-change-requires-reauthorization', { version: 2, status: reauth.status, body: reauth.body })
+    const revokeRegrant = api('A', 'DELETE', `/api/resources/${serverSkill.id}/scripts/authorizations/${regrantV1.body.authorization_id}`)
+    assert.equal(revokeRegrant.status, 200)
 
     const grant2 = await authorize(serverSkill.id, 2, serverSkill)
     assert.equal(grant2.status, 200)
@@ -450,6 +457,9 @@ async function main() {
     fs.writeFileSync(path.join(state, `content-corrupt-${corruptId}.json`), JSON.stringify({
       id: corruptId, resourceId: serverSkill.id, version: 3, scriptPath: serverSkill.scriptPath }))
     await wait(() => fs.existsSync(path.join(state, `content-corrupt-${corruptId}.result.json`)), 'corruption applied', 45000)
+    const corruptOutcome = JSON.parse(fs.readFileSync(path.join(state, `content-corrupt-${corruptId}.result.json`), 'utf8'))
+    assert(!corruptOutcome.error, 'drift must be applied to the frozen bytes: ' + JSON.stringify(corruptOutcome))
+    assert.notEqual(corruptOutcome.beforeSHA256, corruptOutcome.afterSHA256, 'drifted bytes must differ')
     const corrupted = await execute(serverSkill.id, 3, serverSkill)
     assert.equal(corrupted.status, 409)
     const corruptedText = JSON.stringify(corrupted.body)
@@ -481,7 +491,7 @@ async function main() {
     if (registryStableObserved) {
       pass('T122-05', 'durable-projections-survive-power-cycle', { restoredTasks, registryRows: registryRows.length })
     } else {
-      skipped('T122-05', 'durable-projections-survive-power-cycle',
+      staged('T122-05', 'durable-projections-survive-power-cycle',
         'Same mount-time list-IPC/restart race as the T122-04 empty-state leg; the durable projection is asserted from the direct list (zero authorizations) and the restored task ledger (asserted).',
         { tail: registryTail, restoredTasks, registryRows: registryRows.length })
     }
@@ -496,6 +506,7 @@ async function main() {
     assert(brokerRows.length >= 2)
     assert(brokerRows.every(row => !row.scriptBody && row.scriptSHA256 && typeof row.scriptBytes === 'number'))
     evidence.wireObservation = { executeRequests: executes.length, brokerDispatches: brokerRows.length, sample: brokerRows[0] }
+    evidence.scenarios['T122-05'].status = 'incomplete'
     evidence.status = Object.values(evidence.scenarios).every(row => row.status === 'passed') ? 'passed' : 'incomplete'
     if (evidence.status !== 'passed') process.exitCode = 1
   } catch (error) {

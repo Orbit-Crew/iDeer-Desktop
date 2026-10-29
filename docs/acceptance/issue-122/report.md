@@ -108,3 +108,18 @@ stays a recorded-pending step (see Pending).
 - Win7 compatibility verification — explicitly deferred to #131; the modern
   Windows results above must not be read as Win7 results.
 - `dist:win` packaging — recorded pending; not run in this ticket.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r9–r17,
+settling at r17). The server authorization/execution legs with content-bound
+receipts passed; the device gate refused server-declared skills and
+OS-mismatch payloads with typed codes (linux-on-Windows answers
+`SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE`); the deny rule outranks every grant;
+the reauthorization/regrant/prose-only-bump triple passed; drifted frozen
+bytes refuse with `SKILL_PACKAGE_CORRUPTED` before anything runs; script
+bodies never appear on any wire observation. The device representative
+execution and consent-remember legs stay staged on the unreachable
+`local.skill.script` approval surface. Two driver fixture defects found on
+the way (the dropped `skill_id`; the frozen-storage permission lift for the
+drift harness) are documented in the record — the product answered
+fail-closed on both. Bindings and sanitized evidence are in
+[installed-20261029.md](installed-20261029.md). Win7 remains with #131.
