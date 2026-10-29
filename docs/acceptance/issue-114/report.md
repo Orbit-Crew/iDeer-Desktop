@@ -47,3 +47,12 @@ evidence.
 
 Win7: unexecuted, owned by #131. `dist:win` of the eventual combined
 candidate: pending, recorded in the closing acceptance pass.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r4). The
+scope view, frozen run surface and device search contract executed for real
+against the installed app; the isolated Gateway's missing `knowledge_search`
+tool declaration was added to the fixture config during debugging (the
+fail-closed deployment veto is by design). Dual-UI walkthrough and
+provider/live-fault legs stay staged as recorded. Bindings and sanitized
+evidence are in [installed-20261029.md](installed-20261029.md). Win7 remains
+with #131.

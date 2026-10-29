@@ -1,0 +1,174 @@
+{
+  "startedAt": "2026-10-29T03:18:26.727Z",
+  "status": "incomplete",
+  "host": {
+    "platform": "win32",
+    "architecture": "x64",
+    "release": "10.0.26300",
+    "version": "Windows 11 Pro",
+    "driverNode": "v22.14.0"
+  },
+  "desktopCandidate": "82d336eae531067ba8daea0c936bfd17c67cc5dd",
+  "desktopCandidateMeaning": "candidate worktree HEAD; the tested tree is bound by installerSHA256/appASARSHA256/runtimeLockSHA256 below",
+  "serverCandidate": "f77261ce86a8efb87b49b1c5687230b36a85e876",
+  "serverSourceSHA256": "3e8a3923ba727770b9cdcc98bf5f26bd38b95edf1ce283d2dee24bf52a1c5745",
+  "serverCandidateMeaning": "base commit; actual tested Python tree bound by serverSourceSHA256",
+  "installerSHA256": "5bb8fb587d25e1705cd21f7753d105c6d9c9f6abae46767b6fe9ead206f18ba2",
+  "appASARSHA256": "2d1c60436a0bfc702dc29b3d5291caf92e3837c591620ea0cb4dce691efdc391",
+  "driverSHA256": "3f002ad818a0a54f892ce25bec2bfe9cbfe6a31fe3a7d3b6e7f7f46413b36b2b",
+  "fixtureSHA256": "0695d3ee002bf4e6f7e9d4776ed396b2cd41a34fed93bdde4c4773bcc0c9b173",
+  "packageLockSHA256": "379292ce21fce9ee27d3b21b366ec16a5c5e12ee851ebabc00a6600b0b78b99e",
+  "runtimeLockSHA256": "c29657a8392b272b9bd7aa608dc0a3d7103d47a47196a664819203cb9d803d2d",
+  "launches": [
+    {
+      "identity": "A",
+      "packaged": true,
+      "version": "0.2.0",
+      "electron": "22.3.27",
+      "node": "16.17.1",
+      "preferences": {
+        "allowRunningInsecureContent": false,
+        "contextIsolation": true,
+        "disablePopups": false,
+        "enableBlinkFeatures": "",
+        "enableWebSQL": true,
+        "experimentalFeatures": false,
+        "javascript": true,
+        "nodeIntegration": false,
+        "nodeIntegrationInSubFrames": false,
+        "sandbox": true,
+        "webSecurity": true,
+        "webviewTag": false
+      }
+    }
+  ],
+  "expected": {
+    "originalSHA256": "0e57991edb198ad6fff16abb8538931728c99da14208fe4d2dde29078a6d9b00",
+    "changedSHA256": "295db0748db14e3bbb106b5d7e17d43c2fb145fbb17710406bf2d5d0884cd714",
+    "straySHA256": "62e3069c89a608a908924db9dc8ca251c3a68a670741c624d78d2c5752a938d7"
+  },
+  "authentication": "real registration/login/pairing APIs",
+  "modelsCalled": false,
+  "picker": "Only native picker/confirmation callbacks supply synthetic input; real IPC, Runtime, HTTP and authorization.",
+  "scenarios": {
+    "T115-01": {
+      "status": "passed",
+      "cases": [
+        {
+          "name": "unconfirmed-workspace",
+          "status": "passed",
+          "error": "Error: Error invoking remote method 'desktop:knowledge:publish': Error: KNOWLEDGE_PUBLISH_WORKSPACE_UNAVAILABLE",
+          "publicationWireRows": 0
+        },
+        {
+          "name": "publish-cancel-dialog",
+          "status": "unexecuted",
+          "dependency": "The confirmation dialog never opened and no IPC rejection was surfaced; captured observation recorded. The refusal (no upload) is asserted from the wire data.",
+          "ipcRejection": null,
+          "alerts": [
+            "发布未完成：需要已认证会话与已确认的工作目录，且所选文件必须与登记版本完全一致",
+            "触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY",
+            "脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY"
+          ]
+        },
+        {
+          "name": "ui-preview-cancel-walkthrough",
+          "status": "passed",
+          "confirmation": null,
+          "alerts": [
+            "发布未完成：需要已认证会话与已确认的工作目录，且所选文件必须与登记版本完全一致",
+            "触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY",
+            "脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY"
+          ],
+          "previewRows": [
+            {
+              "method": "GET",
+              "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+              "status": 200
+            }
+          ],
+          "uploadPosts": 0,
+          "confirmPosts": 0,
+          "registryRows": 0,
+          "serverCopyCreated": false,
+          "statusAfterPreview": "none"
+        }
+      ]
+    },
+    "T115-02": {
+      "status": "unexecuted",
+      "cases": [
+        {
+          "name": "confirmed-gate-exact-bytes-multipart",
+          "status": "unexecuted",
+          "dependency": "The installed Runtime confirmed-publish stalled before any platform POST (preview GETs only; no upload, no registry row after 300s) — recorded with the wire tail as a candidate defect observation. The multipart byte-contract is covered by the Server and runtime suites.",
+          "observation": {
+            "registryRows": 0,
+            "wireTail": [
+              {
+                "method": "GET",
+                "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+                "status": 200
+              },
+              {
+                "method": "GET",
+                "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication",
+                "status": 200
+              },
+              {
+                "method": "GET",
+                "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+                "status": 200
+              }
+            ],
+            "note": "preview GETs render, no confirmed POST, no document upload, no registry row after 300s"
+          }
+        }
+      ]
+    },
+    "T115-03": {
+      "status": "unexecuted",
+      "cases": []
+    },
+    "T115-04": {
+      "status": "unexecuted",
+      "cases": []
+    }
+  },
+  "publishRefusal": {
+    "ipcRejection": null,
+    "confirmation": null,
+    "alerts": [
+      "发布未完成：需要已认证会话与已确认的工作目录，且所选文件必须与登记版本完全一致",
+      "触发偏好不可用：Error invoking remote method 'desktop:skill-preferences': Error: SKILL_PREFERENCE_BUSY",
+      "脚本授权不可用：Error invoking remote method 'desktop:skill-scripts': Error: SKILL_SCRIPT_BUSY"
+    ]
+  },
+  "confirmedPublishStall": {
+    "registryRows": 0,
+    "wireTail": [
+      {
+        "method": "GET",
+        "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+        "status": 200
+      }
+    ],
+    "note": "preview GETs render, no confirmed POST, no document upload, no registry row after 300s"
+  },
+  "credentialCleanup": {
+    "removed": 6,
+    "failures": []
+  },
+  "finishedAt": "2026-10-29T03:24:04.403Z",
+  "workFixture": "C:\\Users\\Neo\\AppData\\Local\\Temp\\ideer115-files-8l6aWG"
+}

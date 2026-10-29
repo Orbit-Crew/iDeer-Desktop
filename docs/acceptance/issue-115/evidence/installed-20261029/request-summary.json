@@ -1,0 +1,2952 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/37101d65-20e5-4f3a-8e82-bb89d4022488/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login/local",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/pairing/4066be10-e3bf-4410-a3bc-9d95b6913097/confirm",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices/register/complete",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices/dd6db9cf-fda6-4b27-8167-25751a590b52",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/threads/search",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/updates/compatibility.json",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/local-imports",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/b870f51f-dec4-4405-befe-ed5bcb590916/knowledge-revisions/bfce66c3-1ca3-4398-809f-a5cad0de310f/local-publication/preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/resources/skill-trigger-preferences",
+    "status": 200
+  }
+]

@@ -115,3 +115,12 @@ render (AC2/AC4 — honest failures).
 - The Desktop graph entry is the only new renderer surface; no chat/runtime
   behavior changed beyond the added section, and the security boundary test
   pins the single new IPC channel.
+
+Execution update, 2026-10-29: the prepared driver ran end-to-end (r12). The
+server-orchestrated generation, honest empty-graph state, locate-inside-
+workspace, cross-account invisibility and reopen-persistence legs passed;
+the completed real-model graph stays unexecuted with the recorded
+`knowledge_seam.py` dispatch-chain observation (no `graph_broker_factory`),
+and the consent-card legs have no reachable approval surface. Bindings and
+sanitized evidence are in [installed-20261029.md](installed-20261029.md).
+Win7 remains with #131.
