@@ -63,6 +63,7 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
   const [saveError, setSaveError] = useState('')
   const [scriptGrants, setScriptGrants] = useState<SkillScriptAuthorizationView[]>(runtime?.skillScriptAuthorizations ?? [])
   const [scriptError, setScriptError] = useState('')
+  const [scriptNotice, setScriptNotice] = useState('')
 
   const reload = useCallback(async () => {
     try {
@@ -123,7 +124,10 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
     setScriptError('')
     try {
       const view = await scriptsApi({ action: 'revoke', authorizationId })
+      // Issue 41: the revoke response carries the post-revoke list; a false
+      // `revoked` means the identity was already gone — shown, not an error.
       setScriptGrants(view.authorizations)
+      setScriptNotice(view.revoked === false ? '该授权此前已不存在或已被撤销，无需重复操作。' : '')
     } catch (exception) {
       setScriptError(exception instanceof Error ? exception.message : String(exception))
     } finally {
@@ -212,6 +216,7 @@ export function SkillSection({ runtime, busy, error, onCommand, onPreferences, i
       </Typography.Paragraph>
       {runtime?.skillScriptStorageError && <Alert type="error" message="脚本授权记录存储不可用，状态显示可能不完整" />}
       {scriptError && <Alert type="error" message={`脚本授权不可用：${scriptError}`} />}
+      {scriptNotice && <Alert type="info" showIcon message={scriptNotice} />}
       {!scriptGrants.length && !scriptError && <Typography.Text type="secondary">本机当前没有已记住的技能脚本授权。</Typography.Text>}
       {scriptGrants.map(row => <Card key={row.id} size="small" className="mt-2">
         <Typography.Paragraph>

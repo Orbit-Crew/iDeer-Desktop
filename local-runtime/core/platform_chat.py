@@ -1533,8 +1533,18 @@ class DesktopChat:
                 if not isinstance(preview, dict) or not isinstance(preview.get('source'), dict) \
                         or not isinstance(preview.get('documents'), list) or not isinstance(preview.get('destination'), dict):
                     raise ChatError('CHAT_PROTOCOL_ERROR')
+                # Issue 42: the Server names the destination `display_name`
+                # while the Desktop wire contract is `displayName`. Normalize
+                # at this seam and fail closed when the preview omits it, so
+                # a real preview reaches the confirmation dialog instead of
+                # being refused before it opens.
+                destination = dict(preview['destination'])
+                display_name = destination.pop('display_name', None)
+                if not isinstance(display_name, str) or not display_name.strip() or 'displayName' in destination:
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+                destination['displayName'] = display_name
                 return dict(confirmed=False, kbId=kb_id, revisionId=revision_id,
-                            source=preview['source'], destination=preview['destination'],
+                            source=preview['source'], destination=destination,
                             documents=[dict(filename=entry['filename'], sha256=entry['sha256'],
                                             bytes=entry['bytes'], mime=entry['mime']) for entry in entries])
             confirmed_payload = self._json(session, base, {'confirmed': True})

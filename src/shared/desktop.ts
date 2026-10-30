@@ -331,11 +331,14 @@ export interface SkillScriptAuthorizationView {
   status: 'granted'
   createdAt: string
 }
-/** Issue 122: list or revoke the device's remembered Skill script grants. */
+/** Issue 122: list or revoke the device's remembered Skill script grants.
+ * A revoke response carries `revoked` (false when the identity was already
+ * gone) plus the post-revoke grant list, so one wire shape serves both
+ * actions and the renderer can drop the row without a second IPC round. */
 export type SkillScriptCommand =
   | { action: 'list' }
   | { action: 'revoke'; authorizationId: string }
-export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[] }
+export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[]; revoked?: boolean }
 
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {

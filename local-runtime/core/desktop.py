@@ -548,7 +548,10 @@ def main() -> int:
                     registry = controller.skill_script_service.registry
                     if script_command['action'] == 'revoke':
                         revoked = registry.revoke_identity(owner, script_command['authorizationId'])
-                        result = {'revoked': bool(revoked)}
+                        # Issue 41: carry the post-revoke list alongside the
+                        # flag so the renderer drops the row in one round and
+                        # a successful revoke never parses as a failure.
+                        result = {'revoked': bool(revoked), 'authorizations': registry.view(owner)}
                     else:
                         result = {'authorizations': registry.view(owner)}
                 except SkillScriptError as exc:
