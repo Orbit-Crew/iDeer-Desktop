@@ -33,6 +33,7 @@ These links locate existing records; this index does not change their verdicts.
 
 | Issue | Report |
 | --- | --- |
+| #43 | [2026-10-30 driver UTF-8 verification](issue-43/report.md) |
 | #96–#104 | [#96](issue-96/report.md), [#97](issue-97/report.md), [#98](issue-98/report.md), [#99](issue-99/report.md), [#100](issue-100/report.md), [#101](issue-101/report.md), [#102](issue-102/report.md), [#103](issue-103/report.md), [#104](issue-104/report.md) |
 | #105 | [Report](issue-105/report.md) |
 | #106 | [Report](issue-106/report.md) |
