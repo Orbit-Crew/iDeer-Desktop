@@ -48,8 +48,13 @@ explicit unavailable state.
 
 JSON responses and SSE frames are bounded at 2 MiB. A chat message is limited
 to 16,000 characters, at most eight IPC requests can be outstanding, HTTP reads
-time out after 15 seconds and IPC after 30 seconds. Timeouts never trigger an
-automatic submission retry. Large responses return an explicit size error.
+time out after 15 seconds and IPC after 30 seconds. The run stream is the one
+long-lived exception: its reads tolerate a 90-second silent window (issue #37 —
+one model phase can stay quiet far past any request round-trip), and a stream
+that still ends without the Server's end event resumes at most three times from
+the last delivered event id before the disconnect becomes visible. Timeouts
+never trigger an automatic submission retry. Large responses return an explicit
+size error.
 
 Use the [issue #99 fixture instructions](../scripts/acceptance/issue-99/README.md)
 for reproducible protocol checks and the real Gateway/Desktop probe. The
