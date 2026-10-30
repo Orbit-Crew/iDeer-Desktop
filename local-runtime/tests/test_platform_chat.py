@@ -257,7 +257,7 @@ def test_chat_write_decision_binds_original_run_task_hash_and_stays_on_device(tm
     decisions = []
     with platform() as (origin, records):
         chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [pending],
-            decide_consent=lambda *args: decisions.append(args))
+            decide_consent=lambda *args, **kwargs: decisions.append(args))
         scope = chat.handle({'action': 'refresh'})['scope']
         chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
         state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
@@ -272,6 +272,71 @@ def test_chat_write_decision_binds_original_run_task_hash_and_stays_on_device(tm
         assert result['error'] == expected
         assert decisions == ([] if expected else [('task-102', 'a' * 64, True)])
         assert len([row for row in records if row[1] is not None]) == before
+
+
+def test_chat_projects_script_and_material_asks_and_settles_them(tmp_path):
+    """#39: Skill script and knowledge-material asks are device authority the
+    Desktop chat can settle — the projection names identity facts only, and a
+    remembered script grant rides exactly one allow decision."""
+    from core.consent import PendingConsent
+    script_pending = PendingConsent('task-122', 'local.skill.script', {'run_id': 'run-1', 'thread_id': 'thread-A',
+        'skill_id': 'report-skill', 'script_path': 'scripts/analyze.py', 'script_sha256': 'b' * 64,
+        'skill_version': 3, 'skill_content_hash': 'c' * 64, 'script': 'print(1)\n',
+        'declaration': {'target': 'user_device'}}, 'b' * 64, 'level_1', False, {}, time.monotonic())
+    material_pending = PendingConsent('task-116', 'local.knowledge.material', {'run_id': 'run-1', 'thread_id': 'thread-A',
+        'operation': 'local.knowledge.material',
+        'arguments': {'revision_id': 'rev-1', 'manifest_hash': 'd' * 64,
+                      'documents': [{'document_id': 'doc-1', 'filename': 'guide.md', 'content_hash': 'e' * 64}]}},
+        'c' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [script_pending, material_pending],
+            decide_consent=lambda *args, **kwargs: decisions.append((args, kwargs)))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Run the skill'})
+        assert sorted(row['kind'] for row in state['localConsents']) == ['knowledge-material', 'skill-script']
+        script_row = next(row for row in state['localConsents'] if row['kind'] == 'skill-script')
+        assert script_row['skill'] == 'report-skill' and script_row['scriptPath'] == 'scripts/analyze.py'
+        assert script_row['version'] == '3' and script_row['scriptSha256'] == 'b' * 64
+        assert script_row['requirementsSha256']
+        assert 'script' not in script_row and 'declaration' not in script_row  # bytes never reach the display
+        material_row = next(row for row in state['localConsents'] if row['kind'] == 'knowledge-material')
+        assert material_row['revisionId'] == 'rev-1'
+        assert material_row['documents'] == [{'filename': 'guide.md', 'contentHash': 'e' * 64}]
+        # A remembered script grant rides exactly one allow decision; the
+        # material ask accepts plain allow/deny and nothing else.
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-122', 'requestHash': 'b' * 64, 'decision': 'allow', 'rememberScript': True})
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-116', 'requestHash': 'c' * 64, 'decision': 'allow'})
+        assert [call for call in decisions] == [
+            (('task-122', 'b' * 64, True), {'always': True}),
+            (('task-116', 'c' * 64, True), {'always': False}),
+        ]
+
+
+def test_chat_remember_script_flag_is_bound_to_script_allows_only(tmp_path):
+    """#39: rememberScript on another kind or with deny is a malformed command."""
+    from core.consent import PendingConsent
+    material_pending = PendingConsent('task-116', 'local.knowledge.material', {'run_id': 'run-1', 'thread_id': 'thread-A',
+        'operation': 'local.knowledge.material',
+        'arguments': {'revision_id': 'rev-1', 'manifest_hash': 'd' * 64,
+                      'documents': [{'document_id': 'doc-1', 'filename': 'guide.md', 'content_hash': 'e' * 64}]}},
+        'c' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [material_pending],
+            decide_consent=lambda *args, **kwargs: decisions.append(args))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Generate the graph'})
+        result = chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-116', 'requestHash': 'c' * 64, 'decision': 'allow', 'rememberScript': True})
+        assert result['error'] == 'CHAT_COMMAND_INVALID'
+        assert decisions == []
 
 
 def test_chat_survives_unavailable_local_approval_snapshot_and_recovers_next_poll(tmp_path):

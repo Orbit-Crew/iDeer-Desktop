@@ -396,7 +396,12 @@ export class RuntimeProcess {
     }
     const allowed = keys[command.action]
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
-    if (command.action === 'consent' && (Object.keys(command).length !== 7 || !['allow', 'allow-directory', 'deny'].includes(command.decision) || !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
+    // Issue 39: a script approval may carry rememberScript; nothing else may
+    // add keys to the fixed consent shape.
+    const consentKeys = Object.keys(command).length - (command.action === 'consent' && (command as { rememberScript?: unknown }).rememberScript === true ? 1 : 0)
+    if (command.action === 'consent' && (consentKeys !== 7 || !['allow', 'allow-directory', 'deny'].includes(command.decision) ||
+        ((command as { rememberScript?: unknown }).rememberScript !== undefined && typeof (command as { rememberScript?: unknown }).rememberScript !== 'boolean') ||
+        !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')

@@ -49,12 +49,24 @@ def render_consent_summary(
             "local.artifacts.upload": "send a local file to the server",
             # Issue 122: name the skill and the script, never the raw bytes.
             "local.skill.script": "run a Skill script on this device",
+            # Issue 116/#39: name the frozen revision and document list, never
+            # the bytes themselves.
+            "local.knowledge.material": "read one frozen document from this device",
         }.get(capability, ""),
     }
     if capability == "local.skill.script":
         summary["target"] = text(payload.get("skill_id", ""))
         summary["command"] = text(payload.get("script_path", ""))
         summary["version"] = text(payload.get("skill_version", ""))
+    elif capability == "local.knowledge.material":
+        arguments = payload.get("arguments", payload.get("args", payload))
+        if not isinstance(arguments, dict):
+            arguments = {}
+        summary["target"] = text(arguments.get("revision_id", ""))
+        summary["command"] = text(json.dumps(
+            [entry.get("filename", "") for entry in arguments.get("documents", []) if isinstance(entry, dict)],
+            ensure_ascii=False))
+        summary["version"] = text(arguments.get("manifest_hash", ""))
     elif capability.startswith("local.mcp."):
         summary["action"] = "call a tool on a local MCP server"
         summary["target"] = summary["capability"]
