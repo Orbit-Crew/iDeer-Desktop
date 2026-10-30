@@ -8,6 +8,10 @@ permissions:
   contents: read
 jobs:
   static-and-contract:
+    # ubuntu-24.04 deliberately not used: the smoke drives Electron 22,
+    # whose Chromium sandbox cannot launch under 24.04's AppArmor
+    # user-namespace restriction ("Process failed to launch" in
+    # xvfb-run). Revisit when Electron is upgraded past the sandbox fix.
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
