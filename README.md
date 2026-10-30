@@ -28,7 +28,17 @@ The original Thread can stop a Turn and recover local task and receipt facts
 after disconnects or restarts. Stop requests do not roll back committed writes.
 See [issue #104 acceptance](docs/acceptance/issue-104/report.md).
 
-Use Node 22 and npm on the build machine:
+Use Node 22 and npm on the build machine. On Windows, first initialize the
+current PowerShell session so direct installs and acceptance scripts also use
+the checkout's cache and temporary directories:
+
+```powershell
+. .\scripts\project-env.ps1
+```
+
+The npm scripts below initialize these paths automatically. See
+[local disk usage](docs/local-disk-usage.md) for the directory list, user-wide
+cache defaults, and Codex worktree settings.
 
 ```sh
 npm ci
