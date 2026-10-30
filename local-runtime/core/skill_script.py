@@ -142,6 +142,91 @@ def os_matches(declared_os: list[str], current_system: str) -> bool:
     )
 
 
+#: The requirement grammar the environment verification supports. Mirrored
+#: verbatim by the server leg (backend skill_script_execution.py): an entry
+#: outside the grammar is a condition this device cannot confirm and refuses
+#: as unavailable — never a silent ignore (#122 AC1, #170).
+_REQUIREMENT_SPEC = re.compile(
+    r"^([A-Za-z0-9][A-Za-z0-9._-]*)"
+    r"((?:\s*,)?\s*(?:>=|<=|==|!=|>|<|~=)\s*[0-9]+(?:\.[0-9]+)*)*$"
+)
+_INTERPRETER_NAME = re.compile(r"^python(?:3(?:\.\d+)?)?$", re.IGNORECASE)
+_CONSTRAINT = re.compile(r"(>=|<=|==|!=|>|<|~=)\s*([0-9]+(?:\.[0-9]+)*)")
+_BARE_COMMAND = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
+
+
+def _parse_requirement(entry: str) -> tuple[str, str] | None:
+    """``name`` plus optional version constraints, or ``None`` when unsupported."""
+    match = _REQUIREMENT_SPEC.match(entry.strip())
+    if match is None:
+        return None
+    return match.group(1), match.group(2) or ""
+
+
+def _constraints_satisfied(actual: tuple[int, ...], constraints: str) -> bool:
+    for match in _CONSTRAINT.finditer(constraints):
+        operator, raw = match.group(1), tuple(int(part) for part in match.group(2).split("."))
+        target = raw + (0,) * max(0, len(actual) - len(raw))
+        prefix = actual[:len(raw)]
+        if operator == ">=" and not actual >= target:
+            return False
+        if operator == "<=" and not actual <= target:
+            return False
+        if operator == "==" and prefix != raw:
+            return False
+        if operator == "!=" and prefix == raw:
+            return False
+        if operator == ">" and not actual > target:
+            return False
+        if operator == "<" and not actual < target:
+            return False
+        if operator == "~=" and not (actual >= target and prefix == raw[:len(prefix)]):
+            return False
+    return True
+
+
+def verify_environment(declaration: dict) -> None:
+    """Refuse every declared condition this runtime cannot confirm (AC1).
+
+    The executor is this runtime's own interpreter (``sys.executable``), so
+    the facts are checked in-process: interpreter and distribution versions
+    through ``importlib.metadata``, tools and software through ``PATH``. A
+    declared ``data`` requirement has no provisioning contract yet and is an
+    explicit unavailability rather than an ignored claim (#170).
+    """
+    from importlib import metadata
+
+    def unavailable() -> SkillScriptError:
+        return _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+
+    interpreter = tuple(sys.version_info[:3])
+    for entry in declaration.get("dependencies", []):
+        parsed = _parse_requirement(str(entry))
+        if parsed is None:
+            raise unavailable()
+        name, constraints = parsed
+        if _INTERPRETER_NAME.match(name):
+            actual = interpreter
+        else:
+            try:
+                installed = metadata.version(name)
+            except Exception:  # noqa: BLE001 - any resolver failure is absence
+                raise unavailable() from None
+            try:
+                actual = tuple(int(part) for part in installed.split(".")[:3])
+            except ValueError:
+                raise unavailable() from None
+        if not _constraints_satisfied(actual, constraints):
+            raise unavailable()
+    for field in ("software", "tools"):
+        for entry in declaration.get(field, []):
+            name = str(entry).strip()
+            if not _BARE_COMMAND.match(name) or shutil.which(name) is None:
+                raise unavailable()
+    if declaration.get("data"):
+        raise unavailable()
+
+
 def normalize_script_path(raw: Any) -> str:
     if not isinstance(raw, str) or not raw or len(raw) > MAX_SCRIPT_PATH_CHARS or "\x00" in raw:
         raise _refuse("SKILL_SCRIPT_INVALID")
@@ -445,6 +530,7 @@ class SkillScriptService:
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_MISMATCH")
         if not os_matches(declaration["os"], self._system()):
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+        verify_environment(declaration)
 
         # Local policy is the first and final authority on this device: a
         # DENY (explicitly configured, or anything graded Level 2) outranks
@@ -497,6 +583,7 @@ class SkillScriptService:
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_MISMATCH")
         if not os_matches(declaration["os"], self._system()):
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+        verify_environment(declaration)
         executor = self._executor
         if executor is None:
             from .python import PythonExecutor
