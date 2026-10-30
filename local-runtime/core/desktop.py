@@ -252,10 +252,11 @@ def main() -> int:
         def local_consents():
             return controller.pending_consents() if controller is not None else ()
 
-        def decide_consent(task_id, digest, approved, *, directory=False):
+        def decide_consent(task_id, digest, approved, *, directory=False, always=False):
             if controller is None or login.status()['state'] != 'authenticated':
                 raise ValueError('CONSENT_UNAVAILABLE')
-            controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest, directory=directory)
+            controller.client.resolve_local_consent(task_id, approved=approved, expected_hash=digest,
+                                                    directory=directory, always=always)
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))

@@ -53,6 +53,17 @@ def _bounded_text(value, limit=200):
     return value if isinstance(value, str) and 0 < len(value) <= limit else ""
 
 
+def requirements_fingerprint_of(declaration) -> str:
+    """The scope identity a script approval binds (#122); an unreadable
+    declaration reads as empty rather than blocking the display."""
+    try:
+        from .skill_script import parse_execution_environment, requirements_fingerprint
+        parsed = parse_execution_environment(declaration)
+        return requirements_fingerprint(parsed) if parsed is not None else ""
+    except Exception:  # noqa: BLE001 - display fact only, never a gate
+        return ""
+
+
 def _graph_view_payload(view):
     """Project the platform graph view into the Desktop display shape.
 
@@ -417,6 +428,14 @@ class DesktopChat:
         self._tasks_loading = None
 
     def _consents(self, session):
+        """The pending device decisions the Desktop chat can settle (#39).
+
+        Issue 122 script asks and #116 knowledge-material asks are device
+        authority exactly like file writes: they sit in the same pending
+        queue and were invisible in Desktop mode only because this
+        projection dropped every non-write capability, so the request timed
+        out into a denial with no surface to answer it.
+        """
         rows = []
         thread, run = self._state.get('thread'), self._state.get('run')
         if not thread or not run:
@@ -429,14 +448,47 @@ class DesktopChat:
             raise ChatError('CONSENT_UNAVAILABLE') from None
         for pending in pending_rows:
             payload = pending.payload
-            if pending.capability != 'local.files.write' or payload.get('thread_id') != thread['id'] or payload.get('run_id') != run['id']:
+            capability = pending.capability
+            if payload.get('thread_id') != thread['id'] or payload.get('run_id') != run['id']:
                 continue
-            args = payload.get('arguments', payload.get('args', payload))
-            if not isinstance(args, dict) or not isinstance(args.get('path'), str) or not isinstance(args.get('content'), str):
+            if capability == 'local.files.write':
+                args = payload.get('arguments', payload.get('args', payload))
+                if not isinstance(args, dict) or not isinstance(args.get('path'), str) or not isinstance(args.get('content'), str):
+                    continue
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='file-write',
+                    path=args['path'], content=args['content'])
+                row['directory'] = pending.summary.get('directory', '')
+            elif capability == 'local.skill.script':
+                # Identity and scope facts only: the script bytes stay in the
+                # gate, the card names what the user is approving (#122).
+                if not isinstance(payload.get('skill_id'), str) or not isinstance(payload.get('script_path'), str):
+                    continue
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='skill-script',
+                    skill=payload['skill_id'], scriptPath=payload['script_path'],
+                    version=str(payload.get('skill_version', '')),
+                    scriptSha256=payload.get('script_sha256', ''),
+                    requirementsSha256=requirements_fingerprint_of(payload.get('declaration')))
+            elif capability == 'local.knowledge.material':
+                args = payload.get('arguments', payload.get('args', payload))
+                if not isinstance(args, dict) or not isinstance(args.get('documents'), list):
+                    continue
+                documents = []
+                for entry in args['documents']:
+                    if not isinstance(entry, dict) or not isinstance(entry.get('filename'), str) \
+                            or not isinstance(entry.get('content_hash'), str):
+                        documents = []
+                        break
+                    documents.append(dict(filename=entry['filename'], contentHash=entry['content_hash']))
+                if not documents:
+                    continue
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='knowledge-material',
+                    revisionId=str(args.get('revision_id', '')), manifestHash=str(args.get('manifest_hash', '')),
+                    documents=documents)
+            else:
                 continue
-            row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
-                requestHash=pending.request_hash, path=args['path'], content=args['content'])
-            row['directory'] = pending.summary.get('directory', '')
             # The credential scrubber must remain active, but a scrubbed card
             # cannot authorize bytes the user could not see. Check on both
             # display and decision paths, before calling the local approver.
@@ -1682,16 +1734,26 @@ class DesktopChat:
                     self._load_thread(session, self._state['thread']['id'])
                 elif action == 'consent':
                     expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'}
+                    # Issue 39: a script approval may ask the device to remember
+                    # the exact content/scope grant (#122 AC2); the flag is
+                    # refused for every other kind, and the coordinator never
+                    # turns a script "remember" into a capability-wide bypass.
+                    remember_script = command.get('rememberScript') is True
+                    if remember_script:
+                        expected = expected | {'rememberScript'}
                     if set(command) != expected or command.get('decision') not in {'allow', 'allow-directory', 'deny'} or self.decide_consent is None:
                         raise ChatError('CHAT_COMMAND_INVALID')
                     pending = next((row for row in self._consents(session) if all(command.get(key) == row[key] for key in ('threadId', 'runId', 'taskId', 'requestHash'))), None)
                     if pending is None:
                         raise ChatError('CONSENT_MISMATCH')
+                    if remember_script and (pending.get('kind') != 'skill-script' or command['decision'] != 'allow'):
+                        raise ChatError('CHAT_COMMAND_INVALID')
                     try:
                         if command['decision'] == 'allow-directory':
                             self.decide_consent(command['taskId'], command['requestHash'], True, directory=True)
                         else:
-                            self.decide_consent(command['taskId'], command['requestHash'], command['decision'] == 'allow')
+                            self.decide_consent(command['taskId'], command['requestHash'], command['decision'] == 'allow',
+                                                always=remember_script)
                     except Exception:
                         raise ChatError('CONSENT_UNAVAILABLE') from None
                     self._state['error'] = ''

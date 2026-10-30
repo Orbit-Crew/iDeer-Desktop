@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
-import type { ChatCommand, ChatSnapshot, HumanInputRequest } from '../../../shared/desktop'
+import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView } from '../../../shared/desktop'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
@@ -36,6 +36,82 @@ function Clarification({ request, disabled, onAnswer }: {
       </Form.Item>}
       <Button htmlType="submit" disabled={disabled}>提交回答</Button>
     </Form>}
+  </Card>
+}
+
+type ConsentCardProps = {
+  request: LocalConsentView
+  state: ChatSnapshot
+  threadId: string | undefined
+  busy: boolean
+  blocked: (capability: string) => boolean
+  onCommand: CommandHandler
+}
+
+const consentCommand = (request: LocalConsentView, state: ChatSnapshot, threadId: string | undefined,
+  decision: 'allow' | 'allow-directory' | 'deny', extra: Record<string, unknown> = {}): ChatCommand =>
+  ({ action: 'consent', scope: state.scope, threadId: threadId ?? '', runId: request.runId, taskId: request.taskId,
+    requestHash: request.requestHash, decision, ...extra })
+
+function FileWriteConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  return <Card size="small" title="本机文件写入审批">
+    <Typography.Paragraph>新建或覆盖：{request.path}</Typography.Paragraph>
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+    <Typography.Paragraph>以下内容将按原始 UTF-8 字节写入。一次允许仅批准本次请求。</Typography.Paragraph>
+    {request.directory && <Typography.Paragraph>持续授权范围：{request.directory} 及其子目录中的文本新建与覆盖。受保护路径和脚本仍受限制，可在设置撤销。</Typography.Paragraph>}
+    <Input.TextArea aria-label="审批写入内容" value={request.content} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.files.write')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>仅允许这一次</Button>
+      {request.directory && <Button disabled={busy || blocked('local.files.write')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow-directory'))}>始终允许此目录的文本写入</Button>}
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝写入</Button>
+    </Space>
+  </Card>
+}
+
+function ScriptConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  const [remember, setRemember] = useState(false)
+  return <Card size="small" title="本机技能脚本审批">
+    <Typography.Paragraph>技能：{request.skill} · 脚本：{request.scriptPath} · 版本 V{request.version}</Typography.Paragraph>
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>脚本 SHA-256：{request.scriptSha256}</Typography.Paragraph>
+    <Typography.Paragraph copyable>环境范围 SHA-256：{request.requirementsSha256}</Typography.Paragraph>
+    <Typography.Paragraph>
+      脚本默认关闭：这次允许只批准这一个脚本内容与其声明的环境范围，执行结果回执由本机记录。
+    </Typography.Paragraph>
+    <Checkbox aria-label={`记住脚本授权 ${request.scriptPath ?? ''}`} checked={remember}
+      onChange={(event) => setRemember(event.target.checked)}>
+      记住此授权（只绑定当前脚本内容与环境范围；内容或范围变化会重新询问，可随时撤销）
+    </Checkbox>
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.skill.script')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow',
+          remember ? { rememberScript: true } : {}))}>允许执行</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝执行</Button>
+    </Space>
+  </Card>
+}
+
+function MaterialConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  return <Card size="small" title="本机知识取材审批">
+    <Typography.Paragraph>读取已登记知识版本中的冻结文档，用于平台编排的图谱/Wiki 生成。</Typography.Paragraph>
+    <Typography.Paragraph>版本：{request.revisionId} · 清单：{request.manifestHash}</Typography.Paragraph>
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+    {(request.documents ?? []).map((document) => <Typography.Paragraph key={document.filename} style={{ overflowWrap: 'anywhere' }}>
+      {document.filename} · 文档指纹 {document.contentHash}
+    </Typography.Paragraph>)}
+    <Typography.Paragraph type="secondary">设备会先核对文档指纹与冻结清单一致才返回内容；拒绝则该文档按失败如实展示。</Typography.Paragraph>
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.knowledge.material')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>允许读取</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝读取</Button>
+    </Space>
   </Card>
 }
 
@@ -126,23 +202,14 @@ function ChatContents({ state, busy, onCommand }: {
           {(task.error_code || task.local?.error_code) && <Typography.Text type="warning">{task.error_code || task.local?.error_code}</Typography.Text>}
         </Card>)}
       </Card>}
-      {state.localConsents?.filter((request) => !state.stop && request.threadId === threadId && request.runId === state.run?.id).map((request) => <Card
-        key={`${request.taskId}-${request.requestHash}`} size="small" title="本机文件写入审批">
-        <Typography.Paragraph>新建或覆盖：{request.path}</Typography.Paragraph>
-        <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
-        <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
-        <Typography.Paragraph>以下内容将按原始 UTF-8 字节写入。一次允许仅批准本次请求。</Typography.Paragraph>
-        {request.directory && <Typography.Paragraph>持续授权范围：{request.directory} 及其子目录中的文本新建与覆盖。受保护路径和脚本仍受限制，可在设置撤销。</Typography.Paragraph>}
-        <Input.TextArea aria-label="审批写入内容" value={request.content} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
-        <Space className="mt-3">
-          <Button type="primary" disabled={busy || blocked('local.files.write')} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
-            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow' })}>仅允许这一次</Button>
-          {request.directory && <Button disabled={busy || blocked('local.files.write')} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
-            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'allow-directory' })}>始终允许此目录的文本写入</Button>}
-          <Button danger disabled={busy} onClick={() => void onCommand({ action: 'consent', scope: state.scope,
-            threadId, runId: request.runId, taskId: request.taskId, requestHash: request.requestHash, decision: 'deny' })}>拒绝写入</Button>
-        </Space>
-      </Card>)}
+      {state.localConsents?.filter((request) => !state.stop && request.threadId === threadId && request.runId === state.run?.id).map((request) => {
+        if (request.kind === 'skill-script') return <ScriptConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        if (request.kind === 'knowledge-material') return <MaterialConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+      })}
       <div role="log" aria-label="平台聊天消息" className="space-y-3 max-h-[50vh] overflow-auto">
         {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>

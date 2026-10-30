@@ -40,3 +40,4 @@ These links locate existing records; this index does not change their verdicts.
 | #109 | [Report](issue-109/report.md), [2026-10-26 installed recovery re-acceptance](issue-109/supplement-20261026.md) |
 | #110 | [Report](issue-110/report.md) |
 | #111 | [Report](issue-111/report.md), [2026-10-26 modern Windows acceptance with human signoff](issue-111/supplement-20261026.md) |
+| #112–#123 | [#112](issue-112/report.md), [#113](issue-113/report.md), [#114](issue-114/report.md), [#115](issue-115/report.md), [#116](issue-116/report.md), [#117](issue-117/report.md), [#118](issue-118/report.md), [#119](issue-119/report.md), [#120](issue-120/report.md), [#121](issue-121/report.md), [#122](issue-122/report.md), [#123](issue-123/report.md), [2026-10-30 corrections, closure re-evaluation and re-verification index](corrections-2026-10-30-issues-112-123.md) |

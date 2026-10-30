@@ -499,7 +499,8 @@ export type ChatCommand =
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
-  | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string; decision: 'allow' | 'allow-directory' | 'deny' }
+  | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
+    decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
 
@@ -523,6 +524,27 @@ export interface ChatMessage {
   request?: HumanInputRequest | null
   response?: { request_id: string } | null
 }
+/** Issue 39: one pending device decision the Desktop chat can settle — a
+ * file write (#102), a Skill script run (#122), or a knowledge material read
+ * (#116). Identity and scope facts only; bytes never cross to the renderer. */
+export interface LocalConsentView {
+  taskId: string
+  runId: string
+  threadId: string
+  requestHash: string
+  kind: 'file-write' | 'skill-script' | 'knowledge-material'
+  path?: string
+  content?: string
+  directory?: string
+  skill?: string
+  scriptPath?: string
+  version?: string
+  scriptSha256?: string
+  requirementsSha256?: string
+  revisionId?: string
+  manifestHash?: string
+  documents?: { filename: string; contentHash: string }[]
+}
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
   artifacts?: PlatformArtifact[]
@@ -537,7 +559,7 @@ export interface ChatSnapshot {
     local?: { status: string; delivery_state: string; error_code?: string; receipt_hash?: string } | null;
     artifacts?: PlatformArtifact[];
     localResult?: LocalResultView | null }[]
-  localConsents?: { taskId: string; runId: string; threadId: string; requestHash: string; path: string; content: string; directory?: string }[]
+  localConsents?: LocalConsentView[]
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]
   threads: { id: string; title: string; status: string }[]
