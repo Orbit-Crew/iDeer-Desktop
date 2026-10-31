@@ -1558,13 +1558,15 @@ class DesktopChat:
         permissions = account.get('permissions') or []
         return dict(canRename='threads:write' in permissions, canDelete='threads:delete' in permissions)
 
-    def _thread_rows(self, session):
+    def _thread_rows(self, session, limit=200):
         """One bounded platform search page, projected and recency-sorted.
 
         Rows carry identity facts only; the Server's own updated_at drives the
-        ordering and no thread roster is ever stored on this device.
+        ordering and no thread roster is ever stored on this device. Search
+        fetches the platform's full single-page ceiling so a session beyond
+        the newest 200 still answers a query; the reply stays bounded.
         """
-        rows = self._json(session, '/api/threads/search', {'limit': 200})
+        rows = self._json(session, '/api/threads/search', {'limit': limit})
         if not isinstance(rows, list):
             raise ChatError('CHAT_PROTOCOL_ERROR')
         threads = []
@@ -1627,7 +1629,7 @@ class DesktopChat:
                 outcome = self._json(session, f"/api/threads/{self._id(command['threadId'])}", method='DELETE')
                 if not isinstance(outcome, dict) or outcome.get('success') is not True:
                     raise ChatError('CHAT_PROTOCOL_ERROR')
-            threads = self._thread_rows(session)
+            threads = self._thread_rows(session, limit=1000 if action == 'search' else 200)
             if action == 'search':
                 query = command['query'].strip().lower()
                 if query:

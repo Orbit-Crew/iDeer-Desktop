@@ -18,6 +18,21 @@ the existing session-cookie and CSRF contract. Device credentials do not
 authenticate chat. No model, Agent graph, shell or fallback executor is added
 to Desktop.
 
+Issue #72 adds one more restricted platform-facing method, `desktop:threads`,
+for the session sidebar's Thread management. Its command union allows list,
+search, rename and delete only. Every reply carries the Server's own
+post-action list plus the account's thread permissions, so the sidebar never
+keeps a local roster and never merges state. The wire always carries the chat
+session scope the Runtime itself last reported; Python re-fences it against a
+freshly computed session, so a stale identity is rejected. Rename rides the
+Server's state endpoint whose `values.title` the Server syncs into the Thread
+display name; delete requires the Server's own success flag and is confirmed
+in a trusted main-process dialog first. Deleting a Thread never touches the
+local receipt ledger — unconfirmed receipts stay queryable. The Server's
+`threads:write`/`threads:delete` permission and owner checks stay
+authoritative on every request; the renderer only grays out operations early
+and explains why.
+
 `DesktopChat` uses the existing `/api/resources`, `/api/threads` and thread Run
 APIs. Run creation uses `Idempotency-Key`, the human message's stable Turn ID,
 `multitask_strategy=reject` and the public `messages-tuple`, `values`, `custom`

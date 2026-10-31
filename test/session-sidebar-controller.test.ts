@@ -84,6 +84,43 @@ describe('session sidebar controller (#72)', () => {
     expect(explainThreadError('CHAT_CONFLICT')).toContain('任务在执行')
   })
 
+  it('keeps a canceled confirmation dialog silent', async () => {
+    const api: ThreadsApi = { threads: vi.fn(() => Promise.reject(new Error('THREADS_CANCELED'))) }
+    const controller = new SessionSidebarController(api, () => {})
+    await controller.load()
+    await controller.remove('thread-A')
+    const final = controller.snapshot()
+    expect(final.failed).toBe(false)
+    expect(final.error).toBe('')
+    expect(final.busy).toBe(false)
+  })
+
+  it('retries a wire-busy round a bounded number of times instead of failing', async () => {
+    vi.useFakeTimers()
+    try {
+      const calls: unknown[] = []
+      // The load round succeeds first; only the delete hits the busy wire.
+      const responses: (ThreadView | Error)[] = [threadView(), new Error('THREADS_BUSY'), new Error('THREADS_BUSY'), threadView({ deleted: true })]
+      const api: ThreadsApi = { threads: vi.fn((command) => {
+        calls.push(command)
+        const next = responses.shift()
+        return next instanceof Error ? Promise.reject(next) : Promise.resolve(next!)
+      }) }
+      const controller = new SessionSidebarController(api, () => {})
+      await controller.load()
+      const done = controller.remove('thread-B')
+      await vi.advanceTimersByTimeAsync(400)
+      await vi.advanceTimersByTimeAsync(400)
+      await done
+      const final = controller.snapshot()
+      expect(final.failed).toBe(false)
+      expect(final.threads.map((row) => row.id)).toEqual(['thread-A', 'thread-B'])
+      expect(calls.filter((command) => (command as { action: string }).action === 'delete')).toHaveLength(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('drops the stale reply of a superseded round', async () => {
     const first = deferred<ThreadView>()
     const second = deferred<ThreadView>()

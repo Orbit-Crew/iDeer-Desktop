@@ -127,6 +127,9 @@ def test_list_returns_platform_rows_sorted_and_permissions(tmp_path):
         assert [row['id'] for row in result['threads']] == [THREAD_A, THREAD_B]
         assert result['threads'][0] == {'id': THREAD_A, 'title': 'Alpha 会话', 'status': 'idle',
                                         'updatedAt': '2026-10-31T07:00:00+00:00'}
+        # The plain recency list stays bounded; only search sweeps wider.
+        listings = [body for method, path, body, _ in records if path == '/api/threads/search']
+        assert listings == [{'limit': 200}]
 
 
 def test_search_hits_platform_titles_case_insensitively(tmp_path):
@@ -139,6 +142,10 @@ def test_search_hits_platform_titles_case_insensitively(tmp_path):
         assert [row['id'] for row in result['threads']] == [THREAD_B]
         result = chat.threads_manage(wire('search', scope, query='不存在的会话'))
         assert result['threads'] == []
+        # Search sweeps the platform's full single-page ceiling so a session
+        # beyond the newest 200 still answers a query.
+        searches = [body for method, path, body, _ in records if path == '/api/threads/search']
+        assert searches and all(body == {'limit': 1000} for body in searches)
 
 
 def test_rename_writes_platform_state_and_rereads(tmp_path):

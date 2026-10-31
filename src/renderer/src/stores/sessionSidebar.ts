@@ -46,8 +46,10 @@ export class SessionSidebarController {
 
   /** One management round-trip; the reply always carries the Server's own
    * list and permissions, so no client-side merge or optimistic write exists.
-   * A canceled confirmation dialog is a user decision, not a failure. */
-  private async run(command: Parameters<DesktopBridge['threads']>[0], patch?: (view: SessionSidebarView) => Partial<SessionSidebarView>): Promise<void> {
+   * A canceled confirmation dialog is a user decision, not a failure, and a
+   * wire-busy rejection retries a bounded three times after the single slot
+   * frees instead of surfacing a spurious error. */
+  private async run(command: Parameters<DesktopBridge['threads']>[0], patch?: (view: SessionSidebarView) => Partial<SessionSidebarView>, retried = 0): Promise<void> {
     this.invalidate()
     const generation = this.generation
     this.update({ busy: true, failed: false, error: '', ...(patch ? patch(this.view) : {}) })
@@ -59,6 +61,11 @@ export class SessionSidebarController {
       const message = error instanceof Error ? error.message : String(error)
       if (generation !== this.generation) return
       if (message === 'THREADS_CANCELED') { this.update({ busy: false, failed: false, error: '' }); return }
+      if (message === 'THREADS_BUSY' && retried < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 350))
+        if (generation !== this.generation) return
+        return this.run(command, patch, retried + 1)
+      }
       this.update({ busy: false, failed: true, error: message })
     }
   }

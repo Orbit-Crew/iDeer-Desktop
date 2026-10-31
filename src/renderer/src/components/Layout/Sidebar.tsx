@@ -4,7 +4,7 @@
 // never clears this device's unconfirmed receipts.
 import { DeleteOutlined, EditOutlined, DoubleLeftOutlined, RocketOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons'
 import { Alert, Button, Input, Popconfirm, Typography } from 'antd'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 import { useSessionStore } from '../../stores/sessionStore'
 import { explainThreadError, SessionSidebarController, emptySessionSidebarView, type SessionSidebarView } from '../../stores/sessionSidebar'
@@ -92,12 +92,10 @@ function SessionSidebar({ view, activeThreadId, onOpenThread, onSearch, onLoad, 
   }
   useEffect(() => () => { if (debounce.current) clearTimeout(debounce.current) }, [])
   const readOnly = !view.permissions.canRename && !view.permissions.canDelete
-  const rows = useMemo(() => view.threads.filter((row) => !draftQuery.trim() ||
-    row.title.toLowerCase().includes(draftQuery.trim().toLowerCase()) ||
-    row.id.toLowerCase().includes(draftQuery.trim().toLowerCase())), [view.threads, draftQuery])
-  // The Server already returns the authoritative post-action list, recency
-  // ordered; the live draft filter is display-only between rounds.
-  const ordered = useMemo(() => [...rows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [rows])
+  // The Server's reply is the authoritative post-action list, recency
+  // ordered and already narrowed by the query — no client-side re-sort,
+  // re-filter or merge, so the display can never regress platform state.
+  const rows = view.threads
   return <>
     <div className="py-2 flex items-center gap-2">
       <span className="text-sm text-gray-500">会话</span>
@@ -108,19 +106,19 @@ function SessionSidebar({ view, activeThreadId, onOpenThread, onSearch, onLoad, 
       value={draftQuery} maxLength={128} disabled={view.busy}
       onChange={(event) => scheduleSearch(event.target.value)} />
     {view.failed && <Alert type="error" showIcon className="mt-2" message={explainThreadError(view.error)} />}
-    {!view.failed && !view.threads.length && !view.busy &&
+    {!view.failed && !rows.length && !view.busy &&
       <p className="mt-3 text-xs text-gray-500">暂无平台会话。在聊天面板新建会话后，这里会显示平台返回的列表。</p>}
-    {view.failed && !view.threads.length ? null : (
-      readOnly && view.threads.length ? <p className="mt-2 text-xs text-gray-400">当前账号为只读，重命名与删除不可用。</p> : null)}
+    {!view.failed && rows.length && readOnly &&
+      <p className="mt-2 text-xs text-gray-400">当前账号为只读，重命名与删除不可用。</p>}
     <ul className="mt-1 -mx-3 overflow-auto" aria-label="平台会话列表">
-      {ordered.map((row) => <ThreadRow key={row.id} row={row} active={row.id === activeThreadId} busy={view.busy}
+      {rows.map((row) => <ThreadRow key={row.id} row={row} active={row.id === activeThreadId} busy={view.busy}
         canRename={view.permissions.canRename} canDelete={view.permissions.canDelete}
         onOpen={() => onOpenThread(row.id)}
         onRename={(title) => onRename(row.id, title)}
         onDelete={() => onDelete(row.id)} />)}
     </ul>
-    {!view.failed && view.threads.length > 0 && ordered.length === 0 &&
-      <p className="mt-2 text-xs text-gray-500">没有匹配「{draftQuery.trim()}」的平台会话。</p>}
+    {!view.failed && !rows.length && view.query.trim() &&
+      <p className="mt-2 text-xs text-gray-500">没有匹配「{view.query.trim()}」的平台会话。</p>}
   </>
 }
 
@@ -132,16 +130,25 @@ export default function Sidebar(): JSX.Element {
   const controllerRef = useRef<SessionSidebarController | null>(null)
   // Static startup markup renders without a preload bridge; the sidebar then
   // shows its empty state and only manages sessions once the bridge exists.
-  const bridge = typeof window !== 'undefined' ? window.ideer : undefined
-  if (!controllerRef.current && bridge) {
-    controllerRef.current = new SessionSidebarController(bridge, setView)
-  }
-  const controller = controllerRef.current
   useEffect(() => {
-    if (!controller) return
-    void controller.load()
-    return () => controller.invalidate()
-  }, [controller])
+    let active = true
+    const current = new SessionSidebarController(window.ideer, (next) => { if (active) setView(next) })
+    controllerRef.current = current
+    void (async () => {
+      // The chat poll records the session scope the Runtime reports; align
+      // the first load with it instead of failing on a cold start.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await current.load()
+        if (!active) return
+        const { error, threads } = current.snapshot()
+        if (error !== 'CHAT_IDENTITY_CHANGED' || threads.length || attempt === 3) return
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        if (!active) return
+      }
+    })()
+    return () => { active = false; current.invalidate(); if (controllerRef.current === current) controllerRef.current = null }
+  }, [])
+  const controller = controllerRef.current
   return (
     <aside className="w-[260px] min-w-[260px] h-full flex flex-col border-r border-line bg-white text-gray-700">
       <div className="px-5 py-4 flex items-center gap-2.5">
