@@ -251,7 +251,7 @@ function ChatContents({ state, busy, onCommand }: {
       </div>
       {/* Issue 75: the composer owns the @-delegation and /Skill input
           commands; the thread key keeps its mounted facts session-scoped. */}
-      <ChatComposer key={threadId} state={state} busy={busy} pending={!!pending} canSend={canSend} onCommand={onCommand} />
+      <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend} onCommand={onCommand} />
     </>}
     {!!state.events.length && <Collapse items={[{ key: 'progress', label: '服务端工具与子代理进度', children:
       state.events.map((event, i) => <div key={`${event.id}-${i}`}><Typography.Text>{event.id} · {event.event}</Typography.Text><pre className="whitespace-pre-wrap break-all text-xs">{event.detail}</pre></div>) }]} />}

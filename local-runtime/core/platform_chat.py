@@ -1067,6 +1067,8 @@ class DesktopChat:
         # else: a violation fails without consuming the turn or the session.
         delegate_id = command.get('delegateAgentId')
         skill_ids = command.get('skillIds')
+        # The bounds mirror the main process exactly: at most 8 mounted
+        # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
         if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None):
             raise ChatError('CHAT_COMMAND_INVALID')
         if delegate_id is not None and (not isinstance(delegate_id, str) or not delegate_id or len(delegate_id) > 128):
@@ -1116,8 +1118,9 @@ class DesktopChat:
         # the session's main Agent). The mounted Skills must be published; the
         # first chip wins the platform's one explicit Skill per run and is
         # validated by the same agent-closure rule as a create-time Skill,
-        # while the rest stay mounted facts for the account's own Server-side
-        # trigger-preference injection.
+        # while the whole mount is recorded on the run. A run without any
+        # explicit Skill is exactly where the account's own Server-side
+        # trigger-preference injection applies — never alongside it.
         resolved_delegate = ''
         resolved_skills: list = []
         if delegate_id:
@@ -1150,6 +1153,10 @@ class DesktopChat:
         metadata = {'desktop_turn_id': turn_id}
         if resolved_delegate:
             metadata['desktop_delegate_agent_id'] = resolved_delegate
+        if resolved_skills:
+            # The whole mount rides the run as the user's own choice; the
+            # explicit seam above stays the platform's one-Skill-per-run cap.
+            metadata['desktop_skill_ids'] = resolved_skills
         body = dict(assistant_id=agent_id, input={'messages': [message]},
                     context=context,
                     metadata=metadata, stream_mode=['messages-tuple', 'values', 'custom'],

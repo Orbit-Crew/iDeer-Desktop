@@ -22,20 +22,23 @@ function triggerAt(text: string, caret: number, kind: 'agent' | 'skill'): { quer
   const marker = kind === 'agent' ? '@' : '/'
   const match = new RegExp(`(?:^|\\s)\\${marker}([^\\s]*)$`).exec(text.slice(0, caret))
   if (!match) return null
-  return { query: match[1], start: match.index + match[0].length - 1 - match[1].length }
+  // start = the token's own marker character: match[0] is [prefix][marker][query].
+  const tokenStart = match.index + match[0].length - 1 - match[1].length
+  return { query: match[1], start: tokenStart }
 }
 
 /** Issue 75: the message composer restores the original input habits — `@`
  * at-mentions one Agent for this message (platform sub-agent delegation in
  * the SAME session: the main Agent and Thread are unchanged, in contrast to
  * the 新建平台聊天 flow which opens a new session), `/` mounts Skill chips
- * (first chip first: the Runtime maps it onto the platform's one explicit
- * Skill per run; the rest stay mounted and unnamed Skills are auto-injected
- * by the account's own trigger preferences, which only the Server matches).
- * Enter sends, Shift+Enter newlines, and a composing IME never sends. */
-export function ChatComposer({ state, busy, pending, canSend, onCommand }: {
+ * that persist across the session's messages (first chip first: the Runtime
+ * maps it onto the platform's one explicit Skill per run and records the
+ * whole mount on the run; a run without any explicit Skill is where the
+ * account's own trigger-preference injection happens, matched only by the
+ * Server). Enter sends, Shift+Enter newlines, and a composing IME never
+ * sends. */
+export function ChatComposer({ state, pending, canSend, onCommand }: {
   state: ChatSnapshot
-  busy: boolean
   pending: boolean
   canSend: boolean
   onCommand: CommandHandler
@@ -97,6 +100,8 @@ export function ChatComposer({ state, busy, pending, canSend, onCommand }: {
     requestAnimationFrame(() => areaRef.current?.focus())
   }
 
+  const pick = (option: ComposerPick): void => picker?.kind === 'agent' ? pickAgent(option) : pickSkill(option)
+
   const send = (): void => {
     if (!canSend || pending || !text.trim() || !threadId) return
     const message = text
@@ -126,7 +131,7 @@ export function ChatComposer({ state, busy, pending, canSend, onCommand }: {
       if (event.key === 'Enter') {
         event.preventDefault()
         const option = options[picker.active]
-        if (option) picker.kind === 'agent' ? pickAgent(option) : pickSkill(option)
+        if (option) pick(option)
         return
       }
       if (event.key === 'Escape') {
@@ -160,14 +165,14 @@ export function ChatComposer({ state, busy, pending, canSend, onCommand }: {
         className="absolute z-10 left-0 right-0 bottom-full mb-1 max-h-48 overflow-auto rounded border border-gray-200 bg-white shadow-md">
         {options.map((option, index) => <li key={option.id} role="option" aria-selected={index === picker.active}
           className={`cursor-pointer px-3 py-1.5 text-sm ${index === picker.active ? 'bg-blue-50' : ''}`}
-          onMouseDown={(event) => { event.preventDefault(); picker.kind === 'agent' ? pickAgent(option) : pickSkill(option) }}>
+          onMouseDown={(event) => { event.preventDefault(); pick(option) }}>
           {option.name} <Typography.Text type="secondary" className="text-xs">{option.id}</Typography.Text>
         </li>)}
       </ul>}
     </div>
     <Space className="mt-2">
       <Button type="primary" aria-label="发送消息" disabled={disabled || !text.trim()} onClick={send}>发送</Button>
-      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（本会话内）· / 挂载 Skill</Typography.Text>
+      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（仅本条消息）· / 挂载 Skill（首个为本会话必用）</Typography.Text>
     </Space>
   </div>
 }

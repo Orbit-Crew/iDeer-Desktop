@@ -537,8 +537,9 @@ export const MAX_MESSAGE_SKILLS = 8
  * unchanged, in contrast to `create`, which opens a new session). `skillIds`
  * carries the skills the user explicitly mounted in the composer, first chip
  * first: the runtime maps the first onto the platform's per-run explicit
- * Skill seam (must-use, never trigger-guessed) and leaves the rest to the
- * account's own trigger-preference injection, which only the Server does. */
+ * Skill seam (must-use, never trigger-guessed) and records the whole mount
+ * on the run. The account's own trigger-preference injection applies only on
+ * runs without an explicit Skill, and only the Server ever matches it. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
