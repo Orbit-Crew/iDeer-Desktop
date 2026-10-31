@@ -1623,7 +1623,7 @@ class DesktopChat:
         cached = self._models_cache
         if cached is not None and time.monotonic() - cached['at'] <= max_age:
             return cached
-        entry = dict(at=time.monotonic(), canRead=True, rows=self._model_rows(session), reason='')
+        entry = dict(at=time.monotonic(), rows=self._model_rows(session))
         self._models_cache = entry
         return entry
 
@@ -1647,31 +1647,58 @@ class DesktopChat:
         return name
 
     def _fallback_name(self):
-        from .settings import load_settings
         name = load_settings(self.config).model_fallback_name
         return name if isinstance(name, str) and 0 < len(name) <= 200 else ''
 
     def _require_listed(self, session, name):
-        """A selection must come from the authorized list the Server granted."""
-        try:
-            rows = self._models(session, 0.0)['rows']
-        except ChatError as exc:
-            if exc.code == 'CHAT_FORBIDDEN':
-                raise
-            raise ChatError('CHAT_COMMAND_INVALID') from None
+        """A selection must come from the authorized list the Server granted.
+
+        A failed list read propagates its real category — an outage during a
+        selection must not masquerade as an invalid command.
+        """
+        rows = self._models(session, 0.0)['rows']
         if name not in {row['name'] for row in rows}:
             raise ChatError('CHAT_COMMAND_INVALID')
+
+    def _cached_model_rows(self, session, max_age=60.0):
+        """The bounded authorized rows, or the last cache on a failed read."""
+        try:
+            return self._models(session, max_age)['rows']
+        except ChatError:
+            cached = self._models_cache
+            return cached['rows'] if cached else []
+
+    def _cached_account_default(self, session, max_age=60.0):
+        """The account default, or the last cache on a failed read."""
+        try:
+            return self._account_default(session, max_age)
+        except ChatError:
+            cached = self._account_default_cache
+            return cached['name'] if cached else ''
+
+    def _model_choice(self, session, *, list_max_age, default_max_age):
+        """The open thread's model resolution facts (#73).
+
+        Returns (rows, default, override): the bounded authorized rows, the
+        account-level default, and the session's own temporary choice for the
+        loaded thread. The resolution order is override, default, then no
+        name — the platform default applies.
+        """
+        rows = self._cached_model_rows(session, list_max_age)
+        default = self._cached_account_default(session, default_max_age)
+        thread = self._state['thread']
+        override = self._session_models.get(thread['id']) if thread else None
+        return rows, default, override
 
     def _model_view(self, session):
         """The settings-page view: fresh authoritative facts only (#73)."""
         try:
-            catalog = self._models(session, 0.0)
-            can_read, rows, reason = True, catalog['rows'], ''
+            rows = self._models(session, 0.0)['rows']
+            can_read, reason = True, ''
         except ChatError as exc:
             if exc.code != 'CHAT_FORBIDDEN':
                 raise
             can_read, rows, reason = False, [], 'CHAT_MODEL_LIST_FORBIDDEN'
-        from .settings import load_settings
         stored = load_settings(self.config).model_fallback_name
         return dict(models=rows[:50], canRead=can_read, reason=reason,
                     accountDefault=self._account_default(session, 0.0),
@@ -1697,7 +1724,6 @@ class DesktopChat:
                 raise ChatError('CHAT_COMMAND_INVALID')
             if name:
                 self._require_listed(session, name)
-            from .settings import load_settings
             settings = load_settings(self.config)
             settings.model_fallback_name = name
             settings.save(self.config)
@@ -1733,19 +1759,8 @@ class DesktopChat:
         user picks a different model.
         """
         max_age = 0.0 if fresh else 60.0
-        try:
-            rows = self._models(session, max_age)['rows']
-        except ChatError:
-            cached = self._models_cache
-            rows = cached['rows'] if cached else []
-        try:
-            default = self._account_default(session, max_age)
-        except ChatError:
-            cached = self._account_default_cache
-            default = cached['name'] if cached else ''
+        rows, default, override = self._model_choice(session, list_max_age=max_age, default_max_age=max_age)
         self._state['modelOptions'] = rows[:50]
-        thread = self._state['thread']
-        override = self._session_models.get(thread['id']) if thread else None
         names = {row['name'] for row in rows}
         name = override or default
         source = 'session-override' if override else ('account-default' if default else 'platform-default')
@@ -1758,20 +1773,15 @@ class DesktopChat:
 
         Resolution order: the session's temporary choice, then the account
         default the platform stores for Web and Desktop alike, then no name —
-        the platform default applies. A choice that left the authorized list
+        the platform default applies. The default is read authoritatively per
+        submission, so a change made on the Web reaches the next new session
+        without waiting on any cache. A choice that left the authorized list
         is never silently replaced: without a usable fallback the submission
         stops with an explicit category before anything is sent, and with one
         the switch becomes the session's displayed model.
         """
-        try:
-            default = self._account_default(session)
-            catalog = self._models(session)
-        except ChatError:
-            default = self._account_default_cache['name'] if self._account_default_cache else ''
-            catalog = self._models_cache
-        rows = catalog['rows'] if catalog else []
+        rows, default, override = self._model_choice(session, list_max_age=60.0, default_max_age=0.0)
         names = {row['name'] for row in rows}
-        override = self._session_models.get(thread['id'])
         name = override or default
         source = 'session-override' if override else ('account-default' if default else 'platform-default')
         state = self._state['model']
@@ -1809,11 +1819,7 @@ class DesktopChat:
         """
         if not self._model_denial(exc):
             return None
-        try:
-            rows = self._models(session)['rows']
-        except ChatError:
-            cached = self._models_cache
-            rows = cached['rows'] if cached else []
+        rows = self._cached_model_rows(session)
         names = {row['name'] for row in rows}
         fallback = self._fallback_name()
         if not fallback or fallback == pick['name'] or (rows and fallback not in names):

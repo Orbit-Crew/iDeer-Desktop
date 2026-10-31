@@ -32,15 +32,16 @@ exists anywhere in this family — the Desktop never holds a model credential �
 and no Ollama section exists; the absence is stated in place.
 
 Each submission resolves the model in the open order — the session's temporary
-choice, then the account default, then no name (the platform default applies)
-— and rides the Run context's `model_name`. A choice that left the authorized
-list is never silently replaced: without a usable fallback the submission
-stops before anything is sent with an explicit unavailable category, and with
-one the switch re-submits once and the session displays the actual model and
-the switch story. Only model-attributable Server refusals (the fixed model
-denial details) trigger the bounded fallback re-submission; every other
-failure keeps the existing uncertain-submission contract. A delisted model
-pauses sending in the chat until the user switches.
+choice, then the account default (read authoritatively per submission), then no
+name (the platform default applies) — and rides the Run context's `model_name`.
+A choice that left the authorized list is never silently replaced: without a
+usable fallback the submission stops before anything is sent with an explicit
+unavailable category and the chat pauses sending until the user switches; with
+one, the sanctioned switch re-submits once and the session displays the actual
+model and the switch story. Only model-attributable Server refusals trigger the
+bounded fallback re-submission — today exactly the fixed denial details
+"Model access denied" and "is not in the configured model allowlist" — and
+every other failure keeps the existing uncertain-submission contract.
 
 `DesktopChat` uses the existing `/api/resources`, `/api/threads` and thread Run
 APIs. Run creation uses `Idempotency-Key`, the human message's stable Turn ID,

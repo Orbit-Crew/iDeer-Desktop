@@ -973,6 +973,8 @@ export class RuntimeProcess {
                 !['resources', 'threads', 'messages', 'events'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
             // Issue 73: the model display facts ride every snapshot; a shape
             // violation kills the child rather than showing invented state.
+            // The option rows get the same bounded projection as the models
+            // reply — display facts only, no invented fields.
             if (result.model && (typeof result.model !== 'object' ||
                 !['session-override', 'account-default', 'platform-default'].includes(result.model.source) ||
                 typeof result.model.name !== 'string' || result.model.name.length > 200 ||
@@ -980,9 +982,14 @@ export class RuntimeProcess {
                 typeof result.model.notice !== 'string' || result.model.notice.length > 500 ||
                 typeof result.model.switchedFrom !== 'string' || result.model.switchedFrom.length > 200 ||
                 typeof result.model.available !== 'boolean')) throw new Error('Invalid chat response')
-            if (result.modelOptions !== undefined && (!Array.isArray(result.modelOptions) ||
-                result.modelOptions.some((row: Record<string, unknown>) => typeof row?.name !== 'string' || row.name.length > 200))) {
-              throw new Error('Invalid chat response')
+            if (result.modelOptions !== undefined) {
+              if (!Array.isArray(result.modelOptions)) throw new Error('Invalid chat response')
+              result.modelOptions = result.modelOptions.slice(0, 50).map((row: Record<string, unknown>) => ({
+                name: typeof row?.name === 'string' ? row.name.slice(0, 200) : '',
+                displayName: typeof row?.displayName === 'string' ? row.displayName.slice(0, 200) : '',
+                description: typeof row?.description === 'string' ? row.description.slice(0, 500) : '',
+                supportsThinking: row?.supportsThinking === true
+              })).filter((row: ModelRowView) => row.name !== '')
             }
             this.chatRequests.get(value.id)?.resolve(result)
             continue

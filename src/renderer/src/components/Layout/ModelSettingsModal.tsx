@@ -43,7 +43,7 @@ export function ModelSettingsSection({ view, busy, error, onCommand }: {
             options={options.filter((option) => option.value !== view.accountDefault)}
             onChange={(name) => onCommand({ action: 'set-fallback', modelName: name ?? '' })} />
           <Typography.Text type="secondary">
-            主模型不可用或调用失败时改用备用模型重试；每次切换都会在会话中明确显示实际使用的模型，绝不静默切换。备用选择保存在本机。
+            主模型不在授权列表或提交被平台以模型原因拒绝时，改用备用模型重试一次；切换会在会话中明确显示实际使用的模型，绝不静默切换。备用选择保存在本机。
           </Typography.Text>
         </div>
       </>}
