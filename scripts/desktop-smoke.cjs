@@ -78,7 +78,7 @@ async function main() {
       'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
       'manage', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
-      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime'
+      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -303,6 +303,28 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('SKILL_SCRIPT_UNAUTHENTICATED')
       return runtime.skillScripts(command)
+    })
+    // Issue 72: the session sidebar's Thread management. Rename and delete
+    // write the Server's own Thread API after the identity fence; a delete is
+    // confirmed here in the trusted main process, and the local receipt ledger
+    // is never touched — unconfirmed receipts stay queryable on this device.
+    ipcMain.handle('desktop:threads', async (event, command: ThreadCommand): Promise<ThreadView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['list', 'search', 'rename', 'delete'].includes(command.action)) throw new Error('THREADS_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('THREADS_UNAUTHENTICATED')
+      if (command.action === 'delete') {
+        if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId)) throw new Error('THREADS_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认删除平台会话',
+          message: `删除平台会话 ${command.threadId}？`,
+          detail: '删除会同时移除该会话在平台上的对话历史，操作不可恢复。本机保存的未确认回执不会清除，仍可在回执历史中查看。'
+            + '如该会话正在对话中，请先等当前 Run 结束再删除。',
+          buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('THREADS_CANCELED')
+      }
+      return runtime.threads(command)
     })
     // Issue 123: the optional local connector install. The renderer only
     // names the action; the candidate directory is located and both the

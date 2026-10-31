@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -27,6 +27,10 @@ export class RuntimeProcess {
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
+  private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
+  /** Issue 72: the chat session identity the owned Runtime last reported; the
+   * sidebar's Thread management rides the same identity fence. */
+  private chatScope = ''
   private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
@@ -335,6 +339,51 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.skillScriptRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.skillScriptRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 72: the session sidebar's Thread management. The wire command is a
+   * fixed per-action key set and always carries the chat session scope the
+   * Runtime itself last reported, so a stale identity can never act on the
+   * platform. Every reply carries the Server's own post-action list and the
+   * account's Thread permissions; deletion happens only after a confirmed
+   * main-process dialog and never touches the local receipt ledger.
+   */
+  async threads(command: ThreadCommand): Promise<ThreadView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('THREADS_COMMAND_INVALID')
+    if (!['list', 'search', 'rename', 'delete'].includes(command.action)) throw new Error('THREADS_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'threads', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('THREADS_COMMAND_INVALID')
+    } else if (command.action === 'search') {
+      if (typeof command.query !== 'string' || command.query.length > 128 || Object.keys(command).length !== 2) throw new Error('THREADS_COMMAND_INVALID')
+      wire.query = command.query
+    } else {
+      if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId)) throw new Error('THREADS_COMMAND_INVALID')
+      if (command.action === 'rename') {
+        const title = typeof command.title === 'string' ? command.title.trim() : ''
+        if (!title || title.length > 200 || Object.keys(command).length !== 3) throw new Error('THREADS_COMMAND_INVALID')
+        wire.threadId = command.threadId
+        wire.title = title
+      } else {
+        if (Object.keys(command).length !== 2) throw new Error('THREADS_COMMAND_INVALID')
+        wire.threadId = command.threadId
+      }
+    }
+    if (this.threadRequests.size) throw new Error('THREADS_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.chatScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.threadRequests.delete(id); reject(new Error('THREADS_TIMEOUT')) }, 30000)
+      this.threadRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.threadRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.threadRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -854,6 +903,37 @@ export class RuntimeProcess {
             pending.resolve(pending.action === 'revoke' ? { authorizations, revoked: result.revoked } : { authorizations })
             continue
           }
+          if (value.v === 1 && value.type === 'threads') {
+            // Issue 72: the Server's own post-action thread list plus the
+            // account's Thread permissions, bounded before it reaches the
+            // renderer. Titles and statuses are display facts only; nothing
+            // here can create, own or authorize a thread.
+            const pending = this.threadRequests.get(value.id)
+            if (!pending) continue
+            this.threadRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || !Array.isArray(result.threads) || !result.permissions ||
+                typeof result.permissions.canRename !== 'boolean' || typeof result.permissions.canDelete !== 'boolean') {
+              pending.reject(new Error('THREADS_FAILED')); continue
+            }
+            if (pending.action === 'rename' && result.renamed !== true) { pending.reject(new Error('THREADS_FAILED')); continue }
+            if (pending.action === 'delete' && result.deleted !== true) { pending.reject(new Error('THREADS_FAILED')); continue }
+            const idPattern = /^[A-Za-z0-9_-]{1,128}$/
+            const threads: ThreadRowView[] = []
+            for (const row of result.threads.slice(0, 200)) {
+              if (!row || typeof row.id !== 'string' || !idPattern.test(row.id) ||
+                  typeof row.title !== 'string' || !row.title || typeof row.status !== 'string' ||
+                  typeof row.updatedAt !== 'string') throw new Error('Invalid thread row')
+              threads.push({ id: row.id, title: row.title.slice(0, 256), status: row.status.slice(0, 32),
+                updatedAt: row.updatedAt.slice(0, 64) })
+            }
+            const permissions: ThreadPermissionsView = { canRename: result.permissions.canRename, canDelete: result.permissions.canDelete }
+            pending.resolve(pending.action === 'rename' ? { threads, permissions, renamed: true }
+              : pending.action === 'delete' ? { threads, permissions, deleted: true }
+              : { threads, permissions })
+            continue
+          }
           if (value.v === 1 && value.type === 'connectors') {
             // Issue 123: the connector installer's fixed categories and
             // identity-only projections. Paths, package bytes and the
@@ -912,6 +992,9 @@ export class RuntimeProcess {
             if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
                 !['idle', 'streaming', 'disconnected', 'uncertain'].includes(result.stream) ||
                 !['resources', 'threads', 'messages', 'events'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+            // Issue 72: the sidebar's Thread management carries the same
+            // identity the chat session itself last reported.
+            this.chatScope = result.scope
             this.chatRequests.get(value.id)?.resolve(result)
             continue
           }
@@ -1071,6 +1154,7 @@ export class RuntimeProcess {
     })
     child.on('close', () => {
       this.loginOrigin = ''
+      this.chatScope = ''
       this.healthRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.managementRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
       this.workspaceRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
@@ -1082,6 +1166,7 @@ export class RuntimeProcess {
       for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeWikiRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

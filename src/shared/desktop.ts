@@ -340,6 +340,28 @@ export type SkillScriptCommand =
   | { action: 'revoke'; authorizationId: string }
 export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[]; revoked?: boolean }
 
+/** Issue 72: one platform thread as the sidebar shows it — identity facts and
+ * the Server's own recency timestamp; no local roster is ever built. */
+export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string }
+/** Issue 72: the account's own Thread capabilities as the Server states them. */
+export interface ThreadPermissionsView { canRename: boolean; canDelete: boolean }
+/** Issue 72: list/search/rename/delete share one wire shape. Every reply
+ * carries the account's thread permissions plus the platform's own post-action
+ * list, so the sidebar re-reads authoritative state in the same round; a
+ * rename or delete also carries its outcome flag. The Server-side permission
+ * and owner checks stay authoritative — the renderer only grays out early. */
+export type ThreadCommand =
+  | { action: 'list' }
+  | { action: 'search'; query: string }
+  | { action: 'rename'; threadId: string; title: string }
+  | { action: 'delete'; threadId: string }
+export interface ThreadView {
+  threads: ThreadRowView[]
+  permissions: ThreadPermissionsView
+  renamed?: boolean
+  deleted?: boolean
+}
+
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {
   slug: string
@@ -472,6 +494,9 @@ export interface DesktopBridge {
   skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
   /** Issue 122: list or revoke the device's remembered Skill script grants. */
   skillScripts(command: SkillScriptCommand): Promise<SkillScriptView>
+  /** Issue 72: search, rename and delete platform threads, always re-reading
+   * the Server's own list; deleting never clears local unconfirmed receipts. */
+  threads(command: ThreadCommand): Promise<ThreadView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand
