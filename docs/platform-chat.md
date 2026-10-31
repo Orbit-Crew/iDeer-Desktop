@@ -197,3 +197,25 @@ requests. Identity and Thread generations reject obsolete responses. History
 errors label cached results as needing another check; they never imply success.
 See [issue #104 acceptance](acceptance/issue-104/report.md) and its
 [fault runners](../scripts/acceptance/issue-104/README.md).
+
+## Background sessions and notification jump-back
+
+Switching sessions never aborts a Run: the Run lives on the Server with
+`on_disconnect='continue'`, the desktop only stops foreground stream
+consumption, and reopening the Thread reattaches the truthful state. The
+Runtime keeps a bounded observation ledger of runs a user leaves behind and
+emits one `notify` event per fact on the status stdout — a run that has since
+reached an end state, or a device approval ask on a session the user cannot
+currently see. Events carry identity facts only (thread, run, task, kind, a
+bounded summary line), are deduplicated, and are token-scrubbed like every
+other surface. The cadence bounds Server polling only; the desktop never sets
+a concurrency limit of its own — the platform and device capability
+intersection decide what runs in parallel.
+
+The trusted main process parses each event strictly, keeps the bounded
+notification ledger, shows the OS toast and pushes the full list to the
+renderer after every change; the renderer's notification center pane and
+sidebar bell read the same ledger, and activating a notification — from a
+toast or a center row — focuses the window and opens the event's session
+through the same handshake the sidebar uses. See
+[issue #77 acceptance](acceptance/issue-077/report.md).
