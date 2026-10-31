@@ -31,6 +31,7 @@ from .protocol import MessageType, sign_envelope
 from .receipts import content_hash
 from .consent import request_hash
 from .files import FileAccessError
+from .session_tier import GateDecision, SessionTier, tier_gate_decision
 
 
 class ConsentDecisionError(RuntimeError):
@@ -235,6 +236,28 @@ class LocalConsentCoordinator:
         entries.sort(key=lambda item: item.requested_at, reverse=True)
         return tuple(entries)
 
+    def _session_tier_gate(self, payload: dict[str, Any]) -> tuple[SessionTier | None, GateDecision]:
+        """#74: resolve the chat session's tier for one consent-worthy task.
+
+        Returns the tier (``None`` when no registry rides this runtime) and
+        the gate outcome. Without a registry, without a scope classifier, or
+        on the lowest tier the answer is always :attr:`GateDecision.ASK`: the
+        tier can only ever narrow the ordinary consent flow. A task without
+        its ``thread_id`` resolves the default tier, so an unidentifiable
+        session fails closed to asking.
+        """
+        registry = getattr(self._wire, "session_tiers", None)
+        if registry is None:
+            return None, GateDecision.ASK
+        tier = registry.tier_for(str(payload.get("thread_id", "")))
+        if tier is SessionTier.ASK_FIRST:
+            return tier, GateDecision.ASK
+        classify = getattr(getattr(self._wire, "file_service", None), "classify", None)
+        if classify is None:
+            return tier, GateDecision.ASK
+        capability = str(payload.get("operation", ""))
+        return tier, tier_gate_decision(tier, capability, payload, classify)
+
     async def _request_consent(
         self,
         envelope: Any,
@@ -252,6 +275,24 @@ class LocalConsentCoordinator:
         request = ConsentExchange(store).create_request(
             str(payload.get("operation", "")), payload
         )
+        # Issue 74: the chat session's own tier may be the standing answer.
+        # It resolves the ask only after the local policy has already had its
+        # veto, so a DENY or a dangerous capability never reaches this point;
+        # a tier refusal and a tier auto-run settle through the same
+        # record-and-execute path a human decision would.
+        tier, gate = self._session_tier_gate(payload)
+        if gate is GateDecision.ALLOW:
+            await self._settle_consent(
+                envelope, request, store, approved=True, actor_id="session-tier",
+                origin="session-tier", basis=f"tier:{tier.value}",
+            )
+            return
+        if gate is GateDecision.DENY:
+            await self._settle_consent(
+                envelope, request, store, approved=False, actor_id="session-tier",
+                origin="session-tier",
+            )
+            return
         self._audit(
             AuditKind.CONSENT,
             "required",
@@ -470,6 +511,7 @@ class LocalConsentCoordinator:
         always: bool = False,
         directory: bool = False,
         origin: str,
+        basis: str | None = None,
     ) -> None:
         """Record the decision, then run or refuse exactly what was shown."""
 
@@ -486,7 +528,10 @@ class LocalConsentCoordinator:
         remember_script_grant = approved and bool(always) and self._skill_script(request.capability) and origin == 'tray'
         if self._skill_script(request.capability):
             always = False
-        basis = 'approved'
+        # A session-tier resolution names its own basis (#74); a human
+        # decision starts from the plain approval and may only upgrade it
+        # into a content- or directory-bound grant below.
+        basis = basis or 'approved'
         if remember_script_grant:
             try:
                 identity = wire.skill_script_service.remember_grant(

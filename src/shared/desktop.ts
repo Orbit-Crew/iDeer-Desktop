@@ -517,6 +517,14 @@ export interface InstallOutcome {
   detail: string
 }
 
+/** Issue 74: the three session permission tiers; a loaded session always
+ * starts at the lowest one and a tier choice never outlives the session. */
+export type SessionTierValue = 'ask_first' | 'autonomous' | 'full'
+
+/** The tier values in ascending order; the single source the main-process
+ * validator and the chat switcher both read. */
+export const SESSION_TIERS: readonly SessionTierValue[] = ['ask_first', 'autonomous', 'full']
+
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
@@ -528,6 +536,7 @@ export type ChatCommand =
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
+  | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -585,6 +594,8 @@ export interface ChatSnapshot {
     artifacts?: PlatformArtifact[];
     localResult?: LocalResultView | null }[]
   localConsents?: LocalConsentView[]
+  /** Issue 74: this session's permission tier; absent means the lowest tier. */
+  localTier?: SessionTierValue
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]
   threads: { id: string; title: string; status: string }[]

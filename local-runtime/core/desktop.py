@@ -16,6 +16,7 @@ from .compatibility import CompatibilityGate
 from .connector_install import ConnectorInstallError
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
+from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
@@ -280,6 +281,11 @@ def main() -> int:
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        # Issue 74: the chat session tiers and the audit log they are recorded
+        # in are one device-level pair, shared by the chat surface and the
+        # transport session.
+        audit_log = LocalAuditLog(db_path=args.config.with_name("audit.db"))
+        session_tiers = SessionTierRegistry(audit=audit_log)
         # Registered local results are display-only metadata for this identity;
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
@@ -316,7 +322,8 @@ def main() -> int:
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
-            knowledge_publications=knowledge_publications, skill_imports=skill_imports)
+            knowledge_publications=knowledge_publications, skill_imports=skill_imports,
+            session_tiers=session_tiers)
 
         def chat_control():
             while not stop.is_set():
@@ -359,12 +366,15 @@ def main() -> int:
                 settings.save(args.config)
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
-                audit=LocalAuditLog(db_path=args.config.with_name("audit.db")))
+                audit=audit_log)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
             controller.client.local_results = local_results
+            # Issue 74: the consent coordinator reads the chat session's tier
+            # from the same registry the chat commands write.
+            controller.client.session_tiers = session_tiers
             connector_service = getattr(controller, 'connector_service', None)
             if connector_service is not None:
                 # Issue 123: the platform canonical identity rides this

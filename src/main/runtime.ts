@@ -2,7 +2,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import { SESSION_TIERS } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -441,7 +442,10 @@ export class RuntimeProcess {
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
       upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
-      download: ['action', 'scope', 'threadId', 'artifactId']
+      download: ['action', 'scope', 'threadId', 'artifactId'],
+      // Issue 74: confirm may ride a full-tier switch only; the main process
+      // adds it after its own confirmation dialog, the renderer never does.
+      tier: ['action', 'scope', 'threadId', 'tier', 'confirm']
     }
     const allowed = keys[command.action]
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -451,12 +455,29 @@ export class RuntimeProcess {
     if (command.action === 'consent' && (consentKeys !== 7 || !['allow', 'allow-directory', 'deny'].includes(command.decision) ||
         ((command as { rememberScript?: unknown }).rememberScript !== undefined && typeof (command as { rememberScript?: unknown }).rememberScript !== 'boolean') ||
         !/^[0-9a-f]{64}$/.test(command.requestHash))) throw new Error('CHAT_COMMAND_INVALID')
+    // Issue 74: a tier switch names exactly one tier; only the full tier may
+    // carry the confirm flag, and only as the literal true the main process
+    // signs after its own dialog.
+    if (command.action === 'tier') {
+      const tierCommand = command as unknown as { tier?: unknown; confirm?: unknown }
+      if (!SESSION_TIERS.includes(tierCommand.tier as SessionTierValue) ||
+          (tierCommand.tier === 'full'
+            ? (tierCommand.confirm !== true || Object.keys(command).length !== 5)
+            : (tierCommand.confirm !== undefined || Object.keys(command).length !== 4))) throw new Error('CHAT_COMMAND_INVALID')
+    }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
     if (command.action === 'download' && (Object.keys(command).length !== 4 || !command.scope ||
         !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId) || !/^[A-Za-z0-9_-]{1,128}$/.test(command.artifactId))) throw new Error('CHAT_COMMAND_INVALID')
-    if (!allowed || Object.entries(command).some(([key, value]) => !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256))) {
+    if (!allowed || Object.entries(command).some(([key, value]) => {
+      // The two documented boolean flags are part of their command's fixed
+      // shape even though they are not string-valued (#39 rememberScript,
+      // #74 confirm); everything else must be a bounded string on the
+      // command's own key list.
+      if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
+      return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256)
+    })) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
     if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')

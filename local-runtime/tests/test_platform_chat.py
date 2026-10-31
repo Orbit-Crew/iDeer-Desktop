@@ -874,3 +874,104 @@ def test_thread_history_separates_local_results_from_platform_attachments(tmp_pa
         assert local['localResult']['sha256'] and not local['localResult']['artifact_ref']
         assert 'artifacts' not in local
         assert upload_posts(records) == []
+
+
+def test_chat_tier_switch_is_validated_recorded_and_reset_by_thread_load(tmp_path):
+    """#74: the three session tiers ride one explicit command; a session
+    always starts at the lowest tier, switching needs the matching confirm
+    for the full tier, and reopening a thread forgets any tier choice —
+    with the fall-back itself recorded in the audit log."""
+    from core.session_tier import SessionTier, SessionTierRegistry
+
+    class _AuditSpy:
+        def __init__(self):
+            self.entries = []
+
+        def record(self, kind, action, **kwargs):
+            self.entries.append((action, kwargs.get('detail')))
+            return kwargs
+
+    audit = _AuditSpy()
+    registry = SessionTierRegistry(audit=audit)
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, session_tiers=registry)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '34343434-3434-4343-8343-343434343434', 'text': 'Hello'})
+        # A loaded session is always at the lowest tier.
+        assert state['localTier'] == 'ask_first'
+
+        upgraded = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                                'tier': 'autonomous'})
+        assert upgraded['localTier'] == 'autonomous'
+        assert upgraded['error'] == ''
+        assert registry.tier_for('thread-A') is SessionTier.AUTONOMOUS
+
+        full = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                            'tier': 'full', 'confirm': True})
+        assert full['localTier'] == 'full'
+        assert registry.tier_for('thread-A') is SessionTier.FULL
+
+        downgraded = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                                  'tier': 'ask_first'})
+        assert downgraded['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        assert [action for action, _ in audit.entries] == ['session_tier_changed'] * 3
+
+        # Reopening the thread forgets whatever the session chose before, and
+        # the expiry is recorded just like a switch (#74 review).
+        chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'full',
+                     'confirm': True})
+        reopened = chat.handle({'action': 'reconnect', 'scope': scope, 'threadId': 'thread-A'})
+        assert reopened['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        assert audit.entries[-1] == ('session_tier_expired',
+                                {'thread_id': 'thread-A', 'from': 'full', 'to': 'ask_first'})
+
+
+def test_chat_tier_command_rejects_malformed_and_mismatched_requests(tmp_path):
+    from core.session_tier import SessionTier, SessionTierRegistry
+
+    registry = SessionTierRegistry()
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, session_tiers=registry)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '35353535-3535-4353-8353-353535353535', 'text': 'Hello'})
+        for command, expected in (
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'full'},
+             'CHAT_COMMAND_INVALID'),  # the full tier needs the explicit confirm
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'unlimited'},
+             'CHAT_COMMAND_INVALID'),
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'autonomous',
+              'confirm': True}, 'CHAT_COMMAND_INVALID'),  # confirm belongs to full only
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'autonomous',
+              'extra': 'x'}, 'CHAT_COMMAND_INVALID'),
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-B', 'tier': 'autonomous'},
+             'CHAT_THREAD_CHANGED'),
+        ):
+            state = chat.handle(command)
+            assert state['error'] == expected
+            assert state['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        # The thread mismatch never reloaded anything, so the tier command
+        # against the open thread still works afterwards.
+        state = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                             'tier': 'autonomous'})
+        assert state['localTier'] == 'autonomous'
+
+
+def test_chat_tier_command_needs_a_runtime_registry(tmp_path):
+    """A DesktopChat built without the device registry refuses to fake one."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '36363636-3636-4363-8363-363636363636', 'text': 'Hello'})
+        state = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                             'tier': 'autonomous'})
+        assert state['error'] == 'CHAT_COMMAND_INVALID'
+        assert state['localTier'] == 'ask_first'

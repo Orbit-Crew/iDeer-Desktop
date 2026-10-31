@@ -46,3 +46,35 @@ describe('restricted chat bridge', () => {
     }
   }, 30000)
 })
+
+describe('session tier commands (#74)', () => {
+  it('lets a plain tier switch pass validation and fail only on the stopped runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-74/unused')
+    await expect(runtime.chat({ action: 'tier', scope: 'A', threadId: 'thread', tier: 'autonomous' }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed tier shapes before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-74/unused')
+    for (const patch of [{ tier: 'unlimited' }, { tier: '' }, { extra: 'x' }, { tier: 3 }]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'tier', scope: 'A', threadId: 'thread', tier: 'autonomous', ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    // Only the main process may sign the full-tier confirm; a bare full
+    // switch and a confirm on any other tier are both malformed.
+    await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'tier', scope: 'A', threadId: 'thread', tier: 'full' }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'tier', scope: 'A', threadId: 'thread', tier: 'autonomous', confirm: true }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    await expect(runtime.chat(JSON.parse(JSON.stringify({ action: 'tier', scope: 'A', threadId: 'thread', tier: 'full', confirm: false }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('accepts the remembered script allow the renderer sends (#39)', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-39/unused')
+    await expect(runtime.chat({ action: 'consent', scope: 'A', threadId: 'thread', runId: 'run', taskId: 'task',
+      requestHash: 'a'.repeat(64), decision: 'allow', rememberScript: true }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+})
