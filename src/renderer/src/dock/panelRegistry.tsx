@@ -5,6 +5,7 @@
 // in the pinned linz source (it was never a delivered original pane).
 import {
   ApartmentOutlined,
+  BellOutlined,
   CodeOutlined,
   DeploymentUnitOutlined,
   DesktopOutlined,
@@ -18,6 +19,7 @@ import type { PanelTypeDef, PanelTypeId } from './types'
 import { getPanelMeta } from './panelMeta'
 import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
+import NotificationsPane from './panels/notificationsPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 
@@ -40,7 +42,8 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder }
+  { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
+  { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane }
 ]
 
 const registryMap = new Map(PANEL_REGISTRY.map((p) => [p.id, p]))
@@ -70,6 +73,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <LineChartOutlined />
     case 'synapse':
       return <ApartmentOutlined />
+    case 'notifications':
+      return <BellOutlined />
     default:
       return <FolderOpenOutlined />
   }

@@ -2,11 +2,13 @@
 // recency ordering, all riding the platform's own Thread API. The list is the
 // Server's own post-action reply; nothing local is kept, and deleting a thread
 // never clears this device's unconfirmed receipts.
-import { DeleteOutlined, EditOutlined, DoubleLeftOutlined, RocketOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons'
-import { Alert, Button, Input, Popconfirm, Typography } from 'antd'
+import { BellOutlined, DeleteOutlined, EditOutlined, DoubleLeftOutlined, RocketOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons'
+import { Alert, Badge, Button, Input, Popconfirm, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 import { useSessionStore } from '../../stores/sessionStore'
+import { useNotificationCenter } from '../../stores/notificationCenter'
+import { useDockStore } from '../../dock/dockStore'
 import { explainThreadError, SessionSidebarController, emptySessionSidebarView, type SessionSidebarView } from '../../stores/sessionSidebar'
 import type { ThreadRowView } from '../../../../shared/desktop'
 
@@ -126,6 +128,7 @@ export default function Sidebar(): JSX.Element {
   const toggleLeftPanel = useUIStore((state) => state.toggleLeftPanel)
   const requestOpen = useSessionStore((state) => state.requestOpen)
   const activeThreadId = useSessionStore((state) => state.activeThreadId)
+  const unreadNotifications = useNotificationCenter((state) => state.view.unread)
   const [view, setView] = useState<SessionSidebarView>(emptySessionSidebarView)
   const controllerRef = useRef<SessionSidebarController | null>(null)
   // Static startup markup renders without a preload bridge; the sidebar then
@@ -156,10 +159,18 @@ export default function Sidebar(): JSX.Element {
           <RocketOutlined className="text-white text-base" />
         </div>
         <span className="text-base font-semibold text-gray-900">iDeer Desktop</span>
-        <button onClick={toggleLeftPanel} className="ml-auto p-1.5 text-gray-400 rounded"
-          title="隐藏侧边栏" aria-label="隐藏侧边栏">
-          <DoubleLeftOutlined style={{ fontSize: 12 }} />
-        </button>
+        <span className="ml-auto flex items-center gap-1">
+          {/* Issue 77: the notification center entry; the badge rides the
+              same main-process ledger every later ticket reuses. */}
+          <Badge count={unreadNotifications} size="small" overflowCount={99}>
+            <Button type="text" size="small" icon={<BellOutlined />} aria-label="打开通知中心"
+              title="通知中心" onClick={() => useDockStore.getState().openPanelType('notifications')} />
+          </Badge>
+          <button onClick={toggleLeftPanel} className="p-1.5 text-gray-400 rounded"
+            title="隐藏侧边栏" aria-label="隐藏侧边栏">
+            <DoubleLeftOutlined style={{ fontSize: 12 }} />
+          </button>
+        </span>
       </div>
       <div className="px-5 pb-4 flex-1 min-h-0 flex flex-col">
         <SessionSidebar view={view} activeThreadId={activeThreadId}

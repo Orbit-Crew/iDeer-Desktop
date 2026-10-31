@@ -53,9 +53,17 @@ describe('bootstrap capability boundary', () => {
     // management: the renderer names the action only; the Server's own
     // permission and owner checks stay authoritative, and a delete is
     // confirmed in the trusted main process before it reaches the wire.
+    // Issue 77 adds desktop:notifications for the notification center's one
+    // ledger entry; the ledger itself lives in the trusted main process.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
-    expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+    // Issue 77 opens the bridge's only two push channels: the full bounded
+    // notification-center list after every ledger change, and the activate
+    // payload behind an OS-toast click. Both are fixed main-owned names; the
+    // preload never subscribes to anything else and never sends on its own.
+    expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
+      .toEqual(['desktop:notification:activate', 'desktop:notifications'])
+    expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })
 
@@ -70,11 +78,14 @@ describe('dock pane security seam (issue 71)', () => {
     expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
     for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
 
-    const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly && p.id !== 'runtime')
+    // Issue 77 wires the notifications pane; like `runtime` it maps to its
+    // own component instead of the unwired placeholder.
+    const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
+      !['runtime', 'notifications'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['files', 'kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime']) {
+    for (const id of ['chat', 'runtime', 'notifications']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
