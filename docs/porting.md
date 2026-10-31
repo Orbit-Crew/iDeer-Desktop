@@ -60,6 +60,17 @@ Desktop 的 package metadata 暂标 UNLICENSED，来源包原始 MIT 声明原�
 pi-tui 补丁随旧 Agent 依赖排除，不遗留无目标的 postinstall。
 structuredClone 的 v8 补丁只保证可序列化数据，不声明 transfer 或完整浏览器克隆语义。
 
+## 2026-10-31 dock 多窗格框架恢复（iDeer-Desktop #71）
+
+一期·1 按同一受管移植模式恢复 [Neowyh/linz f88141b](https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13)
+的 `src/renderer/src/dock/*`（11 个文件）与 `components/Chat/LayoutPresetDropdown.tsx`，
+共 12 个来源文件已按原样 SHA-256 追加进 `resources/provenance/linz-source.json`，
+`npm run verify:provenance -- /path/to/linz` 可逐文件核验。移植为裁剪适配而非逐行复刻：
+chat 锚点直接承载平台聊天（无路由）、新增 Desktop 特有 `runtime` 伴随窗格、未接线能力按
+原栏目位置注册如实占位、锚点页签不可拖出、`ensureAnchorPane` 修复单窗格根的可达性。
+分歧清单与验收记账见 [docs/acceptance/issue-71/report.md](acceptance/issue-71/report.md)
+（三层验收第一层：入口恢复）。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。

@@ -70,9 +70,15 @@ async function main() {
     app = await electron.launch(options)
     const page = await app.firstWindow()
     page.setDefaultTimeout(15000)
-    await page.getByRole('heading', { name: '平台登录与设备连接' }).waitFor()
+    // Issue 71: startup is the dock workspace — the chat anchor carries the
+    // platform login fallback and the Runtime companion pane carries the
+    // device connection surfaces.
+    await page.locator('[data-desktop-ready="true"]').waitFor()
     await recordProcesses('initial-launch', 'running')
-    assert.match(await page.locator('body').innerText(), /登录后可选择平台已有 Agent\/Skill/)
+    const initialText = await page.locator('body').innerText()
+    assert.match(initialText, /请先在系统浏览器登录并绑定设备/)
+    assert.match(initialText, /本机 Runtime/)
+    assert.match(initialText, /设备连接：/)
     assert.equal(await page.title(), 'iDeer Desktop')
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
@@ -173,7 +179,7 @@ async function main() {
 
     for (const [width, height] of [[960, 600], [1440, 900], [1280, 800]]) {
       await app.evaluate(({ BrowserWindow }, bounds) => BrowserWindow.getAllWindows()[0].setSize(...bounds), [width, height])
-      await page.getByRole('heading', { name: '平台登录与设备连接' }).waitFor({ state: 'visible' })
+      await page.locator('[data-desktop-ready="true"]').waitFor({ state: 'visible' })
       assert.equal(await page.locator('textarea, input[type="password"], input[type="submit"]').count(), 0)
     }
 
@@ -225,7 +231,7 @@ async function main() {
     // Closing the native window must exit, without a background tray process.
     app = await electron.launch(options)
     const reopenedPage = await app.firstWindow()
-    await reopenedPage.getByRole('heading', { name: '平台登录与设备连接' }).waitFor()
+    await reopenedPage.locator('[data-desktop-ready="true"]').waitFor()
     if (process.platform === 'win32') await waitRuntimeState(reopenedPage, 'running')
     const beforeCloseRuntime = await reopenedPage.evaluate(() => window.ideer.getStatus())
     await recordProcesses('restart-before-native-close', 'running')
