@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from '
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { SESSION_TIERS } from '../shared/desktop'
+import { MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -438,7 +438,7 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
-      send: ['action', 'scope', 'threadId', 'turnId', 'text'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
       upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
@@ -465,6 +465,23 @@ export class RuntimeProcess {
             ? (tierCommand.confirm !== true || Object.keys(command).length !== 5)
             : (tierCommand.confirm !== undefined || Object.keys(command).length !== 4))) throw new Error('CHAT_COMMAND_INVALID')
     }
+    // Issue 75: the at-mention delegation and the mounted skills ride the
+    // send command as structured facts. The delegate is one bounded resource
+    // id; the mounted skills are 1..MAX_MESSAGE_SKILLS unique resource ids in
+    // pick order (first chip first — the Runtime maps it onto the platform's
+    // one explicit Skill per run). Both are optional; absent means a plain
+    // message with no per-message input commands.
+    if (command.action === 'send') {
+      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown }
+      const resourceId = (value: unknown): value is string =>
+        typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
+      if (inputCommand.delegateAgentId !== undefined && !resourceId(inputCommand.delegateAgentId)) throw new Error('CHAT_COMMAND_INVALID')
+      if (inputCommand.skillIds !== undefined) {
+        const skillIds = inputCommand.skillIds
+        if (!Array.isArray(skillIds) || skillIds.length === 0 || skillIds.length > MAX_MESSAGE_SKILLS ||
+            new Set(skillIds).size !== skillIds.length || !skillIds.every(resourceId)) throw new Error('CHAT_COMMAND_INVALID')
+      }
+    }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
@@ -473,9 +490,11 @@ export class RuntimeProcess {
     if (!allowed || Object.entries(command).some(([key, value]) => {
       // The two documented boolean flags are part of their command's fixed
       // shape even though they are not string-valued (#39 rememberScript,
-      // #74 confirm); everything else must be a bounded string on the
-      // command's own key list.
+      // #74 confirm); the #75 mounted-skill list is validated as a whole
+      // above. Everything else must be a bounded string on the command's own
+      // key list.
       if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
+      if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
       return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')
