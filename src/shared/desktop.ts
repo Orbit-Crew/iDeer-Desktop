@@ -539,7 +539,8 @@ export type RuntimeNotifyEvent =
   | { kind: 'run-finished'; threadId: string; runId: string; status: string; title: string }
   | { kind: 'approval-required'; threadId: string; runId: string; taskId: string; approval: string; summary: string; title: string }
 
-/** Issue 77: one recorded notification as the center shows it. */
+/** Issue 77: one recorded notification as the center shows it. `summary` is
+ * the finished run's own status or the approval ask's one bounded line. */
 export interface NotificationRecordView {
   id: string
   kind: RuntimeNotifyEvent['kind']
@@ -549,7 +550,6 @@ export interface NotificationRecordView {
   approval?: string
   title: string
   summary: string
-  status: string
   createdAt: string
   read: boolean
 }
@@ -557,6 +557,16 @@ export interface NotificationRecordView {
 /** Issue 77: the full bounded center list plus its unread count; every reply
  * carries both so the renderer never merges local state. */
 export interface NotificationCenterView { notifications: NotificationRecordView[]; unread: number }
+
+/** Issue 77: the one Chinese fact wording both the OS toast (main) and the
+ * notification center pane (renderer) read, so a label drift can never split
+ * the two surfaces. Unmatched values fall back to the raw wire fact. */
+export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
+  success: '成功', error: '出错', failed: '失败', interrupted: '已中断'
+}
+export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
+  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材'
+}
 
 /** Issue 77: list or settle the device's own notification ledger. */
 export type NotificationCommand =

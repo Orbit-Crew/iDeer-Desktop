@@ -23,11 +23,11 @@ beforeEach(() => {
 
 const finishedRow: NotificationRecordView = {
   id: 'n-1', kind: 'run-finished', threadId: 'thread-A', runId: 'run-1',
-  title: '后台会话 A', summary: 'success', status: 'success', createdAt: '2026-11-01T09:00:00.000Z', read: false
+  title: '后台会话 A', summary: 'success', createdAt: '2026-11-01T09:00:00.000Z', read: false
 }
 const approvalRow: NotificationRecordView = {
   id: 'n-2', kind: 'approval-required', threadId: 'thread-B', runId: 'run-2', taskId: 'task-9',
-  approval: 'file-write', title: '后台会话 B', summary: '/workspace/b/target.txt', status: '',
+  approval: 'file-write', title: '后台会话 B', summary: '/workspace/b/target.txt',
   createdAt: '2026-11-01T09:05:00.000Z', read: false
 }
 

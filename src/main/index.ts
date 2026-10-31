@@ -5,7 +5,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
 import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
-import { NotificationRegistry } from './notifications'
+import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
 import { UpdateService } from './update-stage'
@@ -92,16 +92,11 @@ if (!app.requestSingleInstanceLock()) {
       const record = notifications.record(event)
       if (!record) return
       if (Notification.isSupported()) {
-        const finished = event.kind === 'run-finished'
-        const statusLabel: Record<string, string> = { success: '成功', error: '出错', failed: '失败', interrupted: '已中断' }
-        const approvalLabel: Record<string, string> = { 'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材' }
-        const subject = event.title || `会话 ${event.threadId.slice(0, 12)}`
-        const toast = new Notification({
-          title: finished ? '后台会话已完成' : '后台会话等待审批',
-          body: finished
-            ? `${subject} · ${statusLabel[event.status] || event.status}`
-            : `${subject} · ${approvalLabel[event.approval] || event.approval}${event.summary ? `\n${event.summary}` : ''}`
-        })
+        // The one shared fact line (notifications.ts) keeps the toast and the
+        // center pane wording identical; future event kinds extend the union
+        // and the descriptor instead of this chat-agnostic handler.
+        const copy = describeNotification(event)
+        const toast = new Notification(copy)
         toast.on('click', () => activateNotification({ id: record.id, threadId: event.threadId }))
         toast.show()
       }

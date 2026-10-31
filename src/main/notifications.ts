@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { NotificationRecordView, NotificationCenterView, RuntimeNotifyEvent } from '../shared/desktop'
+import { NOTIFICATION_APPROVAL_LABELS, NOTIFICATION_STATUS_LABELS } from '../shared/desktop'
 
 /**
  * Issue 77: the Desktop's own notification ledger. The owned Runtime reports
@@ -18,6 +19,18 @@ const idPattern = /^[A-Za-z0-9_-]{1,128}$/
 
 const text = (value: unknown, limit: number): string =>
   typeof value === 'string' && value.length > 0 && value.length <= limit ? value : ''
+
+/** The OS toast copy; the label wording itself lives in shared/desktop.ts so
+ * the renderer's center pane reads the exact same facts. */
+export function describeNotification(event: RuntimeNotifyEvent): { title: string; body: string } {
+  const subject = event.title || `会话 ${event.threadId.slice(0, 12)}`
+  if (event.kind === 'run-finished') {
+    const outcome = NOTIFICATION_STATUS_LABELS[event.status] || event.status
+    return { title: '后台会话已完成', body: `${subject} · ${outcome}` }
+  }
+  const outcome = NOTIFICATION_APPROVAL_LABELS[event.approval] || event.approval
+  return { title: '后台会话等待审批', body: `${subject} · ${outcome}${event.summary ? `\n${event.summary}` : ''}` }
+}
 
 /** Strictly one notify event; anything else is a protocol failure the caller
  * treats like a malformed status line. */
@@ -69,7 +82,6 @@ export class NotificationRegistry {
       ...(event.kind === 'approval-required' ? { taskId: event.taskId, approval: event.approval } : {}),
       title: event.title,
       summary: event.kind === 'run-finished' ? event.status : event.summary,
-      status: event.kind === 'run-finished' ? event.status : '',
       createdAt: new Date().toISOString(),
       read: false
     }

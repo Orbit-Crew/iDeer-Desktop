@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NotificationRegistry, parseNotifyEvent } from '../src/main/notifications'
+import { NotificationRegistry, describeNotification, parseNotifyEvent } from '../src/main/notifications'
 import type { RuntimeNotifyEvent } from '../src/shared/desktop'
 
 const finished: RuntimeNotifyEvent = {
@@ -47,7 +47,7 @@ describe('NotificationRegistry', () => {
     expect(registry.list().unread).toBe(2)
     expect(second.kind).toBe('approval-required')
     expect(second.summary).toBe('/workspace/a/target.txt')
-    expect(first.status).toBe('success')
+    expect(first.summary).toBe('success')
   })
   it('never duplicates the same finished run or the same ask', () => {
     const registry = new NotificationRegistry()
@@ -90,5 +90,16 @@ describe('NotificationRegistry', () => {
     expect(view.unread).toBe(100)
     expect(view.notifications[0].runId).toBe('run-119')
     expect(view.notifications.at(-1)?.runId).toBe('run-20')
+  })
+})
+
+describe('describeNotification', () => {
+  it('names the shared facts both the toast and the pane read', () => {
+    expect(describeNotification(finished)).toEqual({ title: '后台会话已完成', body: '会话标题 · 成功' })
+    expect(describeNotification(approval)).toEqual({
+      title: '后台会话等待审批', body: '会话标题 · 文件写入\n/workspace/a/target.txt'
+    })
+    expect(describeNotification({ ...finished, status: 'exotic', title: '' }).body)
+      .toBe('会话 thread-A · exotic')
   })
 })

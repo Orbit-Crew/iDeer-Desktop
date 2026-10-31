@@ -22,7 +22,8 @@ verified-against: feat/issue-77-background-sessions worktree at G:\code\iDeer-wo
 
 - **Runtime observation (`local-runtime/core/platform_chat.py`)**: a Run still
   `{pending, running}` on a thread the user switches away from is registered
-  in a 20-entry display ledger (`_load_thread`; same-thread open/reconnect
+  in a 100-entry display ledger (overflow drops the oldest entry, stated in the
+  constant's own comment) (`_load_thread`; same-thread open/reconnect
   never registers, a loaded thread drops its own entries). `background_tick`
   — self-throttled to 2 s, single-flight, called from the desktop.py status
   loop — reports each registered run whose Server status left
@@ -63,11 +64,12 @@ verified-against: feat/issue-77-background-sessions worktree at G:\code\iDeer-wo
 
 ## Test evidence
 
-- Runtime: `python -m pytest local-runtime/tests -q` — 585 passed, 8 skipped
-  (3 new tests: switch-away keeps the run running and reports finish exactly
+- Runtime: `python -m pytest local-runtime/tests -q` — 586 passed, 8 skipped
+  (4 new tests: switch-away keeps the run running and reports finish exactly
   once and reopening shows the end state; background ask notifies once,
   skips the foreground session, re-asks after resolution, tolerates an
-  unavailable consent snapshot; identity change fences the ledger). The two
+  unavailable consent snapshot; identity change fences the ledger; a fact
+  outside the wire identity charset is skipped). The two
   `test_desktop_process.py` cases need `IDEER_TEST_PYTHON` pointing at a
   prepared `.runtime` when run from a fresh worktree.
 - Bridge/ledger: `test/notifications.test.ts` (7) covers `parseNotifyEvent`
@@ -76,7 +78,7 @@ verified-against: feat/issue-77-background-sessions worktree at G:\code\iDeer-wo
 - Renderer: `test/notification-center.test.tsx` (6) covers push replacement,
   stop semantics, activation→`requestOpen`+read, pane rendering with facts,
   controller-less read-only display, and the settle commands.
-- Suite: `vitest run` 201 passed; the 20 failures are pre-existing
+- Suite: `vitest run` 195 passed plus the new/changed files below; the 20 failures are pre-existing
   environmental ones reproduced identically on the untouched baseline
   `develop` checkout on this machine (recovery/nsis/updates-release signing
   fixtures and the `threads-bridge` real-runtime case; the same command on

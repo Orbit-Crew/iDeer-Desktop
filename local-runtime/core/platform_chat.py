@@ -6,6 +6,7 @@ import hashlib
 import json
 import secrets
 import socket
+import string
 import threading
 import time
 import urllib.error
@@ -39,10 +40,20 @@ STREAM_RECONNECTS = 3
 STREAM_RECONNECT_DELAY = 1.0
 # Issue 77: the Desktop's own observation cadence for backgrounded Runs. This
 # bounds only how often the Server is asked about runs the user left running —
-# never how many sessions or tasks the platform may run in parallel.
+# never how many sessions or tasks the platform may run in parallel. The
+# ledger is generous (100) because an overflowing entry is the oldest one
+# silently going unobserved; the per-tick poll limit keeps the Server load
+# bounded no matter how full the ledger is.
 BACKGROUND_TICK_SECONDS = 2.0
 BACKGROUND_POLL_LIMIT = 8
-BACKGROUND_LEDGER_LIMIT = 20
+BACKGROUND_LEDGER_LIMIT = 100
+# The identity charset every notify fact must survive on the wire; facts
+# outside it are skipped rather than ever emitted malformed.
+_WIRE_ID_CHARS = frozenset(string.ascii_letters + string.digits + '_-')
+
+
+def _is_wire_id(value) -> bool:
+    return isinstance(value, str) and 1 <= len(value) <= 128 and all(c in _WIRE_ID_CHARS for c in value)
 
 
 class ChatError(Exception):
@@ -828,14 +839,17 @@ class DesktopChat:
         """Record one Run the user left running by switching sessions.
 
         The ledger is display-only: it bounds what the Desktop observes and
-        notifies about, never what the platform may run in parallel."""
-        title = next((str(row.get('title', ''))[:200] for row in self._state['threads']
-                      if row.get('id') == thread_id), '')
+        notifies about, never what the platform may run in parallel. A run id
+        outside the wire identity charset is never registered — it could only
+        become a malformed notification."""
+        if not _is_wire_id(run_id):
+            return
         with self._lock:
             if any(row['thread_id'] == thread_id and row['run_id'] == run_id
                    for row in self._background):
                 return
-            self._background.append(dict(thread_id=thread_id, run_id=run_id, title=title))
+            self._background.append(dict(thread_id=thread_id, run_id=run_id,
+                                         title=self._thread_title(thread_id)))
             del self._background[:-BACKGROUND_LEDGER_LIMIT]
 
     def background_runs(self):
@@ -918,8 +932,8 @@ class DesktopChat:
         events = []
         for row in pending:
             payload = getattr(row, 'payload', None)
-            task_id = str(getattr(row, 'task_id', ''))[:128]
-            alive.add(task_id)
+            task_id = getattr(row, 'task_id', '')
+            alive.add(str(task_id)[:128])
             thread_id = payload.get('thread_id') if isinstance(payload, dict) else None
             if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
                 continue
@@ -927,12 +941,16 @@ class DesktopChat:
                         'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
             if not approval:
                 continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
+            # 每个事实都必须能原样过线：身份字段不符合线格式的问题跳过，
+            # 绝不发射会让主进程当作畸形状态行处理的通知。
+            if not _is_wire_id(task_id) or not _is_wire_id(payload.get('run_id')):
+                continue
             with self._lock:
                 if task_id in self._notified_consents:
                     continue
                 self._notified_consents[task_id] = True
             events.append(dict(kind='approval-required', threadId=thread_id,
-                runId=str(payload.get('run_id', ''))[:128], taskId=task_id,
+                runId=payload.get('run_id'), taskId=task_id,
                 approval=approval, summary=self._consent_summary(approval, payload),
                 title=self._thread_title(thread_id)))
         with self._lock:
@@ -968,8 +986,11 @@ class DesktopChat:
             with self._lock:
                 self._background = [item for item in self._background
                                     if not (item['thread_id'] == row['thread_id'] and item['run_id'] == row['run_id'])]
+            status = run['status'][:32]
+            if not status:
+                continue  # 空状态发不出去，也不算完成事实
             events.append(dict(kind='run-finished', threadId=row['thread_id'], runId=row['run_id'],
-                status=run['status'][:32], title=row.get('title', '')))
+                status=status, title=row.get('title', '')))
         return self._scrub_events(session, events)
 
     def _scrub_events(self, session, events):

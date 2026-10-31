@@ -1225,3 +1225,24 @@ def test_background_registry_resets_when_identity_changes(tmp_path):
         settings.save(config)
         assert chat.background_tick(force=True) == []
         assert chat.background_runs() == []
+
+
+def test_background_consent_facts_outside_the_wire_charset_are_skipped(tmp_path):
+    """#77: an ask whose run/task identity cannot survive the notify wire is
+    skipped entirely — the Desktop must never emit an event the strict main
+    process would treat as a malformed status line and kill the Runtime for."""
+    from core.consent import PendingConsent
+    hold = threading.Event()
+    malformed = PendingConsent('task/evil', 'local.files.write',
+        {'run_id': 'run 1', 'thread_id': 'thread-A',
+         'arguments': {'path': '/workspace/x/target.txt', 'content': 'BODY\n'}},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    with platform(hold_stream=hold) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [malformed])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '80808080-8080-4800-9000-808080808080', 'text': '写文件'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert chat.background_tick(force=True) == []
+        assert chat.background_tick(force=True) == []
