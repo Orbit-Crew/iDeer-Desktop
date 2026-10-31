@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
@@ -293,6 +293,20 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('SKILL_PREFERENCE_UNAUTHENTICATED')
       return runtime.skillPreferences(command)
+    })
+    // Issue 73: the model settings surface. The renderer only names the
+    // action and the model name; the authorized list, the account default
+    // (the same preference the Web writes) and the device-local fallback
+    // pick all live behind the Server's own endpoints. No provider, Base URL
+    // or key field exists in this family — the Desktop never holds a model
+    // credential.
+    ipcMain.handle('desktop:models', async (event, command: ModelCommand): Promise<ModelSettingsView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' ||
+          !['list', 'set-default', 'set-fallback'].includes(command.action)) throw new Error('MODEL_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('MODEL_UNAUTHENTICATED')
+      return runtime.models(command)
     })
     // Issue 122: the device's own Skill script grant list. Listing and
     // revoking happen only on the owned Runtime's binding-scoped registry;

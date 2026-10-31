@@ -1,10 +1,15 @@
 // Adapted from the pinned linz Sidebar. Business navigation is not enabled.
-import { DoubleLeftOutlined, RocketOutlined } from '@ant-design/icons'
+import { DoubleLeftOutlined, RocketOutlined, SettingOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
+import { useState } from 'react'
 import { useUIStore } from '../../stores/uiStore'
+import ModelSettingsModal from './ModelSettingsModal'
 
 export default function Sidebar(): JSX.Element {
   const toggleLeftPanel = useUIStore((state) => state.toggleLeftPanel)
+  // Issue 73: the original bottom settings entry restored; the modal carries
+  // the model settings surface only (no provider or credential section).
+  const [settingsOpen, setSettingsOpen] = useState(false)
   return (
     <aside className="w-[260px] min-w-[260px] h-full flex flex-col border-r border-line bg-white text-gray-700">
       <div className="px-5 py-4 flex items-center gap-2.5">
@@ -23,8 +28,11 @@ export default function Sidebar(): JSX.Element {
       </div>
       <div className="px-5 py-4 border-t border-line-light text-xs text-gray-500">
         <p className="mb-3">版本 0.1.0</p>
+        <Button block icon={<SettingOutlined />} className="mb-2"
+          onClick={() => setSettingsOpen(true)}>设置</Button>
         <Button block onClick={() => void window.ideer.quit()}>退出应用</Button>
       </div>
+      <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   )
 }
