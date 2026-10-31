@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
 import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView } from '../../../shared/desktop'
+import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
@@ -243,6 +244,9 @@ export default function ChatPanel(): JSX.Element {
   const pollRequest = useRef<Promise<void>>(Promise.resolve())
   const mounted = useRef(true)
   const scope = useRef('')
+  const pendingOpen = useSessionStore((state) => state.pendingOpen)
+  const clearPendingOpen = useSessionStore((state) => state.clearPendingOpen)
+  const openHandled = useRef(0)
   useEffect(() => {
     mounted.current = true
     let timer: ReturnType<typeof setTimeout>
@@ -252,7 +256,12 @@ export default function ChatPanel(): JSX.Element {
         pollRequest.current = (async () => { try {
           let next = await window.ideer.chat({ action: 'state' })
           if (next.scope && next.scope !== scope.current) next = await window.ideer.chat({ action: 'refresh' })
-          if (mounted.current) { scope.current = next.scope; setState(next); setFailed(false) }
+          if (mounted.current) {
+            scope.current = next.scope
+            setState(next)
+            setFailed(false)
+            useSessionStore.getState().setActiveThreadId(next.thread?.id ?? '')
+          }
         } catch { if (mounted.current) { scope.current = ''; setState(null); setFailed(true) } }
         finally { inFlight.current = false } })()
         await pollRequest.current
@@ -273,6 +282,15 @@ export default function ChatPanel(): JSX.Element {
     } catch { if (mounted.current) { setState(null); setFailed(true) } }
     finally { actionInFlight.current = false; if (mounted.current) setBusy(false) }
   }
+  // Issue 72: the sidebar asks for one thread to open; the open rides this
+  // panel's single serialized command path so it can never race the poll.
+  useEffect(() => {
+    if (!pendingOpen || pendingOpen.nonce === openHandled.current) return
+    if (!state?.scope || actionInFlight.current) return
+    openHandled.current = pendingOpen.nonce
+    clearPendingOpen()
+    void command({ action: 'open', scope: state.scope, threadId: pendingOpen.threadId })
+  }, [pendingOpen, state, command, clearPendingOpen])
   return <Card className="max-w-4xl mt-6 shadow-card" title="平台聊天与历史">
     {failed && <Alert type="error" message="Runtime 或 Server 不可用，请检查连接后恢复状态；旧提交不会自动重发" />}
     {state?.scope ? <ChatView state={state} busy={busy} onCommand={command} /> :

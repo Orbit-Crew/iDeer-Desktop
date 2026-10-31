@@ -51,6 +51,7 @@ def main() -> int:
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
+    thread_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
@@ -170,6 +171,25 @@ def main() -> int:
                             isinstance(command.get('authorizationId'), str)
                             and 0 < len(command['authorizationId']) <= 128))):
                     skill_script_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'query', 'scope'},
+                        {'type', 'id', 'action', 'threadId', 'scope'},
+                        {'type', 'id', 'action', 'threadId', 'title', 'scope'})
+                        and command['type'] == 'threads' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'search', 'rename', 'delete'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'search' or (
+                            isinstance(command['query'], str) and len(command['query']) <= 128))
+                        and (command['action'] != 'rename' or (
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128
+                            and isinstance(command['title'], str)
+                            and 0 < len(command['title'].strip()) <= 200))
+                        and (command['action'] != 'delete' or (
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128))):
+                    thread_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
@@ -560,6 +580,25 @@ def main() -> int:
                 except Exception:
                     error = 'SKILL_SCRIPT_FAILED'
                 emit({'v': 1, 'type': 'skill-scripts', 'id': script_command['id'],
+                      'result': result, 'error': error})
+            try:
+                thread_command = thread_commands.get_nowait()
+            except queue.Empty:
+                thread_command = None
+            if thread_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 72: the sidebar's own Thread management. The chat
+                    # session identity is the fence — the command must carry
+                    # the scope of the currently authenticated chat session.
+                    result = chat.threads_manage(thread_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; a
+                    # server detail never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith('CHAT_') else 'THREADS_FAILED'
+                emit({'v': 1, 'type': 'threads', 'id': thread_command['id'],
                       'result': result, 'error': error})
             try:
                 connector_command = connector_commands.get_nowait()

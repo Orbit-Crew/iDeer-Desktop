@@ -1147,8 +1147,8 @@ class DesktopChat:
         except (OSError, ValueError):
             raise ChatError('CHAT_SERVER_UNAVAILABLE') from None
 
-    def _json(self, session, path, body=None, headers=None):
-        with self._request(session, path, body, headers) as response:
+    def _json(self, session, path, body=None, headers=None, method=None):
+        with self._request(session, path, body, headers, method=method) as response:
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
             raise ChatError('CHAT_RESPONSE_TOO_LARGE')
@@ -1543,6 +1543,101 @@ class DesktopChat:
             self._empty(session, f'/api/resources/{skill_id}/trigger-preference', None, 'DELETE')
         return dict(skills=self._preference_projection(
             self._json(session, '/api/resources/skill-trigger-preferences')))
+
+    # --- Session sidebar management (issue 72) ------------------------------
+
+    def _thread_permissions(self, session):
+        """The account's own Thread capabilities, as the Server states them.
+
+        The sidebar grays out and explains every operation this account cannot
+        perform; the Server re-checks and stays authoritative on every write.
+        """
+        account = self._json(session, '/api/v1/auth/me')
+        if account.get('id') != session.user_id:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        permissions = account.get('permissions') or []
+        return dict(canRename='threads:write' in permissions, canDelete='threads:delete' in permissions)
+
+    def _thread_rows(self, session):
+        """One bounded platform search page, projected and recency-sorted.
+
+        Rows carry identity facts only; the Server's own updated_at drives the
+        ordering and no thread roster is ever stored on this device.
+        """
+        rows = self._json(session, '/api/threads/search', {'limit': 200})
+        if not isinstance(rows, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        threads = []
+        for row in rows[:200]:
+            if not isinstance(row, dict) or not isinstance(row.get('thread_id'), str) or not row['thread_id']:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            values = row.get('values') if isinstance(row.get('values'), dict) else {}
+            metadata = row.get('metadata') if isinstance(row.get('metadata'), dict) else {}
+            title = _bounded_text(values.get('title') or metadata.get('title'), 256) or row['thread_id']
+            threads.append(dict(id=row['thread_id'], title=title,
+                                status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
+                                updatedAt=_bounded_text(row.get('updated_at', ''), 64)))
+        threads.sort(key=lambda row: row['updatedAt'], reverse=True)
+        return threads
+
+    def threads_manage(self, command):
+        """One session-sidebar round-trip against the Server's Thread API (#72).
+
+        list/search/rename/delete share one wire shape: every reply carries the
+        account's thread permissions plus the platform's own post-action list,
+        so the sidebar re-reads authoritative state in the same round. A rename
+        rides the state endpoint whose values.title the Server syncs into the
+        thread display name; a delete demands the Server's own success flag and
+        never touches this device's receipt ledger — unconfirmed local receipts
+        stay queryable after the platform thread is gone.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(command, dict) or command.get('scope') != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            action = command.get('action')
+            if action == 'list':
+                expected = {'type', 'id', 'action', 'scope'}
+            elif action == 'search':
+                query = command.get('query')
+                if not isinstance(query, str) or len(query) > 128:
+                    raise ChatError('CHAT_COMMAND_INVALID')
+                expected = {'type', 'id', 'action', 'scope', 'query'}
+            elif action in {'rename', 'delete'}:
+                self._id(command.get('threadId'))
+                expected = {'type', 'id', 'action', 'scope', 'threadId'}
+                if action == 'rename':
+                    title = command.get('title')
+                    if not isinstance(title, str) or not 1 <= len(title.strip()) <= 200:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = expected | {'title'}
+            else:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if set(command) != expected:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            permissions = self._thread_permissions(session)
+            if action == 'rename':
+                if not permissions['canRename']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, f"/api/threads/{self._id(command['threadId'])}/state",
+                           {'values': {'title': command['title'].strip()}})
+            elif action == 'delete':
+                if not permissions['canDelete']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                outcome = self._json(session, f"/api/threads/{self._id(command['threadId'])}", method='DELETE')
+                if not isinstance(outcome, dict) or outcome.get('success') is not True:
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+            threads = self._thread_rows(session)
+            if action == 'search':
+                query = command['query'].strip().lower()
+                if query:
+                    threads = [row for row in threads if query in row['title'].lower() or query in row['id'].lower()]
+            result = dict(threads=threads, permissions=permissions)
+            if action == 'rename':
+                result['renamed'] = True
+            elif action == 'delete':
+                result['deleted'] = True
+            return result
 
     # --- Canonical connector identities (issue 123) -------------------------
 
