@@ -392,6 +392,34 @@ export type ConnectorInternalOutcome =
   | { action: 'preview' } & ConnectorInstallPreview
   | ConnectorOutcome
 
+/** Issue 73: one authorized model row — the Server's own permission-filtered
+ * catalog, projected with display facts only. No provider, endpoint or key
+ * field exists anywhere in this family. */
+export interface ModelRowView {
+  name: string
+  displayName: string
+  description: string
+  supportsThinking: boolean
+}
+/**
+ * Issue 73: the model settings view. `accountDefault` is the platform
+ * account preference the Web writes (empty string = platform default);
+ * `fallback` is the device-local 备用模型 choice (empty string = none).
+ * Every reply re-reads the Server, so it always carries post-action truth.
+ */
+export interface ModelSettingsView {
+  models: ModelRowView[]
+  accountDefault: string
+  fallback: string
+  canRead: boolean
+  reason: string
+}
+/** Issue 73: the settings-page actions. Clearing rides the empty string. */
+export type ModelCommand =
+  | { action: 'list' }
+  | { action: 'set-default'; modelName: string }
+  | { action: 'set-fallback'; modelName: string }
+
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -472,6 +500,10 @@ export interface DesktopBridge {
   skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
   /** Issue 122: list or revoke the device's remembered Skill script grants. */
   skillScripts(command: SkillScriptCommand): Promise<SkillScriptView>
+  /** Issue 73: the model settings surface — the platform's authorized list,
+   * the account default it shares with the Web, and the device-local
+   * fallback pick. No provider or credential field crosses this bridge. */
+  models(command: ModelCommand): Promise<ModelSettingsView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand
@@ -498,6 +530,7 @@ export type ChatCommand =
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
+  | { action: 'set-model'; scope: string; threadId: string; modelName: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
@@ -545,6 +578,18 @@ export interface LocalConsentView {
   manifestHash?: string
   documents?: { filename: string; contentHash: string }[]
 }
+/** Issue 73: the chat-side model facts. `model` names the resolved choice
+ * for the next submission, its honest availability, and — after a fallback
+ * switch — the displayed story of what happened. `modelOptions` mirrors the
+ * platform's authorized list for the in-session selector. */
+export interface ChatModelView {
+  name: string
+  source: 'session-override' | 'account-default' | 'platform-default'
+  available: boolean
+  reason: string
+  notice: string
+  switchedFrom: string
+}
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
   artifacts?: PlatformArtifact[]
@@ -567,6 +612,8 @@ export interface ChatSnapshot {
   messages: ChatMessage[]
   run: { id: string; status: string; selection: Record<string, unknown> } | null
   events: { id: string; event: string; detail: string }[]
+  model?: ChatModelView
+  modelOptions?: ModelRowView[]
   stream: 'idle' | 'streaming' | 'disconnected' | 'uncertain'
   error: string
   lastEventId: string

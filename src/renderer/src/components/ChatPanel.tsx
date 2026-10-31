@@ -132,7 +132,14 @@ function ChatContents({ state, busy, onCommand }: {
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
   const answered = new Set(state.messages.flatMap((m) => m.response ? [m.response.request_id] : []))
   const pending = [...state.messages].reverse().find((m) => m.request && !answered.has(m.request.request_id))?.request
-  const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId
+  // Issue 73: an unavailable model pauses sending until the user switches;
+  // nothing switches silently behind the user's back.
+  const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId &&
+    state.model?.available !== false
+  const modelSourceLabels: Record<string, string> = {
+    'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
+  }
+  const modelOptions = (state.modelOptions ?? []).map((row) => ({ value: row.name, label: row.displayName || row.name }))
   const resourceOptions = (type: 'agent' | 'skill'): { value: string; label: string; disabled: boolean }[] => state.resources.filter((r) => r.type === type).map((r) => ({
     value: r.id, label: `${r.name} · ${r.visibility} · v${r.version ?? '未发布'} · ${r.id}${r.available ? '' : ' · 不可用'}`, disabled: !r.available
   }))
@@ -158,6 +165,19 @@ function ChatContents({ state, busy, onCommand }: {
     {threadId && <>
       {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
         description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
+      {state.model?.notice && <Alert type="warning" showIcon message={state.model.notice} />}
+      {state.model && !state.model.available && <Alert type="error" showIcon
+        message={`模型 ${state.model.name} 已不可用，发送已暂停`}
+        description="该模型已不在平台授权列表或当前账号无权使用。请在下方更换模型；未更换前不会发送新消息，也不会静默切换。" />}
+      <div className="flex items-center gap-3">
+        <Select aria-label="本会话模型" className="min-w-[240px]" placeholder="平台默认模型"
+          value={state.model?.source === 'session-override' && state.model.name ? state.model.name : undefined}
+          allowClear disabled={busy || state.stream === 'streaming'} options={modelOptions}
+          onChange={(name) => void onCommand({ action: 'set-model', scope: state.scope, threadId, modelName: name ?? '' })} />
+        <Typography.Text type="secondary">
+          本会话模型：{state.model?.name || '平台默认'}{state.model ? ` · ${modelSourceLabels[state.model.source] || state.model.source}` : ''}
+        </Typography.Text>
+      </div>
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
       {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}

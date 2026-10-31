@@ -10,13 +10,37 @@ resource closure and immutable version snapshots; the UI displays the actual
 
 The renderer calls one restricted `desktop:chat` IPC method. Its command union
 allows state, catalog refresh, Thread creation/open, send, human-input answer,
-reconnect, scoped Run stopping and an exact local approval decision. It accepts no URL,
+reconnect, scoped Run stopping, an exact local approval decision and the
+session's temporary model choice (`set-model`, issue #73). It accepts no URL,
 authentication header, executable, physical path or renderer-supplied write
 content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
 the existing session-cookie and CSRF contract. Device credentials do not
 authenticate chat. No model, Agent graph, shell or fallback executor is added
 to Desktop.
+
+## Model selection (issue #73)
+
+The settings entry restores the original position with a restricted
+`desktop:models` IPC surface: the Server's own permission-filtered model
+catalog (`GET /api/models`), the account-level default written through the
+same preferences endpoint the Web uses (`PATCH /api/v1/auth/preferences` with
+the owner-fence header, 409 mapping to the identity-changed category), and the
+备用模型 pick stored as a device-local preference because the platform
+preference schema has no field for it. No provider, Base URL or API-key field
+exists anywhere in this family — the Desktop never holds a model credential —
+and no Ollama section exists; the absence is stated in place.
+
+Each submission resolves the model in the open order — the session's temporary
+choice, then the account default, then no name (the platform default applies)
+— and rides the Run context's `model_name`. A choice that left the authorized
+list is never silently replaced: without a usable fallback the submission
+stops before anything is sent with an explicit unavailable category, and with
+one the switch re-submits once and the session displays the actual model and
+the switch story. Only model-attributable Server refusals (the fixed model
+denial details) trigger the bounded fallback re-submission; every other
+failure keeps the existing uncertain-submission contract. A delisted model
+pauses sending in the chat until the user switches.
 
 `DesktopChat` uses the existing `/api/resources`, `/api/threads` and thread Run
 APIs. Run creation uses `Idempotency-Key`, the human message's stable Turn ID,

@@ -51,6 +51,7 @@ def main() -> int:
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
+    model_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
@@ -191,6 +192,17 @@ def main() -> int:
                              and type(command.get('priority')) is int and not isinstance(command.get('priority'), bool)
                              and -1000 <= command['priority'] <= 1000)):
                     skill_preference_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and command.get('type') == 'models'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'set-default', 'set-fallback'}
+                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                             or command['action'] in {'set-default', 'set-fallback'}
+                             and set(command) == {'type', 'id', 'action', 'modelName', 'scope'}
+                             and isinstance(command.get('modelName'), str)
+                             and len(command['modelName']) <= 200)):
+                    model_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'scope'},
@@ -560,6 +572,23 @@ def main() -> int:
                 except Exception:
                     error = 'SKILL_SCRIPT_FAILED'
                 emit({'v': 1, 'type': 'skill-scripts', 'id': script_command['id'],
+                      'result': result, 'error': error})
+            try:
+                model_command = model_commands.get_nowait()
+            except queue.Empty:
+                model_command = None
+            if model_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.models_manage(model_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; the
+                    # model family carries no provider, endpoint or key data
+                    # that could leak through an unexpected failure.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'MODEL_')) else 'MODEL_SETTINGS_FAILED'
+                emit({'v': 1, 'type': 'models', 'id': model_command['id'],
                       'result': result, 'error': error})
             try:
                 connector_command = connector_commands.get_nowait()

@@ -5,9 +5,12 @@ plain data model with a JSON file behind it — no UI, no server round trip — 
 the whole control surface is testable headless. Consent must be completable on
 the machine itself (baseline §24), and so must the configuration it depends on.
 
-The file stores logical roots, the server address, and per-capability policy
-rules. It never stores secret values: credentials live in the OS secure store
-and appear here only as ``local:<name>`` references.
+The file stores logical roots, the server address, per-capability policy
+rules, and the device-local model fallback choice (issue #73 — the platform
+account preference carries only the account default, so the 备用模型 pick is
+kept here as a device display/preference fact). It never stores secret values:
+credentials live in the OS secure store and appear here only as
+``local:<name>`` references, and no model credential has a field here at all.
 """
 
 from __future__ import annotations
@@ -80,6 +83,11 @@ class RuntimeSettings:
     mcp_config_path: str = ""
     secret_backend: str = "auto"
     audit_db_path: str = ""
+    #: Issue 73: the device-local 备用模型 choice for chat submissions. It
+    #: names one model from the platform's authorized list (enforced when it
+    #: is set); an empty string means no fallback. It is never a provider,
+    #: endpoint or key — those have no field on the Desktop by design.
+    model_fallback_name: str = ""
     #: Where these settings were loaded from; set by ``load_controller``.
     config_path: str = ""
 
