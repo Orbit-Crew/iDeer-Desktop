@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
+import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
+import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
+import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -49,5 +52,54 @@ describe('bootstrap capability boundary', () => {
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
       .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
+  })
+})
+
+// Issue 71 restores the dock pane framework. Panes that will one day host
+// external content (webview/pty/webgl) must never reach the trusted bridge:
+// the registry maps them to the seam placeholder component, and that
+// component's module graph stays free of the bridge surface. The main window
+// guards stay closed so no pane can attach a webview around the seam.
+describe('dock pane security seam (issue 71)', () => {
+  it('maps every external-content panel type to the seam placeholder component', () => {
+    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+
+    const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly && p.id !== 'runtime')
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['files', 'kb'])
+    for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
+
+    for (const id of ['chat', 'runtime']) {
+      const def = PANEL_REGISTRY.find((p) => p.id === id)!
+      expect(def.component).not.toBe(ExternalPanePlaceholder)
+      expect(def.component).not.toBe(UnwiredNativePane)
+    }
+  })
+
+  it('keeps the external-content placeholder module free of the trusted bridge', async () => {
+    const result = await build({
+      entryPoints: ['src/renderer/src/dock/panels/externalPanes.tsx'],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    const inputs = Object.keys(result.metafile.inputs)
+    expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    const text = result.outputFiles.map((file) => file.text).join('')
+    expect(text).not.toMatch(/window\.ideer|desktop:|sendToHost|openExternal|webview/i)
+  })
+
+  it('keeps the main window external-content guards closed', () => {
+    const source = readFileSync('src/main/window.ts', 'utf8')
+    expect(source).toContain('webviewTag: false')
+    expect(source).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
+    expect(source).toMatch(/will-attach-webview', \(event\) => event\.preventDefault\(\)/)
+    expect(source).toMatch(/will-navigate', \(event\) => event\.preventDefault\(\)/)
+    expect(source).toContain('setPermissionRequestHandler')
+    expect(source).toContain('setPermissionCheckHandler')
   })
 })
