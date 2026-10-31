@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import secrets
+import socket
 import threading
 import time
 import urllib.error
@@ -27,6 +28,14 @@ MAX_RESPONSE = 2 * 1024 * 1024
 # The workspace write boundary already caps a single result at MAX_TEXT_BYTES;
 # the explicit upload path enforces the same bound before staging anything.
 MAX_RESULT_BYTES = 65536
+# Issue 37: an SSE run stream is a long-lived connection — one model phase can
+# stay silent far past any request round-trip — so stream reads carry their own
+# generous socket timeout instead of the 15s request timeout, and a stream that
+# still drops resumes from the last delivered event id a bounded number of
+# times before the disconnect becomes visible.
+STREAM_READ_TIMEOUT = 90.0
+STREAM_RECONNECTS = 3
+STREAM_RECONNECT_DELAY = 1.0
 
 
 class ChatError(Exception):
@@ -943,53 +952,30 @@ class DesktopChat:
         self._state.update(stream='streaming', error='')
         thread_id, run_id = self._state['thread']['id'], self._state['run']['id']
         generation = self._generation
-        cursor = self._state['lastEventId']
 
         def consume():
             try:
-                headers = {'Last-Event-ID': cursor} if cursor else {}
-                with self._request(session, f'/api/threads/{thread_id}/runs/{run_id}/stream', headers=headers) as response:
-                    event, data, event_id, size, ended = '', [], '', 0, False
-                    streamed_ids = set()
-                    while True:
-                        line = response.readline(MAX_RESPONSE + 1)
-                        if not line:
-                            break
-                        size += len(line)
-                        if size > MAX_RESPONSE:
-                            raise ChatError('CHAT_RESPONSE_TOO_LARGE')
-                        text = line.decode('utf-8').rstrip('\r\n')
-                        if text.startswith('event:'):
-                            event = text[6:].strip()
-                        elif text.startswith('data:'):
-                            data.append(text[5:].lstrip())
-                        elif text.startswith('id:'):
-                            event_id = text[3:].strip()
-                        elif not text:
-                            with self._lock:
-                                if generation != self._generation or self._session().scope != session.scope:
-                                    return
-                                if data:
-                                    value = json.loads('\n'.join(data))
-                                    if event_id:
-                                        self._state['lastEventId'] = event_id
-                                    root = event.split('|')[0]
-                                    if root == 'messages' and '|' not in event and isinstance(value, list) and value:
-                                        message_id = value[0].get('id')
-                                        self._messages([value[0]], delta=message_id in streamed_ids)
-                                        streamed_ids.add(message_id)
-                                    elif root == 'values' and '|' not in event and isinstance(value, dict):
-                                        self._messages(value.get('messages', []))
-                                    elif root in {'error', 'gap'}:
-                                        raise ChatError('CHAT_STREAM_ERROR' if root == 'error' else 'CHAT_STREAM_GAP')
-                                    self._state['events'] = (self._state['events'] + [dict(id=event_id,
-                                        event=event, detail=json.dumps(value, ensure_ascii=False)[:4000])])[-50:]
-                                    if root == 'end':
-                                        ended = True
-                                        break
-                            event, data, event_id, size = '', [], '', 0
-                    if not ended:
-                        raise ChatError('CHAT_STREAM_DISCONNECTED')
+                attempts = 0
+                # Streamed message ids survive across resume connections: the
+                # Server replays the stream from after the cursor, so the
+                # first replayed chunk of a live message is a continuation.
+                streamed_ids = set()
+                while True:
+                    try:
+                        if not self._consume_stream(session, thread_id, run_id, generation, streamed_ids):
+                            return  # outlived its turn or identity; touch nothing
+                        break
+                    except ChatError as exc:
+                        # A stream that ended by itself or a connection-level
+                        # refusal resumes; a server-reported error stays
+                        # terminal once the attempts run out.
+                        if exc.code not in {'CHAT_STREAM_DISCONNECTED', 'CHAT_SERVER_UNAVAILABLE'} or attempts >= STREAM_RECONNECTS:
+                            raise
+                        attempts += 1
+                        with self._lock:
+                            if generation != self._generation:
+                                return
+                        time.sleep(STREAM_RECONNECT_DELAY)
                 with self._lock:
                     if generation == self._generation:
                         run = self._json(session, f'/api/threads/{thread_id}/runs/{run_id}')
@@ -1000,6 +986,67 @@ class DesktopChat:
                         self._state.update(stream='disconnected', error=str(exc) if isinstance(exc, ChatError) else 'CHAT_STREAM_DISCONNECTED')
 
         threading.Thread(target=consume, daemon=True).start()
+
+    def _consume_stream(self, session, thread_id, run_id, generation, streamed_ids):
+        """One SSE connection for the run stream (#37).
+
+        Raises CHAT_STREAM_DISCONNECTED when the connection goes silent past
+        the stream read window or ends without the server's end event; the
+        caller decides whether to resume with the Last-Event-ID cursor.
+        Returns False when the stream outlived its turn or identity: the
+        caller must then leave the state to whichever command replaced it.
+        """
+        with self._lock:
+            cursor = self._state['lastEventId']
+        headers = {'Last-Event-ID': cursor} if cursor else {}
+        with self._request(session, f'/api/threads/{thread_id}/runs/{run_id}/stream',
+                           headers=headers, timeout=STREAM_READ_TIMEOUT) as response:
+            event, data, event_id, size, ended = '', [], '', 0, False
+            while True:
+                try:
+                    line = response.readline(MAX_RESPONSE + 1)
+                except (socket.timeout, ConnectionError):
+                    # A silent window or a reset mid-stream is a dropped
+                    # stream, not a run failure; both resume from the cursor.
+                    raise ChatError('CHAT_STREAM_DISCONNECTED') from None
+                if not line:
+                    break
+                size += len(line)
+                if size > MAX_RESPONSE:
+                    raise ChatError('CHAT_RESPONSE_TOO_LARGE')
+                text = line.decode('utf-8').rstrip('\r\n')
+                if text.startswith('event:'):
+                    event = text[6:].strip()
+                elif text.startswith('data:'):
+                    data.append(text[5:].lstrip())
+                elif text.startswith('id:'):
+                    event_id = text[3:].strip()
+                elif not text:
+                    with self._lock:
+                        if generation != self._generation or self._session().scope != session.scope:
+                            return False
+                        if data:
+                            value = json.loads('\n'.join(data))
+                            if event_id:
+                                self._state['lastEventId'] = event_id
+                            root = event.split('|')[0]
+                            if root == 'messages' and '|' not in event and isinstance(value, list) and value:
+                                message_id = value[0].get('id')
+                                self._messages([value[0]], delta=message_id in streamed_ids)
+                                streamed_ids.add(message_id)
+                            elif root == 'values' and '|' not in event and isinstance(value, dict):
+                                self._messages(value.get('messages', []))
+                            elif root in {'error', 'gap'}:
+                                raise ChatError('CHAT_STREAM_ERROR' if root == 'error' else 'CHAT_STREAM_GAP')
+                            self._state['events'] = (self._state['events'] + [dict(id=event_id,
+                                event=event, detail=json.dumps(value, ensure_ascii=False)[:4000])])[-50:]
+                            if root == 'end':
+                                ended = True
+                                break
+                    event, data, event_id, size = '', [], '', 0
+            if not ended:
+                raise ChatError('CHAT_STREAM_DISCONNECTED')
+        return True
 
     def _send(self, session, command):
         turn_id = self._uuid(command.get('turnId'))
@@ -1074,7 +1121,7 @@ class DesktopChat:
                                            profile_binding(settings)], sort_keys=True).encode()).hexdigest()
         return ChatSession(scope, origin, settings.user_id, self.secure.get(settings.business_token_ref))
 
-    def _request(self, session, path, body=None, headers=None, method=None):
+    def _request(self, session, path, body=None, headers=None, method=None, timeout=15):
         csrf = secrets.token_urlsafe(32)
         # A pre-encoded body (multipart upload) carries its own Content-Type
         # through the headers override; JSON requests keep the default.
@@ -1086,7 +1133,7 @@ class DesktopChat:
                                          method=method)
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         try:
-            return opener.open(request, timeout=15)
+            return opener.open(request, timeout=timeout)
         except urllib.error.HTTPError as exc:
             codes = {401: 'CHAT_UNAUTHENTICATED', 403: 'CHAT_FORBIDDEN', 404: 'CHAT_NOT_FOUND',
                      409: 'CHAT_CONFLICT', 422: 'CHAT_RESOURCE_UNAVAILABLE'}

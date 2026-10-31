@@ -17,10 +17,12 @@ SKILL = '22222222-2222-4222-8222-222222222222'
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
              optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
-             artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None):
+             artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None,
+             drop_once=False, silent_phase=False, resume_flake=False):
     records = []
     artifacts = {}
     grants = set()
+    resumes = []
     resource = dict(id=AGENT, type='agent', display_name='Published expert', visibility='private',
                     lifecycle_status=lifecycle, latest_version=version)
 
@@ -150,11 +152,32 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream')
                 self.end_headers()
+                if self.headers.get('Last-Event-ID') == '1' and not disconnect:
+                    if resume_flake and not resumes:
+                        # The first resume dies at connect time with no HTTP
+                        # response at all; the retry must still complete.
+                        resumes.append(self.path)
+                        self.close_connection = True
+                        return
+                    resumes.append(self.path)
+                    # A resumed stream replays only what follows the cursor.
+                    self.wfile.write(b'id: 2\nevent: messages\ndata: [{"id":"a1","type":"AIMessageChunk","content":" resumed"},{}]\n\n')
+                    self.wfile.write(b'id: 3\nevent: end\ndata: null\n\n')
+                    return
                 self.wfile.write(b'id: 1\nevent: messages\ndata: [{"id":"a1","type":"AIMessageChunk","content":"Streamed"},{}]\n\n')
                 self.wfile.flush()
                 time.sleep(0.1)
-                if not disconnect:
+                if silent_phase:
+                    # The run stays silent past the client's read window; a
+                    # fixed client times out, resumes from event 1, completes.
+                    time.sleep(0.6)
+                if not (disconnect or drop_once or silent_phase):
                     self.wfile.write(b'id: 2\nevent: end\ndata: null\n\n')
+                elif silent_phase:
+                    try:
+                        self.wfile.write(b'id: 2\nevent: end\ndata: null\n\n')
+                    except OSError:
+                        pass  # the timed-out client already closed the socket
                 return
             else:
                 status, data = 404, {'detail': 'Not visible'}
@@ -184,6 +207,109 @@ def make_chat(tmp_path, origin, **options):
                                business_expires_at='2099-01-01T00:00:00+00:00')
     settings.save(config)
     return DesktopChat(config, secure, lambda: {'state': 'authenticated'}, **options), settings, config
+
+
+@pytest.fixture(autouse=True)
+def instant_stream_resume(monkeypatch):
+    """#37: bounded stream resume attempts must not add real sleep seconds."""
+    import core.platform_chat as platform_chat
+    # raising=False keeps the fixture a pure speed knob: modules without the
+    # knob cannot sleep on it anyway, and the stream tests below still fail
+    # on their behavior against such a module.
+    monkeypatch.setattr(platform_chat, 'STREAM_RECONNECT_DELAY', 0.0, raising=False)
+
+
+def request_header(row, name):
+    """Header lookup over the recorded request; urllib rewrites the case."""
+    return next((value for key, value in row[2].items() if key.lower() == name.lower()), None)
+
+
+def await_stream_state(chat, state_name, seconds=10):
+    until = time.monotonic() + seconds
+    while time.monotonic() < until:
+        state = chat.handle({'action': 'state'})
+        if state['stream'] == state_name:
+            break
+        time.sleep(0.01)
+    return state
+
+
+def test_stream_read_timeout_resumes_from_the_last_event_and_completes(tmp_path, monkeypatch):
+    """#37: a run silent past the stream read window (one long model phase)
+    must not strand the turn as disconnected — the stream reconnects from the
+    Last-Event-ID cursor and finishes idle, without resubmitting the turn."""
+    import core.platform_chat as platform_chat
+    # raising=False: a module without the knob hardcodes its own read timeout
+    # and must fail the behavioral assertions below, not the setup.
+    monkeypatch.setattr(platform_chat, 'STREAM_READ_TIMEOUT', 0.2, raising=False)
+    with platform(silent_phase=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '88888888-8888-4888-8888-888888888888', 'text': 'Answer after a long silence'})
+        state = await_stream_state(chat, 'idle')
+        assert state['stream'] == 'idle' and state['error'] == '', state['error']
+        assert 'Streamed resumed' in [m['text'] for m in state['messages']]
+        streams = [row for row in records if row[0].endswith('/stream')]
+        assert len(streams) == 2
+        assert request_header(streams[0], 'Last-Event-ID') is None
+        assert request_header(streams[1], 'Last-Event-ID') == '1'
+        assert len([body for path, body, _ in records if path.endswith('/runs') and body]) == 1
+
+
+def test_dropped_stream_reconnects_with_the_last_event_id_and_completes(tmp_path):
+    """#37: a stream connection that ends without the server's end event is
+    resumed from the last delivered event, not surfaced as a broken turn."""
+    with platform(drop_once=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '88888888-8888-4888-8888-888888888889', 'text': 'Survive the drop'})
+        state = await_stream_state(chat, 'idle')
+        assert state['stream'] == 'idle' and state['error'] == '', state['error']
+        streams = [row for row in records if row[0].endswith('/stream')]
+        assert len(streams) == 2
+        assert request_header(streams[1], 'Last-Event-ID') == '1'
+        assert len([body for path, body, _ in records if path.endswith('/runs') and body]) == 1
+
+
+def test_failed_resume_attempt_is_retried_and_still_completes(tmp_path):
+    """#37: a resume that dies at connect time (server refused with no HTTP
+    response) is retried from the same cursor instead of ending the turn."""
+    with platform(drop_once=True, resume_flake=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '88888888-8888-4888-8888-888888888891', 'text': 'Retry the resume'})
+        state = await_stream_state(chat, 'idle')
+        assert state['stream'] == 'idle' and state['error'] == '', state['error']
+        streams = [row for row in records if row[0].endswith('/stream')]
+        assert len(streams) == 3
+        assert all(request_header(row, 'Last-Event-ID') == '1' for row in streams[1:])
+        assert len([body for path, body, _ in records if path.endswith('/runs') and body]) == 1
+
+
+def test_visible_disconnect_survives_only_bounded_resume_attempts(tmp_path):
+    """#37: resume attempts are bounded; after the last one the disconnect is
+    still visible to the user and no extra turn was ever submitted."""
+    import core.platform_chat as platform_chat
+    with platform(disconnect=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '88888888-8888-4888-8888-888888888890', 'text': 'Never finishes'})
+        state = await_stream_state(chat, 'disconnected')
+        assert state['stream'] == 'disconnected'
+        assert state['error'] == 'CHAT_STREAM_DISCONNECTED'
+        streams = [row for row in records if row[0].endswith('/stream')]
+        assert len(streams) == 1 + platform_chat.STREAM_RECONNECTS
+        assert request_header(streams[0], 'Last-Event-ID') is None
+        assert all(request_header(row, 'Last-Event-ID') == '1' for row in streams[1:])
+        assert len([body for path, body, _ in records if path.endswith('/runs') and body]) == 1
 
 
 @pytest.mark.parametrize('cancel_status,expected', [(202, 'requested'), (503, 'uncertain')])

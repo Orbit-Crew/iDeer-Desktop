@@ -155,3 +155,4 @@ __pycache__/
 .ruff_cache/
 *.pyc
 artifacts/
+.worktree/codex/
