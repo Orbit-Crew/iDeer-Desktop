@@ -2,8 +2,9 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -35,6 +36,9 @@ export class RuntimeProcess {
   private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
+  /** Issue 77: background-session facts the Runtime reports between polls. */
+  private notifyHandler: ((event: RuntimeNotifyEvent) => void) | null = null
+  onNotify(handler: (event: RuntimeNotifyEvent) => void): void { this.notifyHandler = handler }
   receiptOwnershipScope(): string { return this.receiptScope }
 
   /** Issue 108: begin or abort the update drain on the owned Runtime. */
@@ -1038,6 +1042,15 @@ export class RuntimeProcess {
             this.chatRequests.get(value.id)?.resolve(result)
             continue
           }
+          if (value.v === 1 && value.type === 'notify') {
+            // Issue 77: one bounded background-session fact per line. The
+            // Runtime only reports runs the user switched away from and
+            // approval asks on sessions the user cannot currently see.
+            const event = parseNotifyEvent(value.event)
+            if (!event) throw new Error('Invalid notify event')
+            this.notifyHandler?.(event)
+            continue
+          }
           const connections = ['not-configured', 'connecting', 'connected', 'paused', 'offline', 'error']
           if (value.v !== 1 || !connections.includes(value.connection) || !Array.isArray(value.tasks)) throw new Error('Invalid status')
           const tasks: RuntimeTask[] = value.tasks.slice(0, 20).map((task: RuntimeTask) => {
@@ -1164,9 +1177,22 @@ export class RuntimeProcess {
           }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
+          // Issue 77: the bounded background-run summary; identity facts the
+          // status surface may show, never a concurrency cap.
+          const backgroundRuns: { threadId: string; runId: string }[] = []
+          if (value.backgroundRuns !== undefined) {
+            if (!Array.isArray(value.backgroundRuns)) throw new Error('Invalid status')
+            for (const row of value.backgroundRuns.slice(0, 20)) {
+              if (!row || typeof row.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(row.threadId) ||
+                  typeof row.runId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(row.runId) ||
+                  Object.keys(row).length !== 2) throw new Error('Invalid status')
+              backgroundRuns.push({ threadId: row.threadId, runId: row.runId })
+            }
+          }
           if (!this.stopping) this.snapshot = { process: 'running', connection: value.connection, tasks, pid: child.pid, login, workspace: value.workspace,
             compatibility: value.compatibility,
             installDrain: value.installDrain, activeTasks: value.activeTasks, unknownWriteEffects: value.unknownWriteEffects,
+            backgroundRuns,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',

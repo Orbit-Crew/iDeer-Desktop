@@ -437,6 +437,9 @@ export interface RuntimeStatus {
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
+  /** Issue 77: the runs the user left behind by switching sessions; the
+   * bounded observation ledger only, never a concurrency limit. */
+  backgroundRuns?: { threadId: string; runId: string }[]
   compatibility?: CompatibilityView
 }
 
@@ -509,6 +512,13 @@ export interface DesktopBridge {
   installUpdate(): Promise<InstallOutcome>
   recoveryState(): Promise<RecoveryView | null>
   refreshCompatibility(): Promise<CompatibilityView | { error: string }>
+  /** Issue 77: the notification center's one query/settle entry. */
+  notifications(command: NotificationCommand): Promise<NotificationCenterView>
+  /** Issue 77: the main process pushes the full bounded center list after
+   * every change; the renderer replaces its view instead of merging. */
+  onNotifications(listener: (view: NotificationCenterView) => void): () => void
+  /** Issue 77: a notification (toast or center row) asked to open a session. */
+  onNotificationActivate(listener: (payload: { id: string; threadId: string }) => void): () => void
 }
 
 export interface InstallOutcome {
@@ -516,6 +526,44 @@ export interface InstallOutcome {
   stage: 'confirmed' | 'draining' | 'ready' | 'stopped' | 'applied' | 'launched' | 'blocked' | 'canceled' | 'failed'
   detail: string
 }
+
+/**
+ * Issue 77: one background-session fact the owned Runtime reports on its
+ * status stdout — a Run the user left running by switching sessions that has
+ * since reached an end state, or a device approval ask on a session the user
+ * cannot currently see. Identity facts only; payload bytes never ride it.
+ * The union is the notification center's reuse seam: later tickets (tray
+ * badge, installs, updates) extend it instead of rebuilding the surface.
+ */
+export type RuntimeNotifyEvent =
+  | { kind: 'run-finished'; threadId: string; runId: string; status: string; title: string }
+  | { kind: 'approval-required'; threadId: string; runId: string; taskId: string; approval: string; summary: string; title: string }
+
+/** Issue 77: one recorded notification as the center shows it. */
+export interface NotificationRecordView {
+  id: string
+  kind: RuntimeNotifyEvent['kind']
+  threadId: string
+  runId: string
+  taskId?: string
+  approval?: string
+  title: string
+  summary: string
+  status: string
+  createdAt: string
+  read: boolean
+}
+
+/** Issue 77: the full bounded center list plus its unread count; every reply
+ * carries both so the renderer never merges local state. */
+export interface NotificationCenterView { notifications: NotificationRecordView[]; unread: number }
+
+/** Issue 77: list or settle the device's own notification ledger. */
+export type NotificationCommand =
+  | { action: 'list' }
+  | { action: 'read'; id: string }
+  | { action: 'read-all' }
+  | { action: 'clear' }
 
 /** Issue 74: the three session permission tiers; a loaded session always
  * starts at the lowest one and a tier choice never outlives the session. */

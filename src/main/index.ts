@@ -1,10 +1,11 @@
 // Node 16 compatibility runs in the build banner before any imports.
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
+import { NotificationRegistry } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
 import { UpdateService } from './update-stage'
@@ -71,6 +72,60 @@ if (!app.requestSingleInstanceLock()) {
       quit: async () => { app.quit() } }) : null
     if (maintenanceId && !maintenanceSession) return
     mainWindow = createMainWindow()
+    // Issue 77: the Desktop's notification center. The owned Runtime reports
+    // background-session facts; the trusted main process owns the ledger, the
+    // OS toasts and the one push channel back to the renderer. Records made
+    // before this point would have no window to reach, and the Runtime has
+    // just started with no sessions to report — nothing is silently dropped.
+    const notifications = new NotificationRegistry()
+    const pushNotifications = (): void => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:notifications', notifications.list())
+    }
+    const activateNotification = (payload: { id: string; threadId: string }): void => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('desktop:notification:activate', payload)
+    }
+    runtime.onNotify((event: RuntimeNotifyEvent) => {
+      const record = notifications.record(event)
+      if (!record) return
+      if (Notification.isSupported()) {
+        const finished = event.kind === 'run-finished'
+        const statusLabel: Record<string, string> = { success: '成功', error: '出错', failed: '失败', interrupted: '已中断' }
+        const approvalLabel: Record<string, string> = { 'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材' }
+        const subject = event.title || `会话 ${event.threadId.slice(0, 12)}`
+        const toast = new Notification({
+          title: finished ? '后台会话已完成' : '后台会话等待审批',
+          body: finished
+            ? `${subject} · ${statusLabel[event.status] || event.status}`
+            : `${subject} · ${approvalLabel[event.approval] || event.approval}${event.summary ? `\n${event.summary}` : ''}`
+        })
+        toast.on('click', () => activateNotification({ id: record.id, threadId: event.threadId }))
+        toast.show()
+      }
+      pushNotifications()
+    })
+    ipcMain.handle('desktop:notifications', (event, command: NotificationCommand): NotificationCenterView => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object') throw new Error('NOTIFICATION_COMMAND_INVALID')
+      const keys = Object.keys(command).length
+      if (command.action === 'list' && keys === 1) return notifications.list()
+      if (command.action === 'read' && keys === 2 && typeof command.id === 'string' && command.id.length <= 64) {
+        notifications.markRead(command.id)
+        return notifications.list()
+      }
+      if (command.action === 'read-all' && keys === 1) {
+        notifications.markAllRead()
+        return notifications.list()
+      }
+      if (command.action === 'clear' && keys === 1) {
+        notifications.clear()
+        return notifications.list()
+      }
+      throw new Error('NOTIFICATION_COMMAND_INVALID')
+    })
     if (maintenanceSession) {
       const healthWindow = mainWindow
       let loadFailed = false
