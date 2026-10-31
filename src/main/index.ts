@@ -133,6 +133,20 @@ if (!app.requestSingleInstanceLock()) {
           return selected.canceled ? undefined : selected.filePath
         })
       }
+      // Issue 74: entering the full tier is an explicit decision made in the
+      // trusted main process. The renderer never signs the confirm flag; the
+      // runtime refuses a full-tier switch without it, so the dialog is not
+      // decoration but the only path that can produce one.
+      if (command?.action === 'tier' && command.tier === 'full') {
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'warning', title: '切入完全模式',
+          message: '在当前会话切入完全模式？',
+          detail: '完全模式下，Agent 在授权文件夹内的操作（含命令行执行）不再逐次询问；文件夹外与保护路径在所有档位始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认的“变更前询问”。',
+          buttons: ['取消，保持现状', '切入完全模式'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('SESSION_TIER_CANCELED')
+        return runtime.chat({ ...command, confirm: true })
+      }
       return runtime.chat(command)
     })
     ipcMain.handle('desktop:compatibility:refresh', async (event) => {

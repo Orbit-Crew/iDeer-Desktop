@@ -22,6 +22,7 @@ from .local_results import LocalResultError
 from .policy import PolicyDecision
 from .receipt_ledger import profile_binding
 from .secrets import SecretStore, SecretStoreError
+from .session_tier import DEFAULT_SESSION_TIER, SessionTier, SessionTierRegistry
 from .settings import load_settings
 
 MAX_RESPONSE = 2 * 1024 * 1024
@@ -406,14 +407,15 @@ def _wiki_navigation_payload(index):
 def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
-                localTasks=[], taskError='', artifacts=[])
+                localTasks=[], taskError='', artifacts=[],
+                localTier=DEFAULT_SESSION_TIER.value)
 
 
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
-                 skill_imports=None):
+                 skill_imports=None, session_tiers: SessionTierRegistry | None = None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -433,6 +435,10 @@ class DesktopChat:
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
+        # Issue 74: the device's session-tier registry; every loaded session
+        # starts at the lowest tier and a tier choice never outlives the
+        # thread load that made it.
+        self.session_tiers = session_tiers
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -633,6 +639,12 @@ class DesktopChat:
             agentId=agent_id, skillId=skill_id),
             messages=[], events=[], run=self._run(latest) if latest else None,
             stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='', artifacts=[])
+        # Issue 74: a (re)loaded session starts at the lowest tier. The tier
+        # is the session's own in-flight choice, never a remembered one —
+        # even a reopened thread re-declares its intent.
+        if self.session_tiers is not None:
+            self.session_tiers.reset()
+        self._state['localTier'] = DEFAULT_SESSION_TIER.value
         self._messages(messages)
         self._load_tasks(session)
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
@@ -1900,6 +1912,29 @@ class DesktopChat:
                                                 always=remember_script)
                     except Exception:
                         raise ChatError('CONSENT_UNAVAILABLE') from None
+                    self._state['error'] = ''
+                elif action == 'tier':
+                    # Issue 74: the session's own permission tier. The lowest
+                    # tier is the default for every loaded session; the full
+                    # tier needs the explicit confirm flag the Desktop main
+                    # process signs after its own confirmation dialog. The
+                    # tier only ever narrows the device consent flow — the
+                    # local policy veto and the platform capability set stay
+                    # ahead of it.
+                    expected = {'action', 'scope', 'threadId', 'tier'}
+                    if command.get('confirm') is True:
+                        expected = expected | {'confirm'}
+                    tier_value = command.get('tier')
+                    if (set(command) != expected
+                            or tier_value not in {member.value for member in SessionTier}
+                            or (command.get('confirm') is True and tier_value != SessionTier.FULL.value)
+                            or (tier_value == SessionTier.FULL.value and command.get('confirm') is not True)
+                            or self.session_tiers is None):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
+                        raise ChatError('CHAT_THREAD_CHANGED')
+                    self.session_tiers.set(str(self._state['thread']['id']), SessionTier(tier_value))
+                    self._state['localTier'] = tier_value
                     self._state['error'] = ''
                 elif action == 'upload':
                     # Issue 105: the only path from a registered local result to a

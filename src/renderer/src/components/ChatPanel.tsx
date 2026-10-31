@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
-import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView } from '../../../shared/desktop'
+import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
+import { SESSION_TIERS } from '../../../shared/desktop'
 import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
@@ -8,6 +9,14 @@ type CommandHandler = (command: ChatCommand) => Promise<void>
 const taskStates: Record<string, string> = { unknown: '结果待核实', result_not_verified: '结果待核实',
   dispatched: '已派发', acked: '已接收', progress: '执行中', consent_required: '待审批',
   cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
+
+// Issue 74: the three session tiers, always shown in the chat area. A loaded
+// session starts at the lowest tier; switching to the full tier is confirmed
+// by the main process, never by this renderer.
+const tierOrder = SESSION_TIERS
+const tierLabels: Record<SessionTierValue, string> = {
+  ask_first: '变更前询问（默认）', autonomous: '自主模式', full: '完全模式'
+}
 const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
 
 function Clarification({ request, disabled, onAnswer }: {
@@ -53,6 +62,25 @@ const consentCommand = (request: LocalConsentView, state: ChatSnapshot, threadId
   decision: 'allow' | 'allow-directory' | 'deny', extra: Record<string, unknown> = {}): ChatCommand =>
   ({ action: 'consent', scope: state.scope, threadId: threadId ?? '', runId: request.runId, taskId: request.taskId,
     requestHash: request.requestHash, decision, ...extra })
+
+function TierSwitch({ state, threadId, busy, onCommand }: {
+  state: ChatSnapshot; threadId: string | undefined; busy: boolean; onCommand: CommandHandler
+}): JSX.Element | null {
+  if (!threadId) return null
+  const current: SessionTierValue = state.localTier ?? 'ask_first'
+  return <>
+    <Space wrap role="group" aria-label="会话权限档位">
+      <Typography.Text strong>会话权限档位：</Typography.Text>
+      {tierOrder.map((tier) => <Button key={tier} aria-pressed={current === tier}
+        disabled={busy || current === tier}
+        onClick={() => void onCommand({ action: 'tier', scope: state.scope, threadId, tier })}>{tierLabels[tier]}</Button>)}
+    </Space>
+    {current === 'autonomous' && <Alert type="info" showIcon
+      message="自主模式：授权文件夹内的写入不再逐次询问；文件夹外与保护路径始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认。" />}
+    {current === 'full' && <Alert type="warning" showIcon
+      message="完全模式：授权文件夹内的操作（含命令行）不再逐次询问；文件夹外与保护路径始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认。" />}
+  </>
+}
 
 function FileWriteConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
   return <Card size="small" title="本机文件写入审批">
@@ -160,6 +188,7 @@ function ChatContents({ state, busy, onCommand }: {
       {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
         description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
+      <TierSwitch state={state} threadId={threadId} busy={busy} onCommand={onCommand} />
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
       {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}
       {!!state.artifacts?.length && <Card size="small" title="Thread 平台附件">

@@ -10,7 +10,9 @@ resource closure and immutable version snapshots; the UI displays the actual
 
 The renderer calls one restricted `desktop:chat` IPC method. Its command union
 allows state, catalog refresh, Thread creation/open, send, human-input answer,
-reconnect, scoped Run stopping and an exact local approval decision. It accepts no URL,
+reconnect, scoped Run stopping, an exact local approval decision and the
+session permission tier (#74: one explicit tier switch whose full-tier confirm
+flag only the main process signs after its own dialog). It accepts no URL,
 authentication header, executable, physical path or renderer-supplied write
 content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
@@ -142,6 +144,17 @@ the write. A changed request requires its own approval. Local DENY, expired or
 abandoned prompts, changed identity or workspace, cancellation before execution
 and failed durable admission prevent writing. Existing always-allow settings do
 not skip Desktop's per-task write approval.
+
+Issue #74 adds the one standing exception: the chat session's own permission
+tier. In the `autonomous` tier (and for writes also in the `full` tier) a write
+whose target the confirmed workspace proves inside, and outside the protected
+names, runs without a per-task prompt — the tier itself is the standing answer,
+recorded in the receipt as `tier:<tier>` and in the audit log. Every other
+capability, an unprovable or outside target, and a session at the default
+`ask_first` tier keep the per-task approval above. The tier never overrides a
+local DENY, the protected-path refusals or the workspace identity checks, and
+it is scoped to the loaded session only: reloading or reopening a thread falls
+back to `ask_first`, and that expiry is audited like any switch.
 
 The Runtime admits the original task into its identity-bound receipt ledger
 before execution. A failed completion record or unverifiable readback is shown
