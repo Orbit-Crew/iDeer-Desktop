@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
 import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
 import { SESSION_TIERS } from '../../../shared/desktop'
+import { ChatComposer } from './ChatComposer'
 import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
@@ -155,7 +156,6 @@ function ChatContents({ state, busy, onCommand }: {
 }): JSX.Element {
   const [agentId, setAgentId] = useState<string | undefined>(state.thread?.agentId)
   const [skillId, setSkillId] = useState<string | undefined>(state.thread?.skillId || undefined)
-  const [text, setText] = useState('')
   const threadId = state.thread?.id
   const compatibility = state.compatibility
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
@@ -178,12 +178,11 @@ function ChatContents({ state, busy, onCommand }: {
     <Select aria-label="选择 Skill" placeholder="可选：选择 Agent 已包含的 Skill" value={skillId} onChange={setSkillId}
       allowClear className="w-full" options={resourceOptions('skill')} disabled={busy} />
     <Button type="primary" disabled={busy || !agentId} onClick={() => {
-      setText('')
       void onCommand({ action: 'create', scope: state.scope, agentId: agentId!, ...(skillId ? { skillId } : {}) })
     }}>新建平台聊天</Button>
     <Select aria-label="平台 Thread 历史" placeholder="重新打开平台 Thread" className="w-full" value={threadId}
       disabled={busy} options={state.threads.map((t) => ({ value: t.id, label: `${t.title} · ${t.status}` }))}
-      onChange={(id) => { setText(''); void onCommand({ action: 'open', scope: state.scope, threadId: id }) }} />
+      onChange={(id) => { void onCommand({ action: 'open', scope: state.scope, threadId: id }) }} />
     {threadId && <>
       {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
         description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
@@ -250,13 +249,9 @@ function ChatContents({ state, busy, onCommand }: {
           {message.request && answered.has(message.request.request_id) && <Typography.Text type="secondary">已回答</Typography.Text>}
         </Card>)}
       </div>
-      <Input.TextArea aria-label="聊天消息" value={text} maxLength={16000} autoSize={{ minRows: 3, maxRows: 10 }}
-        disabled={!canSend || !!pending} placeholder={pending ? '请先回答上方问题' : '发送给平台 Agent'} onChange={(event) => setText(event.target.value)} />
-      <Button type="primary" disabled={!canSend || !!pending || !text.trim()} onClick={() => {
-        const message = text
-        setText('')
-        void onCommand({ action: 'send', scope: state.scope, threadId, turnId: crypto.randomUUID(), text: message })
-      }}>发送</Button>
+      {/* Issue 75: the composer owns the @-delegation and /Skill input
+          commands; the thread key keeps its mounted facts session-scoped. */}
+      <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend} onCommand={onCommand} />
     </>}
     {!!state.events.length && <Collapse items={[{ key: 'progress', label: '服务端工具与子代理进度', children:
       state.events.map((event, i) => <div key={`${event.id}-${i}`}><Typography.Text>{event.id} · {event.event}</Typography.Text><pre className="whitespace-pre-wrap break-all text-xs">{event.detail}</pre></div>) }]} />}

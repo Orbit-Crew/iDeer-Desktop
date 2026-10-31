@@ -11,11 +11,12 @@ from core.settings import RuntimeSettings
 
 AGENT = '11111111-1111-4111-8111-111111111111'
 SKILL = '22222222-2222-4222-8222-222222222222'
+SKILL2 = '44444444-4444-4444-8444-444444444444'
 
 
 @contextmanager
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
-             optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
+             optional_skill=False, second_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
              artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None,
              drop_once=False, silent_phase=False, resume_flake=False):
@@ -58,6 +59,12 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status, data = 409, {}
             elif self.path == f'/api/resources/{SKILL}/published':
                 data = {'resource': dict(resource, id=SKILL, type='skill'), 'version': {'version': 1}, 'dependencies': []}
+            elif self.path == f'/api/resources/{SKILL2}/published':
+                if not second_skill:
+                    status, data = 404, {}
+                else:
+                    data = {'resource': dict(resource, id=SKILL2, type='skill'), 'version': {'version': 2},
+                            'dependencies': []}
             elif self.path == '/api/threads/search':
                 data = [{'thread_id': 'thread-A', 'status': 'idle', 'metadata': {'agent_name': AGENT}}] if user == 'A' else []
             elif self.path == '/api/threads':
@@ -975,3 +982,115 @@ def test_chat_tier_command_needs_a_runtime_registry(tmp_path):
                              'tier': 'autonomous'})
         assert state['error'] == 'CHAT_COMMAND_INVALID'
         assert state['localTier'] == 'ask_first'
+
+
+# --- Input commands on send (issue 75) --------------------------------------
+
+
+def run_posts(records):
+    """The recorded /runs submissions with a JSON body."""
+    return [body for path, body, _ in records
+            if path == '/api/threads/thread-A/runs' and isinstance(body, dict) and 'assistant_id' in body]
+
+
+def test_send_delegate_agent_stays_in_the_session_and_records_the_choice(tmp_path):
+    """#75: @ delegation keeps the main Agent and Thread — the platform's lead
+    Agent delegates through its own sub-agents; the picked id rides the run
+    metadata and the context carries no per-send skill unless one is mounted."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '@Published expert 帮我看看', 'delegateAgentId': AGENT})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['assistant_id'] == AGENT
+        assert body['metadata']['desktop_delegate_agent_id'] == AGENT
+        assert body['metadata']['desktop_turn_id'] == '75757575-7575-4757-8757-757575757575'
+        assert 'skill_resource_id' not in body['context']
+
+
+def test_send_mounted_skill_maps_first_onto_the_explicit_seam(tmp_path):
+    """#75: the first mounted chip is the run's explicit Skill — never a
+    trigger guess — mapped onto the same context seam a create-time Skill
+    uses, and validated by the same agent-closure rule."""
+    with platform(optional_skill=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL]})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['context']['skill_resource_id'] == SKILL
+        assert body['metadata']['desktop_skill_ids'] == [SKILL]
+        assert 'desktop_delegate_agent_id' not in body['metadata']
+
+
+def test_send_records_the_whole_mount_on_the_run(tmp_path):
+    """#75: every mounted chip rides the run in the user's pick order — the
+    first onto the explicit seam, the whole list into the run metadata — so a
+    mount is never UI-only dead weight."""
+    with platform(optional_skill=True, second_skill=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL, SKILL2]})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['context']['skill_resource_id'] == SKILL
+        assert body['metadata']['desktop_skill_ids'] == [SKILL, SKILL2]
+
+
+def test_send_explicit_skill_outside_agent_closure_is_rejected(tmp_path):
+    """#75: a published Skill outside the agent's closure fails exactly like a
+    create-time selection, before any run is submitted."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL]})
+        assert state['error'] == 'CHAT_SKILL_OUTSIDE_AGENT'
+        assert run_posts(records) == []
+        # The turn was never consumed, so the same id can still send plainly.
+        recovered = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                                 'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次'})
+        assert recovered['error'] == ''
+
+
+def test_send_rejects_malformed_input_commands(tmp_path):
+    """#75: shape violations fail without consuming the turn; the fields ride
+    the send action only, and an unknown delegate is a protocol failure."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        for patch in ({'skillIds': []}, {'skillIds': 'skill'}, {'skillIds': ['x', 'x']},
+                      {'skillIds': ['x' * 129]}, {'delegateAgentId': ''},
+                      {'delegateAgentId': 'not-a-uuid'}, {'delegateAgentId': 'y' * 129}):
+            state = chat.handle(dict(action='send', scope=scope, threadId='thread-A',
+                                     turnId='75757575-7575-4757-8757-757575757575',
+                                     text='跑一次', **patch))
+            assert state['error'] == 'CHAT_COMMAND_INVALID', patch
+        # An answer never carries the input commands, whatever its state.
+        stale = chat.handle({'action': 'answer', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575', 'requestId': 'req',
+                             'text': 'ok', 'skillIds': [SKILL]})
+        assert stale['error'] == 'CHAT_COMMAND_INVALID'
+        assert run_posts(records) == []
+        unknown = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                               'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次',
+                               'delegateAgentId': '99999999-9999-4999-8999-999999999999'})
+        assert unknown['error'] == 'CHAT_NOT_FOUND'
+        # Nothing consumed the turn; the plain send still goes through.
+        final = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次'})
+        assert final['error'] == ''
+        assert len(run_posts(records)) == 1

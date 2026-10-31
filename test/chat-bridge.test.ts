@@ -78,3 +78,47 @@ describe('session tier commands (#74)', () => {
     expect(runtime.status().process).toBe('stopped')
   })
 })
+
+describe('input command semantics on send (#75)', () => {
+  const send = { action: 'send', scope: 'A', threadId: 'thread', turnId: 'turn', text: 'hello' }
+  it('lets the plain send and the structured input commands pass validation', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-75/unused')
+    // The plain send keeps its original shape; the @ delegation and the
+    // mounted skills ride as optional structured facts, alone or together.
+    await expect(runtime.chat({ ...send })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, delegateAgentId: 'agent-1' })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, skillIds: ['skill-1'] })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, delegateAgentId: 'agent-1', skillIds: ['skill-1', 'skill-2'] }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed delegate agents before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-75/unused')
+    for (const patch of [{ delegateAgentId: '' }, { delegateAgentId: 'bad id!' }, { delegateAgentId: 42 },
+      { delegateAgentId: 'x'.repeat(129) }, { delegateAgentId: ['agent-1'] }]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...send, ...patch })))).rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed mounted skill lists before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-75/unused')
+    for (const patch of [
+      { skillIds: [] }, { skillIds: 'skill-1' }, { skillIds: ['bad id!'] }, { skillIds: [42] },
+      { skillIds: ['skill-1', 'skill-1'] },
+      { skillIds: Array.from({ length: 9 }, (_, i) => `skill-${i}`) }
+    ]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...send, ...patch })))).rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    // The structured facts ride the send action only.
+    await expect(runtime.chat(JSON.parse(JSON.stringify({
+      action: 'answer', scope: 'A', threadId: 'thread', turnId: 'turn', requestId: 'req', text: 'ok', skillIds: ['skill-1'] }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects a broadened send shape before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-75/unused')
+    await expect(runtime.chat(JSON.parse(JSON.stringify({ ...send, url: 'https://untrusted.invalid' }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+})

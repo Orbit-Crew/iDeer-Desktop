@@ -525,12 +525,28 @@ export type SessionTierValue = 'ask_first' | 'autonomous' | 'full'
  * validator and the chat switcher both read. */
 export const SESSION_TIERS: readonly SessionTierValue[] = ['ask_first', 'autonomous', 'full']
 
+/** Issue 75: the mounted-Skill bound one composer carries per message. The
+ * platform injects at most one explicit Skill per run (the first chip); the
+ * bound exists so the wire stays finite, not to fake a wider seam. */
+export const MAX_MESSAGE_SKILLS = 8
+
+/** Issue 75: the at-mention delegation and slash-skill semantics ride the
+ * send command as structured, optional facts. `delegateAgentId` names the
+ * agent the user at-mentioned for THIS message: the platform sub-agent
+ * delegation stays inside the current session (the main Agent and Thread are
+ * unchanged, in contrast to `create`, which opens a new session). `skillIds`
+ * carries the skills the user explicitly mounted in the composer, first chip
+ * first: the runtime maps the first onto the platform's per-run explicit
+ * Skill seam (must-use, never trigger-guessed) and records the whole mount
+ * on the run. The account's own trigger-preference injection applies only on
+ * runs without an explicit Skill, and only the Server ever matches it. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
-  | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
+  | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
+    delegateAgentId?: string; skillIds?: string[] }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }

@@ -1062,6 +1062,21 @@ class DesktopChat:
 
     def _send(self, session, command):
         turn_id = self._uuid(command.get('turnId'))
+        # Issue 75: the structured input commands ride the send action only —
+        # an answer never carries them. Shapes are bounded before anything
+        # else: a violation fails without consuming the turn or the session.
+        delegate_id = command.get('delegateAgentId')
+        skill_ids = command.get('skillIds')
+        # The bounds mirror the main process exactly: at most 8 mounted
+        # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
+        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if delegate_id is not None and (not isinstance(delegate_id, str) or not delegate_id or len(delegate_id) > 128):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if skill_ids is not None and (not isinstance(skill_ids, list) or not skill_ids or len(skill_ids) > 8
+                                      or len(set(skill_ids)) != len(skill_ids)
+                                      or any(not isinstance(value, str) or not value or len(value) > 128 for value in skill_ids)):
+            raise ChatError('CHAT_COMMAND_INVALID')
         if turn_id in self._turns:
             raise ChatError('CHAT_TURN_ALREADY_SUBMITTED')
         if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
@@ -1097,6 +1112,30 @@ class DesktopChat:
             additional_kwargs = {'hide_from_ui': True, 'human_input_response': response}
         if not isinstance(text, str) or not text.strip() or len(text) > 16000:
             raise ChatError('CHAT_MESSAGE_INVALID')
+        # Issue 75: the delegate Agent must be a published agent; the mention
+        # text itself stays the lead Agent's cue and the platform delegates
+        # through its own sub-agents inside THIS session (assistant_id stays
+        # the session's main Agent). The mounted Skills must be published; the
+        # first chip wins the platform's one explicit Skill per run and is
+        # validated by the same agent-closure rule as a create-time Skill,
+        # while the whole mount is recorded on the run. A run without any
+        # explicit Skill is exactly where the account's own Server-side
+        # trigger-preference injection applies — never alongside it.
+        resolved_delegate = ''
+        resolved_skills: list = []
+        if delegate_id:
+            resolved_delegate = self._uuid(delegate_id)
+            delegate_published = self._published(session, resolved_delegate)
+            if delegate_published['resource']['type'] != 'agent':
+                raise ChatError('CHAT_RESOURCE_UNAVAILABLE')
+        if skill_ids:
+            resolved_skills = [self._uuid(value) for value in skill_ids]
+            for value in resolved_skills:
+                self._published(session, value)
+            closure = set()
+            self._published(session, agent_id, closure)
+            if resolved_skills[0] not in closure:
+                raise ChatError('CHAT_SKILL_OUTSIDE_AGENT')
         message = dict(id=turn_id, type='human', content=text)
         if additional_kwargs:
             message['additional_kwargs'] = additional_kwargs
@@ -1108,9 +1147,19 @@ class DesktopChat:
             settings = load_settings(self.config)
             local_context = {'local_device_id': settings.device_id,
                              'local_workspace_root': workspace['logicalRoot']}
+        context = {'agent_name': agent_id, **local_context}
+        if resolved_skills or thread['skillId']:
+            context['skill_resource_id'] = resolved_skills[0] if resolved_skills else thread['skillId']
+        metadata = {'desktop_turn_id': turn_id}
+        if resolved_delegate:
+            metadata['desktop_delegate_agent_id'] = resolved_delegate
+        if resolved_skills:
+            # The whole mount rides the run as the user's own choice; the
+            # explicit seam above stays the platform's one-Skill-per-run cap.
+            metadata['desktop_skill_ids'] = resolved_skills
         body = dict(assistant_id=agent_id, input={'messages': [message]},
-                    context={'agent_name': agent_id, **local_context, **({'skill_resource_id': thread['skillId']} if thread['skillId'] else {})},
-                    metadata={'desktop_turn_id': turn_id}, stream_mode=['messages-tuple', 'values', 'custom'],
+                    context=context,
+                    metadata=metadata, stream_mode=['messages-tuple', 'values', 'custom'],
                     stream_subgraphs=True, multitask_strategy='reject', on_disconnect='continue')
         try:
             run = self._json(session, f"/api/threads/{thread['id']}/runs", body, {'Idempotency-Key': turn_id})
