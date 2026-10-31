@@ -37,6 +37,12 @@ MAX_RESULT_BYTES = 65536
 STREAM_READ_TIMEOUT = 90.0
 STREAM_RECONNECTS = 3
 STREAM_RECONNECT_DELAY = 1.0
+# Issue 77: the Desktop's own observation cadence for backgrounded Runs. This
+# bounds only how often the Server is asked about runs the user left running —
+# never how many sessions or tasks the platform may run in parallel.
+BACKGROUND_TICK_SECONDS = 2.0
+BACKGROUND_POLL_LIMIT = 8
+BACKGROUND_LEDGER_LIMIT = 20
 
 
 class ChatError(Exception):
@@ -441,6 +447,14 @@ class DesktopChat:
         self.session_tiers = session_tiers
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        # Issue 77: runs the user left behind by switching sessions. The Run
+        # itself keeps running on the Server (on_disconnect='continue'); this
+        # ledger only bounds what the Desktop observes and notifies about —
+        # never what the platform may run in parallel.
+        self._background: list = []
+        self._notified_consents: dict = {}
+        self._background_checked = 0.0
+        self._background_loading = None
 
     def _consents(self, session):
         """The pending device decisions the Desktop chat can settle (#39).
@@ -518,6 +532,11 @@ class DesktopChat:
         self._turns.clear()
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        # Issue 77: a reset tore down the session the ledger was observing
+        # (auth or identity failure), so the observation debt goes with it.
+        # The Server keeps the runs; reopening their sessions shows the truth.
+        self._background.clear()
+        self._notified_consents.clear()
 
     @staticmethod
     def _id(value):
@@ -634,6 +653,14 @@ class DesktopChat:
                         raise
                     agent_id = ''
         skill_id = selection.get('preferred_skill', {}).get('resource_id') or thread.get('metadata', {}).get('skill_resource_id', '')
+        # Issue 77: a Run still in flight on the thread being switched away
+        # keeps running on the Server; register it for observation so its
+        # completion and its approval asks can still reach the user. Reopening
+        # or reconnecting the same thread never registers its own Run.
+        previous_thread, previous_run = self._state.get('thread'), self._state.get('run')
+        if (previous_thread and previous_run and previous_thread['id'] != thread_id
+                and previous_run['status'] in {'pending', 'running'}):
+            self._register_background(previous_thread['id'], previous_run['id'])
         self._generation += 1
         self._state.update(thread=dict(id=thread_id, status=thread['status'],
             agentId=agent_id, skillId=skill_id),
@@ -647,6 +674,10 @@ class DesktopChat:
         self._state['localTier'] = DEFAULT_SESSION_TIER.value
         self._messages(messages)
         self._load_tasks(session)
+        # Issue 77: the loaded thread is the visible session again — its runs
+        # are observed by the foreground stream, not by the background ledger.
+        with self._lock:
+            self._background = [row for row in self._background if row['thread_id'] != thread_id]
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
 
@@ -790,6 +821,165 @@ class DesktopChat:
                     if self._tasks_loading is ticket:
                         self._tasks_loading = None
         threading.Thread(target=refresh, daemon=True).start()
+
+    # --- Background session observation (issue 77) --------------------------
+
+    def _register_background(self, thread_id, run_id):
+        """Record one Run the user left running by switching sessions.
+
+        The ledger is display-only: it bounds what the Desktop observes and
+        notifies about, never what the platform may run in parallel."""
+        title = next((str(row.get('title', ''))[:200] for row in self._state['threads']
+                      if row.get('id') == thread_id), '')
+        with self._lock:
+            if any(row['thread_id'] == thread_id and row['run_id'] == run_id
+                   for row in self._background):
+                return
+            self._background.append(dict(thread_id=thread_id, run_id=run_id, title=title))
+            del self._background[:-BACKGROUND_LEDGER_LIMIT]
+
+    def background_runs(self):
+        """The bounded background-run summary for the Desktop status snapshot."""
+        with self._lock:
+            return [dict(threadId=row['thread_id'], runId=row['run_id'])
+                    for row in self._background]
+
+    def _thread_title(self, thread_id):
+        with self._lock:
+            return next((str(row.get('title', ''))[:200] for row in self._state['threads']
+                         if row.get('id') == thread_id), '')
+
+    @staticmethod
+    def _consent_summary(approval, payload):
+        """One bounded identity line per ask; content bytes never leave it."""
+        args = payload.get('arguments', payload.get('args', payload)) if isinstance(payload, dict) else {}
+        if approval == 'file-write':
+            return str(args.get('path', ''))[:200] if isinstance(args, dict) else ''
+        if approval == 'skill-script':
+            return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
+        if approval == 'knowledge-material':
+            return str(args.get('revision_id', ''))[:200] if isinstance(args, dict) else ''
+        return ''
+
+    def background_tick(self, force=False):
+        """Observation-only background facts for the Desktop status loop (#77).
+
+        Returns the notification events accumulated since the last tick:
+        backgrounded Runs that reached an end state, and device approval asks
+        whose session is not the visible one. The cadence bounds Server
+        polling, not the platform's own concurrency; every event carries
+        identity facts only."""
+        now = time.monotonic()
+        if not force:
+            if now - self._background_checked < BACKGROUND_TICK_SECONDS:
+                return []
+        with self._lock:
+            if self._background_loading is not None:
+                return []
+            ticket = object()
+            self._background_loading = ticket
+            self._background_checked = now
+        try:
+            return self._background_observe()
+        finally:
+            with self._lock:
+                if self._background_loading is ticket:
+                    self._background_loading = None
+
+    def _background_observe(self):
+        try:
+            session = self._session()
+        except ChatError:
+            return []  # 暂时不可用：保留登记，下一轮再观察
+        with self._lock:
+            if session.scope != self._state['scope']:
+                # 配对身份已变化：旧身份的观察账本随之清除，绝不外泄。
+                self._background.clear()
+                self._notified_consents.clear()
+                return []
+            foreground = (self._state.get('thread') or {}).get('id', '')
+            background = list(self._background)
+        events = self._background_consents(session, foreground)
+        events.extend(self._background_runs(session, background))
+        return events
+
+    def _background_consents(self, session, foreground):
+        """Approval asks on sessions the user cannot currently see.
+
+        The unfiltered device queue already knows every ask's session; only
+        asks outside the visible session are notified here, exactly once, so
+        the visible session keeps its chat cards and a resolved ask that
+        reappears is asked again."""
+        try:
+            pending = list(self.local_consents())
+        except Exception:
+            return []  # 快照不可用时跳过本轮审批观察
+        alive = set()
+        events = []
+        for row in pending:
+            payload = getattr(row, 'payload', None)
+            task_id = str(getattr(row, 'task_id', ''))[:128]
+            alive.add(task_id)
+            thread_id = payload.get('thread_id') if isinstance(payload, dict) else None
+            if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
+                continue
+            approval = {'local.files.write': 'file-write', 'local.skill.script': 'skill-script',
+                        'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
+            if not approval:
+                continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
+            with self._lock:
+                if task_id in self._notified_consents:
+                    continue
+                self._notified_consents[task_id] = True
+            events.append(dict(kind='approval-required', threadId=thread_id,
+                runId=str(payload.get('run_id', ''))[:128], taskId=task_id,
+                approval=approval, summary=self._consent_summary(approval, payload),
+                title=self._thread_title(thread_id)))
+        with self._lock:
+            # 已不在待审队列的旧记录移出去重集，同一任务再问仍会通知。
+            for task_id in [key for key in self._notified_consents if key not in alive]:
+                del self._notified_consents[task_id]
+        return self._scrub_events(session, events)
+
+    def _background_runs(self, session, background):
+        """Ask the Server about each registered Run, oldest first; a Run that
+        left {pending, running} is reported once and dropped. A unreachable
+        Server keeps the ledger untouched for the next tick."""
+        events = []
+        polled = 0
+        for row in background:
+            if polled >= BACKGROUND_POLL_LIMIT:
+                break
+            polled += 1
+            try:
+                run = self._json(session, f"/api/threads/{row['thread_id']}/runs/{row['run_id']}")
+            except ChatError as exc:
+                if str(exc) == 'CHAT_NOT_FOUND':
+                    # 平台已找不到该 Run（如会话被删除）：静默移出账本。
+                    with self._lock:
+                        self._background = [item for item in self._background
+                                            if not (item['thread_id'] == row['thread_id'] and item['run_id'] == row['run_id'])]
+                    continue
+                break
+            if not isinstance(run, dict) or not isinstance(run.get('status'), str):
+                break
+            if run['status'] in {'pending', 'running'}:
+                continue
+            with self._lock:
+                self._background = [item for item in self._background
+                                    if not (item['thread_id'] == row['thread_id'] and item['run_id'] == row['run_id'])]
+            events.append(dict(kind='run-finished', threadId=row['thread_id'], runId=row['run_id'],
+                status=run['status'][:32], title=row.get('title', '')))
+        return self._scrub_events(session, events)
+
+    def _scrub_events(self, session, events):
+        if not events or not getattr(session, 'token', ''):
+            return events
+        scrubbed = []
+        for event in events:
+            encoded = json.dumps(event).replace(session.token, '[REDACTED]')
+            scrubbed.append(json.loads(encoded))
+        return scrubbed
 
     def _stop(self, session, command):
         if set(command) != {'action', 'scope', 'threadId', 'runId'}:
