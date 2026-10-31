@@ -60,6 +60,10 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:security
+      # Issue #43: dual-shell proof that the acceptance drivers read UTF-8
+      # JSON correctly and pass inner status through to the outer exit code.
+      - run: ./scripts/verify-issue-43.ps1
+        shell: pwsh
       - run: npm run dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

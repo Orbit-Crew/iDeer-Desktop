@@ -1,0 +1,117 @@
+{
+    "generatedAt":  "2026-10-30T15:06:28.3914634+08:00",
+    "check":  "issue-43-driver-utf8-verification",
+    "gitHead":  "297eebdcbf26cf8265a8a53d35275048347d66bb",
+    "scriptSha256":  "AB8C67F8E3F30201DA40955A1E9C321EAAE309C02EE940B8F38B72F94C575D1D",
+    "os":  {
+               "Caption":  "Microsoft Windows 11 专业版",
+               "Version":  "10.0.26300",
+               "OSArchitecture":  "64 位"
+           },
+    "archivedResultJson":  {
+                               "sha256":  "B1870ED9E66D6950C524306FA848ABD90CD794EE0A5682065B6EC31EF97B6BCB",
+                               "path":  "docs/acceptance/issue-120/evidence/installed-20261029/result.json"
+                           },
+    "fixtures":  {
+                     "passed":  {
+                                    "path":  "G:\\code\\iDeer-Desktop\\docs\\acceptance\\issue-43\\evidence\\verify-20261030\\fixture-passed.json",
+                                    "sha256":  "4C7F14078B50510B2AE45192206944FB7E459F82FAD152CC5367111BC7BBADB7",
+                                    "content":  "{\"status\":\"passed\",\"summary\":\"验收通过：中文、换行与引号\",\"detail\":\"第一行\\\"双引号\\\"\\n第二行\\\"引号与换行\\\"\\n第三行\u0027单引号\u0027\"}"
+                                },
+                     "failed":  {
+                                    "path":  "G:\\code\\iDeer-Desktop\\docs\\acceptance\\issue-43\\evidence\\verify-20261030\\fixture-failed.json",
+                                    "sha256":  "9611BFB4EA6BA75B11316A929CDF66364DB35EAD0F5E06739FB7F63F9AF8924B",
+                                    "content":  "{\"status\":\"failed\",\"summary\":\"验收通过：中文、换行与引号\",\"detail\":\"第一行\\\"双引号\\\"\\n第二行\\\"引号与换行\\\"\\n第三行\u0027单引号\u0027\"}"
+                                }
+                 },
+    "shells":  [
+                   {
+                       "key":  "windows-powershell",
+                       "exe":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "runs":  [
+                                    {
+                                        "mode":  "utf8",
+                                        "probeMatched":  true,
+                                        "parseError":  null,
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  true,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "fixture-passed-utf8-summary",
+                                        "status":  "passed",
+                                        "childExit":  0,
+                                        "edition":  "Desktop",
+                                        "note":  null
+                                    },
+                                    {
+                                        "mode":  "utf8",
+                                        "probeMatched":  true,
+                                        "parseError":  null,
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  true,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "fixture-passed-utf8-detail",
+                                        "status":  "passed",
+                                        "childExit":  0,
+                                        "edition":  "Desktop",
+                                        "note":  null
+                                    },
+                                    {
+                                        "mode":  "utf8",
+                                        "probeMatched":  true,
+                                        "parseError":  null,
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  true,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "fixture-failed-utf8-status-gate",
+                                        "status":  "failed",
+                                        "childExit":  1,
+                                        "edition":  "Desktop",
+                                        "note":  null
+                                    },
+                                    {
+                                        "mode":  "default",
+                                        "probeMatched":  false,
+                                        "parseError":  "System.ArgumentException",
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  false,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "fixture-passed-default-summary",
+                                        "status":  null,
+                                        "childExit":  1,
+                                        "edition":  "Desktop",
+                                        "note":  "defect reproduced as System.ArgumentException"
+                                    },
+                                    {
+                                        "mode":  "utf8",
+                                        "probeMatched":  true,
+                                        "parseError":  null,
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  true,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "archived-utf8-title",
+                                        "status":  "passed",
+                                        "childExit":  0,
+                                        "edition":  "Desktop",
+                                        "note":  null
+                                    },
+                                    {
+                                        "mode":  "default",
+                                        "probeMatched":  false,
+                                        "parseError":  "System.ArgumentException",
+                                        "defaultEncoding":  "gb2312",
+                                        "parsed":  false,
+                                        "psVersion":  "5.1.26100.9711",
+                                        "name":  "archived-default-title",
+                                        "status":  null,
+                                        "childExit":  1,
+                                        "edition":  "Desktop",
+                                        "note":  "defect reproduced as System.ArgumentException"
+                                    }
+                                ]
+                   }
+               ],
+    "violations":  [
+
+                   ],
+    "passed":  true
+}
