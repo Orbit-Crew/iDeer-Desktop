@@ -24,7 +24,7 @@ const stateWith = (overrides: Partial<ChatSnapshot>): ChatSnapshot => ({
     { id: 'ai-id-1', role: 'ai', text: '结论：成立。', name: '' },
     { id: 'tool-id-1', role: 'tool', text: '站点返回 200', name: 'web_search' }
   ],
-  events: [], stream: 'idle', error: '', lastEventId: '',
+  events: [], subagents: [], stream: 'idle', error: '', lastEventId: '',
   ...overrides
 })
 
