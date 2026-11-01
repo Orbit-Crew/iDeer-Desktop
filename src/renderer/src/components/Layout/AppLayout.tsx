@@ -2,14 +2,27 @@
 // anchor plus splittable panes. The former stacked connection/runtime/update/
 // compatibility cards move into the device Runtime pane; the sidebar keeps its
 // width and collapse rail.
+import { useEffect } from 'react'
 import { DoubleRightOutlined } from '@ant-design/icons'
 import { useUIStore } from '../../stores/uiStore'
+import { NotificationCenterController, useNotificationCenter } from '../../stores/notificationCenter'
 import Sidebar from './Sidebar'
 import DockWorkspace from '../../dock/DockWorkspace'
 
 export default function AppLayout(): JSX.Element {
   const leftPanelOpen = useUIStore((state) => state.leftPanelOpen)
   const toggleLeftPanel = useUIStore((state) => state.toggleLeftPanel)
+  // Issue 77: the notification center listens for the whole app lifetime so
+  // an OS-toast click can jump back even when the center pane is closed.
+  useEffect(() => {
+    const controller = new NotificationCenterController(window.ideer)
+    useNotificationCenter.getState().attach(controller)
+    controller.start()
+    return () => {
+      controller.stop()
+      useNotificationCenter.getState().attach(null)
+    }
+  }, [])
   return (
     <div data-desktop-ready="true" className="flex h-screen w-screen overflow-hidden">
       <div className="relative flex-shrink-0 h-full overflow-hidden border-r border-line bg-white"

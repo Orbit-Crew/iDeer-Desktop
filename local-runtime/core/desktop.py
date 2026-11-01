@@ -710,6 +710,16 @@ def main() -> int:
             # unknown count cannot look like an idle queue and falsely block
             # installation. A task appearing during the read still counts too.
             active_tasks_before = controller.client.active_task_count() if controller is not None else 0
+            # Issue 77: the status loop drives the bounded background-session
+            # observation; each event becomes one wire notification for the
+            # Desktop's own notification center. The tick bounds Server
+            # polling only — the platform's own concurrency is never narrowed.
+            try:
+                notify_events = chat.background_tick()
+            except Exception:
+                notify_events = []
+            for event in notify_events:
+                emit({'v': 1, 'type': 'notify', 'event': event})
             receipt_view = receipts.snapshot(current_receipt_owner)
             try:
                 unknown_write_effects = receipts.unknown_write_effects(None)
@@ -728,6 +738,7 @@ def main() -> int:
                       "installDrain": install_draining,
                       "activeTasks": max(active_tasks_before,
                           controller.client.active_task_count() if controller is not None else 0),
+                      "backgroundRuns": chat.background_runs()[:20],
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],

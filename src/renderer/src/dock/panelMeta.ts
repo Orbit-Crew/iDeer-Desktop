@@ -23,7 +23,11 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'webgl' },
   field: { id: 'field', title: '仿真结果', multiInstance: false, closable: true, runtime: 'webgl' },
   sql: { id: 'sql', title: '数据', multiInstance: false, closable: true, runtime: 'native' },
-  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'webview' }
+  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'webview' },
+  // Issue 77: the reusable notification center — one native pane over the
+  // main-process ledger; later tickets (tray badge, installs, updates) record
+  // into the same surface instead of rebuilding it.
+  notifications: { id: 'notifications', title: '通知中心', multiInstance: false, closable: true, runtime: 'native' }
 }
 
 export function getPanelMeta(id: PanelTypeId): PanelMeta {

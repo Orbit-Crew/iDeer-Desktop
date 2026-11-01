@@ -19,7 +19,8 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
              optional_skill=False, second_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
              artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None,
-             drop_once=False, silent_phase=False, resume_flake=False, stream_events=None):
+             drop_once=False, silent_phase=False, resume_flake=False, stream_events=None,
+             hold_stream=None, list_run=False):
     records = []
     artifacts = {}
     grants = set()
@@ -74,6 +75,21 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status, data = 404, {}
                 else:
                     data = {'thread_id': 'thread-A', 'status': 'idle', 'metadata': {'agent_name': agent_binding}}
+            elif self.path == '/api/threads/thread-B':
+                if user == 'B':
+                    status, data = 404, {}
+                else:
+                    data = {'thread_id': 'thread-B', 'status': 'idle', 'metadata': {'agent_name': agent_binding}}
+            elif self.path == '/api/threads/thread-B/state':
+                data = {'values': {'messages': []}}
+            elif self.path.startswith('/api/threads/thread-B/messages/page'):
+                data = {'data': [], 'has_more': False}
+            elif self.path == '/api/threads/thread-B/runs':
+                data = []
+            elif self.path.startswith('/api/threads/thread-B/local-tasks?'):
+                data = {'tasks': [], 'has_more': False, 'next_offset': None}
+            elif self.path.startswith('/api/threads/thread-B/artifacts?'):
+                data = {'artifacts': [], 'has_more': False, 'next_offset': None}
             elif self.path == '/api/resources/aliases/agent/expert-slug':
                 data = resource
             elif self.path == '/api/threads/thread-A/state':
@@ -93,13 +109,19 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     data['data'] = [{'content': {'id': 'h1', 'type': 'human', 'content': 'Unique T99 message'}}]
             elif self.path == '/api/threads/thread-A/runs':
                 if body is None:
-                    data = []
+                    # Issue 77: list_run lets the reopen path see the run the
+                    # fixture started; the default stays an empty history so
+                    # older reopen tests keep proving no Run is restarted.
+                    data = [{'run_id': 'run-1', 'thread_id': 'thread-A',
+                             'status': 'running' if hold_stream is not None and not hold_stream.is_set() else 'success',
+                             'created_at': '2026-01-01T00:00:00Z', 'metadata': {}}] if list_run else []
                 else:
                     data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': 'running', 'metadata': {}}
                     if body.get('stream_mode') != ['messages-tuple', 'values', 'custom']:
                         status, data = 422, {'detail': 'Unsupported public stream mode'}
             elif self.path == '/api/threads/thread-A/runs/run-1':
-                data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': 'success', 'metadata': {}}
+                run_status = 'running' if hold_stream is not None and not hold_stream.is_set() else 'success'
+                data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': run_status, 'metadata': {}}
             elif self.path == '/api/threads/thread-A/runs/run-1/cancel?wait=false&action=interrupt':
                 status, data = cancel_status, None
             elif self.path.startswith('/api/threads/thread-A/local-tasks?'):
@@ -173,6 +195,15 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     return
                 self.wfile.write(b'id: 1\nevent: messages\ndata: [{"id":"a1","type":"AIMessageChunk","content":"Streamed"},{}]\n\n')
                 self.wfile.flush()
+                if hold_stream is not None:
+                    # Issue 77: the run keeps streaming (Server side) until the
+                    # test releases it; a switched-away session must not end it.
+                    hold_stream.wait(10)
+                    try:
+                        self.wfile.write(b'id: 2\nevent: end\ndata: null\n\n')
+                    except OSError:
+                        pass  # the switched-away consumer already hung up
+                    return
                 time.sleep(0.1)
                 if stream_events and not (disconnect or drop_once or silent_phase):
                     # Extra root frames (custom task_* events, values
@@ -1260,3 +1291,125 @@ def test_new_turn_resets_the_subagent_ledger(tmp_path):
                               'turnId': '76767676-7676-4676-8767-767676767678', 'text': '第二轮'})
         assert second['error'] == ''
         assert second['subagents'] == []
+
+
+def test_background_run_keeps_running_and_reports_finish_once(tmp_path):
+    """#77: switching away never aborts a Run — the Server keeps it and the
+    Desktop observes it until it ends, reports exactly one finish notification,
+    and reopening the session reattaches the truthful end state."""
+    hold = threading.Event()
+    with platform(hold_stream=hold, list_run=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4776-8776-767676767676', 'text': '跑后台任务'})
+        assert state['stream'] == 'streaming'
+        # 切到另一个会话：thread-A 的 Run 被登记为后台观察对象，而不是被中止。
+        opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert opened['thread']['id'] == 'thread-B'
+        assert chat.background_runs() == [{'threadId': 'thread-A', 'runId': 'run-1'}]
+        assert not any('/cancel' in route for route, _, _ in records)
+        # 还在跑：不产生完成通知；重复观察也不产生。
+        assert chat.background_tick(force=True) == []
+        assert chat.background_tick(force=True) == []
+        hold.set()
+        finished = chat.background_tick(force=True)
+        assert len(finished) == 1
+        assert finished[0]['kind'] == 'run-finished'
+        assert finished[0]['threadId'] == 'thread-A' and finished[0]['runId'] == 'run-1'
+        assert finished[0]['status'] == 'success'
+        assert chat.background_runs() == []
+        # 完成通知只发一次。
+        assert chat.background_tick(force=True) == []
+        # 重开会话：状态如实显示结束态，不再重挂流。
+        reopened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        assert reopened['run']['status'] == 'success'
+        assert reopened['stream'] == 'idle'
+
+
+def test_background_consent_ask_notifies_once_and_skips_foreground(tmp_path):
+    """#77: a device approval ask on a backgrounded session reaches the user
+    as a notification exactly once — identity facts only, never the payload
+    bytes — and asks on the visible session stay on the chat cards."""
+    from core.consent import PendingConsent
+    hold = threading.Event()
+    background_ask = PendingConsent('task-bg', 'local.files.write',
+        {'run_id': 'run-1', 'thread_id': 'thread-A',
+         'arguments': {'path': '/workspace/bg/target.txt', 'content': 'SECRET BODY\n'}},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    foreground_ask = PendingConsent('task-fg', 'local.files.write',
+        {'run_id': 'run-B', 'thread_id': 'thread-B',
+         'arguments': {'path': '/workspace/fg/target.txt', 'content': 'VISIBLE\n'}},
+        'f' * 64, 'level_1', False, {}, time.monotonic())
+    with platform(hold_stream=hold) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [background_ask, foreground_ask])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '78787878-7878-4788-8888-787878787878', 'text': '写文件'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        events = chat.background_tick(force=True)
+        assert len(events) == 1
+        event = events[0]
+        assert event['kind'] == 'approval-required'
+        assert event['threadId'] == 'thread-A' and event['runId'] == 'run-1'
+        assert event['taskId'] == 'task-bg' and event['approval'] == 'file-write'
+        assert event['summary'] == '/workspace/bg/target.txt'
+        assert 'SECRET' not in json.dumps(events) and 'VISIBLE' not in json.dumps(events)
+        # 只通知一次；前台会话的请求不进通知。
+        assert chat.background_tick(force=True) == []
+        # 请求先消失（已被解决）再出现：视为新的一问，重新通知。
+        chat.local_consents = lambda: []
+        assert chat.background_tick(force=True) == []
+        chat.local_consents = lambda: [PendingConsent('task-bg', 'local.files.write',
+            {'run_id': 'run-1', 'thread_id': 'thread-A',
+             'arguments': {'path': '/workspace/bg/target.txt', 'content': 'SECRET BODY\n'}},
+            'e' * 64, 'level_1', False, {}, time.monotonic())]
+        replayed = chat.background_tick(force=True)
+        assert [row['taskId'] for row in replayed] == ['task-bg']
+        # 审批快照不可用时，完成观察照常进行，下一轮恢复。
+        def unavailable():
+            raise RuntimeError('fixture snapshot unavailable')
+        chat.local_consents = unavailable
+        assert chat.background_tick(force=True) == []
+
+
+def test_background_registry_resets_when_identity_changes(tmp_path):
+    """#77: the background ledger is a live-observation seam of the current
+    pairing — an identity change fences it off instead of ever reporting a
+    retired account's runs."""
+    hold = threading.Event()
+    with platform(hold_stream=hold) as (origin, _):
+        chat, settings, config = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '79797979-7979-4799-8999-797979797979', 'text': '跑后台任务'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert chat.background_runs() == [{'threadId': 'thread-A', 'runId': 'run-1'}]
+        settings.business_token_ref = 'business-B'
+        settings.save(config)
+        assert chat.background_tick(force=True) == []
+        assert chat.background_runs() == []
+
+
+def test_background_consent_facts_outside_the_wire_charset_are_skipped(tmp_path):
+    """#77: an ask whose run/task identity cannot survive the notify wire is
+    skipped entirely — the Desktop must never emit an event the strict main
+    process would treat as a malformed status line and kill the Runtime for."""
+    from core.consent import PendingConsent
+    hold = threading.Event()
+    malformed = PendingConsent('task/evil', 'local.files.write',
+        {'run_id': 'run 1', 'thread_id': 'thread-A',
+         'arguments': {'path': '/workspace/x/target.txt', 'content': 'BODY\n'}},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    with platform(hold_stream=hold) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [malformed])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '80808080-8080-4800-9000-808080808080', 'text': '写文件'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert chat.background_tick(force=True) == []
+        assert chat.background_tick(force=True) == []

@@ -21,7 +21,13 @@ Installed resources are resources/runtime/python.exe, stdlib, locked wheels and
 core/. Development uses .runtime/ with the same layout. Shell expansion is off;
 the executable, module and arguments are fixed. Python -I ignores environment
 injection. Stdout carries bounded process/connection/task summaries, without
-inputs, outputs or credentials. Stopped/crashed/unresponsive processes report
+inputs, outputs or credentials. Issue 77 adds bounded background-session
+facts to the same stdout: one `notify` event per fact (a run the user left
+behind by switching sessions that has since ended, or an approval ask on a
+session the user cannot currently see), identity fields only, plus a
+`backgroundRuns` summary in the status snapshot — an observation ledger that
+never bounds the platform's own concurrency. Stopped/crashed/unresponsive
+processes report
 offline. An unconfigured installation reports not-configured and executes no tasks.
 
 The fixed settings file is `%APPDATA%/iDeer Desktop/Runtime/settings.json`.
