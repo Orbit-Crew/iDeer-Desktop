@@ -38,6 +38,14 @@ MAX_RESULT_BYTES = 65536
 STREAM_READ_TIMEOUT = 90.0
 STREAM_RECONNECTS = 3
 STREAM_RECONNECT_DELAY = 1.0
+# Issue 76: the structured sub-agent ledger is bounded next to the 50-entry
+# raw event ledger, and one entry's copied result/error text is bounded too —
+# the conversation's own tool messages keep the platform's full report.
+MAX_SUBAGENT_ENTRIES = 50
+MAX_SUBAGENT_RESULT = 8000
+MAX_SUBAGENT_ERROR = 2000
+MAX_SUBAGENT_DESCRIPTION = 2000
+MAX_SUBAGENT_NAMES = 200
 # Issue 77: the Desktop's own observation cadence for backgrounded Runs. This
 # bounds only how often the Server is asked about runs the user left running —
 # never how many sessions or tasks the platform may run in parallel. The
@@ -47,6 +55,9 @@ STREAM_RECONNECT_DELAY = 1.0
 BACKGROUND_TICK_SECONDS = 2.0
 BACKGROUND_POLL_LIMIT = 8
 BACKGROUND_LEDGER_LIMIT = 100
+# Issue 78: one branch names one completed assistant turn; the turn's
+# assistant message ids stay a bounded list on the wire.
+MAX_BRANCH_TURN_MESSAGES = 64
 # The identity charset every notify fact must survive on the wire; facts
 # outside it are skipped rather than ever emitted malformed.
 _WIRE_ID_CHARS = frozenset(string.ascii_letters + string.digits + '_-')
@@ -425,7 +436,30 @@ def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
                 localTasks=[], taskError='', artifacts=[],
+                # Issue 73: the chat-side model display facts. `model` is the
+                # resolved choice for the next submission plus its honest
+                # availability; `modelOptions` mirrors the platform's
+                # authorized list (already permission-filtered by the Server).
+                model=dict(name='', source='platform-default', available=True,
+                           reason='', notice='', switchedFrom=''),
+                modelOptions=[],
+                subagents=[],
                 localTier=DEFAULT_SESSION_TIER.value)
+
+
+def inherited_binding(source_binding):
+    """Issue 78: the one place a branch's project folder binding is decided.
+
+    A source session with a binding hands a copy to the branch; a source
+    without one stays unbound (无绑定为空). The binding producer and the run
+    context that consumes it arrive with the project folder binding ticket
+    (二期 #92) — until then nothing registers an entry, so every branch
+    resolves to no binding, and that ticket cannot grow a second inheritance
+    path because the branch action consults only this function.
+    """
+    if not isinstance(source_binding, dict) or not source_binding:
+        return None
+    return dict(source_binding)
 
 
 class DesktopChat:
@@ -458,6 +492,21 @@ class DesktopChat:
         self.session_tiers = session_tiers
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        # Issue 73: per-session temporary model choices, the cached authorized
+        # model list, and the cached account default. All three are display/
+        # resolution facts bound to the authenticated identity — nothing here
+        # holds a provider, endpoint or key.
+        self._session_models = {}
+        self._models_cache = None
+        self._account_default_cache = None
+        # Issue 78: per-thread project folder bindings, in memory only. The
+        # branch action is the only place a binding crosses sessions, through
+        # `inherited_binding`; the producer arrives with 二期 #92.
+        self._thread_bindings = {}
+        # Issue 76: task tool_call id → sub-agent type, derived only from the
+        # parent AI messages the platform itself published; a display fact for
+        # the ledger, never an orchestration input.
+        self._subagent_names = {}
         # Issue 77: runs the user left behind by switching sessions. The Run
         # itself keeps running on the Server (on_disconnect='continue'); this
         # ledger only bounds what the Desktop observes and notifies about —
@@ -541,8 +590,16 @@ class DesktopChat:
         self._generation += 1
         self._state = empty_state(scope)
         self._turns.clear()
+        self._subagent_names.clear()
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        # The model facts belong to the identity that cached them.
+        self._session_models.clear()
+        self._models_cache = None
+        self._account_default_cache = None
+        # Issue 78: the binding registry belongs to the authenticated identity
+        # the same way the model facts do.
+        self._thread_bindings.clear()
         # Issue 77: a reset tore down the session the ledger was observing
         # (auth or identity failure), so the observation debt goes with it.
         # The Server keeps the runs; reopening their sessions shows the truth.
@@ -582,6 +639,8 @@ class DesktopChat:
             kind = {'AIMessageChunk': 'ai', 'assistant': 'ai', 'user': 'human', 'ToolMessageChunk': 'tool'}.get(kind, kind)
             if kind not in {'ai', 'human', 'tool'}:
                 continue
+            if kind == 'ai':
+                self._note_subagent_calls(raw)
             key = str(raw.get('id') or '')
             if not key:
                 continue
@@ -610,6 +669,85 @@ class DesktopChat:
                 if pending:
                     message['response'] = {'request_id': pending}
                     answered.add(pending)
+
+    def _note_subagent_calls(self, raw):
+        """Issue 76: record the task tool calls a published AI message carries.
+        The sub-agent type lives only in the parent message's own tool_calls —
+        the desktop derives this display fact from what the platform itself
+        published, never from a local roster."""
+        calls = raw.get('tool_calls')
+        if not isinstance(calls, list):
+            return
+        for call in calls:
+            if not isinstance(call, dict) or call.get('name') != 'task':
+                continue
+            call_id, args = call.get('id'), call.get('args')
+            agent_type = args.get('subagent_type') if isinstance(args, dict) else None
+            if not isinstance(call_id, str) or not 1 <= len(call_id) <= 128:
+                continue
+            if not isinstance(agent_type, str) or not agent_type:
+                continue
+            if len(self._subagent_names) >= MAX_SUBAGENT_NAMES:
+                self._subagent_names.pop(next(iter(self._subagent_names)))
+            self._subagent_names[call_id] = agent_type[:128]
+            row = self._subagent_row(call_id)
+            if row is not None:
+                row['agent'] = self._subagent_names[call_id]
+
+    def _subagent_row(self, task_id):
+        """The ledger row one task id maps to, or None when the platform
+        never reported it."""
+        return next((row for row in self._state['subagents'] if row['taskId'] == task_id), None)
+
+    def _subagent_event(self, payload):
+        """Issue 76: fold one platform task_* custom event into the structured
+        sub-agent ledger. The status name mirrors the pushed event exactly —
+        the desktop never invents a state the platform did not send, and an
+        event about an unknown or malformed task identity is dropped."""
+        kind = payload.get('type')
+        status = {'task_started': 'running', 'task_running': 'running', 'task_completed': 'completed',
+                  'task_failed': 'failed', 'task_cancelled': 'cancelled',
+                  'task_timed_out': 'timed_out'}.get(kind)
+        if status is None:
+            return
+        task_id = payload.get('task_id')
+        if not isinstance(task_id, str) or not 1 <= len(task_id) <= 128:
+            return
+        rows = {row['taskId']: row for row in self._state['subagents']}
+        row = rows.get(task_id)
+        if row is None:
+            row = dict(taskId=task_id, description='', agent=self._subagent_names.get(task_id, ''),
+                       status=status, step=None, totalSteps=None, model='', usage=None,
+                       result='', resultTruncated=False, error='', errorTruncated=False)
+            rows[task_id] = row
+        row['status'] = status
+        if kind == 'task_started':
+            description = payload.get('description')
+            if isinstance(description, str):
+                row['description'] = description[:MAX_SUBAGENT_DESCRIPTION]
+        elif kind == 'task_running':
+            index, total = payload.get('message_index'), payload.get('total_messages')
+            if type(index) is int and index >= 0:
+                row['step'] = index
+            if type(total) is int and total >= 0:
+                row['totalSteps'] = total
+        elif kind == 'task_completed':
+            result = payload.get('result')
+            if isinstance(result, str):
+                row['result'], row['resultTruncated'] = result[:MAX_SUBAGENT_RESULT], len(result) > MAX_SUBAGENT_RESULT
+        else:
+            error = payload.get('error')
+            if isinstance(error, str):
+                row['error'], row['errorTruncated'] = error[:MAX_SUBAGENT_ERROR], len(error) > MAX_SUBAGENT_ERROR
+        model = payload.get('model_name')
+        if isinstance(model, str) and model:
+            row['model'] = model[:128]
+        usage = payload.get('usage')
+        if isinstance(usage, dict):
+            row['usage'] = {key: value for key, value in (
+                ('inputTokens', usage.get('input_tokens')), ('outputTokens', usage.get('output_tokens')),
+                ('totalTokens', usage.get('total_tokens'))) if type(value) is int and value >= 0} or None
+        self._state['subagents'] = list(rows.values())[-MAX_SUBAGENT_ENTRIES:]
 
     def _published(self, session, resource_id, seen=None):
         self._uuid(resource_id)
@@ -683,6 +821,10 @@ class DesktopChat:
         if self.session_tiers is not None:
             self.session_tiers.reset()
         self._state['localTier'] = DEFAULT_SESSION_TIER.value
+        # Issue 73: a thread change resets the switch story; the session's own
+        # model choice survives (it is bound to this thread id).
+        self._state['model'].update(notice='', switchedFrom='')
+        self._refresh_chat_model(session)
         self._messages(messages)
         self._load_tasks(session)
         # Issue 77: the loaded thread is the visible session again — its runs
@@ -691,6 +833,37 @@ class DesktopChat:
             self._background = [row for row in self._background if row['thread_id'] != thread_id]
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
+
+    def _branch(self, session, thread_id, message_id, message_ids):
+        """Issue 78: branch onto a new platform Thread from one settled turn.
+
+        The platform's Thread branch capability owns everything — checkpoint
+        discovery, inherited history, the new Thread row and its project
+        membership. This Runtime names the target turn, re-reads the new
+        Thread like any other open (no local copy of history exists at any
+        point), and carries the source session's project folder binding over
+        through `inherited_binding` — present hands a copy over, absent stays
+        unbound. In-flight work is refused by the Server itself; the shared
+        conflict category surfaces it.
+        """
+        if not self._state['thread'] or thread_id != self._state['thread']['id']:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        if not self._thread_permissions(session)['canRename']:
+            # The platform gates branches behind the same threads:write
+            # permission the rename path pre-checks; the Server stays
+            # authoritative either way.
+            raise ChatError('CHAT_FORBIDDEN')
+        source_id = self._state['thread']['id']
+        created = self._json(session, f'/api/threads/{source_id}/branches',
+                             {'message_id': message_id,
+                              'message_ids': message_ids or [message_id]})
+        if not isinstance(created, dict) or not isinstance(created.get('thread_id'), str):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        new_id = self._id(created['thread_id'])
+        binding = inherited_binding(self._thread_bindings.get(source_id))
+        if binding is not None:
+            self._thread_bindings[new_id] = binding
+        self._load_thread(session, new_id)
 
     def _load_tasks(self, session):
         """Observation only. A recovered task can never submit a new Turn."""
@@ -1259,6 +1432,12 @@ class DesktopChat:
                                 streamed_ids.add(message_id)
                             elif root == 'values' and '|' not in event and isinstance(value, dict):
                                 self._messages(value.get('messages', []))
+                            elif root == 'custom' and isinstance(value, dict):
+                                # Issue 76: the lead Agent's parallel sub-agents
+                                # report through the platform's own task_* custom
+                                # events (root or subgraph-namespaced); fold them
+                                # into the structured ledger beside the raw record.
+                                self._subagent_event(value)
                             elif root in {'error', 'gap'}:
                                 raise ChatError('CHAT_STREAM_ERROR' if root == 'error' else 'CHAT_STREAM_GAP')
                             self._state['events'] = (self._state['events'] + [dict(id=event_id,
@@ -1278,15 +1457,18 @@ class DesktopChat:
         # else: a violation fails without consuming the turn or the session.
         delegate_id = command.get('delegateAgentId')
         skill_ids = command.get('skillIds')
+        collab = command.get('collab')
         # The bounds mirror the main process exactly: at most 8 mounted
         # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
-        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None):
+        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None or collab is not None):
             raise ChatError('CHAT_COMMAND_INVALID')
         if delegate_id is not None and (not isinstance(delegate_id, str) or not delegate_id or len(delegate_id) > 128):
             raise ChatError('CHAT_COMMAND_INVALID')
         if skill_ids is not None and (not isinstance(skill_ids, list) or not skill_ids or len(skill_ids) > 8
                                       or len(set(skill_ids)) != len(skill_ids)
                                       or any(not isinstance(value, str) or not value or len(value) > 128 for value in skill_ids)):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if collab is not None and not isinstance(collab, bool):
             raise ChatError('CHAT_COMMAND_INVALID')
         if turn_id in self._turns:
             raise ChatError('CHAT_TURN_ALREADY_SUBMITTED')
@@ -1347,6 +1529,10 @@ class DesktopChat:
             self._published(session, agent_id, closure)
             if resolved_skills[0] not in closure:
                 raise ChatError('CHAT_SKILL_OUTSIDE_AGENT')
+        # Issue 73: resolve and preflight the model before the Turn is
+        # consumed — an unavailable choice stops here with an explicit
+        # category, so the user can switch and resend without reconnecting.
+        model_pick = self._resolve_send_model(session, thread)
         message = dict(id=turn_id, type='human', content=text)
         if additional_kwargs:
             message['additional_kwargs'] = additional_kwargs
@@ -1361,6 +1547,19 @@ class DesktopChat:
         context = {'agent_name': agent_id, **local_context}
         if resolved_skills or thread['skillId']:
             context['skill_resource_id'] = resolved_skills[0] if resolved_skills else thread['skillId']
+        if model_pick['name']:
+            context['model_name'] = model_pick['name']
+        if collab is not None:
+            # Issue 76: the collab switch maps onto the platform's own
+            # delegation seam with an explicit boolean, exactly like the Web
+            # client's own mode switch: the platform's silent default is
+            # delegation OFF, so "on" must say so. The flag rides send
+            # commands only (the composer always sends it) — an answer run
+            # keeps the platform default. Which sub-agents exist stays the
+            # lead Agent's own configuration (the platform ANDs this flag
+            # with its allowlist), and no local orchestration channel
+            # appears.
+            context['subagent_enabled'] = collab is not False
         metadata = {'desktop_turn_id': turn_id}
         if resolved_delegate:
             metadata['desktop_delegate_agent_id'] = resolved_delegate
@@ -1374,11 +1573,30 @@ class DesktopChat:
                     stream_subgraphs=True, multitask_strategy='reject', on_disconnect='continue')
         try:
             run = self._json(session, f"/api/threads/{thread['id']}/runs", body, {'Idempotency-Key': turn_id})
-        except ChatError:
-            self._state['stream'] = 'uncertain'
-            raise
+        except ChatError as exc:
+            # Issue 73: one bounded fallback re-submission when the Server
+            # names the model as the refusal; anything else keeps the existing
+            # uncertain-submission contract. The switch is displayed, never
+            # silent.
+            fallback_pick = self._fallback_retry_pick(session, thread, model_pick, exc)
+            if fallback_pick is None:
+                if self._model_denial(exc):
+                    raise ChatError('CHAT_MODEL_UNAVAILABLE') from None
+                self._state['stream'] = 'uncertain'
+                raise
+            body['context'] = {**body['context'], 'model_name': fallback_pick['name']}
+            try:
+                run = self._json(session, f"/api/threads/{thread['id']}/runs", body, {'Idempotency-Key': turn_id})
+            except ChatError:
+                self._state['stream'] = 'uncertain'
+                raise
+            model_pick = fallback_pick
         self._generation += 1
-        self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None)
+        # The structured sub-agent ledger belongs to the run that dispatched
+        # it; a new turn starts empty while finished results remain in the
+        # conversation's own tool messages (#76).
+        self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None, subagents=[])
+        self._apply_send_model(model_pick)
         self._observe(session)
 
     def _session(self):
@@ -1429,9 +1647,9 @@ class DesktopChat:
         except (ValueError, UnicodeError):
             raise ChatError('CHAT_PROTOCOL_ERROR') from None
 
-    def _empty(self, session, path, body, method, expected=204):
+    def _empty(self, session, path, body, method, expected=204, headers=None):
         """One Server write that returns no body; only the expected status passes."""
-        with self._request(session, path, body, method=method) as response:
+        with self._request(session, path, body, method=method, headers=headers) as response:
             raw = response.read(MAX_RESPONSE + 1)
         if response.status != expected or raw:
             raise ChatError('CHAT_PROTOCOL_ERROR')
@@ -1816,6 +2034,254 @@ class DesktopChat:
         return dict(skills=self._preference_projection(
             self._json(session, '/api/resources/skill-trigger-preferences')))
 
+    # --- Model settings surface (issue 73) ----------------------------------
+
+    def _model_rows(self, session):
+        """The Server's own authorized model list, bounded for display.
+
+        The Server already filters the list by the account's permissions, so
+        the Desktop projects exactly what was granted — names and display
+        facts only. No provider, endpoint or key field exists in the reply.
+        """
+        listing = self._json(session, '/api/models')
+        raw = listing.get('models') if isinstance(listing, dict) else None
+        if not isinstance(raw, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        rows = []
+        for row in raw[:50]:
+            if not isinstance(row, dict) or not isinstance(row.get('name'), str) \
+                    or not row['name'] or len(row['name']) > 200:
+                continue
+            rows.append(dict(name=row['name'],
+                             displayName=_bounded_text(row.get('display_name'), 200),
+                             description=_bounded_text(row.get('description'), 500),
+                             supportsThinking=row.get('supports_thinking') is True))
+        return rows
+
+    def _models(self, session, max_age=60.0):
+        """The cached authorized list, refreshed past ``max_age`` seconds.
+
+        Raises on fetch failure so explicit callers (the settings view) can
+        surface it; the submission path catches and falls back to the last
+        cache rather than blocking a send on a list read.
+        """
+        cached = self._models_cache
+        if cached is not None and time.monotonic() - cached['at'] <= max_age:
+            return cached
+        entry = dict(at=time.monotonic(), rows=self._model_rows(session))
+        self._models_cache = entry
+        return entry
+
+    def _account_default(self, session, max_age=60.0):
+        """The account-level default model, the same setting the Web writes.
+
+        Read from the Server's own preferences endpoint with the owner fence
+        header; an unset or malformed value reads as "no default" and the
+        platform default applies.
+        """
+        cached = self._account_default_cache
+        if cached is not None and time.monotonic() - cached['at'] <= max_age:
+            return cached['name']
+        prefs = self._json(session, '/api/v1/auth/preferences',
+                           headers={'X-Expected-User-Id': session.user_id})
+        if not isinstance(prefs, dict):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        name = prefs.get('model_name')
+        name = _bounded_text(name, 200) if isinstance(name, str) else ''
+        self._account_default_cache = dict(at=time.monotonic(), name=name)
+        return name
+
+    def _fallback_name(self):
+        name = load_settings(self.config).model_fallback_name
+        return name if isinstance(name, str) and 0 < len(name) <= 200 else ''
+
+    def _require_listed(self, session, name):
+        """A selection must come from the authorized list the Server granted.
+
+        A failed list read propagates its real category — an outage during a
+        selection must not masquerade as an invalid command.
+        """
+        rows = self._models(session, 0.0)['rows']
+        if name not in {row['name'] for row in rows}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+
+    def _cached_model_rows(self, session, max_age=60.0):
+        """The bounded authorized rows, or the last cache on a failed read."""
+        try:
+            return self._models(session, max_age)['rows']
+        except ChatError:
+            cached = self._models_cache
+            return cached['rows'] if cached else []
+
+    def _cached_account_default(self, session, max_age=60.0):
+        """The account default, or the last cache on a failed read."""
+        try:
+            return self._account_default(session, max_age)
+        except ChatError:
+            cached = self._account_default_cache
+            return cached['name'] if cached else ''
+
+    def _model_choice(self, session, *, list_max_age, default_max_age):
+        """The open thread's model resolution facts (#73).
+
+        Returns (rows, default, override): the bounded authorized rows, the
+        account-level default, and the session's own temporary choice for the
+        loaded thread. The resolution order is override, default, then no
+        name — the platform default applies.
+        """
+        rows = self._cached_model_rows(session, list_max_age)
+        default = self._cached_account_default(session, default_max_age)
+        thread = self._state['thread']
+        override = self._session_models.get(thread['id']) if thread else None
+        return rows, default, override
+
+    def _model_view(self, session):
+        """The settings-page view: fresh authoritative facts only (#73)."""
+        try:
+            rows = self._models(session, 0.0)['rows']
+            can_read, reason = True, ''
+        except ChatError as exc:
+            if exc.code != 'CHAT_FORBIDDEN':
+                raise
+            can_read, rows, reason = False, [], 'CHAT_MODEL_LIST_FORBIDDEN'
+        stored = load_settings(self.config).model_fallback_name
+        return dict(models=rows[:50], canRead=can_read, reason=reason,
+                    accountDefault=self._account_default(session, 0.0),
+                    fallback=stored if isinstance(stored, str) and len(stored) <= 200 else '')
+
+    def models_manage(self, command):
+        """Relay one model-settings command to the platform's own endpoints (#73).
+
+        The account default rides ``/api/v1/auth/preferences`` — the exact
+        setting the Web writes — and the 备用模型 pick is a device-local
+        preference because the platform preference schema has no field for it.
+        Neither command carries or returns any provider, Base URL or key; the
+        Desktop never holds a model credential, and the list is the Server's
+        own permission-filtered catalog.
+        """
+        action = command.get('action')
+        if action not in {'list', 'set-default', 'set-fallback'}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        if action == 'set-fallback':
+            name = command.get('modelName')
+            if not isinstance(name, str) or len(name) > 200:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if name:
+                self._require_listed(session, name)
+            settings = load_settings(self.config)
+            settings.model_fallback_name = name
+            settings.save(self.config)
+            return self._model_view(session)
+        if action == 'set-default':
+            name = command.get('modelName')
+            if not isinstance(name, str) or len(name) > 200:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if name:
+                self._require_listed(session, name)
+                payload = {'model_name': name}
+            else:
+                payload = {'model_name': None}
+            try:
+                self._empty(session, '/api/v1/auth/preferences', payload, 'PATCH',
+                            headers={'X-Expected-User-Id': session.user_id})
+            except ChatError as exc:
+                # The preferences owner fence signals an account change with
+                # 409; the Desktop names it the same way chat identity does.
+                if exc.code == 'CHAT_CONFLICT':
+                    raise ChatError('CHAT_IDENTITY_CHANGED') from None
+                raise
+            self._account_default_cache = dict(at=time.monotonic(), name=name)
+            return self._model_view(session)
+        return self._model_view(session)
+
+    def _refresh_chat_model(self, session, *, fresh=False):
+        """Recompute the chat model display from Server facts (#73).
+
+        Display only: this never switches a model and never raises for an
+        unavailable choice — the submission path owns those decisions. A
+        previous switch notice stays visible until the thread changes or the
+        user picks a different model.
+        """
+        max_age = 0.0 if fresh else 60.0
+        rows, default, override = self._model_choice(session, list_max_age=max_age, default_max_age=max_age)
+        self._state['modelOptions'] = rows[:50]
+        names = {row['name'] for row in rows}
+        name = override or default
+        source = 'session-override' if override else ('account-default' if default else 'platform-default')
+        available = (not name) or (not rows) or name in names
+        self._state['model'].update(name=name, source=source, available=available,
+                                    reason='' if available else 'CHAT_MODEL_UNAVAILABLE')
+
+    def _resolve_send_model(self, session, thread):
+        """Resolve and preflight the model for one submission (#73).
+
+        Resolution order: the session's temporary choice, then the account
+        default the platform stores for Web and Desktop alike, then no name —
+        the platform default applies. The default is read authoritatively per
+        submission, so a change made on the Web reaches the next new session
+        without waiting on any cache. A choice that left the authorized list
+        is never silently replaced: without a usable fallback the submission
+        stops with an explicit category before anything is sent, and with one
+        the switch becomes the session's displayed model.
+        """
+        rows, default, override = self._model_choice(session, list_max_age=60.0, default_max_age=0.0)
+        names = {row['name'] for row in rows}
+        name = override or default
+        source = 'session-override' if override else ('account-default' if default else 'platform-default')
+        state = self._state['model']
+        if not name:
+            state.update(name='', source='platform-default', available=True, reason='')
+            return dict(name='', source='platform-default', switched_from='', notice='')
+        if rows and name not in names:
+            fallback = self._fallback_name()
+            if fallback and fallback != name and fallback in names:
+                notice = f'主模型 {name} 已不在授权列表，已按备用设置切换到 {fallback}。'
+                self._session_models[thread['id']] = fallback
+                state.update(name=fallback, source='session-override', available=True,
+                             reason='', notice=notice, switchedFrom=name)
+                return dict(name=fallback, source='session-override', switched_from=name, notice=notice)
+            state.update(name=name, source=source, available=False, reason='CHAT_MODEL_UNAVAILABLE',
+                         notice=f'模型 {name} 已不可用（不在授权列表），请更换模型后再发送。')
+            raise ChatError('CHAT_MODEL_UNAVAILABLE')
+        state.update(name=name, source=source, available=True, reason='')
+        return dict(name=name, source=source, switched_from='', notice='')
+
+    @staticmethod
+    def _model_denial(exc):
+        """True when a submission failure names the model, not the caller."""
+        return exc.code in {'CHAT_FORBIDDEN', 'CHAT_SERVER_ERROR'} and (
+            'Model access denied' in exc.detail or
+            'is not in the configured model allowlist' in exc.detail)
+
+    def _fallback_retry_pick(self, session, thread, pick, exc):
+        """One bounded fallback switch after a model-attributable denial (#73).
+
+        Returns the switched pick, or None when no switch is honest: the
+        failure does not name the model, no fallback is configured, the
+        fallback equals the denied model, or the fallback left the
+        authorized list.
+        """
+        if not self._model_denial(exc):
+            return None
+        rows = self._cached_model_rows(session)
+        names = {row['name'] for row in rows}
+        fallback = self._fallback_name()
+        if not fallback or fallback == pick['name'] or (rows and fallback not in names):
+            self._state['model'].update(
+                available=False, reason='CHAT_MODEL_UNAVAILABLE',
+                notice=f'主模型调用失败，且备用模型不可用（{(fallback or "未设置")}），请更换模型后再发送。')
+            return None
+        notice = f'主模型 {pick["name"] or "平台默认模型"} 调用失败，已按备用设置切换到 {fallback} 重试。'
+        self._session_models[thread['id']] = fallback
+        return dict(name=fallback, source='session-override', switched_from=pick['name'], notice=notice)
+
+    def _apply_send_model(self, pick):
+        """Record the submitted model; a switch stays displayed for the session."""
+        state = self._state['model']
+        state.update(name=pick['name'], source=pick['source'], available=True, reason='')
+        if pick['notice']:
+            state.update(notice=pick['notice'], switchedFrom=pick['switched_from'])
     # --- Session sidebar management (issue 72) ------------------------------
 
     def _thread_permissions(self, session):
@@ -2124,6 +2590,7 @@ class DesktopChat:
                     self._state.update(resources=resources, threads=[dict(id=t['thread_id'],
                         title=t.get('values', {}).get('title') or t.get('metadata', {}).get('title') or t['thread_id'],
                         status=t['status']) for t in threads], error='')
+                    self._refresh_chat_model(session, fresh=True)
                 elif action == 'create':
                     agent_id = self._uuid(command.get('agentId'))
                     closure = set()
@@ -2142,12 +2609,49 @@ class DesktopChat:
                     self._load_thread(session, self._id(command.get('threadId')))
                 elif action in {'send', 'answer'}:
                     self._send(session, command)
+                elif action == 'set-model':
+                    # Issue 73: the session's temporary model choice. It lives
+                    # in chat state (never persisted, never synced), is bound
+                    # to the open thread, and clearing returns to the account
+                    # default resolution chain.
+                    if set(command) != {'action', 'scope', 'threadId', 'modelName'}:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    name = command.get('modelName')
+                    if not isinstance(name, str) or len(name) > 200:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    thread = self._state['thread']
+                    if not thread or command.get('threadId') != thread['id']:
+                        raise ChatError('CHAT_THREAD_CHANGED')
+                    if name:
+                        self._session_models[thread['id']] = name
+                    else:
+                        self._session_models.pop(thread['id'], None)
+                    self._state['model'].update(notice='', switchedFrom='')
+                    self._refresh_chat_model(session)
                 elif action == 'stop':
                     self._stop(session, command)
                 elif action == 'reconnect':
                     if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
                         raise ChatError('CHAT_THREAD_CHANGED')
                     self._load_thread(session, self._state['thread']['id'])
+                elif action == 'branch':
+                    # Issue 78: 消息级分支。The renderer names the target turn
+                    # only; the Server creates the branch from its own
+                    # checkpoint and this session re-opens onto the platform's
+                    # new Thread. No title rides the wire — the Server's own
+                    # default naming applies.
+                    expected = {'action', 'scope', 'threadId', 'messageId'}
+                    if command.get('messageIds') is not None:
+                        expected = expected | {'messageIds'}
+                    message_id, message_ids = command.get('messageId'), command.get('messageIds')
+                    if (set(command) != expected or not isinstance(message_id, str)
+                            or message_ids is not None and (not isinstance(message_ids, list)
+                                or not 1 <= len(message_ids) <= MAX_BRANCH_TURN_MESSAGES
+                                or any(not isinstance(item, str) or not item for item in message_ids)
+                                or len(set(message_ids)) != len(message_ids))):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    self._branch(session, command.get('threadId'), self._id(message_id),
+                                 [self._id(item) for item in message_ids] if message_ids is not None else None)
                 elif action == 'consent':
                     expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'}
                     # Issue 39: a script approval may ask the device to remember

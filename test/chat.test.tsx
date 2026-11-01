@@ -5,7 +5,7 @@ import type { ChatSnapshot } from '../src/shared/desktop'
 
 describe('platform chat UI', () => {
   it('keeps requested stop, Server facts and local upload state separate in the original Thread', () => {
-    const state: ChatSnapshot = { scope: 'A', resources: [], threads: [], messages: [], events: [],
+    const state: ChatSnapshot = { scope: 'A', resources: [], threads: [], messages: [], events: [], subagents: [],
       thread: { id: 'thread-104', status: 'idle', agentId: 'agent', skillId: '' },
       run: { id: 'run-104', status: 'interrupted', selection: {} }, stream: 'idle', error: '', lastEventId: '',
       stop: { runId: 'run-104', state: 'requested' }, localTasks: [{ task_id: 'task-104', run_id: 'run-104',
@@ -30,7 +30,7 @@ describe('platform chat UI', () => {
     expect(renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)).toContain('重试停止请求')
   })
   it('shows the exact pending local write in its original streaming Run with one-time decisions', () => {
-    const state: ChatSnapshot = { scope: 'identity', resources: [], threads: [], messages: [], events: [],
+    const state: ChatSnapshot = { scope: 'identity', resources: [], threads: [], messages: [], events: [], subagents: [],
       thread: { id: 'thread-102', status: 'running', agentId: 'agent', skillId: '' },
       run: { id: 'run-102', status: 'running', selection: {} }, stream: 'streaming', error: '', lastEventId: '',
       localConsents: [{ taskId: 'task-102', runId: 'run-102', threadId: 'thread-102', requestHash: 'a'.repeat(64), path: '/workspace/test/target.txt', content: 'AFTER\n<exact>' }]
@@ -58,7 +58,7 @@ describe('platform chat UI', () => {
           version: 1, kind: 'human_input_request', source: 'ask_clarification', request_id: 'question-99',
           question: 'Select target', input_mode: 'single_choice', options: [{ id: 'one', label: 'Target one', value: 'one' }]
         } }],
-      run: { id: 'run-99', status: 'interrupted', selection: {} }, events: [], stream: 'disconnected',
+      run: { id: 'run-99', status: 'interrupted', selection: {} }, events: [], subagents: [], stream: 'disconnected',
       error: 'CHAT_STREAM_DISCONNECTED', lastEventId: 'event-99'
     }
     const html = renderToStaticMarkup(<ChatView state={state} busy={false} onCommand={async () => {}} />)

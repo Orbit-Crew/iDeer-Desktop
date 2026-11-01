@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
-import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
+import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tag, Typography } from 'antd'
+import type { ChatCommand, ChatSnapshot, ChatSubagent, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
 import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
 import { useSessionStore } from '../stores/sessionStore'
@@ -10,6 +10,14 @@ type CommandHandler = (command: ChatCommand) => Promise<void>
 const taskStates: Record<string, string> = { unknown: '结果待核实', result_not_verified: '结果待核实',
   dispatched: '已派发', acked: '已接收', progress: '执行中', consent_required: '待审批',
   cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
+
+// Issue 76: the labels mirror the platform's own task_* event vocabulary one
+// to one — a state the platform never pushed has no label to borrow.
+const subagentStates: Record<ChatSubagent['status'], { label: string; color: string }> = {
+  running: { label: '执行中', color: 'processing' }, completed: { label: '已完成', color: 'success' },
+  failed: { label: '失败', color: 'error' }, cancelled: { label: '已取消', color: 'warning' },
+  timed_out: { label: '已超时', color: 'warning' }
+}
 
 // Issue 74: the three session tiers, always shown in the chat area. A loaded
 // session starts at the lowest tier; switching to the full tier is confirmed
@@ -155,10 +163,63 @@ function MaterialConsentCard({ request, state, threadId, busy, blocked, onComman
   </Card>
 }
 
+/** Issue 76: the collab mode's per-sub-agent progress. Every row is the
+ * platform's own task_* event vocabulary rendered as-is — who is doing what,
+ * how far it got, and what it finished with. No intermediate state is
+ * invented here, no team management controls exist, and the full report
+ * stays in the conversation's own tool messages. */
+function SubagentProgress({ subagents }: { subagents: ChatSubagent[] }): JSX.Element {
+  const active = subagents.filter((row) => row.status === 'running')
+  const settled = subagents.filter((row) => row.status !== 'running')
+  const ordered = [...active, ...settled]
+  return <Card size="small" title="并行子代理进度">
+    <Typography.Paragraph type="secondary">
+      进度只显示平台真实推送的子代理事件；完整结果以会话消息中的工具回执为准。
+    </Typography.Paragraph>
+    {ordered.map((row) => <Card size="small" key={row.taskId} type="inner"
+      title={<span style={{ overflowWrap: 'anywhere' }}>{row.description || '（平台未提供描述）'}</span>}>
+      <Space wrap>
+        <Tag aria-label={`子代理状态 ${subagentStates[row.status].label}`} color={subagentStates[row.status].color}>
+          {subagentStates[row.status].label}</Tag>
+        {row.agent && <Typography.Text>类型：{row.agent}</Typography.Text>}
+        {row.model && <Typography.Text>模型：{row.model}</Typography.Text>}
+        {row.step != null && row.totalSteps != null && <Typography.Text>步骤：{row.step}/{row.totalSteps}</Typography.Text>}
+        {row.usage && <Typography.Text>Token：{row.usage.inputTokens} 入 / {row.usage.outputTokens} 出 / {row.usage.totalTokens} 合计</Typography.Text>}
+      </Space>
+      {row.error && <Typography.Paragraph type="warning" style={{ overflowWrap: 'anywhere', marginTop: 8 }}>
+        {row.error}{row.errorTruncated ? '…（已截断）' : ''}</Typography.Paragraph>}
+      {row.result && <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: 8, marginBottom: 0 }}>
+        {row.result}{row.resultTruncated ? '…（已截断，完整结果见会话消息）' : ''}</Typography.Paragraph>}
+    </Card>)}
+  </Card>
+}
+
 export function ChatView({ state, busy, onCommand }: {
   state: ChatSnapshot; busy: boolean; onCommand: CommandHandler
 }): JSX.Element {
   return <ChatContents key={state.scope} state={state} busy={busy} onCommand={onCommand} />
+}
+
+/** Issue 78: the platform branches from one completed assistant turn, so the
+ * command carries the whole turn's assistant message ids. This groups the
+ * transcript exactly that way — the consecutive Agent messages between two
+ * human messages; tool messages belong to the turn but never enter the id
+ * group, and no other grouping exists anywhere on the device. */
+const turnGroups = (messages: ChatSnapshot['messages']): Map<string, string[]> => {
+  const groups = new Map<string, string[]>()
+  let turn: string[] = []
+  const settle = (): void => {
+    if (turn.length) {
+      for (const id of turn) groups.set(id, turn)
+      turn = []
+    }
+  }
+  for (const message of messages) {
+    if (message.role === 'human') settle()
+    else if (message.role === 'ai') turn = [...turn, message.id]
+  }
+  settle()
+  return groups
 }
 
 function ChatContents({ state, busy, onCommand }: {
@@ -171,7 +232,19 @@ function ChatContents({ state, busy, onCommand }: {
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
   const answered = new Set(state.messages.flatMap((m) => m.response ? [m.response.request_id] : []))
   const pending = [...state.messages].reverse().find((m) => m.request && !answered.has(m.request.request_id))?.request
-  const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId
+  // Issue 73: an unavailable model pauses sending until the user switches;
+  // nothing switches silently behind the user's back.
+  // Issue 78: both actions need a settled session — no in-flight run, no
+  // stream; a branch additionally refuses an open clarification, the
+  // platform refuses anything else on its own.
+  const settled = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId
+  const canSend = settled && !!state.thread?.agentId && state.model?.available !== false
+  const canBranch = settled && !pending
+  const turnIds = turnGroups(state.messages)
+  const modelSourceLabels: Record<string, string> = {
+    'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
+  }
+  const modelOptions = (state.modelOptions ?? []).map((row) => ({ value: row.name, label: row.displayName || row.name }))
   const resourceOptions = (type: 'agent' | 'skill'): { value: string; label: string; disabled: boolean }[] => state.resources.filter((r) => r.type === type).map((r) => ({
     value: r.id, label: `${r.name} · ${r.visibility} · v${r.version ?? '未发布'} · ${r.id}${r.available ? '' : ' · 不可用'}`, disabled: !r.available
   }))
@@ -196,6 +269,19 @@ function ChatContents({ state, busy, onCommand }: {
     {threadId && <>
       {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
         description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
+      {state.model?.notice && <Alert type="warning" showIcon message={state.model.notice} />}
+      {state.model && !state.model.available && <Alert type="error" showIcon
+        message={`模型 ${state.model.name} 已不可用，发送已暂停`}
+        description="该模型已不在平台授权列表或当前账号无权使用。请在下方更换模型；未更换前不会发送新消息，也不会静默切换。" />}
+      <div className="flex items-center gap-3">
+        <Select aria-label="本会话模型" className="min-w-[240px]" placeholder="平台默认模型"
+          value={state.model?.source === 'session-override' && state.model.name ? state.model.name : undefined}
+          allowClear disabled={busy || state.stream === 'streaming'} options={modelOptions}
+          onChange={(name) => void onCommand({ action: 'set-model', scope: state.scope, threadId, modelName: name ?? '' })} />
+        <Typography.Text type="secondary">
+          本会话模型：{state.model?.name || '平台默认'}{state.model ? ` · ${modelSourceLabels[state.model.source] || state.model.source}` : ''}
+        </Typography.Text>
+      </div>
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
       <TierSwitch state={state} threadId={threadId} busy={busy} onCommand={onCommand} />
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
@@ -247,6 +333,7 @@ function ChatContents({ state, busy, onCommand }: {
           {(task.error_code || task.local?.error_code) && <Typography.Text type="warning">{task.error_code || task.local?.error_code}</Typography.Text>}
         </Card>)}
       </Card>}
+      {!!state.subagents.length && <SubagentProgress subagents={state.subagents} />}
       {state.localConsents?.filter((request) => !state.stop && request.threadId === threadId && request.runId === state.run?.id).map((request) => {
         if (request.kind === 'skill-script') return <ScriptConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
@@ -267,6 +354,13 @@ function ChatContents({ state, busy, onCommand }: {
           extra={message.role === 'ai' && <Button type="text" size="small" aria-label="导出本条回复" disabled={busy}
             onClick={() => void onCommand({ action: 'export', mode: 'message', scope: state.scope, threadId, messageId: message.id })}>导出</Button>}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>
+          {message.role === 'ai' && <Button type="link" size="small" className="px-0" aria-label="从此回复分支"
+            disabled={!canBranch} title="从这条回复开启新支线（历史保持一致，后续各自独立）"
+            onClick={() => {
+              const ids = turnIds.get(message.id) || [message.id]
+              void onCommand({ action: 'branch', scope: state.scope, threadId, messageId: message.id,
+                ...(ids.length > 1 ? { messageIds: ids } : {}) })
+            }}>从此回复分支</Button>}
           {pending && message.request?.request_id === pending.request_id && <Clarification key={pending.request_id} request={pending}
             disabled={!canSend} onAnswer={(answer, optionId) => void onCommand({ action: 'answer', scope: state.scope,
               threadId, turnId: crypto.randomUUID(), requestId: pending.request_id,
@@ -327,7 +421,15 @@ export default function ChatPanel(): JSX.Element {
     await pollRequest.current
     try {
       const next = await window.ideer.chat(request)
-      if (mounted.current) { scope.current = next.scope; setState(next); setFailed(false) }
+      if (mounted.current) {
+        scope.current = next.scope
+        setState(next)
+        setFailed(false)
+        // Issue 78: a successful branch put a new Thread on the Server's own
+        // session set; the sidebar re-reads it instead of waiting for a
+        // manual refresh. Only the platform's own success bumps the signal.
+        if (request.action === 'branch') useSessionStore.getState().bumpSessionsVersion()
+      }
     } catch { if (mounted.current) { setState(null); setFailed(true) } }
     finally { actionInFlight.current = false; if (mounted.current) setBusy(false) }
   }

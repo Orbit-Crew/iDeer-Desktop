@@ -15,7 +15,7 @@ beforeAll(() => {
 })
 
 const snapshotWith = (localTier?: ChatSnapshot['localTier']): ChatSnapshot => ({
-  scope: 'identity', resources: [], threads: [], messages: [], events: [],
+  scope: 'identity', resources: [], threads: [], messages: [], events: [], subagents: [],
   thread: { id: 'thread-A', status: 'idle', agentId: 'agent', skillId: '' },
   run: null, stream: 'idle', error: '', lastEventId: '', localTier
 })

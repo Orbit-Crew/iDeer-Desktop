@@ -2,8 +2,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -29,6 +29,7 @@ export class RuntimeProcess {
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
+  private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
@@ -349,6 +350,36 @@ export class RuntimeProcess {
     })
   }
 
+  /** Issue 73: the model settings surface. The command is a fixed per-action
+   * key set that only reaches the owned Runtime and on to the platform's own
+   * model/preference endpoints; no provider, Base URL or key field exists in
+   * the family, and the account default rides the same setting the Web uses. */
+  async models(command: ModelCommand): Promise<ModelSettingsView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('MODEL_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'models', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('MODEL_COMMAND_INVALID')
+    } else {
+      if (!['set-default', 'set-fallback'].includes(command.action)) throw new Error('MODEL_COMMAND_INVALID')
+      if (typeof command.modelName !== 'string' || command.modelName.length > 200 ||
+          Object.keys(command).length !== 2) throw new Error('MODEL_COMMAND_INVALID')
+      wire.modelName = command.modelName
+    }
+    if (this.modelRequests.size) throw new Error('MODEL_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.modelRequests.delete(id); reject(new Error('MODEL_TIMEOUT')) }, 30000)
+      this.modelRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.modelRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.modelRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
   /**
    * Issue 72: the session sidebar's Thread management. The wire command is a
    * fixed per-action key set and always carries the chat session scope the
@@ -442,14 +473,21 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
-      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
+      // Issue 73: the session's temporary model choice; '' clears back to the
+      // account default resolution chain. The model name is bounded at the
+      // same 200 characters the platform preference accepts.
+      'set-model': ['action', 'scope', 'threadId', 'modelName'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
       upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
       download: ['action', 'scope', 'threadId', 'artifactId'],
       // Issue 74: confirm may ride a full-tier switch only; the main process
       // adds it after its own confirmation dialog, the renderer never does.
-      tier: ['action', 'scope', 'threadId', 'tier', 'confirm']
+      tier: ['action', 'scope', 'threadId', 'tier', 'confirm'],
+      // Issue 78: the branch names the target turn only; the Runtime resolves
+      // it on the platform's own Thread branch endpoint.
+      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds']
     }
     const allowed = keys[command.action]
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -474,9 +512,10 @@ export class RuntimeProcess {
     // id; the mounted skills are 1..MAX_MESSAGE_SKILLS unique resource ids in
     // pick order (first chip first — the Runtime maps it onto the platform's
     // one explicit Skill per run). Both are optional; absent means a plain
-    // message with no per-message input commands.
+    // message with no per-message input commands. Issue 76: `collab` is the
+    // composer's collab mode switch, boolean whenever the composer sends.
     if (command.action === 'send') {
-      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown }
+      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown }
       const resourceId = (value: unknown): value is string =>
         typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
       if (inputCommand.delegateAgentId !== undefined && !resourceId(inputCommand.delegateAgentId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -484,6 +523,22 @@ export class RuntimeProcess {
         const skillIds = inputCommand.skillIds
         if (!Array.isArray(skillIds) || skillIds.length === 0 || skillIds.length > MAX_MESSAGE_SKILLS ||
             new Set(skillIds).size !== skillIds.length || !skillIds.every(resourceId)) throw new Error('CHAT_COMMAND_INVALID')
+      }
+      if (inputCommand.collab !== undefined && typeof inputCommand.collab !== 'boolean') throw new Error('CHAT_COMMAND_INVALID')
+    }
+    // Issue 78: the branch target is one bounded platform message id plus,
+    // optionally, the rest of that turn's assistant ids — unique, bounded in
+    // count. No title or content rides the command; the Server's own default
+    // naming applies to the branch.
+    if (command.action === 'branch') {
+      const branchCommand = command as unknown as { messageId?: unknown; messageIds?: unknown }
+      const messageId = (value: unknown): value is string =>
+        typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
+      if (!messageId(branchCommand.messageId)) throw new Error('CHAT_COMMAND_INVALID')
+      if (branchCommand.messageIds !== undefined) {
+        const messageIds = branchCommand.messageIds
+        if (!Array.isArray(messageIds) || messageIds.length === 0 || messageIds.length > MAX_BRANCH_TURN_MESSAGES ||
+            new Set(messageIds).size !== messageIds.length || !messageIds.every(messageId)) throw new Error('CHAT_COMMAND_INVALID')
       }
     }
     // The only upload decision the renderer may send is an explicit allow;
@@ -495,11 +550,13 @@ export class RuntimeProcess {
       // The two documented boolean flags are part of their command's fixed
       // shape even though they are not string-valued (#39 rememberScript,
       // #74 confirm); the #75 mounted-skill list is validated as a whole
-      // above. Everything else must be a bounded string on the command's own
-      // key list.
+      // above, and the #76 collab switch is a plain boolean. Everything else
+      // must be a bounded string on the command's own key list.
       if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
-      return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256)
+      if (key === 'messageIds' && Array.isArray(value) && allowed.includes('messageIds')) return false
+      if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
+      return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : key === 'modelName' ? 200 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
@@ -1031,11 +1088,57 @@ export class RuntimeProcess {
             else this.workspaceRequest?.resolve()
             continue
           }
+          if (value.v === 1 && value.type === 'models') {
+            // Issue 73: the Server's own authorized list and preference
+            // facts, bounded before they reach the renderer. The projection
+            // drops anything the Server did not state and can never carry a
+            // provider, endpoint or key field — the family has none.
+            const pending = this.modelRequests.get(value.id)
+            if (!pending) continue
+            this.modelRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            if (!result || !Array.isArray(result.models) || typeof result.canRead !== 'boolean') {
+              pending.reject(new Error('MODEL_SETTINGS_FAILED')); continue
+            }
+            const models: ModelRowView[] = result.models.slice(0, 50).map((row: Record<string, unknown>) => ({
+              name: text(row?.name, 200), displayName: text(row?.displayName, 200),
+              description: text(row?.description, 500), supportsThinking: row?.supportsThinking === true
+            })).filter((row: ModelRowView) => row.name !== '')
+            pending.resolve({ models, canRead: result.canRead,
+              reason: text(result.reason, 64),
+              accountDefault: text(result.accountDefault, 200),
+              fallback: text(result.fallback, 200) })
+            continue
+          }
           if (value.v === 1 && value.type === 'chat') {
             const result = value.result
             if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
                 !['idle', 'streaming', 'disconnected', 'uncertain'].includes(result.stream) ||
-                !['resources', 'threads', 'messages', 'events'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+                // Issue 76: the sub-agent ledger is part of every snapshot the
+                // Runtime returns, exactly like the transcript arrays.
+                !['resources', 'threads', 'messages', 'events', 'subagents'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+            // Issue 73: the model display facts ride every snapshot; a shape
+            // violation kills the child rather than showing invented state.
+            // The option rows get the same bounded projection as the models
+            // reply — display facts only, no invented fields.
+            if (result.model && (typeof result.model !== 'object' ||
+                !['session-override', 'account-default', 'platform-default'].includes(result.model.source) ||
+                typeof result.model.name !== 'string' || result.model.name.length > 200 ||
+                typeof result.model.reason !== 'string' || result.model.reason.length > 64 ||
+                typeof result.model.notice !== 'string' || result.model.notice.length > 500 ||
+                typeof result.model.switchedFrom !== 'string' || result.model.switchedFrom.length > 200 ||
+                typeof result.model.available !== 'boolean')) throw new Error('Invalid chat response')
+            if (result.modelOptions !== undefined) {
+              if (!Array.isArray(result.modelOptions)) throw new Error('Invalid chat response')
+              result.modelOptions = result.modelOptions.slice(0, 50).map((row: Record<string, unknown>) => ({
+                name: typeof row?.name === 'string' ? row.name.slice(0, 200) : '',
+                displayName: typeof row?.displayName === 'string' ? row.displayName.slice(0, 200) : '',
+                description: typeof row?.description === 'string' ? row.description.slice(0, 500) : '',
+                supportsThinking: row?.supportsThinking === true
+              })).filter((row: ModelRowView) => row.name !== '')
+            }
             // Issue 72: the sidebar's Thread management carries the same
             // identity the chat session itself last reported.
             this.chatScope = result.scope
@@ -1232,6 +1335,7 @@ export class RuntimeProcess {
       for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeWikiRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null

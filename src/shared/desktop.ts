@@ -414,6 +414,34 @@ export type ConnectorInternalOutcome =
   | { action: 'preview' } & ConnectorInstallPreview
   | ConnectorOutcome
 
+/** Issue 73: one authorized model row — the Server's own permission-filtered
+ * catalog, projected with display facts only. No provider, endpoint or key
+ * field exists anywhere in this family. */
+export interface ModelRowView {
+  name: string
+  displayName: string
+  description: string
+  supportsThinking: boolean
+}
+/**
+ * Issue 73: the model settings view. `accountDefault` is the platform
+ * account preference the Web writes (empty string = platform default);
+ * `fallback` is the device-local 备用模型 choice (empty string = none).
+ * Every reply re-reads the Server, so it always carries post-action truth.
+ */
+export interface ModelSettingsView {
+  models: ModelRowView[]
+  accountDefault: string
+  fallback: string
+  canRead: boolean
+  reason: string
+}
+/** Issue 73: the settings-page actions. Clearing rides the empty string. */
+export type ModelCommand =
+  | { action: 'list' }
+  | { action: 'set-default'; modelName: string }
+  | { action: 'set-fallback'; modelName: string }
+
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -497,6 +525,10 @@ export interface DesktopBridge {
   skillPreferences(command: SkillPreferenceCommand): Promise<SkillPreferencesView>
   /** Issue 122: list or revoke the device's remembered Skill script grants. */
   skillScripts(command: SkillScriptCommand): Promise<SkillScriptView>
+  /** Issue 73: the model settings surface — the platform's authorized list,
+   * the account default it shares with the Web, and the device-local
+   * fallback pick. No provider or credential field crosses this bridge. */
+  models(command: ModelCommand): Promise<ModelSettingsView>
   /** Issue 72: search, rename and delete platform threads, always re-reading
    * the Server's own list; deleting never clears local unconfirmed receipts. */
   threads(command: ThreadCommand): Promise<ThreadView>
@@ -588,6 +620,10 @@ export const SESSION_TIERS: readonly SessionTierValue[] = ['ask_first', 'autonom
  * bound exists so the wire stays finite, not to fake a wider seam. */
 export const MAX_MESSAGE_SKILLS = 8
 
+/** Issue 78: the bound on one branch command's turn group — the assistant
+ * message ids of the single turn the user branches from. */
+export const MAX_BRANCH_TURN_MESSAGES = 64
+
 /** Issue 75: the at-mention delegation and slash-skill semantics ride the
  * send command as structured, optional facts. `delegateAgentId` names the
  * agent the user at-mentioned for THIS message: the platform sub-agent
@@ -597,14 +633,23 @@ export const MAX_MESSAGE_SKILLS = 8
  * first: the runtime maps the first onto the platform's per-run explicit
  * Skill seam (must-use, never trigger-guessed) and records the whole mount
  * on the run. The account's own trigger-preference injection applies only on
- * runs without an explicit Skill, and only the Server ever matches it. */
+ * runs without an explicit Skill, and only the Server ever matches it.
+ * Issue 76: `collab` is the composer's mode switch, sent as an explicit
+ * boolean on every send. It maps onto the platform's own delegation seam
+ * (`context.subagent_enabled`) — true lets the lead Agent dispatch parallel
+ * sub-agents for this run, false is the single-Agent mode. The platform's
+ * own silent default is delegation OFF, matching the Web client's mode
+ * switch, so "on" must be said explicitly; the team composition still stays
+ * the lead Agent's own configuration and no local orchestration channel
+ * exists. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
-    delegateAgentId?: string; skillIds?: string[] }
+    delegateAgentId?: string; skillIds?: string[]; collab?: boolean }
+  | { action: 'set-model'; scope: string; threadId: string; modelName: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
@@ -615,6 +660,12 @@ export type ChatCommand =
   // Runtime's own state reply, and the destination stays a native dialog.
   | { action: 'export'; scope: string; threadId: string; mode: 'session' | 'message'; messageId?: string }
   | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
+  /** Issue 78: 消息级分支. The renderer names the target turn only — one
+   * assistant message plus, when the transcript groups more than one, the
+   * rest of that turn's assistant ids. The Runtime resolves the branch on
+   * the platform's own Thread branch endpoint and reopens the new Thread;
+   * no title, no content and no local copy ever ride this command. */
+  | { action: 'branch'; scope: string; threadId: string; messageId: string; messageIds?: string[] }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -641,6 +692,29 @@ export interface ChatMessage {
 export function messageRoleLabel(message: Pick<ChatMessage, 'role' | 'name'>): string {
   return message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`
 }
+
+/** Issue 76: one parallel sub-agent the platform's lead Agent dispatched
+ * through its own task tool. Every field is a bounded projection of the
+ * platform's own task_* custom events (or the parent AI message's published
+ * tool_calls for the type name) — the desktop renders exactly the states the
+ * platform pushed and never invents a transition, so a task whose start was
+ * seen but whose end was not stays `running`. `step`/`totalSteps` mirror the
+ * platform's own message_index/total_messages; usage is the platform's
+ * cumulative snapshot, replaced per event. */
+export interface ChatSubagent {
+  taskId: string
+  description: string
+  agent: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out'
+  step?: number | null
+  totalSteps?: number | null
+  model: string
+  usage?: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+  result: string
+  resultTruncated: boolean
+  error: string
+  errorTruncated: boolean
+}
 /** Issue 39: one pending device decision the Desktop chat can settle — a
  * file write (#102), a Skill script run (#122), or a knowledge material read
  * (#116). Identity and scope facts only; bytes never cross to the renderer. */
@@ -661,6 +735,18 @@ export interface LocalConsentView {
   revisionId?: string
   manifestHash?: string
   documents?: { filename: string; contentHash: string }[]
+}
+/** Issue 73: the chat-side model facts. `model` names the resolved choice
+ * for the next submission, its honest availability, and — after a fallback
+ * switch — the displayed story of what happened. `modelOptions` mirrors the
+ * platform's authorized list for the in-session selector. */
+export interface ChatModelView {
+  name: string
+  source: 'session-override' | 'account-default' | 'platform-default'
+  available: boolean
+  reason: string
+  notice: string
+  switchedFrom: string
 }
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
@@ -692,6 +778,11 @@ export interface ChatSnapshot {
   messages: ChatMessage[]
   run: { id: string; status: string; selection: Record<string, unknown> } | null
   events: { id: string; event: string; detail: string }[]
+  model?: ChatModelView
+  modelOptions?: ModelRowView[]
+  /** Issue 76: the current run's parallel sub-agents, as reported by the
+   * platform's own task_* events; empty outside a dispatched run. */
+  subagents: ChatSubagent[]
   stream: 'idle' | 'streaming' | 'disconnected' | 'uncertain'
   error: string
   lastEventId: string

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Button, Input, Space, Tag, Typography } from 'antd'
+import { Button, Input, Space, Switch, Tag, Typography } from 'antd'
 import type { TextAreaRef } from 'rc-textarea'
 import type { ChatCommand, ChatSnapshot } from '../../../shared/desktop'
 import { MAX_MESSAGE_SKILLS } from '../../../shared/desktop'
@@ -36,7 +36,16 @@ function triggerAt(text: string, caret: number, kind: 'agent' | 'skill'): { quer
  * whole mount on the run; a run without any explicit Skill is where the
  * account's own trigger-preference injection happens, matched only by the
  * Server). Enter sends, Shift+Enter newlines, and a composing IME never
- * sends. */
+ * sends. Issue 76: the collab switch restores the original mode toggle to
+ * the input area — on (the default) one sentence can dispatch several
+ * professional agents the platform runs as parallel sub-agents; off keeps
+ * the lead Agent working alone for that run, and the at-mention picker
+ * offers no candidates — a delegation entry that could not take effect is
+ * never shown. Both states ride every send as an explicit boolean: the
+ * platform's own silent default is delegation OFF (the Web client's mode
+ * switch behaves the same), so "on" must say so. The team composition stays
+ * the lead Agent's own configuration; the desktop provides no team
+ * management surface. */
 export function ChatComposer({ state, pending, canSend, onCommand }: {
   state: ChatSnapshot
   pending: boolean
@@ -47,15 +56,19 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
   const [delegate, setDelegate] = useState<ComposerPick | null>(null)
   const [skills, setSkills] = useState<ComposerPick[]>([])
   const [picker, setPicker] = useState<PickerState | null>(null)
+  const [collab, setCollab] = useState(true)
   const areaRef = useRef<TextAreaRef | null>(null)
   const threadId = state.thread?.id
 
   const options = useMemo(() => {
+    // Issue 76: collaboration off — delegation cannot take effect this run,
+    // so the agent picker stays closed instead of faking an entry point.
+    if (picker?.kind === 'agent' && !collab) return []
     const rows = state.resources.filter((resource) => resource.type === picker?.kind && resource.available)
     const query = (picker?.query || '').toLowerCase()
     return rows.filter((resource) => !query || resource.name.toLowerCase().includes(query) || resource.id.toLowerCase().includes(query))
       .map((resource) => ({ id: resource.id, name: resource.name }))
-  }, [picker, state.resources])
+  }, [picker, state.resources, collab])
 
   const closePicker = (): void => setPicker(null)
 
@@ -108,10 +121,13 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
     setText('')
     setDelegate(null)
     // Mounted Skills persist across the session's messages; only the
-    // per-message delegation clears with the text.
+    // per-message delegation clears with the text. The collab switch rides
+    // every send as an explicit boolean (#76): the platform's own silent
+    // default is delegation OFF, so "on" must say so too.
     void onCommand({ action: 'send', scope: state.scope, threadId, turnId: crypto.randomUUID(), text: message,
       ...(delegate ? { delegateAgentId: delegate.id } : {}),
-      ...(skills.length ? { skillIds: skills.map((skill) => skill.id) } : {}) })
+      ...(skills.length ? { skillIds: skills.map((skill) => skill.id) } : {}),
+      collab })
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
@@ -170,9 +186,11 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
         </li>)}
       </ul>}
     </div>
-    <Space className="mt-2">
+    <Space className="mt-2" wrap>
       <Button type="primary" aria-label="发送消息" disabled={disabled || !text.trim()} onClick={send}>发送</Button>
-      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（仅本条消息）· / 挂载 Skill（首个为本会话必用）</Typography.Text>
+      <Switch aria-label="协同模式" checked={collab} disabled={disabled} onChange={setCollab} size="small" />
+      <Typography.Text type="secondary" className="text-xs">协同：一句话派发多个专业 Agent，平台并行子代理执行（团队由主 Agent 配置决定）</Typography.Text>
+      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（仅本条消息，协同关闭时不可用）· / 挂载 Skill（首个为本会话必用）</Typography.Text>
     </Space>
   </div>
 }

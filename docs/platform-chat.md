@@ -12,7 +12,8 @@ The renderer calls one restricted `desktop:chat` IPC method. Its command union
 allows state, catalog refresh, Thread creation/open, send, human-input answer,
 reconnect, scoped Run stopping, an exact local approval decision and the
 session permission tier (#74: one explicit tier switch whose full-tier confirm
-flag only the main process signs after its own dialog). It accepts no URL,
+flag only the main process signs after its own dialog) and the session's
+temporary model choice (`set-model`, issue #73). It accepts no URL,
 authentication header, executable, physical path or renderer-supplied write
 content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
@@ -32,6 +33,31 @@ identifiers. The destination is a native save dialog with a suggested file
 name; the write is staged and renamed atomically, the scope is re-checked
 after the dialog like the artifact download, and the outcome rides the reply
 snapshot as a transient `exportStatus` the same way `downloadStatus` does.
+
+## Model selection (issue #73)
+## Model selection (issue #73)
+
+The settings entry restores the original position with a restricted
+`desktop:models` IPC surface: the Server's own permission-filtered model
+catalog (`GET /api/models`), the account-level default written through the
+same preferences endpoint the Web uses (`PATCH /api/v1/auth/preferences` with
+the owner-fence header, 409 mapping to the identity-changed category), and the
+备用模型 pick stored as a device-local preference because the platform
+preference schema has no field for it. No provider, Base URL or API-key field
+exists anywhere in this family — the Desktop never holds a model credential —
+and no Ollama section exists; the absence is stated in place.
+
+Each submission resolves the model in the open order — the session's temporary
+choice, then the account default (read authoritatively per submission), then no
+name (the platform default applies) — and rides the Run context's `model_name`.
+A choice that left the authorized list is never silently replaced: without a
+usable fallback the submission stops before anything is sent with an explicit
+unavailable category and the chat pauses sending until the user switches; with
+one, the sanctioned switch re-submits once and the session displays the actual
+model and the switch story. Only model-attributable Server refusals trigger the
+bounded fallback re-submission — today exactly the fixed denial details
+"Model access denied" and "is not in the configured model allowlist" — and
+every other failure keeps the existing uncertain-submission contract.
 
 Issue #72 adds one more restricted platform-facing method, `desktop:threads`,
 for the session sidebar's Thread management. Its command union allows list,
@@ -56,6 +82,60 @@ and message chunks update the transcript; namespaced and custom events expose
 Server tool/subagent progress. A disconnected or uncertain submission disables
 new sends until the user restores state. Reconnect reloads Server history and
 the existing Run, without replaying the previous POST.
+
+Issue #76 restores the collab mode switch to the composer's input area. Every
+composer send carries `collab` as an explicit boolean, mapped onto the
+platform's own delegation seam (`context.subagent_enabled`): true lets the
+lead Agent dispatch parallel sub-agents for that run, false is the
+single-Agent mode. The platform's own silent default is delegation OFF and
+the Web client's mode switch sends the same explicit boolean, so the
+desktop's on state — the composer's default — must say so too. The flag
+rides send commands only; an answer run keeps the platform default. Which
+sub-agents exist stays the lead Agent's own configuration (the platform
+ANDs the flag with its allowlist); the desktop provides no team management
+surface and no local orchestration channel. While collaboration is off, the
+composer's at-mention picker offers no candidates — a delegation entry that
+could not take effect is never shown.
+
+The platform reports parallel sub-agent execution through its own `task_*`
+custom events (`task_started`, `task_running`, `task_completed`,
+`task_failed`, `task_cancelled`, `task_timed_out`), with the parent run's
+`tool_call_id` as the sole correlation key. The desktop folds those frames
+into a bounded structured ledger on the snapshot (`subagents`, at most 50
+entries, keyed by task id in first-seen order) beside the raw event record.
+Every field is a bounded projection of what the platform pushed: the status
+name mirrors the event type exactly, `step`/`totalSteps` mirror
+`message_index`/`total_messages`, usage is the platform's cumulative
+snapshot, and a task whose end was never reported stays `running`. Nothing is
+invented between events, and a frame about an unknown or malformed task
+identity is dropped. The sub-agent's type name is derived only from the
+parent AI message's published `task` tool_calls. A copied result is bounded
+at 8,000 characters, an error at 2,000, a description at 2,000 — the full
+report stays in the conversation's own tool messages. The ledger belongs to
+the run that dispatched it: a new turn starts empty, and reopening a Thread
+rebuilds visible progress only from what the platform itself streams again.
+
+Issue #78 restores 消息级分支 as one more restricted `desktop:chat` command
+shape: `branch` names the target turn only — one assistant message id plus,
+when the transcript groups more than one, the rest of that completed
+assistant turn's ids. The renderer offers the action on Agent messages of a
+settled turn only (no in-flight run, no stream, no open clarification); the
+Runtime pre-checks the same `threads:write` permission the rename path
+checks and then rides the platform's own Thread branch endpoint
+(`POST /api/threads/{id}/branches`). The Server owns everything else:
+checkpoint discovery, the new Thread row, the inherited history and the
+project membership; the branch re-opens through the normal load path, so its
+transcript is read back from the platform's new Thread and no local copy of
+history exists at any point. In-flight work is refused by the Server itself
+and surfaces as the shared conflict category with the source session still
+open. No title rides the wire — the Server's default branch naming applies.
+The branch action is also the only place a project folder binding crosses
+sessions: a source session with a binding hands a copy to its branch and a
+source without one stays unbound, decided by one tested function
+(`inherited_binding`); the binding producer and its run-context consumer
+arrive with the project folder binding ticket (二期 #92), until which every
+branch resolves to no binding. A successful branch asks the session sidebar
+to re-read the Server's own list — the new Thread exists there now.
 
 History combines paginated Server message records with checkpoint state. A
 human message's `X` and DynamicContext's `X__user` share the same display

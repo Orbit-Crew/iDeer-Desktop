@@ -83,7 +83,7 @@ async function main() {
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'notifications', 'onNotificationActivate', 'onNotifications',
+      'manage', 'models', 'notifications', 'onNotificationActivate', 'onNotifications',
       'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
       'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
     ])
