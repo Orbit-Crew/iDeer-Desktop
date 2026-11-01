@@ -69,6 +69,38 @@ Server tool/subagent progress. A disconnected or uncertain submission disables
 new sends until the user restores state. Reconnect reloads Server history and
 the existing Run, without replaying the previous POST.
 
+Issue #76 restores the collab mode switch to the composer's input area. Every
+composer send carries `collab` as an explicit boolean, mapped onto the
+platform's own delegation seam (`context.subagent_enabled`): true lets the
+lead Agent dispatch parallel sub-agents for that run, false is the
+single-Agent mode. The platform's own silent default is delegation OFF and
+the Web client's mode switch sends the same explicit boolean, so the
+desktop's on state — the composer's default — must say so too. The flag
+rides send commands only; an answer run keeps the platform default. Which
+sub-agents exist stays the lead Agent's own configuration (the platform
+ANDs the flag with its allowlist); the desktop provides no team management
+surface and no local orchestration channel. While collaboration is off, the
+composer's at-mention picker offers no candidates — a delegation entry that
+could not take effect is never shown.
+
+The platform reports parallel sub-agent execution through its own `task_*`
+custom events (`task_started`, `task_running`, `task_completed`,
+`task_failed`, `task_cancelled`, `task_timed_out`), with the parent run's
+`tool_call_id` as the sole correlation key. The desktop folds those frames
+into a bounded structured ledger on the snapshot (`subagents`, at most 50
+entries, keyed by task id in first-seen order) beside the raw event record.
+Every field is a bounded projection of what the platform pushed: the status
+name mirrors the event type exactly, `step`/`totalSteps` mirror
+`message_index`/`total_messages`, usage is the platform's cumulative
+snapshot, and a task whose end was never reported stays `running`. Nothing is
+invented between events, and a frame about an unknown or malformed task
+identity is dropped. The sub-agent's type name is derived only from the
+parent AI message's published `task` tool_calls. A copied result is bounded
+at 8,000 characters, an error at 2,000, a description at 2,000 — the full
+report stays in the conversation's own tool messages. The ledger belongs to
+the run that dispatched it: a new turn starts empty, and reopening a Thread
+rebuilds visible progress only from what the platform itself streams again.
+
 History combines paginated Server message records with checkpoint state. A
 human message's `X` and DynamicContext's `X__user` share the same display
 identity, matching Server/Web. The latest original Server ID is retained;

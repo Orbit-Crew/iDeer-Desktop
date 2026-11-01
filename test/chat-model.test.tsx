@@ -6,7 +6,10 @@ import type { ChatSnapshot } from '../src/shared/desktop'
 const baseState = (overrides: Partial<ChatSnapshot> = {}): ChatSnapshot => ({
   scope: 'identity', resources: [], threads: [], messages: [], events: [],
   thread: { id: 'thread-73', status: 'idle', agentId: 'agent-73', skillId: '' },
-  run: null, stream: 'idle', error: '', lastEventId: '', ...overrides
+  run: null, stream: 'idle', error: '', lastEventId: '',
+  // Issue 76 made the sub-agent ledger part of every snapshot the Runtime
+  // returns; the fixture carries the same shape the main process projects.
+  subagents: [], ...overrides
 })
 
 describe('chat model facts (#73)', () => {

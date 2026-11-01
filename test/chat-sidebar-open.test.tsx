@@ -20,7 +20,7 @@ beforeEach(() => {
 })
 
 const snapshotWith = (threadId: string): ChatSnapshot => ({
-  scope: 'identity', resources: [], threads: [], messages: [], events: [],
+  scope: 'identity', resources: [], threads: [], messages: [], events: [], subagents: [],
   thread: threadId ? { id: threadId, status: 'idle', agentId: 'agent', skillId: '' } : null,
   stream: 'idle', error: '', lastEventId: ''
 })
