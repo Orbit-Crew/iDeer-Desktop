@@ -88,10 +88,10 @@ def build_manifest(files: Any, logical_paths: list[str]) -> list[dict[str, Any]]
     and out-of-root paths fail closed before a single byte leaves the device.
     Since #81 the device also really extracts PDF/DOCX/XLSX/CSV/text here:
     each entry carries an honest per-document parse record (parser identity,
-    page/table counts, fixed failure reason) that stays a device-local
-    display fact, while the platform registration payload keeps carrying
-    identity fields only. A document the engine cannot parse never fails the
-    import: its record says so instead.
+    page/table layout anchors, fixed failure reason) that stays a
+    device-local display fact, while the platform registration payload keeps
+    carrying identity fields only. A document the engine cannot parse never
+    fails the import: its record says so instead.
     """
     if len(logical_paths) > MAX_IMPORT_DOCUMENTS:
         raise KnowledgeImportError("KNOWLEDGE_IMPORT_TOO_MANY_DOCUMENTS")

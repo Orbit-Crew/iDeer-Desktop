@@ -39,6 +39,14 @@ export interface LocalResultView {
 export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
 /** Issue 112: device-local display fact for one explicit knowledge import. */
 /** Issue 81: honest device-side parse record kept with one imported document. */
+export interface KnowledgeImportParseAnchor {
+  kind: string
+  page: number | null
+  table: number | null
+  title: string | null
+  line: number
+  lines: number
+}
 export interface KnowledgeImportDocumentParseView {
   status: string
   parser: string
@@ -47,6 +55,7 @@ export interface KnowledgeImportDocumentParseView {
   tables: number
   truncated: boolean
   errorCode: string
+  layout?: KnowledgeImportParseAnchor[]
 }
 export interface KnowledgeImportDocumentView {
   filename: string

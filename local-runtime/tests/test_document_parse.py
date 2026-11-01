@@ -11,8 +11,6 @@ re-validated later by re-parsing hash-verified bytes.
 from __future__ import annotations
 
 import io
-import zipfile
-from pathlib import Path
 
 import pytest
 
@@ -22,102 +20,18 @@ from core.document_parse import (
     parse_document,
     parse_summary,
 )
-
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-
-
-def build_pdf(page_texts):
-    """Assemble a minimal uncompressed PDF with one text line per page."""
-    objects = []
-    font_id = 3 + 2 * len(page_texts)
-    kids = " ".join(f"{3 + 2 * index} 0 R" for index in range(len(page_texts)))
-    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(page_texts)} >>".encode())
-    for index, text in enumerate(page_texts):
-        objects.append(
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents {4 + 2 * index} 0 R"
-            f" /Resources << /Font << /F1 {font_id} 0 R >> >> >>".encode())
-        stream = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode("latin-1")
-        objects.append(f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream")
-    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
-    out = bytearray(b"%PDF-1.4\n")
-    offsets = []
-    for number, body in enumerate(objects, 1):
-        offsets.append(len(out))
-        out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"
-    xref_at = len(out)
-    out += f"xref\n0 {len(objects) + 1}\n".encode() + b"0000000000 65535 f \n"
-    for offset in offsets:
-        out += f"{offset:010d} 00000 n \n".encode()
-    out += (f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_at}\n%%EOF").encode()
-    return bytes(out)
+from fixtures.document_fixtures import (
+    build_docx,
+    build_pdf,
+    build_xlsx,
+    docx_paragraph,
+    docx_table,
+    xlsx_row,
+    xlsx_sheet,
+)
 
 
-def build_docx(body_children: str) -> bytes:
-    document = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        f'<w:document xmlns:w="{W_NS}"><w:body>{body_children}</w:body></w:document>')
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("word/document.xml", document)
-    return buffer.getvalue()
-
-
-def docx_paragraph(text: str) -> str:
-    return f'<w:p><w:r><w:t xml:space="preserve">{text}</w:t></w:r></w:p>'
-
-
-def docx_table(rows: list[list[str]]) -> str:
-    cells = "".join(
-        "<w:tr>" + "".join(f"<w:tc><w:p><w:r><w:t>{cell}</w:t></w:r></w:p></w:tc>" for cell in row) + "</w:tr>"
-        for row in rows)
-    return f"<w:tbl>{cells}</w:tbl>"
-
-
-XLSX_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-XLSX_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
-
-
-def build_xlsx(sheets: list[tuple[str, str]], shared: list[str] | None = None) -> bytes:
-    """One minimal workbook: sheets carry inline strings, numbers, or shared indices."""
-    sheet_tags = "".join(
-        f'<sheet name="{name}" sheetId="{index + 1}" r:id="rId{index + 1}" />'
-        for index, (name, _xml) in enumerate(sheets))
-    workbook = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        f'<workbook xmlns="{XLSX_MAIN}" xmlns:r="{XLSX_REL}"><sheets>{sheet_tags}</sheets></workbook>')
-    relationships = "".join(
-        f'<Relationship Id="rId{index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
-        f'relationships/worksheet" Target="worksheets/sheet{index + 1}.xml" />'
-        for index in range(len(sheets)))
-    rels = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        f'<Relationships xmlns="{PKG_REL}">{relationships}</Relationships>')
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("xl/workbook.xml", workbook)
-        archive.writestr("xl/_rels/workbook.xml.rels", rels)
-        for index, (_name, xml) in enumerate(sheets):
-            archive.writestr(f"xl/worksheets/sheet{index + 1}.xml", xml)
-        if shared is not None:
-            items = "".join(f"<si><t>{text}</t></si>" for text in shared)
-            archive.writestr("xl/sharedStrings.xml",
-                             f'<?xml version="1.0"?><sst xmlns="{XLSX_MAIN}" count="{len(shared)}" uniqueCount="{len(shared)}">{items}</sst>')
-    return buffer.getvalue()
-
-
-def xlsx_sheet(rows: str) -> str:
-    return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            f'<worksheet xmlns="{XLSX_MAIN}"><sheetData>{rows}</sheetData></worksheet>')
-
-
-def xlsx_row(cells: list[tuple[str, str]]) -> str:
-    return "<row>" + "".join(
-        f'<c r="{ref}"{attr}>{inner}</c>' for ref, (attr, inner) in zip(("A", "B", "C"), cells)) + "</row>"
-
-
-def test_plain_text_preserves_lines_and_has_no_layout(tmp_path: Path):
+def test_plain_text_preserves_lines_and_has_no_layout():
     result = parse_document("# marker\nfirst line\nsecond line\n".encode("utf-8"), "notes.txt")
     assert result["status"] == "parsed"
     assert result["parser"] == "text-utf8"
@@ -170,6 +84,13 @@ def test_docx_corrupt_archive_reports_honest_reason():
     assert result["reason"] == "PARSE_DOCX_CORRUPT"
 
 
+def test_docx_oversized_inner_part_is_not_called_corrupt():
+    raw = build_docx(docx_paragraph("a" * (MAX_PARSE_FILE_BYTES + 1)))
+    result = parse_document(raw, "bomb.docx")
+    assert result["status"] == "failed"
+    assert result["reason"] == "PARSE_PART_TOO_LARGE"
+
+
 def test_xlsx_sheets_become_tables_with_titles_and_shared_strings():
     rows = (xlsx_row([(' t="inlineStr"', '<is><t>part</t></is>'), ('', '<v>4</v>'), (' t="s"', '<v>0</v>')])
             + xlsx_row([(' t="inlineStr"', '<is><t>gear</t></is>'), ('', '<v>2</v>'), (' t="s"', '<v>0</v>')]))
@@ -199,6 +120,19 @@ def test_pdf_pages_carry_real_page_anchors():
     assert result["layout"] == [
         {"kind": "page", "page": 1, "table": None, "title": None, "line": 1, "lines": 1},
         {"kind": "page", "page": 2, "table": None, "title": None, "line": 2, "lines": 1}]
+
+
+def test_pdf_pages_without_a_text_layer_still_count():
+    """A scanned document is honestly parsed: pages exist, the text is empty."""
+    result = parse_document(build_pdf(["", ""]), "scan.pdf")
+    assert result["status"] == "parsed"
+    assert result["text"] == ""
+    assert result["layout"] == [
+        {"kind": "page", "page": 1, "table": None, "title": None, "line": 1, "lines": 0},
+        {"kind": "page", "page": 2, "table": None, "title": None, "line": 1, "lines": 0}]
+    summary = parse_summary(result)
+    assert summary["pages"] == 2
+    assert summary["errorCode"] == ""
 
 
 def test_pdf_encrypted_reports_honest_reason():
@@ -248,18 +182,29 @@ def test_text_truncation_is_marked_not_silent():
     assert len(result["text"]) == MAX_PARSE_TEXT_CHARS
 
 
+def test_csv_at_the_exact_line_cap_is_not_marked_truncated():
+    raw = ("a\n" * 200_000).encode("utf-8")
+    result = parse_document(raw, "edge.csv")
+    assert result["status"] == "parsed"
+    assert result["truncated"] is False
+
+
 def test_parsing_is_deterministic_for_identical_bytes():
     raw = build_pdf(["same bytes same result"])
     assert parse_document(raw, "a.pdf") == parse_document(raw, "a.pdf")
 
 
-def test_summary_maps_every_status_to_a_bounded_record():
+def test_summary_records_layout_anchors_with_the_parser_identity():
     parsed = parse_summary(parse_document(b"a,b\n1,2\n", "t.csv"))
     assert parsed == {"status": "parsed", "parser": "csv-stdlib", "parserVersion": "1",
-                      "pages": 0, "tables": 1, "truncated": False, "errorCode": ""}
+                      "pages": 0, "tables": 1, "truncated": False, "errorCode": "",
+                      "layout": [{"kind": "table", "page": None, "table": 1, "title": None,
+                                  "line": 1, "lines": 2}]}
     failed = parse_summary({"status": "failed", "reason": "PARSE_PDF_CORRUPT"})
     assert failed == {"status": "failed", "parser": "", "parserVersion": "",
-                      "pages": 0, "tables": 0, "truncated": False, "errorCode": "PARSE_PDF_CORRUPT"}
+                      "pages": 0, "tables": 0, "truncated": False,
+                      "errorCode": "PARSE_PDF_CORRUPT", "layout": []}
     skipped = parse_summary({"status": "skipped", "reason": "PARSE_FORMAT_UNSUPPORTED"})
     assert skipped["status"] == "skipped"
     assert skipped["errorCode"] == "PARSE_FORMAT_UNSUPPORTED"
+    assert skipped["layout"] == []

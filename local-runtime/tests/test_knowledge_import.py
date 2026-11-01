@@ -329,7 +329,8 @@ def test_build_manifest_rejects_duplicate_content_and_oversized_files():
     assert entries == [dict(filename='guide.md', sha256=hashlib.sha256(b'same bytes').hexdigest(),
                             bytes=10, mime=mimetypes.guess_type('guide.md')[0] or 'application/octet-stream',
                             parse={'status': 'parsed', 'parser': 'text-utf8', 'parserVersion': '1',
-                                   'pages': 0, 'tables': 0, 'truncated': False, 'errorCode': ''})]
+                                   'pages': 0, 'tables': 0, 'truncated': False, 'errorCode': '',
+                                   'layout': []})]
     with pytest.raises(KnowledgeImportError) as duplicate:
         build_manifest(FakeFiles(), ['/workspace/guide.md', '/workspace/copy.md'])
     assert duplicate.value.args[0] == 'KNOWLEDGE_IMPORT_DUPLICATE_CONTENT'
@@ -366,30 +367,19 @@ def test_logical_paths_verify_workspace_generation_before_mapping(tmp_path):
 
 # --- Issue 81: the device really parses what it registers -------------------
 
-W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-
-
-def build_docx(body_children: str) -> bytes:
-    import io
-    import zipfile
-    document = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                f'<w:document xmlns:w="{W_NS}"><w:body>{body_children}</w:body></w:document>')
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, 'w') as archive:
-        archive.writestr('word/document.xml', document)
-    return buffer.getvalue()
+from fixtures.document_fixtures import build_docx, docx_paragraph, docx_table
 
 
 def test_import_records_real_device_parse_facts_per_document(tmp_path):
     """T81-01: the wire stays identity-only while each document gains an honest
-    device-side parse record (status, parser, version, page/table counts)."""
+    device-side parse record (status, parser, version, layout anchors)."""
     with platform() as (origin, records):
         chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
         table = space / 'parts.csv'
         table.write_bytes('name,qty\nbearing,4\n'.encode('utf-8'))
         report = space / 'report.docx'
-        report.write_bytes(build_docx('<w:p><w:r><w:t>intro</w:t></w:r></w:p>'
-                                      '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>part</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'))
+        report.write_bytes(build_docx(docx_paragraph('intro')
+                                      + docx_table([['part', 'qty']])))
         legacy = space / 'old.doc'
         legacy.write_bytes(b'\xd0\xcf\x11\xe0legacy')
 
@@ -406,15 +396,20 @@ def test_import_records_real_device_parse_facts_per_document(tmp_path):
                          for document in registry.view(binding)[0]['documents']}
         assert parse_by_name['parts.csv'] == {
             'status': 'parsed', 'parser': 'csv-stdlib', 'parserVersion': '1',
-            'pages': 0, 'tables': 1, 'truncated': False, 'errorCode': ''}
+            'pages': 0, 'tables': 1, 'truncated': False, 'errorCode': '',
+            'layout': [{'kind': 'table', 'page': None, 'table': 1, 'title': None,
+                        'line': 1, 'lines': 2}]}
         assert parse_by_name['report.docx'] == {
             'status': 'parsed', 'parser': 'docx-ooxml', 'parserVersion': '1',
-            'pages': 0, 'tables': 1, 'truncated': False, 'errorCode': ''}
+            'pages': 0, 'tables': 1, 'truncated': False, 'errorCode': '',
+            'layout': [{'kind': 'table', 'page': None, 'table': 1, 'title': None,
+                        'line': 2, 'lines': 1}]}
         # A legacy binary format the device cannot honestly parse is recorded
         # as skipped instead of riding the suffix whitelist as a fake success.
         assert parse_by_name['old.doc'] == {
             'status': 'skipped', 'parser': '', 'parserVersion': '',
-            'pages': 0, 'tables': 0, 'truncated': False, 'errorCode': 'PARSE_FORMAT_UNSUPPORTED'}
+            'pages': 0, 'tables': 0, 'truncated': False,
+            'errorCode': 'PARSE_FORMAT_UNSUPPORTED', 'layout': []}
 
 
 def test_import_survives_a_failed_parse_and_records_the_reason(tmp_path):
@@ -435,5 +430,7 @@ def test_import_survives_a_failed_parse_and_records_the_reason(tmp_path):
         assert parse_by_name['broken.pdf']['status'] == 'failed'
         assert parse_by_name['broken.pdf']['errorCode'] == 'PARSE_PDF_CORRUPT'
         assert parse_by_name['broken.pdf']['parser'] == 'pypdf'
+        assert parse_by_name['broken.pdf']['layout'] == []
         assert parse_by_name['guide.md']['status'] == 'parsed'
         assert parse_by_name['guide.md']['errorCode'] == ''
+        assert parse_by_name['guide.md']['layout'] == []
