@@ -747,6 +747,13 @@ def main() -> int:
                 notify_events = chat.background_tick()
             except Exception:
                 notify_events = []
+            # Issue 80: the status loop drives the post-outage reconcile too,
+            # so a session left with an unknown outcome recovers even when no
+            # chat panel is polling.
+            try:
+                chat.reconcile()
+            except Exception:
+                pass
             for event in notify_events:
                 emit({'v': 1, 'type': 'notify', 'event': event})
             receipt_view = receipts.snapshot(current_receipt_owner)

@@ -46,10 +46,13 @@ function triggerAt(text: string, caret: number, kind: 'agent' | 'skill'): { quer
  * switch behaves the same), so "on" must say so. The team composition stays
  * the lead Agent's own configuration; the desktop provides no team
  * management surface. */
-export function ChatComposer({ state, pending, canSend, onCommand }: {
+export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCommand }: {
   state: ChatSnapshot
   pending: boolean
   canSend: boolean
+  /** Issue 80: the visible reason sending is paused — shown while the
+   * composer is disabled and no clarification is pending. */
+  sendBlockedReason?: string
   onCommand: CommandHandler
 }): JSX.Element {
   const [text, setText] = useState('')
@@ -164,6 +167,8 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
 
   const disabled = !canSend || !!pending
   return <div className="w-full">
+    {disabled && !pending && sendBlockedReason && <Typography.Text type="warning" className="text-xs"
+      role="status">{sendBlockedReason}</Typography.Text>}
     {(delegate || skills.length > 0) && <div className="mb-2 flex flex-wrap gap-2">
       {delegate && <Tag closable aria-label={`已委派 ${delegate.name}`} color="blue"
         onClose={() => setDelegate(null)}>委派给：{delegate.name}</Tag>}

@@ -718,6 +718,177 @@ def test_unreachable_server_is_an_explicit_error_and_never_creates_a_local_run(t
     assert unavailable['run'] is None
 
 
+def test_unreachable_platform_refuses_new_turns_with_a_visible_reason(tmp_path):
+    """#80: once the platform is observed unreachable, new Turns are refused
+    by name before the turn is consumed — not a silent failure and not the
+    misleading in-progress category — and no local fallback path runs."""
+    class _LocalTouch:
+        def __init__(self):
+            self.calls = 0
+
+        def view(self, *_args):
+            self.calls += 1
+            return {}
+
+    local = _LocalTouch()
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_results=local)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        baseline = local.calls
+    runs_seen = lambda: [row for row in records if row[0].endswith('/runs') and row[1]]
+    first = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                         'turnId': '80808080-8080-4808-8808-808080808080', 'text': 'One honest try'})
+    assert first['error'] == 'CHAT_SERVER_UNAVAILABLE'
+    refused = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                           'turnId': '80808080-8080-4808-8808-808080808080', 'text': 'One honest try'})
+    assert refused['error'] == 'CHAT_PLATFORM_UNREACHABLE'
+    assert refused['platform'] == {'reachable': False, 'detail': 'CHAT_SERVER_UNAVAILABLE'}
+    assert refused['run'] is None
+    # A branch onto a new platform Thread is new orchestration output too.
+    branched = chat.handle({'action': 'branch', 'scope': scope, 'threadId': 'thread-A',
+                            'messageId': 'a1'})
+    assert branched['error'] == 'CHAT_PLATFORM_UNREACHABLE'
+    assert runs_seen() == []
+    # The security seam: the pause runs no local model, orchestration or
+    # receipt fabrication — the refused turns touch nothing on the device.
+    assert local.calls == baseline
+
+
+def test_unreachable_submission_is_marked_uncertain_and_never_resubmitted_locally(tmp_path, monkeypatch):
+    """#80: a submission whose run POST dies mid-flight stays honestly
+    unknown ('uncertain'), the pause holds while the platform is away, and
+    recovery reconnects on its own to backfill the Server's record — the
+    unknown turn's idempotency fence holds and a fresh user retry is the
+    only resubmission that ever happens."""
+    import core.platform_chat as platform_chat
+    monkeypatch.setattr(platform_chat, 'RECONNECT_COOLDOWN_SECONDS', 0.0, raising=False)
+    # The refusal happens at the socket layer of the one runs POST, so the
+    # transport seam itself records the outcome exactly as in production.
+    import urllib.request as urllib_request
+    real_build_opener = urllib_request.build_opener
+    down = {'flag': False}
+
+    def picky_build_opener(*args, **kwargs):
+        real = real_build_opener(*args, **kwargs)
+
+        class PickyOpener:
+            def open(self, request, timeout=15):
+                if down['flag'] and request.full_url.endswith('/runs') and request.data is not None:
+                    raise OSError('connection refused')
+                return real.open(request, timeout=timeout)
+
+        return PickyOpener()
+
+    monkeypatch.setattr(urllib_request, 'build_opener', picky_build_opener)
+    with platform(list_run=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '51501550-5150-4515-8150-515015505150', 'text': 'Settled turn'})
+        settled = await_stream_state(chat, 'idle')
+        assert settled['platform']['reachable'] is True
+        down['flag'] = True
+        unknown = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                               'turnId': '52502550-5250-4525-8250-525025505250', 'text': 'Lost in flight'})
+        assert unknown['error'] == 'CHAT_SERVER_UNAVAILABLE'
+        assert unknown['stream'] == 'uncertain'
+        assert unknown['platform']['reachable'] is False
+        paused = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '54504550-5450-4545-8450-545045505450', 'text': 'Paused retry'})
+        assert paused['error'] == 'CHAT_PLATFORM_UNREACHABLE'
+        down['flag'] = False
+        # The status loop calls the same shared entry point with no panel
+        # polling; one direct reconcile reloads the Server's own record.
+        chat.reconcile()
+        recovered = chat.handle({'action': 'state'})
+        assert recovered['stream'] == 'idle'
+        assert recovered['platform']['reachable'] is True
+        assert recovered['run']['status'] == 'success'
+        assert recovered['messages'][-1]['text'] == 'Restored answer'
+        # The uncertain turn's idempotency fence holds — the Server may have
+        # accepted what this device could not observe — while the user's own
+        # fresh retry works and is the only resubmission that ever happens.
+        fenced = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '52502550-5250-4525-8250-525025505250', 'text': 'Lost in flight'})
+        assert fenced['error'] == 'CHAT_TURN_ALREADY_SUBMITTED'
+        retried = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                               'turnId': '55505550-5550-4555-8550-555055505550', 'text': 'Fresh retry'})
+        assert retried['run']['id'] == 'run-1'
+        assert len([row for row in records if row[0].endswith('/runs') and row[1]]) == 2
+
+
+def test_disconnected_stream_reconciles_automatically_and_backfills_the_record(tmp_path, monkeypatch):
+    """#80: a run stream that drops past its bounded resumes becomes the
+    explicit disconnected state, and once the platform answers again the
+    state poll reconnects by itself after the cooldown — the run record and
+    messages are backfilled from the Server, without resubmitting the turn."""
+    import core.platform_chat as platform_chat
+    monkeypatch.setattr(platform_chat, 'RECONNECT_COOLDOWN_SECONDS', 60.0, raising=False)
+    with platform(disconnect=True, list_run=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '53503550-5350-4535-8350-535035505350', 'text': 'Do not replay'})
+        state = await_stream_state(chat, 'disconnected')
+        assert state['error'] == 'CHAT_STREAM_DISCONNECTED'
+        assert state['platform']['reachable'] is True
+        # While the cooldown holds, the disconnect stays visible instead of
+        # silently healing; a new turn is still refused as in progress.
+        held = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                            'turnId': '54504550-5450-4545-8450-545045505450', 'text': 'Not yet'})
+        assert held['error'] == 'CHAT_TURN_IN_PROGRESS'
+        monkeypatch.setattr(platform_chat, 'RECONNECT_COOLDOWN_SECONDS', 0.0, raising=False)
+        until = time.monotonic() + 5
+        while time.monotonic() < until:
+            state = chat.handle({'action': 'state'})
+            if state['stream'] == 'idle':
+                break
+            time.sleep(0.01)
+        assert state['stream'] == 'idle'
+        assert state['run']['status'] == 'success'
+        assert state['messages'][-1]['text'] == 'Restored answer'
+        assert len([row for row in records if row[0].endswith('/runs') and row[1]]) == 1
+
+
+def test_server_error_marks_the_platform_unreachable_and_pauses_new_turns(tmp_path, monkeypatch):
+    """#80: a 5xx answer is the server side failing — the same outage a dead
+    socket is. A 4xx refusal stays reachable; the pause names itself either
+    way."""
+    import io
+    import urllib.error
+    import urllib.request
+    with platform() as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        real_build_opener = urllib.request.build_opener
+
+        def failing_build_opener(*args, **kwargs):
+            real = real_build_opener(*args, **kwargs)
+
+            class RefusingOpener:
+                def open(self, request, timeout=15):
+                    if request.full_url.endswith('/runs') and request.data is not None:
+                        raise urllib.error.HTTPError(request.full_url, 503, 'Service Unavailable',
+                                                     {}, io.BytesIO(b'{}'))
+                    return real.open(request, timeout=timeout)
+
+            return RefusingOpener()
+
+        monkeypatch.setattr(urllib.request, 'build_opener', failing_build_opener)
+        sent = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                            'turnId': '87878787-8787-4878-8878-878787878787', 'text': 'Into a 503'})
+        assert sent['error'] == 'CHAT_SERVER_ERROR'
+        assert sent['stream'] == 'uncertain'
+        assert sent['platform'] == {'reachable': False, 'detail': 'CHAT_SERVER_ERROR'}
+        paused = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '88888888-8888-4888-8888-888888888888', 'text': 'Paused'})
+        assert paused['error'] == 'CHAT_PLATFORM_UNREACHABLE'
+
+
 @pytest.mark.parametrize('options,expected', [({'version': 0}, 'CHAT_CONFLICT'),
     ({'lifecycle': 'suspended'}, 'CHAT_NOT_FOUND'), ({'missing_dependency': True}, 'CHAT_NOT_FOUND')])
 def test_unavailable_resources_are_disabled_and_forced_activation_fails(tmp_path, options, expected):

@@ -238,8 +238,10 @@ function ChatContents({ state, busy, onCommand }: {
   // stream; a branch additionally refuses an open clarification, the
   // platform refuses anything else on its own.
   const settled = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId
-  const canSend = settled && !!state.thread?.agentId && state.model?.available !== false
-  const canBranch = settled && !pending
+  // Issue 80: an observed unreachable platform pauses new Turns by name.
+  const unreachable = state.platform?.reachable === false
+  const canSend = settled && !unreachable && !!state.thread?.agentId && state.model?.available !== false
+  const canBranch = settled && !unreachable && !pending
   const turnIds = turnGroups(state.messages)
   const modelSourceLabels: Record<string, string> = {
     'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
@@ -256,6 +258,17 @@ function ChatContents({ state, busy, onCommand }: {
     {state.error && <Alert type="error" showIcon message={`平台聊天不可用：${state.error}`} description={state.error === 'CONSENT_CONTENT_REDACTED'
       ? '审批内容包含受保护凭证，无法完整显示原始内容，已阻止批准。请修改写入请求。'
       : '请检查平台连接或重新登录。断线后不会自动重发旧提交，请恢复状态后核对原 Run。'} />}
+    {/* Issue 80: the outage is an explicit state, never a silent failure.
+        While the platform is away new Turns stay paused with the named
+        reason; once it answers again the Desktop reconnects by itself and
+        backfills the Server's own record — nothing is resubmitted locally. */}
+    {unreachable && <Alert type="error" showIcon message="平台不可达：已暂停发起新任务"
+      description={`最近一次平台接触失败（${state.platform?.detail}）。在途 Run 结果待核实，不会自动重派或重发；恢复连接后会自动重连并补传执行记录。`} />}
+    {!unreachable && !state.stop && (state.stream === 'disconnected' || state.stream === 'uncertain') &&
+      <Alert type="warning" showIcon
+        message={state.stream === 'disconnected' ? '连接中断：在途 Run 结果待核实，正在自动重连并补传执行记录'
+          : '上次提交结果待核实，正在自动重连并核对'}
+        description="旧提交不会自动重发或重派；执行记录以平台为准，恢复后自动补传。" />}
     <Select aria-label="选择 Agent" placeholder="选择已发布 Agent" value={agentId} onChange={setAgentId}
       className="w-full" options={resourceOptions('agent')} disabled={busy} />
     <Select aria-label="选择 Skill" placeholder="可选：选择 Agent 已包含的 Skill" value={skillId} onChange={setSkillId}
@@ -370,7 +383,9 @@ function ChatContents({ state, busy, onCommand }: {
       </div>
       {/* Issue 75: the composer owns the @-delegation and /Skill input
           commands; the thread key keeps its mounted facts session-scoped. */}
-      <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend} onCommand={onCommand} />
+      <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend}
+        sendBlockedReason={unreachable ? '平台不可达，已暂停发送；恢复后自动重连并补传执行记录' : undefined}
+        onCommand={onCommand} />
     </>}
     {!!state.events.length && <Collapse items={[{ key: 'progress', label: '服务端工具与子代理进度', children:
       state.events.map((event, i) => <div key={`${event.id}-${i}`}><Typography.Text>{event.id} · {event.event}</Typography.Text><pre className="whitespace-pre-wrap break-all text-xs">{event.detail}</pre></div>) }]} />}

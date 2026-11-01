@@ -58,6 +58,15 @@ BACKGROUND_LEDGER_LIMIT = 100
 # Issue 78: one branch names one completed assistant turn; the turn's
 # assistant message ids stay a bounded list on the wire.
 MAX_BRANCH_TURN_MESSAGES = 64
+# Issue 80: once the platform answers again, a session left with an unknown
+# outcome reconciles itself at most this often. The cooldown bounds the
+# reconnect attempts the Desktop's own poll can spend — the Server load and
+# the replay contract stay the platform's own.
+RECONNECT_COOLDOWN_SECONDS = 5.0
+# The cheap reachability probe the reconcile carries when nothing else has
+# talked to the Server since the last failure; short so a status-loop tick
+# never stalls behind a dead connection.
+RECONNECT_PROBE_TIMEOUT_SECONDS = 3.0
 # The identity charset every notify fact must survive on the wire; facts
 # outside it are skipped rather than ever emitted malformed.
 _WIRE_ID_CHARS = frozenset(string.ascii_letters + string.digits + '_-')
@@ -515,6 +524,20 @@ class DesktopChat:
         self._notified_consents: dict = {}
         self._background_checked = 0.0
         self._background_loading = None
+        # Issue 80: the last observed platform reachability, recorded at the
+        # one transport seam every Server contact passes through. None means
+        # nothing has been observed yet; the display and the new-Turn gate
+        # read this, never a guess.
+        self._platform_ok: bool | None = None
+        self._platform_detail = ''
+        # The first self-reconnect waits one full cooldown from startup.
+        self._reconnect_at = time.monotonic()
+
+    def _mark_platform(self, ok: bool, detail: str = '') -> None:
+        """Record one Server contact outcome; a failure pauses new Turns."""
+        with self._lock:
+            self._platform_ok = ok
+            self._platform_detail = '' if ok else (detail or 'CHAT_SERVER_UNAVAILABLE')
 
     def _consents(self, session):
         """The pending device decisions the Desktop chat can settle (#39).
@@ -1073,6 +1096,37 @@ class DesktopChat:
                 if self._background_loading is ticket:
                     self._background_loading = None
 
+    def reconcile(self):
+        """Issue 80: one guarded self-reconnect attempt for a session left
+        with an unknown outcome. The chat state poll and the status loop
+        share this entry point, so recovery never depends on a panel being
+        open. When nothing else has talked to the Server since the last
+        failure, the attempt carries its own short reachability probe; once
+        the platform answers, it reloads the Server's own record — the run
+        stream, messages and task history come back from the platform;
+        nothing is resubmitted, re-dispatched or invented locally. An
+        unresolved stop keeps its explicit reconcile contract instead."""
+        with self._lock:
+            if (not self._state['thread']
+                    or self._state['stream'] not in {'uncertain', 'disconnected'}
+                    or self._state.get('stop')
+                    or time.monotonic() - self._reconnect_at < RECONNECT_COOLDOWN_SECONDS):
+                return
+            thread_id = self._state['thread']['id']
+            self._reconnect_at = time.monotonic()
+        try:
+            session = self._session()
+            if session.scope != self._state['scope']:
+                return
+            if self._platform_ok is not True:
+                with self._request(session, '/api/v1/auth/me', timeout=RECONNECT_PROBE_TIMEOUT_SECONDS) as response:
+                    response.read(MAX_RESPONSE + 1)
+                if self._platform_ok is not True:
+                    return
+            self._load_thread(session, thread_id)
+        except Exception:  # noqa: BLE001 - a failed recovery is the outage
+            return          # speaking for itself; the next attempt retells it.
+
     def _background_observe(self):
         try:
             session = self._session()
@@ -1623,8 +1677,13 @@ class DesktopChat:
                                          method=method)
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         try:
-            return opener.open(request, timeout=timeout)
+            response = opener.open(request, timeout=timeout)
         except urllib.error.HTTPError as exc:
+            # Issue 80: a 4xx answer is still an answer — refusals say
+            # something about identity or the request, never that the
+            # platform is away. A 5xx is the server side failing, which is
+            # the same outage a dead socket is.
+            self._mark_platform(exc.code < 500, 'CHAT_SERVER_ERROR' if exc.code >= 500 else '')
             codes = {401: 'CHAT_UNAUTHENTICATED', 403: 'CHAT_FORBIDDEN', 404: 'CHAT_NOT_FOUND',
                      409: 'CHAT_CONFLICT', 422: 'CHAT_RESOURCE_UNAVAILABLE'}
             try:
@@ -1635,7 +1694,13 @@ class DesktopChat:
                 exc.close()
             raise ChatError(codes.get(exc.code, 'CHAT_SERVER_ERROR'), detail) from None
         except (OSError, ValueError):
+            # Issue 80: the one place an unreachable platform is observed.
+            # The named category becomes the visible reason a new Turn is
+            # refused while the outage lasts.
+            self._mark_platform(False, 'CHAT_SERVER_UNAVAILABLE')
             raise ChatError('CHAT_SERVER_UNAVAILABLE') from None
+        self._mark_platform(True)
+        return response
 
     def _json(self, session, path, body=None, headers=None, method=None):
         with self._request(session, path, body, headers, method=method) as response:
@@ -2581,6 +2646,12 @@ class DesktopChat:
                 action = command.get('action') if isinstance(command, dict) else None
                 if action not in {'state', 'refresh', 'compatibility'} and command.get('scope') != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
+                # Issue 80: an observed outage pauses new work by name — this
+                # named category is the visible reason, checked before any
+                # Server round-trip. Observation and recovery actions stay
+                # available and fail honestly while the platform is away.
+                if action in {'create', 'send', 'answer', 'branch'} and self._platform_ok is False:
+                    raise ChatError('CHAT_PLATFORM_UNREACHABLE')
                 can_run = self._authorize(session) if action not in {'state', 'consent', 'stop'} else False
                 if action in {'create', 'send', 'answer'} and not can_run:
                     raise ChatError('CHAT_FORBIDDEN')
@@ -2722,6 +2793,8 @@ class DesktopChat:
                     raise ChatError('CHAT_COMMAND_INVALID')
                 if self._session().scope != session.scope:
                     raise ChatError('CHAT_IDENTITY_CHANGED')
+                if action == 'state':
+                    self.reconcile()
                 if action == 'state' and self._state['thread'] and time.monotonic() - self._tasks_checked >= 2:
                     self._poll_tasks(session)
                 if self._session().scope != session.scope:
@@ -2749,6 +2822,11 @@ class DesktopChat:
             if session:
                 encoded = encoded.replace(session.token, '[REDACTED]')
             result = json.loads(encoded)
+            # Issue 80: the display reads the last observed contact outcome,
+            # never a guess; unknown starts optimistic and a failure pauses
+            # new Turns until the platform answers again.
+            result['platform'] = dict(reachable=self._platform_ok is not False,
+                                      detail=self._platform_detail)
             if self.compatibility_gate is not None:
                 result['compatibility'] = self.compatibility_gate.snapshot()
             if download is not None and not result['error']:
