@@ -91,7 +91,7 @@ describe('panel registry vocabulary', () => {
   it('keeps every original column except the never-delivered sql pane', () => {
     const registered = PANEL_REGISTRY.map((p) => p.id)
     expect(registered.sort()).toEqual([
-      'browser', 'chat', 'field', 'files', 'kb', 'runtime', 'synapse', 'terminal', 'viewer3d'
+      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'terminal', 'viewer3d'
     ])
     expect(getRegisteredPanel('sql')).toBeUndefined()
     expect(PANEL_META.sql.title).toBe('数据')
@@ -107,6 +107,7 @@ describe('panel registry vocabulary', () => {
     expect(html).toContain('三维模型')
     expect(html).toContain('仿真结果')
     expect(html).toContain('会话地图')
+    expect(html).toContain('通知中心')
     // 锚点对话不进添加列表
     expect(html).not.toContain('>对话<')
   })
