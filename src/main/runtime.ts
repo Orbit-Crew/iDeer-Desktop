@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from '
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -484,7 +484,10 @@ export class RuntimeProcess {
       download: ['action', 'scope', 'threadId', 'artifactId'],
       // Issue 74: confirm may ride a full-tier switch only; the main process
       // adds it after its own confirmation dialog, the renderer never does.
-      tier: ['action', 'scope', 'threadId', 'tier', 'confirm']
+      tier: ['action', 'scope', 'threadId', 'tier', 'confirm'],
+      // Issue 78: the branch names the target turn only; the Runtime resolves
+      // it on the platform's own Thread branch endpoint.
+      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds']
     }
     const allowed = keys[command.action]
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -523,6 +526,21 @@ export class RuntimeProcess {
       }
       if (inputCommand.collab !== undefined && typeof inputCommand.collab !== 'boolean') throw new Error('CHAT_COMMAND_INVALID')
     }
+    // Issue 78: the branch target is one bounded platform message id plus,
+    // optionally, the rest of that turn's assistant ids — unique, bounded in
+    // count. No title or content rides the command; the Server's own default
+    // naming applies to the branch.
+    if (command.action === 'branch') {
+      const branchCommand = command as unknown as { messageId?: unknown; messageIds?: unknown }
+      const messageId = (value: unknown): value is string =>
+        typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
+      if (!messageId(branchCommand.messageId)) throw new Error('CHAT_COMMAND_INVALID')
+      if (branchCommand.messageIds !== undefined) {
+        const messageIds = branchCommand.messageIds
+        if (!Array.isArray(messageIds) || messageIds.length === 0 || messageIds.length > MAX_BRANCH_TURN_MESSAGES ||
+            new Set(messageIds).size !== messageIds.length || !messageIds.every(messageId)) throw new Error('CHAT_COMMAND_INVALID')
+      }
+    }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
@@ -536,6 +554,7 @@ export class RuntimeProcess {
       // must be a bounded string on the command's own key list.
       if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
+      if (key === 'messageIds' && Array.isArray(value) && allowed.includes('messageIds')) return false
       if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
       return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : key === 'modelName' ? 200 : 256)
     })) {

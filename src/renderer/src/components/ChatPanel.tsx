@@ -190,6 +190,28 @@ export function ChatView({ state, busy, onCommand }: {
   return <ChatContents key={state.scope} state={state} busy={busy} onCommand={onCommand} />
 }
 
+/** Issue 78: the platform branches from one completed assistant turn, so the
+ * command carries the whole turn's assistant message ids. This groups the
+ * transcript exactly that way — the consecutive Agent messages between two
+ * human messages; tool messages belong to the turn but never enter the id
+ * group, and no other grouping exists anywhere on the device. */
+const turnGroups = (messages: ChatSnapshot['messages']): Map<string, string[]> => {
+  const groups = new Map<string, string[]>()
+  let turn: string[] = []
+  const settle = (): void => {
+    if (turn.length) {
+      for (const id of turn) groups.set(id, turn)
+      turn = []
+    }
+  }
+  for (const message of messages) {
+    if (message.role === 'human') settle()
+    else if (message.role === 'ai') turn = [...turn, message.id]
+  }
+  settle()
+  return groups
+}
+
 function ChatContents({ state, busy, onCommand }: {
   state: ChatSnapshot; busy: boolean; onCommand: CommandHandler
 }): JSX.Element {
@@ -202,8 +224,13 @@ function ChatContents({ state, busy, onCommand }: {
   const pending = [...state.messages].reverse().find((m) => m.request && !answered.has(m.request.request_id))?.request
   // Issue 73: an unavailable model pauses sending until the user switches;
   // nothing switches silently behind the user's back.
-  const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId &&
-    state.model?.available !== false
+  // Issue 78: both actions need a settled session — no in-flight run, no
+  // stream; a branch additionally refuses an open clarification, the
+  // platform refuses anything else on its own.
+  const settled = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId
+  const canSend = settled && !!state.thread?.agentId && state.model?.available !== false
+  const canBranch = settled && !pending
+  const turnIds = turnGroups(state.messages)
   const modelSourceLabels: Record<string, string> = {
     'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
   }
@@ -302,6 +329,13 @@ function ChatContents({ state, busy, onCommand }: {
       <div role="log" aria-label="平台聊天消息" className="space-y-3 max-h-[50vh] overflow-auto">
         {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>
+          {message.role === 'ai' && <Button type="link" size="small" className="px-0" aria-label="从此回复分支"
+            disabled={!canBranch} title="从这条回复开启新支线（历史保持一致，后续各自独立）"
+            onClick={() => {
+              const ids = turnIds.get(message.id) || [message.id]
+              void onCommand({ action: 'branch', scope: state.scope, threadId, messageId: message.id,
+                ...(ids.length > 1 ? { messageIds: ids } : {}) })
+            }}>从此回复分支</Button>}
           {pending && message.request?.request_id === pending.request_id && <Clarification key={pending.request_id} request={pending}
             disabled={!canSend} onAnswer={(answer, optionId) => void onCommand({ action: 'answer', scope: state.scope,
               threadId, turnId: crypto.randomUUID(), requestId: pending.request_id,
@@ -362,7 +396,15 @@ export default function ChatPanel(): JSX.Element {
     await pollRequest.current
     try {
       const next = await window.ideer.chat(request)
-      if (mounted.current) { scope.current = next.scope; setState(next); setFailed(false) }
+      if (mounted.current) {
+        scope.current = next.scope
+        setState(next)
+        setFailed(false)
+        // Issue 78: a successful branch put a new Thread on the Server's own
+        // session set; the sidebar re-reads it instead of waiting for a
+        // manual refresh. Only the platform's own success bumps the signal.
+        if (request.action === 'branch') useSessionStore.getState().bumpSessionsVersion()
+      }
     } catch { if (mounted.current) { setState(null); setFailed(true) } }
     finally { actionInFlight.current = false; if (mounted.current) setBusy(false) }
   }
