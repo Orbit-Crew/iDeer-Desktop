@@ -55,6 +55,9 @@ MAX_SUBAGENT_NAMES = 200
 BACKGROUND_TICK_SECONDS = 2.0
 BACKGROUND_POLL_LIMIT = 8
 BACKGROUND_LEDGER_LIMIT = 100
+# Issue 78: one branch names one completed assistant turn; the turn's
+# assistant message ids stay a bounded list on the wire.
+MAX_BRANCH_TURN_MESSAGES = 64
 # The identity charset every notify fact must survive on the wire; facts
 # outside it are skipped rather than ever emitted malformed.
 _WIRE_ID_CHARS = frozenset(string.ascii_letters + string.digits + '_-')
@@ -444,6 +447,21 @@ def empty_state(scope=""):
                 localTier=DEFAULT_SESSION_TIER.value)
 
 
+def inherited_binding(source_binding):
+    """Issue 78: the one place a branch's project folder binding is decided.
+
+    A source session with a binding hands a copy to the branch; a source
+    without one stays unbound (无绑定为空). The binding producer and the run
+    context that consumes it arrive with the project folder binding ticket
+    (二期 #92) — until then nothing registers an entry, so every branch
+    resolves to no binding, and that ticket cannot grow a second inheritance
+    path because the branch action consults only this function.
+    """
+    if not isinstance(source_binding, dict) or not source_binding:
+        return None
+    return dict(source_binding)
+
+
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
@@ -481,6 +499,10 @@ class DesktopChat:
         self._session_models = {}
         self._models_cache = None
         self._account_default_cache = None
+        # Issue 78: per-thread project folder bindings, in memory only. The
+        # branch action is the only place a binding crosses sessions, through
+        # `inherited_binding`; the producer arrives with 二期 #92.
+        self._thread_bindings = {}
         # Issue 76: task tool_call id → sub-agent type, derived only from the
         # parent AI messages the platform itself published; a display fact for
         # the ledger, never an orchestration input.
@@ -575,6 +597,9 @@ class DesktopChat:
         self._session_models.clear()
         self._models_cache = None
         self._account_default_cache = None
+        # Issue 78: the binding registry belongs to the authenticated identity
+        # the same way the model facts do.
+        self._thread_bindings.clear()
         # Issue 77: a reset tore down the session the ledger was observing
         # (auth or identity failure), so the observation debt goes with it.
         # The Server keeps the runs; reopening their sessions shows the truth.
@@ -808,6 +833,37 @@ class DesktopChat:
             self._background = [row for row in self._background if row['thread_id'] != thread_id]
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
+
+    def _branch(self, session, thread_id, message_id, message_ids):
+        """Issue 78: branch onto a new platform Thread from one settled turn.
+
+        The platform's Thread branch capability owns everything — checkpoint
+        discovery, inherited history, the new Thread row and its project
+        membership. This Runtime names the target turn, re-reads the new
+        Thread like any other open (no local copy of history exists at any
+        point), and carries the source session's project folder binding over
+        through `inherited_binding` — present hands a copy over, absent stays
+        unbound. In-flight work is refused by the Server itself; the shared
+        conflict category surfaces it.
+        """
+        if not self._state['thread'] or thread_id != self._state['thread']['id']:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        if not self._thread_permissions(session)['canRename']:
+            # The platform gates branches behind the same threads:write
+            # permission the rename path pre-checks; the Server stays
+            # authoritative either way.
+            raise ChatError('CHAT_FORBIDDEN')
+        source_id = self._state['thread']['id']
+        created = self._json(session, f'/api/threads/{source_id}/branches',
+                             {'message_id': message_id,
+                              'message_ids': message_ids or [message_id]})
+        if not isinstance(created, dict) or not isinstance(created.get('thread_id'), str):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        new_id = self._id(created['thread_id'])
+        binding = inherited_binding(self._thread_bindings.get(source_id))
+        if binding is not None:
+            self._thread_bindings[new_id] = binding
+        self._load_thread(session, new_id)
 
     def _load_tasks(self, session):
         """Observation only. A recovered task can never submit a new Turn."""
@@ -2578,6 +2634,24 @@ class DesktopChat:
                     if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
                         raise ChatError('CHAT_THREAD_CHANGED')
                     self._load_thread(session, self._state['thread']['id'])
+                elif action == 'branch':
+                    # Issue 78: 消息级分支。The renderer names the target turn
+                    # only; the Server creates the branch from its own
+                    # checkpoint and this session re-opens onto the platform's
+                    # new Thread. No title rides the wire — the Server's own
+                    # default naming applies.
+                    expected = {'action', 'scope', 'threadId', 'messageId'}
+                    if command.get('messageIds') is not None:
+                        expected = expected | {'messageIds'}
+                    message_id, message_ids = command.get('messageId'), command.get('messageIds')
+                    if (set(command) != expected or not isinstance(message_id, str)
+                            or message_ids is not None and (not isinstance(message_ids, list)
+                                or not 1 <= len(message_ids) <= MAX_BRANCH_TURN_MESSAGES
+                                or any(not isinstance(item, str) or not item for item in message_ids)
+                                or len(set(message_ids)) != len(message_ids))):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    self._branch(session, command.get('threadId'), self._id(message_id),
+                                 [self._id(item) for item in message_ids] if message_ids is not None else None)
                 elif action == 'consent':
                     expected = {'action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'}
                     # Issue 39: a script approval may ask the device to remember

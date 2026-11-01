@@ -620,6 +620,10 @@ export const SESSION_TIERS: readonly SessionTierValue[] = ['ask_first', 'autonom
  * bound exists so the wire stays finite, not to fake a wider seam. */
 export const MAX_MESSAGE_SKILLS = 8
 
+/** Issue 78: the bound on one branch command's turn group — the assistant
+ * message ids of the single turn the user branches from. */
+export const MAX_BRANCH_TURN_MESSAGES = 64
+
 /** Issue 75: the at-mention delegation and slash-skill semantics ride the
  * send command as structured, optional facts. `delegateAgentId` names the
  * agent the user at-mentioned for THIS message: the platform sub-agent
@@ -652,6 +656,12 @@ export type ChatCommand =
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
   | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
+  /** Issue 78: 消息级分支. The renderer names the target turn only — one
+   * assistant message plus, when the transcript groups more than one, the
+   * rest of that turn's assistant ids. The Runtime resolves the branch on
+   * the platform's own Thread branch endpoint and reopens the new Thread;
+   * no title, no content and no local copy ever ride this command. */
+  | { action: 'branch'; scope: string; threadId: string; messageId: string; messageIds?: string[] }
 
 export interface HumanInputRequest {
   version: 1 | 2

@@ -101,6 +101,28 @@ report stays in the conversation's own tool messages. The ledger belongs to
 the run that dispatched it: a new turn starts empty, and reopening a Thread
 rebuilds visible progress only from what the platform itself streams again.
 
+Issue #78 restores 消息级分支 as one more restricted `desktop:chat` command
+shape: `branch` names the target turn only — one assistant message id plus,
+when the transcript groups more than one, the rest of that completed
+assistant turn's ids. The renderer offers the action on Agent messages of a
+settled turn only (no in-flight run, no stream, no open clarification); the
+Runtime pre-checks the same `threads:write` permission the rename path
+checks and then rides the platform's own Thread branch endpoint
+(`POST /api/threads/{id}/branches`). The Server owns everything else:
+checkpoint discovery, the new Thread row, the inherited history and the
+project membership; the branch re-opens through the normal load path, so its
+transcript is read back from the platform's new Thread and no local copy of
+history exists at any point. In-flight work is refused by the Server itself
+and surfaces as the shared conflict category with the source session still
+open. No title rides the wire — the Server's default branch naming applies.
+The branch action is also the only place a project folder binding crosses
+sessions: a source session with a binding hands a copy to its branch and a
+source without one stays unbound, decided by one tested function
+(`inherited_binding`); the binding producer and its run-context consumer
+arrive with the project folder binding ticket (二期 #92), until which every
+branch resolves to no binding. A successful branch asks the session sidebar
+to re-read the Server's own list — the new Thread exists there now.
+
 History combines paginated Server message records with checkpoint state. A
 human message's `X` and DynamicContext's `X__user` share the same display
 identity, matching Server/Web. The latest original Server ID is retained;

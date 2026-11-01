@@ -132,11 +132,15 @@ export default function Sidebar(): JSX.Element {
   const toggleLeftPanel = useUIStore((state) => state.toggleLeftPanel)
   const requestOpen = useSessionStore((state) => state.requestOpen)
   const activeThreadId = useSessionStore((state) => state.activeThreadId)
+  // Issue 78: a successful branch changes the Server's own session set under
+  // this list; the bump is the one signal that re-reads it.
+  const sessionsVersion = useSessionStore((state) => state.sessionsVersion)
   const unreadNotifications = useNotificationCenter((state) => state.view.unread)
   // Issue 73: the model settings modal rides the restored bottom entry.
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [view, setView] = useState<SessionSidebarView>(emptySessionSidebarView)
   const controllerRef = useRef<SessionSidebarController | null>(null)
+  const loadedVersion = useRef(0)
   // Static startup markup renders without a preload bridge; the sidebar then
   // shows its empty state and only manages sessions once the bridge exists.
   useEffect(() => {
@@ -155,8 +159,16 @@ export default function Sidebar(): JSX.Element {
         if (!active) return
       }
     })()
+    loadedVersion.current = useSessionStore.getState().sessionsVersion
     return () => { active = false; current.invalidate(); if (controllerRef.current === current) controllerRef.current = null }
   }, [])
+  useEffect(() => {
+    // The mount effect consumes the version it started with; only a bump
+    // after mount (a branch this session performed) triggers one reload.
+    if (sessionsVersion === loadedVersion.current) return
+    loadedVersion.current = sessionsVersion
+    void controllerRef.current?.load()
+  }, [sessionsVersion])
   const controller = controllerRef.current
   return (
     <aside className="w-[260px] min-w-[260px] h-full flex flex-col border-r border-line bg-white text-gray-700">

@@ -151,3 +151,36 @@ describe('collab mode on send (#76)', () => {
     expect(runtime.status().process).toBe('stopped')
   })
 })
+
+describe('message-level branch on chat (#78)', () => {
+  const branch = { action: 'branch', scope: 'A', threadId: 'thread', messageId: 'msg-1' }
+  it('lets the plain branch and the full turn group pass validation', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-78/unused')
+    // The renderer names the target turn only; the Runtime resolves the
+    // branch on the platform Thread API and reopens the new Thread.
+    await expect(runtime.chat({ ...branch })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...branch, messageIds: ['msg-1', 'msg-2'] }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed branch targets before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-78/unused')
+    for (const patch of [
+      { messageId: '' }, { messageId: 'bad id!' }, { messageId: 42 }, { messageId: 'x'.repeat(129) },
+      { messageIds: [] }, { messageIds: 'msg-1' }, { messageIds: ['bad id!'] },
+      { messageIds: ['msg-1', 'msg-1'] },
+      { messageIds: Array.from({ length: 65 }, (_, i) => `msg-${i}`) }
+    ]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...branch, ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    // A title or any other content may not ride the branch command: the
+    // Server's own default naming applies.
+    await expect(runtime.chat(JSON.parse(JSON.stringify({ ...branch, title: '改名' }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    await expect(runtime.chat(JSON.parse(JSON.stringify({
+      action: 'open', scope: 'A', threadId: 'thread', messageIds: ['msg-1'] }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+})
