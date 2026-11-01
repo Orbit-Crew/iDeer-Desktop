@@ -77,8 +77,9 @@ async function main() {
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
-      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime'
+      'manage', 'models', 'publishKnowledge', 'quit', 'receipts', 'recoveryState',
+      'refreshCompatibility', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime',
+      'stopRuntime'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
