@@ -37,13 +37,14 @@ function triggerAt(text: string, caret: number, kind: 'agent' | 'skill'): { quer
  * account's own trigger-preference injection happens, matched only by the
  * Server). Enter sends, Shift+Enter newlines, and a composing IME never
  * sends. Issue 76: the collab switch restores the original mode toggle to
- * the input area — on (the default, the platform's own default run
- * behavior) one sentence can dispatch several professional agents the
- * platform runs as parallel sub-agents; off maps onto the platform's
- * delegation seam (`subagent_enabled=false`), so the lead Agent works alone
- * for that run and the at-mention picker offers no candidates — a delegation
- * entry that could not take effect is never shown. The team composition
- * stays the lead Agent's own configuration; the desktop provides no team
+ * the input area — on (the default) one sentence can dispatch several
+ * professional agents the platform runs as parallel sub-agents; off keeps
+ * the lead Agent working alone for that run, and the at-mention picker
+ * offers no candidates — a delegation entry that could not take effect is
+ * never shown. Both states ride every send as an explicit boolean: the
+ * platform's own silent default is delegation OFF (the Web client's mode
+ * switch behaves the same), so "on" must say so. The team composition stays
+ * the lead Agent's own configuration; the desktop provides no team
  * management surface. */
 export function ChatComposer({ state, pending, canSend, onCommand }: {
   state: ChatSnapshot
@@ -60,8 +61,8 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
   const threadId = state.thread?.id
 
   const options = useMemo(() => {
-    // Collaboration off: delegation cannot take effect this run, so the
-    // agent picker stays closed instead of faking an entry point.
+    // Issue 76: collaboration off — delegation cannot take effect this run,
+    // so the agent picker stays closed instead of faking an entry point.
     if (picker?.kind === 'agent' && !collab) return []
     const rows = state.resources.filter((resource) => resource.type === picker?.kind && resource.available)
     const query = (picker?.query || '').toLowerCase()
@@ -121,12 +122,12 @@ export function ChatComposer({ state, pending, canSend, onCommand }: {
     setDelegate(null)
     // Mounted Skills persist across the session's messages; only the
     // per-message delegation clears with the text. The collab switch rides
-    // every send: false is the single-Agent mode (`subagent_enabled=false`),
-    // on keeps the platform default and sends no extra field (#76).
+    // every send as an explicit boolean (#76): the platform's own silent
+    // default is delegation OFF, so "on" must say so too.
     void onCommand({ action: 'send', scope: state.scope, threadId, turnId: crypto.randomUUID(), text: message,
       ...(delegate ? { delegateAgentId: delegate.id } : {}),
       ...(skills.length ? { skillIds: skills.map((skill) => skill.id) } : {}),
-      ...(collab ? {} : { collab: false }) })
+      collab })
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {

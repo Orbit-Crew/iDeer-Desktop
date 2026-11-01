@@ -57,7 +57,7 @@ describe('composer input commands (#75)', () => {
     // Delegation rides the send in the SAME session; no create is issued and
     // the main Agent's thread is untouched.
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
-      turnId: expect.any(String), text: '@Expert 帮我看看结果', delegateAgentId: 'agent-expert' })
+      turnId: expect.any(String), text: '@Expert 帮我看看结果', delegateAgentId: 'agent-expert', collab: true })
     // The per-message delegation clears with the message.
     expect(screen.queryByLabelText('已委派 Expert')).toBeNull()
   })
@@ -77,7 +77,7 @@ describe('composer input commands (#75)', () => {
     await vi.waitFor(() => expect(commands).toHaveLength(1))
     // First chip first: the explicit seam maps onto it; the rest stay mounted.
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
-      turnId: expect.any(String), text: '跑一次', skillIds: ['skill-tec', 'skill-cad'] })
+      turnId: expect.any(String), text: '跑一次', skillIds: ['skill-tec', 'skill-cad'], collab: true })
     // Mounted skills persist across the session's messages.
     expect(screen.getByLabelText('已挂载 Tecplot')).toBeTruthy()
   })
@@ -93,7 +93,7 @@ describe('composer input commands (#75)', () => {
     fireEvent.keyDown(textarea, { key: 'Enter' })
     await vi.waitFor(() => expect(commands).toHaveLength(1))
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
-      turnId: expect.any(String), text: 'hello' })
+      turnId: expect.any(String), text: 'hello', collab: true })
     expect(textarea.value).toBe('')
   })
 
@@ -106,21 +106,21 @@ describe('composer input commands (#75)', () => {
     // A typed mention without the picker stays plain text — the command
     // asserts only what the user picked through the composer UI.
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
-      turnId: expect.any(String), text: '@Expert\n' })
+      turnId: expect.any(String), text: '@Expert\n', collab: true })
   })
 })
 
 describe('collab mode toggle (#76)', () => {
-  it('defaults to the platform collab behavior and sends no extra field', async () => {
+  it('rides every send as the explicit collab default', async () => {
     const { commands, textarea } = setup()
     expect(screen.getByLabelText('协同模式')).toBeTruthy()
     fireEvent.change(textarea, { target: { value: '跑一次' } })
     fireEvent.click(screen.getByLabelText('发送消息'))
     await vi.waitFor(() => expect(commands).toHaveLength(1))
-    // On (the default) the platform default governs; the wire carries no
-    // override at all.
+    // On (the default) is sent explicitly: the platform's own silent default
+    // is delegation OFF, so "on" must say so.
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
-      turnId: expect.any(String), text: '跑一次' })
+      turnId: expect.any(String), text: '跑一次', collab: true })
   })
 
   it('sends the single-Agent mode explicitly when collaboration is off', async () => {

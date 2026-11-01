@@ -617,9 +617,14 @@ class DesktopChat:
             if len(self._subagent_names) >= MAX_SUBAGENT_NAMES:
                 self._subagent_names.pop(next(iter(self._subagent_names)))
             self._subagent_names[call_id] = agent_type[:128]
-            for row in self._state['subagents']:
-                if row['taskId'] == call_id:
-                    row['agent'] = self._subagent_names[call_id]
+            row = self._subagent_row(call_id)
+            if row is not None:
+                row['agent'] = self._subagent_names[call_id]
+
+    def _subagent_row(self, task_id):
+        """The ledger row one task id maps to, or None when the platform
+        never reported it."""
+        return next((row for row in self._state['subagents'] if row['taskId'] == task_id), None)
 
     def _subagent_event(self, payload):
         """Issue 76: fold one platform task_* custom event into the structured
@@ -1249,12 +1254,17 @@ class DesktopChat:
         context = {'agent_name': agent_id, **local_context}
         if resolved_skills or thread['skillId']:
             context['skill_resource_id'] = resolved_skills[0] if resolved_skills else thread['skillId']
-        if collab is False:
-            # Issue 76: single-Agent mode explicitly disables the platform's
-            # own sub-agent delegation for this run; True and absent keep the
-            # platform default, so the team composition stays the lead Agent's
-            # own configuration and no local orchestration channel appears.
-            context['subagent_enabled'] = False
+        if collab is not None:
+            # Issue 76: the collab switch maps onto the platform's own
+            # delegation seam with an explicit boolean, exactly like the Web
+            # client's own mode switch: the platform's silent default is
+            # delegation OFF, so "on" must say so. The flag rides send
+            # commands only (the composer always sends it) — an answer run
+            # keeps the platform default. Which sub-agents exist stays the
+            # lead Agent's own configuration (the platform ANDs this flag
+            # with its allowlist), and no local orchestration channel
+            # appears.
+            context['subagent_enabled'] = collab is not False
         metadata = {'desktop_turn_id': turn_id}
         if resolved_delegate:
             metadata['desktop_delegate_agent_id'] = resolved_delegate

@@ -40,6 +40,9 @@ describe('restricted chat bridge', () => {
       expect(snapshot.scope).toBe('')
       expect(snapshot.messages).toEqual([])
       expect(snapshot.resources).toEqual([])
+      // Issue 76: the sub-agent ledger is part of every snapshot the real
+      // bundled Runtime returns, so the structured progress has a wire.
+      expect(snapshot.subagents).toEqual([])
     } finally {
       await runtime.stop()
       rmSync(profile, { recursive: true, force: true })

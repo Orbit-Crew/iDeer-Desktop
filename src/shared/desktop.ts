@@ -540,11 +540,14 @@ export const MAX_MESSAGE_SKILLS = 8
  * Skill seam (must-use, never trigger-guessed) and records the whole mount
  * on the run. The account's own trigger-preference injection applies only on
  * runs without an explicit Skill, and only the Server ever matches it.
- * Issue 76: `collab: false` is the composer's single-Agent mode — it maps
- * onto the platform's own delegation seam (`context.subagent_enabled=false`)
- * so the lead Agent works without parallel sub-agents for this run. True and
- * absent keep the platform default: the team composition stays the lead
- * Agent's own configuration and no local orchestration channel exists. */
+ * Issue 76: `collab` is the composer's mode switch, sent as an explicit
+ * boolean on every send. It maps onto the platform's own delegation seam
+ * (`context.subagent_enabled`) — true lets the lead Agent dispatch parallel
+ * sub-agents for this run, false is the single-Agent mode. The platform's
+ * own silent default is delegation OFF, matching the Web client's mode
+ * switch, so "on" must be said explicitly; the team composition still stays
+ * the lead Agent's own configuration and no local orchestration channel
+ * exists. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }

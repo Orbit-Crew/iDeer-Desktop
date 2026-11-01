@@ -13,8 +13,10 @@ const taskStates: Record<string, string> = { unknown: '结果待核实', result_
 
 // Issue 76: the labels mirror the platform's own task_* event vocabulary one
 // to one — a state the platform never pushed has no label to borrow.
-const subagentStates: Record<ChatSubagent['status'], string> = {
-  running: '执行中', completed: '已完成', failed: '失败', cancelled: '已取消', timed_out: '已超时'
+const subagentStates: Record<ChatSubagent['status'], { label: string; color: string }> = {
+  running: { label: '执行中', color: 'processing' }, completed: { label: '已完成', color: 'success' },
+  failed: { label: '失败', color: 'error' }, cancelled: { label: '已取消', color: 'warning' },
+  timed_out: { label: '已超时', color: 'warning' }
 }
 
 // Issue 74: the three session tiers, always shown in the chat area. A loaded
@@ -167,9 +169,8 @@ function SubagentProgress({ subagents }: { subagents: ChatSubagent[] }): JSX.Ele
     {ordered.map((row) => <Card size="small" key={row.taskId} type="inner"
       title={<span style={{ overflowWrap: 'anywhere' }}>{row.description || '（平台未提供描述）'}</span>}>
       <Space wrap>
-        <Tag aria-label={`子代理状态 ${subagentStates[row.status]}`}
-          color={row.status === 'running' ? 'processing' : row.status === 'completed' ? 'success' : row.status === 'failed' ? 'error' : 'warning'}>
-          {subagentStates[row.status]}</Tag>
+        <Tag aria-label={`子代理状态 ${subagentStates[row.status].label}`} color={subagentStates[row.status].color}>
+          {subagentStates[row.status].label}</Tag>
         {row.agent && <Typography.Text>类型：{row.agent}</Typography.Text>}
         {row.model && <Typography.Text>模型：{row.model}</Typography.Text>}
         {row.step != null && row.totalSteps != null && <Typography.Text>步骤：{row.step}/{row.totalSteps}</Typography.Text>}

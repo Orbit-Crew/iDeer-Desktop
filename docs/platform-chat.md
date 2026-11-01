@@ -44,12 +44,16 @@ Server tool/subagent progress. A disconnected or uncertain submission disables
 new sends until the user restores state. Reconnect reloads Server history and
 the existing Run, without replaying the previous POST.
 
-Issue #76 restores the collab mode switch to the composer's input area. The
-send command may carry `collab: false` — the single-Agent mode, mapped onto
-the platform's own delegation seam (`context.subagent_enabled=false`) so the
-lead Agent works without parallel sub-agents for that run. `collab: true` and
-an absent field keep the platform default, so the team composition stays the
-lead Agent's own configuration; the desktop provides no team management
+Issue #76 restores the collab mode switch to the composer's input area. Every
+composer send carries `collab` as an explicit boolean, mapped onto the
+platform's own delegation seam (`context.subagent_enabled`): true lets the
+lead Agent dispatch parallel sub-agents for that run, false is the
+single-Agent mode. The platform's own silent default is delegation OFF and
+the Web client's mode switch sends the same explicit boolean, so the
+desktop's on state — the composer's default — must say so too. The flag
+rides send commands only; an answer run keeps the platform default. Which
+sub-agents exist stays the lead Agent's own configuration (the platform
+ANDs the flag with its allowlist); the desktop provides no team management
 surface and no local orchestration channel. While collaboration is off, the
 composer's at-mention picker offers no candidates — a delegation entry that
 could not take effect is never shown.

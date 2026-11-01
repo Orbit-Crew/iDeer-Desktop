@@ -1114,11 +1114,12 @@ def subagent_row(state, task_id):
     return next(row for row in state['subagents'] if row['taskId'] == task_id)
 
 
-def test_send_collab_false_disables_platform_delegation(tmp_path):
-    """#76: the collab toggle maps onto the platform's own delegation seam —
-    False explicitly disables the lead Agent's sub-agent delegation for that
-    run; True and absent keep the platform default, so the team composition
-    stays the lead Agent's own configuration and no local channel appears."""
+def test_send_collab_explicitly_sets_the_delegation_seam(tmp_path):
+    """#76: the collab toggle maps onto the platform's own delegation seam
+    with an explicit boolean, like the Web client's own mode switch — the
+    platform's silent default is delegation OFF, so "on" must say so. The
+    flag rides send commands only; which sub-agents exist stays the lead
+    Agent's own configuration."""
     with platform() as (origin, records):
         chat, _, _ = make_chat(tmp_path, origin)
         scope = chat.handle({'action': 'refresh'})['scope']
@@ -1133,8 +1134,10 @@ def test_send_collab_false_disables_platform_delegation(tmp_path):
                               'turnId': '76767676-7676-4676-8767-767676767672',
                               'text': '一起跑', 'collab': True})
         assert collab['error'] == ''
-        assert 'subagent_enabled' not in run_posts(records)[-1]['context']
+        assert run_posts(records)[-1]['context']['subagent_enabled'] is True
         await_stream_state(chat, 'idle')
+        # The composer always sends the flag; a send without it (no composer
+        # involved) keeps the platform default instead of inventing a mode.
         plain = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
                              'turnId': '76767676-7676-4676-8767-767676767673', 'text': '默认跑'})
         assert plain['error'] == ''

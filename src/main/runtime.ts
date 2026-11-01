@@ -471,7 +471,7 @@ export class RuntimeProcess {
     // pick order (first chip first — the Runtime maps it onto the platform's
     // one explicit Skill per run). Both are optional; absent means a plain
     // message with no per-message input commands. Issue 76: `collab` is the
-    // composer's single-Agent switch, boolean when present.
+    // composer's collab mode switch, boolean whenever the composer sends.
     if (command.action === 'send') {
       const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown }
       const resourceId = (value: unknown): value is string =>
