@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .compat import is_junction
+from .document_parse import parse_document, parse_summary
 from .files import FileAccessError
 
 # Frozen cross-repo contract (server backend/app/agentplatform/knowledge):
@@ -27,7 +28,7 @@ from .files import FileAccessError
 MAX_IMPORT_DOCUMENTS = 200
 MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024
 SUPPORTED_EXTENSIONS = {".csv", ".doc", ".docx", ".json", ".md", ".pdf", ".ppt", ".pptx", ".txt", ".xls", ".xlsx"}
-DOCUMENT_FIELDS = ("filename", "sha256", "bytes", "mime")
+DOCUMENT_FIELDS = ("filename", "sha256", "bytes", "mime", "parse")
 
 
 class KnowledgeImportError(RuntimeError):
@@ -81,10 +82,16 @@ def logical_paths_for(grant: dict[str, Any], physical_paths: list[str]) -> list[
 
 
 def build_manifest(files: Any, logical_paths: list[str]) -> list[dict[str, Any]]:
-    """Read each workspace file once and freeze its identity only.
+    """Read each workspace file once, freeze its identity, and parse it locally.
 
     Reading reuses the workspace store boundary, so protected names, links
     and out-of-root paths fail closed before a single byte leaves the device.
+    Since #81 the device also really extracts PDF/DOCX/XLSX/CSV/text here:
+    each entry carries an honest per-document parse record (parser identity,
+    page/table layout anchors, fixed failure reason) that stays a
+    device-local display fact, while the platform registration payload keeps
+    carrying identity fields only. A document the engine cannot parse never
+    fails the import: its record says so instead.
     """
     if len(logical_paths) > MAX_IMPORT_DOCUMENTS:
         raise KnowledgeImportError("KNOWLEDGE_IMPORT_TOO_MANY_DOCUMENTS")
@@ -109,6 +116,7 @@ def build_manifest(files: Any, logical_paths: list[str]) -> list[dict[str, Any]]
             "sha256": digest,
             "bytes": len(raw),
             "mime": mimetypes.guess_type(filename)[0] or "application/octet-stream",
+            "parse": parse_summary(parse_document(raw, filename)),
         })
     return entries
 
@@ -211,14 +219,22 @@ class KnowledgeImportRegistry:
             documents = json.loads(row["documents"])
         except (ValueError, TypeError):
             documents = []
+        views = []
+        for document in documents:
+            if not isinstance(document, dict):
+                continue
+            view = dict(filename=document.get("filename", ""), sha256=document.get("sha256", ""),
+                        bytes=document.get("bytes", 0), mime=document.get("mime", ""))
+            # Rows recorded before #81 carry no parse facts; they stay displayable.
+            if isinstance(document.get("parse"), dict):
+                view["parse"] = document["parse"]
+            views.append(view)
         return {
             "id": row["identity"], "kbId": row["kb_id"], "revisionId": row["revision_id"],
             "revisionNo": row["revision_no"], "manifestHash": row["manifest_hash"],
             "documentCount": row["document_count"], "status": row["status"],
             "errorCode": row["error_code"], "createdAt": row["created_at"],
-            "documents": [dict(filename=document.get("filename", ""), sha256=document.get("sha256", ""),
-                               bytes=document.get("bytes", 0), mime=document.get("mime", ""))
-                          for document in documents if isinstance(document, dict)],
+            "documents": views,
         }
 
     def view(self, binding, limit: int = 20) -> list[dict[str, Any]]:

@@ -5,7 +5,34 @@ import { ConnectorSection } from './ConnectorSection'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
 import { SkillSection } from './SkillSection'
 import { WikiSection } from './WikiSection'
-import type { ConnectorCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+import type { ConnectorCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportDocumentView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+
+const PLATFORM_PARSE_HINT = '设备侧未解析或解析失败的文件不会被静默丢弃：可用下方「发布此版本到服务端…」把原件显式上传给平台解析。'
+
+/** Issue 81: one honest sentence per imported document's device-side parse outcome. */
+export function describeDocumentParse(parse?: KnowledgeImportDocumentView['parse']): string {
+  if (!parse) return ''
+  if (parse.status === 'parsed') {
+    const counted = [parse.pages > 0 ? `${parse.pages} 页` : '', parse.tables > 0 ? `${parse.tables} 表` : '']
+      .filter(Boolean).join('、')
+    return `已解析：${parse.parser} ${parse.parserVersion}${counted ? `（${counted}）` : ''}${parse.truncated ? '（文本已截断）' : ''}`
+  }
+  if (parse.status === 'skipped') return `设备侧未解析（${parse.errorCode}）`
+  return `解析失败（${parse.errorCode}）`
+}
+
+function ImportParseFacts({ documents }: { documents: KnowledgeImportDocumentView[] }): JSX.Element | null {
+  const facts = documents.filter(document => document.parse)
+  if (!facts.length) return null
+  return <Typography.Paragraph type="secondary">
+    {facts.map(document => `${document.filename}：${describeDocumentParse(document.parse)}`).join('；')}
+  </Typography.Paragraph>
+}
+
+function ImportPlatformHint({ documents }: { documents: KnowledgeImportDocumentView[] }): JSX.Element | null {
+  const blocked = documents.some(document => document.parse && document.parse.status !== 'parsed')
+  return blocked ? <Typography.Paragraph type="secondary">{PLATFORM_PARSE_HINT}</Typography.Paragraph> : null
+}
 
 export default function RuntimePanel(): JSX.Element {
   const [view, setView] = useState(emptyRuntimePanelView)
@@ -166,7 +193,7 @@ export default function RuntimePanel(): JSX.Element {
       <Button danger disabled={managing} onClick={() => manage('revoke', grant.id)}>撤销此目录授权</Button>
     </Card>)}
     <Typography.Title level={5} className="mt-5">本地知识导入</Typography.Title>
-    <Typography.Paragraph>把工作目录中的文件显式导入为你的私有平台知识库版本：设备侧解析并计算指纹，平台只登记文件名、大小、类型与 SHA-256 清单，原文件与设备索引不会自动上传。每次导入生成新的不可变版本。</Typography.Paragraph>
+    <Typography.Paragraph>把工作目录中的文件显式导入为你的私有平台知识库版本：设备侧真实解析 PDF/DOCX/XLSX/CSV 与文本文件并在导入记录中标注每份文件的解析结果（解析器与版本、页/表定位），旧版二进制格式如实标记；平台只登记文件名、大小、类型与 SHA-256 清单，原文件与解析结果不会自动上传。每次导入生成新的不可变版本。</Typography.Paragraph>
     <Space className="w-full mb-2">
       <Input aria-label="平台知识库 UUID" placeholder="平台知识库 UUID（资源页可创建并复制）" value={kbId} maxLength={36}
         onChange={(event) => setKbId(event.target.value)} className="max-w-md" />
@@ -193,6 +220,8 @@ export default function RuntimePanel(): JSX.Element {
       {!!row.documents.length && <Typography.Paragraph type="secondary">
         {row.documents.map(document => `${document.filename}（${document.mime}，${document.bytes} 字节）`).join('、')}
       </Typography.Paragraph>}
+      <ImportParseFacts documents={row.documents} />
+      <ImportPlatformHint documents={row.documents} />
       {row.status === 'registered' && <Button
         loading={publishingId === row.id}
         disabled={!!publishingId || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated' || runtime.workspace?.state !== 'ready'}
