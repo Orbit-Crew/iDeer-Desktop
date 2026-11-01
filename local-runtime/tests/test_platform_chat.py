@@ -402,6 +402,48 @@ def test_slow_history_poll_does_not_block_installing_the_local_stop_fence(tmp_pa
             gate.set()
 
 
+def test_due_reconnect_scheduled_by_the_state_poll_does_not_hold_the_command_queue(tmp_path, monkeypatch):
+    """#80: the state poll schedules the guarded reconnect instead of doing
+    the reconnect's network on the command queue — the same bound the tasks
+    poll already keeps ("network observations cannot hold up a user's local
+    Stop command"). A Server that cannot answer right now (here: the blocked
+    history observation holding the single-handler fake) must never delay a
+    state command past that bound. The recovery itself still lands: once the
+    Server answers again, the record is backfilled from the platform and the
+    stream returns to idle."""
+    import core.platform_chat as platform_chat
+    # The cooldown holds the reconnect back while the stream settles
+    # disconnected; it then falls due exactly at the timed state command.
+    monkeypatch.setattr(platform_chat, 'RECONNECT_COOLDOWN_SECONDS', 60.0, raising=False)
+    gate, started = threading.Event(), threading.Event()
+    gate.set()
+    with platform(disconnect=True, history_gate=gate, history_started=started, list_run=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '34343434-3434-4343-8434-343434343434', 'text': 'Recover me'})
+        assert await_stream_state(chat, 'disconnected')['platform']['reachable'] is True
+        # The Server keeps answering slowly for a while: the gated local-tasks
+        # endpoint — which the record reload itself fetches — holds the fake's
+        # only handler for its bounded 5s wait. A reconnect that ran its
+        # network on the command queue would stall the state command past the
+        # bound the tasks poll already keeps.
+        gate.clear()
+        started.clear()
+        monkeypatch.setattr(platform_chat, 'RECONNECT_COOLDOWN_SECONDS', 0.0, raising=False)
+        before = time.monotonic()
+        chat.handle({'action': 'state'})
+        assert time.monotonic() - before < 1, 'reconnect scheduling must not hold the command queue'
+        assert started.wait(1)  # the reload's local-tasks fetch went out
+        state = await_stream_state(chat, 'idle', seconds=10)
+        assert state['run'] and state['run']['status'] == 'success'
+        assert state['messages'][-1]['text'] == 'Restored answer'
+        assert len([row for row in records if row[0].endswith('/runs') and row[1]]) == 1
+
+
+
+
 def test_reopen_restores_original_task_fact_and_local_outbox_without_starting_a_run(tmp_path):
     task = dict(task_id='task-104', run_id='old-run', tool_call_id='call-104', capability='local.files.write',
                 status='result_not_verified', logical_target='/workspace/test/target.txt', stop_requested=True)
@@ -736,7 +778,8 @@ def test_unreachable_platform_refuses_new_turns_with_a_visible_reason(tmp_path):
         scope = chat.handle({'action': 'refresh'})['scope']
         chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
         baseline = local.calls
-    runs_seen = lambda: [row for row in records if row[0].endswith('/runs') and row[1]]
+    def runs_seen():
+        return [row for row in records if row[0].endswith('/runs') and row[1]]
     first = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
                          'turnId': '80808080-8080-4808-8808-808080808080', 'text': 'One honest try'})
     assert first['error'] == 'CHAT_SERVER_UNAVAILABLE'
@@ -800,10 +843,10 @@ def test_unreachable_submission_is_marked_uncertain_and_never_resubmitted_locall
         assert paused['error'] == 'CHAT_PLATFORM_UNREACHABLE'
         down['flag'] = False
         # The status loop calls the same shared entry point with no panel
-        # polling; one direct reconcile reloads the Server's own record.
+        # polling; one direct reconcile schedules the reload off the command
+        # queue, and the Server's own record lands from it.
         chat.reconcile()
-        recovered = chat.handle({'action': 'state'})
-        assert recovered['stream'] == 'idle'
+        recovered = await_stream_state(chat, 'idle')
         assert recovered['platform']['reachable'] is True
         assert recovered['run']['status'] == 'success'
         assert recovered['messages'][-1]['text'] == 'Restored answer'

@@ -532,6 +532,7 @@ class DesktopChat:
         self._platform_detail = ''
         # The first self-reconnect waits one full cooldown from startup.
         self._reconnect_at = time.monotonic()
+        self._reconcile_loading = None
 
     def _mark_platform(self, ok: bool, detail: str = '') -> None:
         """Record one Server contact outcome; a failure pauses new Turns."""
@@ -616,6 +617,7 @@ class DesktopChat:
         self._subagent_names.clear()
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        self._reconcile_loading = None
         # The model facts belong to the identity that cached them.
         self._session_models.clear()
         self._models_cache = None
@@ -825,34 +827,42 @@ class DesktopChat:
                         raise
                     agent_id = ''
         skill_id = selection.get('preferred_skill', {}).get('resource_id') or thread.get('metadata', {}).get('skill_resource_id', '')
-        # Issue 77: a Run still in flight on the thread being switched away
-        # keeps running on the Server; register it for observation so its
-        # completion and its approval asks can still reach the user. Reopening
-        # or reconnecting the same thread never registers its own Run.
-        previous_thread, previous_run = self._state.get('thread'), self._state.get('run')
-        if (previous_thread and previous_run and previous_thread['id'] != thread_id
-                and previous_run['status'] in {'pending', 'running'}):
-            self._register_background(previous_thread['id'], previous_run['id'])
-        self._generation += 1
-        self._state.update(thread=dict(id=thread_id, status=thread['status'],
-            agentId=agent_id, skillId=skill_id),
-            messages=[], events=[], run=self._run(latest) if latest else None,
-            stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='', artifacts=[])
-        # Issue 74: a (re)loaded session starts at the lowest tier. The tier
-        # is the session's own in-flight choice, never a remembered one —
-        # even a reopened thread re-declares its intent.
-        if self.session_tiers is not None:
-            self.session_tiers.reset()
-        self._state['localTier'] = DEFAULT_SESSION_TIER.value
-        # Issue 73: a thread change resets the switch story; the session's own
-        # model choice survives (it is bound to this thread id).
-        self._state['model'].update(notice='', switchedFrom='')
-        self._refresh_chat_model(session)
-        self._messages(messages)
-        self._load_tasks(session)
-        # Issue 77: the loaded thread is the visible session again — its runs
-        # are observed by the foreground stream, not by the background ledger.
+        # The Server reads below join the one locked commit at the end: a
+        # background reconnect (#80) must never show a poller a half-loaded
+        # thread — the record lands as one visible state, like the tasks
+        # poll's own single-commit discipline.
+        model = self._chat_model_view(session)
+        tasks, task_error, artifacts = self._task_history(session, thread_id, [])
         with self._lock:
+            # Issue 77: a Run still in flight on the thread being switched away
+            # keeps running on the Server; register it for observation so its
+            # completion and its approval asks can still reach the user. Reopening
+            # or reconnecting the same thread never registers its own Run.
+            previous_thread, previous_run = self._state.get('thread'), self._state.get('run')
+            if (previous_thread and previous_run and previous_thread['id'] != thread_id
+                    and previous_run['status'] in {'pending', 'running'}):
+                self._register_background(previous_thread['id'], previous_run['id'])
+            self._generation += 1
+            self._state.update(thread=dict(id=thread_id, status=thread['status'],
+                agentId=agent_id, skillId=skill_id),
+                messages=[], events=[], run=self._run(latest) if latest else None,
+                stream='idle', lastEventId='', error='', stop=None, localTasks=tasks,
+                taskError=task_error, artifacts=artifacts)
+            # Issue 74: a (re)loaded session starts at the lowest tier. The tier
+            # is the session's own in-flight choice, never a remembered one —
+            # even a reopened thread re-declares its intent.
+            if self.session_tiers is not None:
+                self.session_tiers.reset()
+            self._state['localTier'] = DEFAULT_SESSION_TIER.value
+            # Issue 73: a thread change resets the switch story; the session's own
+            # model choice survives (it is bound to this thread id).
+            self._state['modelOptions'] = model['options']
+            self._state['model'].update(notice='', switchedFrom='', name=model['name'],
+                source=model['source'], available=model['available'], reason=model['reason'])
+            self._messages(messages)
+            self._tasks_checked = time.monotonic()
+            # Issue 77: the loaded thread is the visible session again — its runs
+            # are observed by the foreground stream, not by the background ledger.
             self._background = [row for row in self._background if row['thread_id'] != thread_id]
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
@@ -1100,32 +1110,46 @@ class DesktopChat:
         """Issue 80: one guarded self-reconnect attempt for a session left
         with an unknown outcome. The chat state poll and the status loop
         share this entry point, so recovery never depends on a panel being
-        open. When nothing else has talked to the Server since the last
-        failure, the attempt carries its own short reachability probe; once
-        the platform answers, it reloads the Server's own record — the run
-        stream, messages and task history come back from the platform;
-        nothing is resubmitted, re-dispatched or invented locally. An
-        unresolved stop keeps its explicit reconcile contract instead."""
+        open. The entry point only schedules the attempt — the probe and the
+        record reload run on their own thread, the same discipline as the
+        tasks poll: network observations never hold up a user's command. When
+        nothing else has talked to the Server since the last failure, the
+        attempt carries its own short reachability probe; once the platform
+        answers, it reloads the Server's own record — the run stream,
+        messages and task history come back from the platform; nothing is
+        resubmitted, re-dispatched or invented locally. An unresolved stop
+        keeps its explicit reconcile contract instead."""
         with self._lock:
             if (not self._state['thread']
                     or self._state['stream'] not in {'uncertain', 'disconnected'}
                     or self._state.get('stop')
+                    or self._reconcile_loading is not None
                     or time.monotonic() - self._reconnect_at < RECONNECT_COOLDOWN_SECONDS):
                 return
             thread_id = self._state['thread']['id']
             self._reconnect_at = time.monotonic()
-        try:
-            session = self._session()
-            if session.scope != self._state['scope']:
-                return
-            if self._platform_ok is not True:
-                with self._request(session, '/api/v1/auth/me', timeout=RECONNECT_PROBE_TIMEOUT_SECONDS) as response:
-                    response.read(MAX_RESPONSE + 1)
-                if self._platform_ok is not True:
+            ticket = object()
+            self._reconcile_loading = ticket
+
+        def attempt():
+            try:
+                session = self._session()
+                if session.scope != self._state['scope']:
                     return
-            self._load_thread(session, thread_id)
-        except Exception:  # noqa: BLE001 - a failed recovery is the outage
-            return          # speaking for itself; the next attempt retells it.
+                if self._platform_ok is not True:
+                    with self._request(session, '/api/v1/auth/me', timeout=RECONNECT_PROBE_TIMEOUT_SECONDS) as response:
+                        response.read(MAX_RESPONSE + 1)
+                    if self._platform_ok is not True:
+                        return
+                self._load_thread(session, thread_id)
+            except Exception:  # noqa: BLE001 - a failed recovery is the outage
+                return          # speaking for itself; the next attempt retells it.
+            finally:
+                with self._lock:
+                    if self._reconcile_loading is ticket:
+                        self._reconcile_loading = None
+
+        threading.Thread(target=attempt, daemon=True).start()
 
     def _background_observe(self):
         try:
@@ -2260,6 +2284,19 @@ class DesktopChat:
             return self._model_view(session)
         return self._model_view(session)
 
+    def _chat_model_view(self, session, *, fresh=False):
+        """Read the #73 chat model display facts from the Server. The caller
+        commits them, so a background load can land them in its one atomic
+        state commit instead of through a separate beat."""
+        max_age = 0.0 if fresh else 60.0
+        rows, default, override = self._model_choice(session, list_max_age=max_age, default_max_age=max_age)
+        names = {row['name'] for row in rows}
+        name = override or default
+        source = 'session-override' if override else ('account-default' if default else 'platform-default')
+        available = (not name) or (not rows) or name in names
+        return dict(options=rows[:50], name=name, source=source, available=available,
+                    reason='' if available else 'CHAT_MODEL_UNAVAILABLE')
+
     def _refresh_chat_model(self, session, *, fresh=False):
         """Recompute the chat model display from Server facts (#73).
 
@@ -2268,15 +2305,10 @@ class DesktopChat:
         previous switch notice stays visible until the thread changes or the
         user picks a different model.
         """
-        max_age = 0.0 if fresh else 60.0
-        rows, default, override = self._model_choice(session, list_max_age=max_age, default_max_age=max_age)
-        self._state['modelOptions'] = rows[:50]
-        names = {row['name'] for row in rows}
-        name = override or default
-        source = 'session-override' if override else ('account-default' if default else 'platform-default')
-        available = (not name) or (not rows) or name in names
-        self._state['model'].update(name=name, source=source, available=available,
-                                    reason='' if available else 'CHAT_MODEL_UNAVAILABLE')
+        view = self._chat_model_view(session, fresh=fresh)
+        self._state['modelOptions'] = view['options']
+        self._state['model'].update(name=view['name'], source=view['source'],
+                                    available=view['available'], reason=view['reason'])
 
     def _resolve_send_model(self, session, thread):
         """Resolve and preflight the model for one submission (#73).

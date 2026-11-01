@@ -343,8 +343,12 @@ not observe, so a fresh user retry is the only submission that ever happens.
 When the platform answers again, the session reconciles by itself: one
 guarded attempt after a bounded cooldown (5 seconds), shared by the chat
 state poll and the Runtime status loop so recovery never depends on a panel
-being open. When nothing else has talked to the Server since the last
-failure, the attempt carries its own short reachability probe (3-second
+being open. The shared entry point only schedules the attempt — the probe
+and the record reload run on their own thread, and the reload lands as one
+atomic state commit, the same discipline as the tasks poll: network
+observations never hold up a user's command. When nothing else has talked to
+the Server since the last failure, the attempt carries its own short
+reachability probe (3-second
 timeout); once the platform answers, it reloads the Thread through the
 normal load path — which restores the Server's own run record and messages,
 re-observes a run that is still executing, and merges the task history. The
