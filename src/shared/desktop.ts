@@ -748,8 +748,19 @@ export interface ChatModelView {
   notice: string
   switchedFrom: string
 }
+/** Issue 80: the last observed platform reachability, recorded at the
+ * Runtime's one transport seam. An unreachable platform is an explicit
+ * paused state — new Turns are refused with a named reason and recovery
+ * reconnects by itself; before the first observation the display stays
+ * optimistic (`reachable: true`). */
+export interface PlatformReachabilityView {
+  reachable: boolean
+  detail: string
+}
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
+  /** Issue 80: present on every snapshot the Runtime returns. */
+  platform?: PlatformReachabilityView
   artifacts?: PlatformArtifact[]
   /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
   download?: PlatformArtifact & { content: string }

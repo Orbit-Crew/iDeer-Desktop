@@ -312,3 +312,48 @@ sidebar bell read the same ledger, and activating a notification — from a
 toast or a center row — focuses the window and opens the event's session
 through the same handshake the sidebar uses. See
 [issue #77 acceptance](acceptance/issue-077/report.md).
+
+## Platform reachability and the disconnect pause (issue #80)
+
+The Runtime records the last observed Server contact outcome at its one
+transport seam — the same HTTP boundary every chat request passes through. A
+socket-level failure marks the platform unreachable with the named category
+(`CHAT_SERVER_UNAVAILABLE`), and so does a 5xx answer (`CHAT_SERVER_ERROR`) —
+the server side failing is the same outage a dead socket is. A 4xx refusal
+marks the platform reachable because identity and request problems are not
+outages. Before the first observation the display stays optimistic; the
+moment a failure is observed, the snapshot carries
+`platform: { reachable: false, detail }` and the chat panel states the outage
+explicitly — an outage is never a silent failure.
+
+While the platform is observed unreachable, new work is paused by name:
+`create`, `send`, `answer` and `branch` are refused with
+`CHAT_PLATFORM_UNREACHABLE` before any Server round-trip, the composer states
+the pause with its reason, and the refused Turn is not consumed. Observation
+and recovery actions stay available and fail honestly
+(`CHAT_SERVER_UNAVAILABLE`) while the outage lasts.
+
+In-flight outcomes stay unknown, never fabricated. A submission whose run
+`POST` dies mid-flight marks the stream `uncertain`; a run stream that
+outlives its bounded resumes marks it `disconnected` (issue #37). The panel
+labels those runs 结果待核实, nothing is re-dispatched, and the unknown Turn's
+idempotency fence holds — the Server may have accepted what this device could
+not observe, so a fresh user retry is the only submission that ever happens.
+
+When the platform answers again, the session reconciles by itself: one
+guarded attempt after a bounded cooldown (5 seconds), shared by the chat
+state poll and the Runtime status loop so recovery never depends on a panel
+being open. The shared entry point only schedules the attempt — the probe
+and the record reload run on their own thread, and the reload lands as one
+atomic state commit, the same discipline as the tasks poll: network
+observations never hold up a user's command. When nothing else has talked to
+the Server since the last failure, the attempt carries its own short
+reachability probe (3-second
+timeout); once the platform answers, it reloads the Thread through the
+normal load path — which restores the Server's own run record and messages,
+re-observes a run that is still executing, and merges the task history. The
+record is backfilled from the platform, never from the device. An unresolved
+Stop keeps its explicit reconcile contract instead. No local model,
+orchestration channel or fallback executor exists anywhere on this path; the
+device-side task channel keeps its own receipt replay (`replay_receipts`)
+and `DEVICE_PAUSED` admission semantics unchanged.
