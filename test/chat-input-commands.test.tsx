@@ -23,7 +23,7 @@ const stateWith = (over: Partial<ChatSnapshot> = {}): ChatSnapshot => ({
     { id: 'skill-tec', type: 'skill', name: 'Tecplot', visibility: 'public', version: 3, available: true, reason: '' },
     { id: 'skill-cad', type: 'skill', name: 'CAD', visibility: 'public', version: 1, available: true, reason: '' }
   ],
-  threads: [], messages: [], events: [],
+  threads: [], messages: [], events: [], subagents: [],
   thread: { id: 'thread-75', status: 'idle', agentId: 'agent-main', skillId: '' },
   stream: 'idle', error: '', lastEventId: '',
   ...over
@@ -107,5 +107,51 @@ describe('composer input commands (#75)', () => {
     // asserts only what the user picked through the composer UI.
     expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
       turnId: expect.any(String), text: '@Expert\n' })
+  })
+})
+
+describe('collab mode toggle (#76)', () => {
+  it('defaults to the platform collab behavior and sends no extra field', async () => {
+    const { commands, textarea } = setup()
+    expect(screen.getByLabelText('协同模式')).toBeTruthy()
+    fireEvent.change(textarea, { target: { value: '跑一次' } })
+    fireEvent.click(screen.getByLabelText('发送消息'))
+    await vi.waitFor(() => expect(commands).toHaveLength(1))
+    // On (the default) the platform default governs; the wire carries no
+    // override at all.
+    expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
+      turnId: expect.any(String), text: '跑一次' })
+  })
+
+  it('sends the single-Agent mode explicitly when collaboration is off', async () => {
+    const { commands, textarea } = setup()
+    fireEvent.click(screen.getByLabelText('协同模式'))
+    fireEvent.change(textarea, { target: { value: '单独跑' } })
+    fireEvent.click(screen.getByLabelText('发送消息'))
+    await vi.waitFor(() => expect(commands).toHaveLength(1))
+    expect(commands[0]).toEqual({ action: 'send', scope: 'identity', threadId: 'thread-75',
+      turnId: expect.any(String), text: '单独跑', collab: false })
+  })
+
+  it('closes the at-mention picker while collaboration is off — no fake delegation entry', () => {
+    const { textarea } = setup()
+    fireEvent.click(screen.getByLabelText('协同模式'))
+    fireEvent.change(textarea, { target: { value: '帮我 @' } })
+    // Delegation cannot take effect this run, so no candidate list appears.
+    expect(screen.queryByRole('listbox', { name: '@ Agent 候选' })).toBeNull()
+    // The slash picker keeps working: mounted skills are independent of the
+    // delegation seam.
+    fireEvent.change(textarea, { target: { value: '帮我 /' } })
+    expect(screen.getByRole('listbox', { name: '/ Skill 候选' })).toBeTruthy()
+  })
+
+  it('restores the at-mention picker when collaboration is back on', () => {
+    const { textarea } = setup()
+    fireEvent.click(screen.getByLabelText('协同模式'))
+    fireEvent.change(textarea, { target: { value: '帮我 @' } })
+    expect(screen.queryByRole('listbox', { name: '@ Agent 候选' })).toBeNull()
+    fireEvent.click(screen.getByLabelText('协同模式'))
+    fireEvent.change(textarea, { target: { value: '帮我 @' } })
+    expect(screen.getByRole('listbox', { name: '@ Agent 候选' })).toBeTruthy()
   })
 })

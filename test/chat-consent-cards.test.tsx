@@ -15,7 +15,7 @@ beforeAll(() => {
 })
 
 const snapshotWith = (consents: LocalConsentView[]): ChatSnapshot => ({
-  scope: 'identity', resources: [], threads: [], messages: [], events: [],
+  scope: 'identity', resources: [], threads: [], messages: [], events: [], subagents: [],
   thread: { id: 'thread-A', status: 'running', agentId: 'agent', skillId: '' },
   run: { id: 'run-1', status: 'running', selection: {} }, stream: 'streaming', error: '', lastEventId: '',
   localConsents: consents

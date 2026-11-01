@@ -19,7 +19,7 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
              optional_skill=False, second_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
              artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None,
-             drop_once=False, silent_phase=False, resume_flake=False):
+             drop_once=False, silent_phase=False, resume_flake=False, stream_events=None):
     records = []
     artifacts = {}
     grants = set()
@@ -174,6 +174,17 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                 self.wfile.write(b'id: 1\nevent: messages\ndata: [{"id":"a1","type":"AIMessageChunk","content":"Streamed"},{}]\n\n')
                 self.wfile.flush()
                 time.sleep(0.1)
+                if stream_events and not (disconnect or drop_once or silent_phase):
+                    # Extra root frames (custom task_* events, values
+                    # snapshots) replayed ahead of the end event, with their
+                    # own event ids so a resume cursor stays well-formed.
+                    for offset, (name, payload) in enumerate(stream_events, start=2):
+                        frame = f'id: {offset}\nevent: {name}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n'
+                        self.wfile.write(frame.encode())
+                        self.wfile.flush()
+                        time.sleep(0.02)
+                    self.wfile.write(f'id: {2 + len(stream_events)}\nevent: end\ndata: null\n\n'.encode())
+                    return
                 if silent_phase:
                     # The run stays silent past the client's read window; a
                     # fixed client times out, resumes from event 1, completes.
@@ -1094,3 +1105,155 @@ def test_send_rejects_malformed_input_commands(tmp_path):
                              'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次'})
         assert final['error'] == ''
         assert len(run_posts(records)) == 1
+
+
+# --- Collab mode: platform sub-agent progress (issue 76) ---------------------
+
+
+def subagent_row(state, task_id):
+    return next(row for row in state['subagents'] if row['taskId'] == task_id)
+
+
+def test_send_collab_false_disables_platform_delegation(tmp_path):
+    """#76: the collab toggle maps onto the platform's own delegation seam —
+    False explicitly disables the lead Agent's sub-agent delegation for that
+    run; True and absent keep the platform default, so the team composition
+    stays the lead Agent's own configuration and no local channel appears."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        single = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '76767676-7676-4676-8767-767676767671',
+                              'text': '单独跑', 'collab': False})
+        assert single['error'] == ''
+        assert run_posts(records)[-1]['context']['subagent_enabled'] is False
+        await_stream_state(chat, 'idle')
+        collab = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '76767676-7676-4676-8767-767676767672',
+                              'text': '一起跑', 'collab': True})
+        assert collab['error'] == ''
+        assert 'subagent_enabled' not in run_posts(records)[-1]['context']
+        await_stream_state(chat, 'idle')
+        plain = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4676-8767-767676767673', 'text': '默认跑'})
+        assert plain['error'] == ''
+        assert 'subagent_enabled' not in run_posts(records)[-1]['context']
+
+
+def test_send_rejects_malformed_collab(tmp_path):
+    """#76: the collab flag rides the send action only and must be a boolean;
+    a violation fails without consuming the turn."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        for patch in ({'collab': 'yes'}, {'collab': 1}, {'collab': ['true']}):
+            state = chat.handle(dict(action='send', scope=scope, threadId='thread-A',
+                                     turnId='76767676-7676-4676-8767-767676767674',
+                                     text='跑一次', **patch))
+            assert state['error'] == 'CHAT_COMMAND_INVALID', patch
+        stale = chat.handle({'action': 'answer', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4676-8767-767676767674', 'requestId': 'req',
+                             'text': 'ok', 'collab': False})
+        assert stale['error'] == 'CHAT_COMMAND_INVALID'
+        assert run_posts(records) == []
+        # Nothing consumed the turn; the plain send still goes through.
+        final = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4676-8767-767676767674', 'text': '跑一次'})
+        assert final['error'] == ''
+        assert len(run_posts(records)) == 1
+
+
+def test_subagent_events_map_into_structured_progress(tmp_path):
+    """#76: per-sub-agent progress is a bound projection of the platform's own
+    task_* custom events — status names mirror the pushed event exactly, no
+    state the platform never sent appears, and the raw event ledger keeps
+    every frame beside the structured one."""
+    stream_events = [
+        ('custom', {'type': 'task_started', 'task_id': 'call-1', 'description': '检索公开资料',
+                    'model_name': 'glm-4.7'}),
+        ('custom', {'type': 'task_running', 'task_id': 'call-1', 'message': {'content': '查资料中'},
+                    'message_index': 1, 'total_messages': 3,
+                    'usage': {'input_tokens': 120, 'output_tokens': 40, 'total_tokens': 160},
+                    'model_name': 'glm-4.7'}),
+        ('custom', {'type': 'custom_note', 'task_id': 'call-x'}),
+        ('custom', {'type': 'task_completed', 'task_id': 'call-1', 'result': '完成报告',
+                    'usage': {'input_tokens': 300, 'output_tokens': 90, 'total_tokens': 390},
+                    'model_name': 'glm-4.7'}),
+        ('custom', {'type': 'task_failed', 'task_id': 'call-2', 'error': '子代理崩溃'}),
+        ('custom', {'type': 'task_timed_out', 'task_id': 'call-3', 'error': '', 'usage': None}),
+        ('custom', {'type': 'task_running', 'task_id': {'oops': 1}}),
+        ('custom', {'type': 'task_started', 'task_id': 'call-4', 'description': 'x' * 3000}),
+    ]
+    with platform(stream_events=stream_events) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4676-8767-767676767675', 'text': '协同跑'})
+        assert state['error'] == ''
+        state = await_stream_state(chat, 'idle')
+        rows = {row['taskId']: row for row in state['subagents']}
+        # Only the tasks the platform really pushed appear, and nothing else.
+        assert set(rows) == {'call-1', 'call-2', 'call-3', 'call-4'}
+        assert rows['call-1']['status'] == 'completed'
+        assert rows['call-1']['description'] == '检索公开资料'
+        assert rows['call-1']['result'] == '完成报告'
+        assert rows['call-1']['resultTruncated'] is False
+        assert rows['call-1']['usage'] == {'inputTokens': 300, 'outputTokens': 90, 'totalTokens': 390}
+        assert rows['call-1']['model'] == 'glm-4.7'
+        assert rows['call-1']['step'] == 1 and rows['call-1']['totalSteps'] == 3
+        assert rows['call-2']['status'] == 'failed'
+        assert rows['call-2']['error'] == '子代理崩溃'
+        assert rows['call-3']['status'] == 'timed_out'
+        assert rows['call-3']['usage'] is None
+        assert rows['call-4']['description'] == 'x' * 2000
+        # A task the platform started but never reported finished stays
+        # exactly as reported — the desktop invents no terminal state after
+        # the fact.
+        assert rows['call-4']['status'] == 'running'
+        # The raw ledger keeps every custom frame beside the structured one.
+        assert sum(1 for event in state['events'] if event['event'] == 'custom') == 8
+
+
+def test_subagent_agent_type_follows_the_parent_tool_call(tmp_path):
+    """#76: the sub-agent's own type is not on the wire — the desktop derives
+    the display fact from the parent AI message's task tool_calls when the
+    platform itself publishes them, in either arrival order."""
+    tool_call_values = ('values', {'messages': [
+        {'id': 'a1', 'type': 'ai', 'content': '',
+         'tool_calls': [{'id': 'call-1', 'name': 'task',
+                         'args': {'subagent_type': 'researcher', 'description': '检索'}}]}]})
+    started = ('custom', {'type': 'task_started', 'task_id': 'call-1', 'description': '检索公开资料'})
+    for order, stream_events in (('values first', [tool_call_values, started]),
+                                 ('event first', [started, tool_call_values])):
+        with platform(stream_events=stream_events) as (origin, records):
+            chat, _, _ = make_chat(tmp_path, origin)
+            scope = chat.handle({'action': 'refresh'})['scope']
+            chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+            chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                         'turnId': '76767676-7676-4676-8767-767676767676', 'text': '协同跑'})
+            state = await_stream_state(chat, 'idle')
+            row = subagent_row(state, 'call-1')
+            assert row['agent'] == 'researcher', order
+            assert row['status'] == 'running', order
+
+
+def test_new_turn_resets_the_subagent_ledger(tmp_path):
+    """#76: the structured progress belongs to the run that dispatched it — a
+    new turn starts from an empty ledger, while the finished results stay in
+    the conversation's own tool messages."""
+    with platform(stream_events=[('custom', {'type': 'task_started', 'task_id': 'call-1',
+                                             'description': '旧任务'})]) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '76767676-7676-4676-8767-767676767677', 'text': '第一轮'})
+        state = await_stream_state(chat, 'idle')
+        assert state['subagents']
+        second = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                              'turnId': '76767676-7676-4676-8767-767676767678', 'text': '第二轮'})
+        assert second['error'] == ''
+        assert second['subagents'] == []

@@ -438,7 +438,7 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
-      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
       upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
@@ -470,9 +470,10 @@ export class RuntimeProcess {
     // id; the mounted skills are 1..MAX_MESSAGE_SKILLS unique resource ids in
     // pick order (first chip first — the Runtime maps it onto the platform's
     // one explicit Skill per run). Both are optional; absent means a plain
-    // message with no per-message input commands.
+    // message with no per-message input commands. Issue 76: `collab` is the
+    // composer's single-Agent switch, boolean when present.
     if (command.action === 'send') {
-      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown }
+      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown }
       const resourceId = (value: unknown): value is string =>
         typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
       if (inputCommand.delegateAgentId !== undefined && !resourceId(inputCommand.delegateAgentId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -481,6 +482,7 @@ export class RuntimeProcess {
         if (!Array.isArray(skillIds) || skillIds.length === 0 || skillIds.length > MAX_MESSAGE_SKILLS ||
             new Set(skillIds).size !== skillIds.length || !skillIds.every(resourceId)) throw new Error('CHAT_COMMAND_INVALID')
       }
+      if (inputCommand.collab !== undefined && typeof inputCommand.collab !== 'boolean') throw new Error('CHAT_COMMAND_INVALID')
     }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
@@ -491,10 +493,11 @@ export class RuntimeProcess {
       // The two documented boolean flags are part of their command's fixed
       // shape even though they are not string-valued (#39 rememberScript,
       // #74 confirm); the #75 mounted-skill list is validated as a whole
-      // above. Everything else must be a bounded string on the command's own
-      // key list.
+      // above, and the #76 collab switch is a plain boolean. Everything else
+      // must be a bounded string on the command's own key list.
       if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
+      if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
       return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')
@@ -1031,7 +1034,9 @@ export class RuntimeProcess {
             const result = value.result
             if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
                 !['idle', 'streaming', 'disconnected', 'uncertain'].includes(result.stream) ||
-                !['resources', 'threads', 'messages', 'events'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+                // Issue 76: the sub-agent ledger is part of every snapshot the
+                // Runtime returns, exactly like the transcript arrays.
+                !['resources', 'threads', 'messages', 'events', 'subagents'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
             // Issue 72: the sidebar's Thread management carries the same
             // identity the chat session itself last reported.
             this.chatScope = result.scope

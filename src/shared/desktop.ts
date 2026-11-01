@@ -539,14 +539,19 @@ export const MAX_MESSAGE_SKILLS = 8
  * first: the runtime maps the first onto the platform's per-run explicit
  * Skill seam (must-use, never trigger-guessed) and records the whole mount
  * on the run. The account's own trigger-preference injection applies only on
- * runs without an explicit Skill, and only the Server ever matches it. */
+ * runs without an explicit Skill, and only the Server ever matches it.
+ * Issue 76: `collab: false` is the composer's single-Agent mode — it maps
+ * onto the platform's own delegation seam (`context.subagent_enabled=false`)
+ * so the lead Agent works without parallel sub-agents for this run. True and
+ * absent keep the platform default: the team composition stays the lead
+ * Agent's own configuration and no local orchestration channel exists. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
-    delegateAgentId?: string; skillIds?: string[] }
+    delegateAgentId?: string; skillIds?: string[]; collab?: boolean }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
@@ -573,6 +578,28 @@ export interface ChatMessage {
   name: string
   request?: HumanInputRequest | null
   response?: { request_id: string } | null
+}
+/** Issue 76: one parallel sub-agent the platform's lead Agent dispatched
+ * through its own task tool. Every field is a bounded projection of the
+ * platform's own task_* custom events (or the parent AI message's published
+ * tool_calls for the type name) — the desktop renders exactly the states the
+ * platform pushed and never invents a transition, so a task whose start was
+ * seen but whose end was not stays `running`. `step`/`totalSteps` mirror the
+ * platform's own message_index/total_messages; usage is the platform's
+ * cumulative snapshot, replaced per event. */
+export interface ChatSubagent {
+  taskId: string
+  description: string
+  agent: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out'
+  step?: number | null
+  totalSteps?: number | null
+  model: string
+  usage?: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+  result: string
+  resultTruncated: boolean
+  error: string
+  errorTruncated: boolean
 }
 /** Issue 39: one pending device decision the Desktop chat can settle — a
  * file write (#102), a Skill script run (#122), or a knowledge material read
@@ -619,6 +646,9 @@ export interface ChatSnapshot {
   messages: ChatMessage[]
   run: { id: string; status: string; selection: Record<string, unknown> } | null
   events: { id: string; event: string; detail: string }[]
+  /** Issue 76: the current run's parallel sub-agents, as reported by the
+   * platform's own task_* events; empty outside a dispatched run. */
+  subagents: ChatSubagent[]
   stream: 'idle' | 'streaming' | 'disconnected' | 'uncertain'
   error: string
   lastEventId: string

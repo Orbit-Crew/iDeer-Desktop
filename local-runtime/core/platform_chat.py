@@ -37,6 +37,14 @@ MAX_RESULT_BYTES = 65536
 STREAM_READ_TIMEOUT = 90.0
 STREAM_RECONNECTS = 3
 STREAM_RECONNECT_DELAY = 1.0
+# Issue 76: the structured sub-agent ledger is bounded next to the 50-entry
+# raw event ledger, and one entry's copied result/error text is bounded too —
+# the conversation's own tool messages keep the platform's full report.
+MAX_SUBAGENT_ENTRIES = 50
+MAX_SUBAGENT_RESULT = 8000
+MAX_SUBAGENT_ERROR = 2000
+MAX_SUBAGENT_DESCRIPTION = 2000
+MAX_SUBAGENT_NAMES = 200
 
 
 class ChatError(Exception):
@@ -408,6 +416,7 @@ def empty_state(scope=""):
     return dict(scope=scope, resources=[], threads=[], thread=None, messages=[], run=None,
                 events=[], stream='idle', error='', lastEventId='', stop=None,
                 localTasks=[], taskError='', artifacts=[],
+                subagents=[],
                 localTier=DEFAULT_SESSION_TIER.value)
 
 
@@ -441,6 +450,10 @@ class DesktopChat:
         self.session_tiers = session_tiers
         self._tasks_checked = 0.0
         self._tasks_loading = None
+        # Issue 76: task tool_call id → sub-agent type, derived only from the
+        # parent AI messages the platform itself published; a display fact for
+        # the ledger, never an orchestration input.
+        self._subagent_names = {}
 
     def _consents(self, session):
         """The pending device decisions the Desktop chat can settle (#39).
@@ -516,6 +529,7 @@ class DesktopChat:
         self._generation += 1
         self._state = empty_state(scope)
         self._turns.clear()
+        self._subagent_names.clear()
         self._tasks_checked = 0.0
         self._tasks_loading = None
 
@@ -552,6 +566,8 @@ class DesktopChat:
             kind = {'AIMessageChunk': 'ai', 'assistant': 'ai', 'user': 'human', 'ToolMessageChunk': 'tool'}.get(kind, kind)
             if kind not in {'ai', 'human', 'tool'}:
                 continue
+            if kind == 'ai':
+                self._note_subagent_calls(raw)
             key = str(raw.get('id') or '')
             if not key:
                 continue
@@ -580,6 +596,80 @@ class DesktopChat:
                 if pending:
                     message['response'] = {'request_id': pending}
                     answered.add(pending)
+
+    def _note_subagent_calls(self, raw):
+        """Issue 76: record the task tool calls a published AI message carries.
+        The sub-agent type lives only in the parent message's own tool_calls —
+        the desktop derives this display fact from what the platform itself
+        published, never from a local roster."""
+        calls = raw.get('tool_calls')
+        if not isinstance(calls, list):
+            return
+        for call in calls:
+            if not isinstance(call, dict) or call.get('name') != 'task':
+                continue
+            call_id, args = call.get('id'), call.get('args')
+            agent_type = args.get('subagent_type') if isinstance(args, dict) else None
+            if not isinstance(call_id, str) or not 1 <= len(call_id) <= 128:
+                continue
+            if not isinstance(agent_type, str) or not agent_type:
+                continue
+            if len(self._subagent_names) >= MAX_SUBAGENT_NAMES:
+                self._subagent_names.pop(next(iter(self._subagent_names)))
+            self._subagent_names[call_id] = agent_type[:128]
+            for row in self._state['subagents']:
+                if row['taskId'] == call_id:
+                    row['agent'] = self._subagent_names[call_id]
+
+    def _subagent_event(self, payload):
+        """Issue 76: fold one platform task_* custom event into the structured
+        sub-agent ledger. The status name mirrors the pushed event exactly —
+        the desktop never invents a state the platform did not send, and an
+        event about an unknown or malformed task identity is dropped."""
+        kind = payload.get('type')
+        status = {'task_started': 'running', 'task_running': 'running', 'task_completed': 'completed',
+                  'task_failed': 'failed', 'task_cancelled': 'cancelled',
+                  'task_timed_out': 'timed_out'}.get(kind)
+        if status is None:
+            return
+        task_id = payload.get('task_id')
+        if not isinstance(task_id, str) or not 1 <= len(task_id) <= 128:
+            return
+        rows = {row['taskId']: row for row in self._state['subagents']}
+        row = rows.get(task_id)
+        if row is None:
+            row = dict(taskId=task_id, description='', agent=self._subagent_names.get(task_id, ''),
+                       status=status, step=None, totalSteps=None, model='', usage=None,
+                       result='', resultTruncated=False, error='', errorTruncated=False)
+            rows[task_id] = row
+        row['status'] = status
+        if kind == 'task_started':
+            description = payload.get('description')
+            if isinstance(description, str):
+                row['description'] = description[:MAX_SUBAGENT_DESCRIPTION]
+        elif kind == 'task_running':
+            index, total = payload.get('message_index'), payload.get('total_messages')
+            if type(index) is int and index >= 0:
+                row['step'] = index
+            if type(total) is int and total >= 0:
+                row['totalSteps'] = total
+        elif kind == 'task_completed':
+            result = payload.get('result')
+            if isinstance(result, str):
+                row['result'], row['resultTruncated'] = result[:MAX_SUBAGENT_RESULT], len(result) > MAX_SUBAGENT_RESULT
+        else:
+            error = payload.get('error')
+            if isinstance(error, str):
+                row['error'], row['errorTruncated'] = error[:MAX_SUBAGENT_ERROR], len(error) > MAX_SUBAGENT_ERROR
+        model = payload.get('model_name')
+        if isinstance(model, str) and model:
+            row['model'] = model[:128]
+        usage = payload.get('usage')
+        if isinstance(usage, dict):
+            row['usage'] = {key: value for key, value in (
+                ('inputTokens', usage.get('input_tokens')), ('outputTokens', usage.get('output_tokens')),
+                ('totalTokens', usage.get('total_tokens'))) if type(value) is int and value >= 0} or None
+        self._state['subagents'] = list(rows.values())[-MAX_SUBAGENT_ENTRIES:]
 
     def _published(self, session, resource_id, seen=None):
         self._uuid(resource_id)
@@ -1048,6 +1138,12 @@ class DesktopChat:
                                 streamed_ids.add(message_id)
                             elif root == 'values' and '|' not in event and isinstance(value, dict):
                                 self._messages(value.get('messages', []))
+                            elif root == 'custom' and isinstance(value, dict):
+                                # Issue 76: the lead Agent's parallel sub-agents
+                                # report through the platform's own task_* custom
+                                # events (root or subgraph-namespaced); fold them
+                                # into the structured ledger beside the raw record.
+                                self._subagent_event(value)
                             elif root in {'error', 'gap'}:
                                 raise ChatError('CHAT_STREAM_ERROR' if root == 'error' else 'CHAT_STREAM_GAP')
                             self._state['events'] = (self._state['events'] + [dict(id=event_id,
@@ -1067,15 +1163,18 @@ class DesktopChat:
         # else: a violation fails without consuming the turn or the session.
         delegate_id = command.get('delegateAgentId')
         skill_ids = command.get('skillIds')
+        collab = command.get('collab')
         # The bounds mirror the main process exactly: at most 8 mounted
         # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
-        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None):
+        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None or collab is not None):
             raise ChatError('CHAT_COMMAND_INVALID')
         if delegate_id is not None and (not isinstance(delegate_id, str) or not delegate_id or len(delegate_id) > 128):
             raise ChatError('CHAT_COMMAND_INVALID')
         if skill_ids is not None and (not isinstance(skill_ids, list) or not skill_ids or len(skill_ids) > 8
                                       or len(set(skill_ids)) != len(skill_ids)
                                       or any(not isinstance(value, str) or not value or len(value) > 128 for value in skill_ids)):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if collab is not None and not isinstance(collab, bool):
             raise ChatError('CHAT_COMMAND_INVALID')
         if turn_id in self._turns:
             raise ChatError('CHAT_TURN_ALREADY_SUBMITTED')
@@ -1150,6 +1249,12 @@ class DesktopChat:
         context = {'agent_name': agent_id, **local_context}
         if resolved_skills or thread['skillId']:
             context['skill_resource_id'] = resolved_skills[0] if resolved_skills else thread['skillId']
+        if collab is False:
+            # Issue 76: single-Agent mode explicitly disables the platform's
+            # own sub-agent delegation for this run; True and absent keep the
+            # platform default, so the team composition stays the lead Agent's
+            # own configuration and no local orchestration channel appears.
+            context['subagent_enabled'] = False
         metadata = {'desktop_turn_id': turn_id}
         if resolved_delegate:
             metadata['desktop_delegate_agent_id'] = resolved_delegate
@@ -1167,7 +1272,10 @@ class DesktopChat:
             self._state['stream'] = 'uncertain'
             raise
         self._generation += 1
-        self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None)
+        # The structured sub-agent ledger belongs to the run that dispatched
+        # it; a new turn starts empty while finished results remain in the
+        # conversation's own tool messages (#76).
+        self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None, subagents=[])
         self._observe(session)
 
     def _session(self):

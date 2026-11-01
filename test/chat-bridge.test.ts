@@ -122,3 +122,29 @@ describe('input command semantics on send (#75)', () => {
     expect(runtime.status().process).toBe('stopped')
   })
 })
+
+describe('collab mode on send (#76)', () => {
+  const send = { action: 'send', scope: 'A', threadId: 'thread', turnId: 'turn', text: 'hello' }
+  it('lets the boolean collab switch pass validation and fail only on the stopped runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-76/unused')
+    // false is the single-Agent mode (subagent_enabled=false); true is an
+    // explicit keep-the-platform-default. Both ride the send command alone.
+    await expect(runtime.chat({ ...send, collab: false })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, collab: true })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, delegateAgentId: 'agent-1', collab: false }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed collab flags and other actions carrying it', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-76/unused')
+    for (const patch of [{ collab: 'yes' }, { collab: 1 }, { collab: null }, { collab: ['false'] }]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...send, ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    // The collab switch rides the send action only.
+    await expect(runtime.chat(JSON.parse(JSON.stringify({
+      action: 'stop', scope: 'A', threadId: 'thread', runId: 'run', collab: false }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+})
