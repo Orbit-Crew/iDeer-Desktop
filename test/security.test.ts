@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
+import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
+import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
+import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -46,13 +49,77 @@ describe('bootstrap capability boundary', () => {
     // install: the renderer names the action only; package location and the
     // install/remove confirmations stay in the trusted main process, and the
     // runnable binding never leaves the device.
+    // Issue 72 adds desktop:threads for the session sidebar's Thread
+    // management: the renderer names the action only; the Server's own
+    // permission and owner checks stay authoritative, and a delete is
+    // confirmed in the trusted main process before it reaches the wire.
+    // Issue 77 adds desktop:notifications for the notification center's one
+    // ledger entry; the ledger itself lives in the trusted main process.
     // Issue 73 adds desktop:models for the model settings surface: the
     // authorized list, the account default (the same preference the Web
     // writes) and the device-local fallback pick ride the Server's own
     // endpoints. The channel carries no provider, Base URL or key field —
     // the Desktop never holds a model credential.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
-    expect(preload).not.toMatch(/\.send\(|\.on\(|openExternal|aeromind/)
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+    // Issue 77 opens the bridge's only two push channels: the full bounded
+    // notification-center list after every ledger change, and the activate
+    // payload behind an OS-toast click. Both are fixed main-owned names; the
+    // preload never subscribes to anything else and never sends on its own.
+    expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
+      .toEqual(['desktop:notification:activate', 'desktop:notifications'])
+    expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
+  })
+})
+
+// Issue 71 restores the dock pane framework. Panes that will one day host
+// external content (webview/pty/webgl) must never reach the trusted bridge:
+// the registry maps them to the seam placeholder component, and that
+// component's module graph stays free of the bridge surface. The main window
+// guards stay closed so no pane can attach a webview around the seam.
+describe('dock pane security seam (issue 71)', () => {
+  it('maps every external-content panel type to the seam placeholder component', () => {
+    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+
+    // Issue 77 wires the notifications pane; like `runtime` it maps to its
+    // own component instead of the unwired placeholder.
+    const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
+      !['runtime', 'notifications'].includes(p.id))
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['files', 'kb'])
+    for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
+
+    for (const id of ['chat', 'runtime', 'notifications']) {
+      const def = PANEL_REGISTRY.find((p) => p.id === id)!
+      expect(def.component).not.toBe(ExternalPanePlaceholder)
+      expect(def.component).not.toBe(UnwiredNativePane)
+    }
+  })
+
+  it('keeps the external-content placeholder module free of the trusted bridge', async () => {
+    const result = await build({
+      entryPoints: ['src/renderer/src/dock/panels/externalPanes.tsx'],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    const inputs = Object.keys(result.metafile.inputs)
+    expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    const text = result.outputFiles.map((file) => file.text).join('')
+    expect(text).not.toMatch(/window\.ideer|desktop:|sendToHost|openExternal|webview/i)
+  })
+
+  it('keeps the main window external-content guards closed', () => {
+    const source = readFileSync('src/main/window.ts', 'utf8')
+    expect(source).toContain('webviewTag: false')
+    expect(source).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
+    expect(source).toMatch(/will-attach-webview', \(event\) => event\.preventDefault\(\)/)
+    expect(source).toMatch(/will-navigate', \(event\) => event\.preventDefault\(\)/)
+    expect(source).toContain('setPermissionRequestHandler')
+    expect(source).toContain('setPermissionCheckHandler')
   })
 })

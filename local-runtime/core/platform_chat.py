@@ -6,6 +6,7 @@ import hashlib
 import json
 import secrets
 import socket
+import string
 import threading
 import time
 import urllib.error
@@ -22,6 +23,7 @@ from .local_results import LocalResultError
 from .policy import PolicyDecision
 from .receipt_ledger import profile_binding
 from .secrets import SecretStore, SecretStoreError
+from .session_tier import DEFAULT_SESSION_TIER, SessionTier, SessionTierRegistry
 from .settings import load_settings
 
 MAX_RESPONSE = 2 * 1024 * 1024
@@ -36,6 +38,22 @@ MAX_RESULT_BYTES = 65536
 STREAM_READ_TIMEOUT = 90.0
 STREAM_RECONNECTS = 3
 STREAM_RECONNECT_DELAY = 1.0
+# Issue 77: the Desktop's own observation cadence for backgrounded Runs. This
+# bounds only how often the Server is asked about runs the user left running —
+# never how many sessions or tasks the platform may run in parallel. The
+# ledger is generous (100) because an overflowing entry is the oldest one
+# silently going unobserved; the per-tick poll limit keeps the Server load
+# bounded no matter how full the ledger is.
+BACKGROUND_TICK_SECONDS = 2.0
+BACKGROUND_POLL_LIMIT = 8
+BACKGROUND_LEDGER_LIMIT = 100
+# The identity charset every notify fact must survive on the wire; facts
+# outside it are skipped rather than ever emitted malformed.
+_WIRE_ID_CHARS = frozenset(string.ascii_letters + string.digits + '_-')
+
+
+def _is_wire_id(value) -> bool:
+    return isinstance(value, str) and 1 <= len(value) <= 128 and all(c in _WIRE_ID_CHARS for c in value)
 
 
 class ChatError(Exception):
@@ -413,14 +431,15 @@ def empty_state(scope=""):
                 # authorized list (already permission-filtered by the Server).
                 model=dict(name='', source='platform-default', available=True,
                            reason='', notice='', switchedFrom=''),
-                modelOptions=[])
+                modelOptions=[],
+                localTier=DEFAULT_SESSION_TIER.value)
 
 
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
-                 skill_imports=None):
+                 skill_imports=None, session_tiers: SessionTierRegistry | None = None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -440,6 +459,10 @@ class DesktopChat:
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
+        # Issue 74: the device's session-tier registry; every loaded session
+        # starts at the lowest tier and a tier choice never outlives the
+        # thread load that made it.
+        self.session_tiers = session_tiers
         self._tasks_checked = 0.0
         self._tasks_loading = None
         # Issue 73: per-session temporary model choices, the cached authorized
@@ -449,6 +472,14 @@ class DesktopChat:
         self._session_models = {}
         self._models_cache = None
         self._account_default_cache = None
+        # Issue 77: runs the user left behind by switching sessions. The Run
+        # itself keeps running on the Server (on_disconnect='continue'); this
+        # ledger only bounds what the Desktop observes and notifies about —
+        # never what the platform may run in parallel.
+        self._background: list = []
+        self._notified_consents: dict = {}
+        self._background_checked = 0.0
+        self._background_loading = None
 
     def _consents(self, session):
         """The pending device decisions the Desktop chat can settle (#39).
@@ -530,6 +561,11 @@ class DesktopChat:
         self._session_models.clear()
         self._models_cache = None
         self._account_default_cache = None
+        # Issue 77: a reset tore down the session the ledger was observing
+        # (auth or identity failure), so the observation debt goes with it.
+        # The Server keeps the runs; reopening their sessions shows the truth.
+        self._background.clear()
+        self._notified_consents.clear()
 
     @staticmethod
     def _id(value):
@@ -646,17 +682,35 @@ class DesktopChat:
                         raise
                     agent_id = ''
         skill_id = selection.get('preferred_skill', {}).get('resource_id') or thread.get('metadata', {}).get('skill_resource_id', '')
+        # Issue 77: a Run still in flight on the thread being switched away
+        # keeps running on the Server; register it for observation so its
+        # completion and its approval asks can still reach the user. Reopening
+        # or reconnecting the same thread never registers its own Run.
+        previous_thread, previous_run = self._state.get('thread'), self._state.get('run')
+        if (previous_thread and previous_run and previous_thread['id'] != thread_id
+                and previous_run['status'] in {'pending', 'running'}):
+            self._register_background(previous_thread['id'], previous_run['id'])
         self._generation += 1
         self._state.update(thread=dict(id=thread_id, status=thread['status'],
             agentId=agent_id, skillId=skill_id),
             messages=[], events=[], run=self._run(latest) if latest else None,
             stream='idle', lastEventId='', error='', stop=None, localTasks=[], taskError='', artifacts=[])
+        # Issue 74: a (re)loaded session starts at the lowest tier. The tier
+        # is the session's own in-flight choice, never a remembered one —
+        # even a reopened thread re-declares its intent.
+        if self.session_tiers is not None:
+            self.session_tiers.reset()
+        self._state['localTier'] = DEFAULT_SESSION_TIER.value
         # Issue 73: a thread change resets the switch story; the session's own
         # model choice survives (it is bound to this thread id).
         self._state['model'].update(notice='', switchedFrom='')
         self._refresh_chat_model(session)
         self._messages(messages)
         self._load_tasks(session)
+        # Issue 77: the loaded thread is the visible session again — its runs
+        # are observed by the foreground stream, not by the background ledger.
+        with self._lock:
+            self._background = [row for row in self._background if row['thread_id'] != thread_id]
         if self._state['run'] and self._state['run']['status'] in {'pending', 'running'}:
             self._observe(session)
 
@@ -800,6 +854,175 @@ class DesktopChat:
                     if self._tasks_loading is ticket:
                         self._tasks_loading = None
         threading.Thread(target=refresh, daemon=True).start()
+
+    # --- Background session observation (issue 77) --------------------------
+
+    def _register_background(self, thread_id, run_id):
+        """Record one Run the user left running by switching sessions.
+
+        The ledger is display-only: it bounds what the Desktop observes and
+        notifies about, never what the platform may run in parallel. A run id
+        outside the wire identity charset is never registered — it could only
+        become a malformed notification."""
+        if not _is_wire_id(run_id):
+            return
+        with self._lock:
+            if any(row['thread_id'] == thread_id and row['run_id'] == run_id
+                   for row in self._background):
+                return
+            self._background.append(dict(thread_id=thread_id, run_id=run_id,
+                                         title=self._thread_title(thread_id)))
+            del self._background[:-BACKGROUND_LEDGER_LIMIT]
+
+    def background_runs(self):
+        """The bounded background-run summary for the Desktop status snapshot."""
+        with self._lock:
+            return [dict(threadId=row['thread_id'], runId=row['run_id'])
+                    for row in self._background]
+
+    def _thread_title(self, thread_id):
+        with self._lock:
+            return next((str(row.get('title', ''))[:200] for row in self._state['threads']
+                         if row.get('id') == thread_id), '')
+
+    @staticmethod
+    def _consent_summary(approval, payload):
+        """One bounded identity line per ask; content bytes never leave it."""
+        args = payload.get('arguments', payload.get('args', payload)) if isinstance(payload, dict) else {}
+        if approval == 'file-write':
+            return str(args.get('path', ''))[:200] if isinstance(args, dict) else ''
+        if approval == 'skill-script':
+            return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
+        if approval == 'knowledge-material':
+            return str(args.get('revision_id', ''))[:200] if isinstance(args, dict) else ''
+        return ''
+
+    def background_tick(self, force=False):
+        """Observation-only background facts for the Desktop status loop (#77).
+
+        Returns the notification events accumulated since the last tick:
+        backgrounded Runs that reached an end state, and device approval asks
+        whose session is not the visible one. The cadence bounds Server
+        polling, not the platform's own concurrency; every event carries
+        identity facts only."""
+        now = time.monotonic()
+        if not force:
+            if now - self._background_checked < BACKGROUND_TICK_SECONDS:
+                return []
+        with self._lock:
+            if self._background_loading is not None:
+                return []
+            ticket = object()
+            self._background_loading = ticket
+            self._background_checked = now
+        try:
+            return self._background_observe()
+        finally:
+            with self._lock:
+                if self._background_loading is ticket:
+                    self._background_loading = None
+
+    def _background_observe(self):
+        try:
+            session = self._session()
+        except ChatError:
+            return []  # 暂时不可用：保留登记，下一轮再观察
+        with self._lock:
+            if session.scope != self._state['scope']:
+                # 配对身份已变化：旧身份的观察账本随之清除，绝不外泄。
+                self._background.clear()
+                self._notified_consents.clear()
+                return []
+            foreground = (self._state.get('thread') or {}).get('id', '')
+            background = list(self._background)
+        events = self._background_consents(session, foreground)
+        events.extend(self._background_runs(session, background))
+        return events
+
+    def _background_consents(self, session, foreground):
+        """Approval asks on sessions the user cannot currently see.
+
+        The unfiltered device queue already knows every ask's session; only
+        asks outside the visible session are notified here, exactly once, so
+        the visible session keeps its chat cards and a resolved ask that
+        reappears is asked again."""
+        try:
+            pending = list(self.local_consents())
+        except Exception:
+            return []  # 快照不可用时跳过本轮审批观察
+        alive = set()
+        events = []
+        for row in pending:
+            payload = getattr(row, 'payload', None)
+            task_id = getattr(row, 'task_id', '')
+            alive.add(str(task_id)[:128])
+            thread_id = payload.get('thread_id') if isinstance(payload, dict) else None
+            if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
+                continue
+            approval = {'local.files.write': 'file-write', 'local.skill.script': 'skill-script',
+                        'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
+            if not approval:
+                continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
+            # 每个事实都必须能原样过线：身份字段不符合线格式的问题跳过，
+            # 绝不发射会让主进程当作畸形状态行处理的通知。
+            if not _is_wire_id(task_id) or not _is_wire_id(payload.get('run_id')):
+                continue
+            with self._lock:
+                if task_id in self._notified_consents:
+                    continue
+                self._notified_consents[task_id] = True
+            events.append(dict(kind='approval-required', threadId=thread_id,
+                runId=payload.get('run_id'), taskId=task_id,
+                approval=approval, summary=self._consent_summary(approval, payload),
+                title=self._thread_title(thread_id)))
+        with self._lock:
+            # 已不在待审队列的旧记录移出去重集，同一任务再问仍会通知。
+            for task_id in [key for key in self._notified_consents if key not in alive]:
+                del self._notified_consents[task_id]
+        return self._scrub_events(session, events)
+
+    def _background_runs(self, session, background):
+        """Ask the Server about each registered Run, oldest first; a Run that
+        left {pending, running} is reported once and dropped. A unreachable
+        Server keeps the ledger untouched for the next tick."""
+        events = []
+        polled = 0
+        for row in background:
+            if polled >= BACKGROUND_POLL_LIMIT:
+                break
+            polled += 1
+            try:
+                run = self._json(session, f"/api/threads/{row['thread_id']}/runs/{row['run_id']}")
+            except ChatError as exc:
+                if str(exc) == 'CHAT_NOT_FOUND':
+                    # 平台已找不到该 Run（如会话被删除）：静默移出账本。
+                    with self._lock:
+                        self._background = [item for item in self._background
+                                            if not (item['thread_id'] == row['thread_id'] and item['run_id'] == row['run_id'])]
+                    continue
+                break
+            if not isinstance(run, dict) or not isinstance(run.get('status'), str):
+                break
+            if run['status'] in {'pending', 'running'}:
+                continue
+            with self._lock:
+                self._background = [item for item in self._background
+                                    if not (item['thread_id'] == row['thread_id'] and item['run_id'] == row['run_id'])]
+            status = run['status'][:32]
+            if not status:
+                continue  # 空状态发不出去，也不算完成事实
+            events.append(dict(kind='run-finished', threadId=row['thread_id'], runId=row['run_id'],
+                status=status, title=row.get('title', '')))
+        return self._scrub_events(session, events)
+
+    def _scrub_events(self, session, events):
+        if not events or not getattr(session, 'token', ''):
+            return events
+        scrubbed = []
+        for event in events:
+            encoded = json.dumps(event).replace(session.token, '[REDACTED]')
+            scrubbed.append(json.loads(encoded))
+        return scrubbed
 
     def _stop(self, session, command):
         if set(command) != {'action', 'scope', 'threadId', 'runId'}:
@@ -1072,6 +1295,21 @@ class DesktopChat:
 
     def _send(self, session, command):
         turn_id = self._uuid(command.get('turnId'))
+        # Issue 75: the structured input commands ride the send action only —
+        # an answer never carries them. Shapes are bounded before anything
+        # else: a violation fails without consuming the turn or the session.
+        delegate_id = command.get('delegateAgentId')
+        skill_ids = command.get('skillIds')
+        # The bounds mirror the main process exactly: at most 8 mounted
+        # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
+        if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if delegate_id is not None and (not isinstance(delegate_id, str) or not delegate_id or len(delegate_id) > 128):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if skill_ids is not None and (not isinstance(skill_ids, list) or not skill_ids or len(skill_ids) > 8
+                                      or len(set(skill_ids)) != len(skill_ids)
+                                      or any(not isinstance(value, str) or not value or len(value) > 128 for value in skill_ids)):
+            raise ChatError('CHAT_COMMAND_INVALID')
         if turn_id in self._turns:
             raise ChatError('CHAT_TURN_ALREADY_SUBMITTED')
         if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
@@ -1107,6 +1345,30 @@ class DesktopChat:
             additional_kwargs = {'hide_from_ui': True, 'human_input_response': response}
         if not isinstance(text, str) or not text.strip() or len(text) > 16000:
             raise ChatError('CHAT_MESSAGE_INVALID')
+        # Issue 75: the delegate Agent must be a published agent; the mention
+        # text itself stays the lead Agent's cue and the platform delegates
+        # through its own sub-agents inside THIS session (assistant_id stays
+        # the session's main Agent). The mounted Skills must be published; the
+        # first chip wins the platform's one explicit Skill per run and is
+        # validated by the same agent-closure rule as a create-time Skill,
+        # while the whole mount is recorded on the run. A run without any
+        # explicit Skill is exactly where the account's own Server-side
+        # trigger-preference injection applies — never alongside it.
+        resolved_delegate = ''
+        resolved_skills: list = []
+        if delegate_id:
+            resolved_delegate = self._uuid(delegate_id)
+            delegate_published = self._published(session, resolved_delegate)
+            if delegate_published['resource']['type'] != 'agent':
+                raise ChatError('CHAT_RESOURCE_UNAVAILABLE')
+        if skill_ids:
+            resolved_skills = [self._uuid(value) for value in skill_ids]
+            for value in resolved_skills:
+                self._published(session, value)
+            closure = set()
+            self._published(session, agent_id, closure)
+            if resolved_skills[0] not in closure:
+                raise ChatError('CHAT_SKILL_OUTSIDE_AGENT')
         # Issue 73: resolve and preflight the model before the Turn is
         # consumed — an unavailable choice stops here with an explicit
         # category, so the user can switch and resend without reconnecting.
@@ -1122,12 +1384,21 @@ class DesktopChat:
             settings = load_settings(self.config)
             local_context = {'local_device_id': settings.device_id,
                              'local_workspace_root': workspace['logicalRoot']}
-        context = {'agent_name': agent_id, **local_context, **({'skill_resource_id': thread['skillId']} if thread['skillId'] else {})}
+        context = {'agent_name': agent_id, **local_context}
+        if resolved_skills or thread['skillId']:
+            context['skill_resource_id'] = resolved_skills[0] if resolved_skills else thread['skillId']
         if model_pick['name']:
             context['model_name'] = model_pick['name']
+        metadata = {'desktop_turn_id': turn_id}
+        if resolved_delegate:
+            metadata['desktop_delegate_agent_id'] = resolved_delegate
+        if resolved_skills:
+            # The whole mount rides the run as the user's own choice; the
+            # explicit seam above stays the platform's one-Skill-per-run cap.
+            metadata['desktop_skill_ids'] = resolved_skills
         body = dict(assistant_id=agent_id, input={'messages': [message]},
                     context=context,
-                    metadata={'desktop_turn_id': turn_id}, stream_mode=['messages-tuple', 'values', 'custom'],
+                    metadata=metadata, stream_mode=['messages-tuple', 'values', 'custom'],
                     stream_subgraphs=True, multitask_strategy='reject', on_disconnect='continue')
         try:
             run = self._json(session, f"/api/threads/{thread['id']}/runs", body, {'Idempotency-Key': turn_id})
@@ -1192,8 +1463,8 @@ class DesktopChat:
         except (OSError, ValueError):
             raise ChatError('CHAT_SERVER_UNAVAILABLE') from None
 
-    def _json(self, session, path, body=None, headers=None):
-        with self._request(session, path, body, headers) as response:
+    def _json(self, session, path, body=None, headers=None, method=None):
+        with self._request(session, path, body, headers, method=method) as response:
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
             raise ChatError('CHAT_RESPONSE_TOO_LARGE')
@@ -1837,6 +2108,102 @@ class DesktopChat:
         state.update(name=pick['name'], source=pick['source'], available=True, reason='')
         if pick['notice']:
             state.update(notice=pick['notice'], switchedFrom=pick['switched_from'])
+    # --- Session sidebar management (issue 72) ------------------------------
+
+    def _thread_permissions(self, session):
+        """The account's own Thread capabilities, as the Server states them.
+
+        The sidebar grays out and explains every operation this account cannot
+        perform; the Server re-checks and stays authoritative on every write.
+        """
+        account = self._json(session, '/api/v1/auth/me')
+        if account.get('id') != session.user_id:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        permissions = account.get('permissions') or []
+        return dict(canRename='threads:write' in permissions, canDelete='threads:delete' in permissions)
+
+    def _thread_rows(self, session, limit=200):
+        """One bounded platform search page, projected and recency-sorted.
+
+        Rows carry identity facts only; the Server's own updated_at drives the
+        ordering and no thread roster is ever stored on this device. Search
+        fetches the platform's full single-page ceiling so a session beyond
+        the newest 200 still answers a query; the reply stays bounded.
+        """
+        rows = self._json(session, '/api/threads/search', {'limit': limit})
+        if not isinstance(rows, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        threads = []
+        for row in rows[:200]:
+            if not isinstance(row, dict) or not isinstance(row.get('thread_id'), str) or not row['thread_id']:
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            values = row.get('values') if isinstance(row.get('values'), dict) else {}
+            metadata = row.get('metadata') if isinstance(row.get('metadata'), dict) else {}
+            title = _bounded_text(values.get('title') or metadata.get('title'), 256) or row['thread_id']
+            threads.append(dict(id=row['thread_id'], title=title,
+                                status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
+                                updatedAt=_bounded_text(row.get('updated_at', ''), 64)))
+        threads.sort(key=lambda row: row['updatedAt'], reverse=True)
+        return threads
+
+    def threads_manage(self, command):
+        """One session-sidebar round-trip against the Server's Thread API (#72).
+
+        list/search/rename/delete share one wire shape: every reply carries the
+        account's thread permissions plus the platform's own post-action list,
+        so the sidebar re-reads authoritative state in the same round. A rename
+        rides the state endpoint whose values.title the Server syncs into the
+        thread display name; a delete demands the Server's own success flag and
+        never touches this device's receipt ledger — unconfirmed local receipts
+        stay queryable after the platform thread is gone.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(command, dict) or command.get('scope') != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            action = command.get('action')
+            if action == 'list':
+                expected = {'type', 'id', 'action', 'scope'}
+            elif action == 'search':
+                query = command.get('query')
+                if not isinstance(query, str) or len(query) > 128:
+                    raise ChatError('CHAT_COMMAND_INVALID')
+                expected = {'type', 'id', 'action', 'scope', 'query'}
+            elif action in {'rename', 'delete'}:
+                self._id(command.get('threadId'))
+                expected = {'type', 'id', 'action', 'scope', 'threadId'}
+                if action == 'rename':
+                    title = command.get('title')
+                    if not isinstance(title, str) or not 1 <= len(title.strip()) <= 200:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = expected | {'title'}
+            else:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if set(command) != expected:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            permissions = self._thread_permissions(session)
+            if action == 'rename':
+                if not permissions['canRename']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, f"/api/threads/{self._id(command['threadId'])}/state",
+                           {'values': {'title': command['title'].strip()}})
+            elif action == 'delete':
+                if not permissions['canDelete']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                outcome = self._json(session, f"/api/threads/{self._id(command['threadId'])}", method='DELETE')
+                if not isinstance(outcome, dict) or outcome.get('success') is not True:
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+            threads = self._thread_rows(session, limit=1000 if action == 'search' else 200)
+            if action == 'search':
+                query = command['query'].strip().lower()
+                if query:
+                    threads = [row for row in threads if query in row['title'].lower() or query in row['id'].lower()]
+            result = dict(threads=threads, permissions=permissions)
+            if action == 'rename':
+                result['renamed'] = True
+            elif action == 'delete':
+                result['deleted'] = True
+            return result
 
     # --- Canonical connector identities (issue 123) -------------------------
 
@@ -2117,6 +2484,29 @@ class DesktopChat:
                                                 always=remember_script)
                     except Exception:
                         raise ChatError('CONSENT_UNAVAILABLE') from None
+                    self._state['error'] = ''
+                elif action == 'tier':
+                    # Issue 74: the session's own permission tier. The lowest
+                    # tier is the default for every loaded session; the full
+                    # tier needs the explicit confirm flag the Desktop main
+                    # process signs after its own confirmation dialog. The
+                    # tier only ever narrows the device consent flow — the
+                    # local policy veto and the platform capability set stay
+                    # ahead of it.
+                    expected = {'action', 'scope', 'threadId', 'tier'}
+                    if command.get('confirm') is True:
+                        expected = expected | {'confirm'}
+                    tier_value = command.get('tier')
+                    if (set(command) != expected
+                            or tier_value not in {member.value for member in SessionTier}
+                            or (command.get('confirm') is True and tier_value != SessionTier.FULL.value)
+                            or (tier_value == SessionTier.FULL.value and command.get('confirm') is not True)
+                            or self.session_tiers is None):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
+                        raise ChatError('CHAT_THREAD_CHANGED')
+                    self.session_tiers.set(str(self._state['thread']['id']), SessionTier(tier_value))
+                    self._state['localTier'] = tier_value
                     self._state['error'] = ''
                 elif action == 'upload':
                     # Issue 105: the only path from a registered local result to a

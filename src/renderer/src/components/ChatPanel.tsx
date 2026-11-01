@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd'
-import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView } from '../../../shared/desktop'
+import type { ChatCommand, ChatSnapshot, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
+import { SESSION_TIERS } from '../../../shared/desktop'
+import { ChatComposer } from './ChatComposer'
+import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
 const taskStates: Record<string, string> = { unknown: '结果待核实', result_not_verified: '结果待核实',
   dispatched: '已派发', acked: '已接收', progress: '执行中', consent_required: '待审批',
   cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
+
+// Issue 74: the three session tiers, always shown in the chat area. A loaded
+// session starts at the lowest tier; switching to the full tier is confirmed
+// by the main process, never by this renderer.
+const tierOrder = SESSION_TIERS
+const tierLabels: Record<SessionTierValue, string> = {
+  ask_first: '变更前询问（默认）', autonomous: '自主模式', full: '完全模式'
+}
 const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
 
 function Clarification({ request, disabled, onAnswer }: {
@@ -52,6 +63,25 @@ const consentCommand = (request: LocalConsentView, state: ChatSnapshot, threadId
   decision: 'allow' | 'allow-directory' | 'deny', extra: Record<string, unknown> = {}): ChatCommand =>
   ({ action: 'consent', scope: state.scope, threadId: threadId ?? '', runId: request.runId, taskId: request.taskId,
     requestHash: request.requestHash, decision, ...extra })
+
+function TierSwitch({ state, threadId, busy, onCommand }: {
+  state: ChatSnapshot; threadId: string | undefined; busy: boolean; onCommand: CommandHandler
+}): JSX.Element | null {
+  if (!threadId) return null
+  const current: SessionTierValue = state.localTier ?? 'ask_first'
+  return <>
+    <Space wrap role="group" aria-label="会话权限档位">
+      <Typography.Text strong>会话权限档位：</Typography.Text>
+      {tierOrder.map((tier) => <Button key={tier} aria-pressed={current === tier}
+        disabled={busy || current === tier}
+        onClick={() => void onCommand({ action: 'tier', scope: state.scope, threadId, tier })}>{tierLabels[tier]}</Button>)}
+    </Space>
+    {current === 'autonomous' && <Alert type="info" showIcon
+      message="自主模式：授权文件夹内的写入不再逐次询问；文件夹外与保护路径始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认。" />}
+    {current === 'full' && <Alert type="warning" showIcon
+      message="完全模式：授权文件夹内的操作（含命令行）不再逐次询问；文件夹外与保护路径始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认。" />}
+  </>
+}
 
 function FileWriteConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
   return <Card size="small" title="本机文件写入审批">
@@ -126,7 +156,6 @@ function ChatContents({ state, busy, onCommand }: {
 }): JSX.Element {
   const [agentId, setAgentId] = useState<string | undefined>(state.thread?.agentId)
   const [skillId, setSkillId] = useState<string | undefined>(state.thread?.skillId || undefined)
-  const [text, setText] = useState('')
   const threadId = state.thread?.id
   const compatibility = state.compatibility
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
@@ -156,12 +185,11 @@ function ChatContents({ state, busy, onCommand }: {
     <Select aria-label="选择 Skill" placeholder="可选：选择 Agent 已包含的 Skill" value={skillId} onChange={setSkillId}
       allowClear className="w-full" options={resourceOptions('skill')} disabled={busy} />
     <Button type="primary" disabled={busy || !agentId} onClick={() => {
-      setText('')
       void onCommand({ action: 'create', scope: state.scope, agentId: agentId!, ...(skillId ? { skillId } : {}) })
     }}>新建平台聊天</Button>
     <Select aria-label="平台 Thread 历史" placeholder="重新打开平台 Thread" className="w-full" value={threadId}
       disabled={busy} options={state.threads.map((t) => ({ value: t.id, label: `${t.title} · ${t.status}` }))}
-      onChange={(id) => { setText(''); void onCommand({ action: 'open', scope: state.scope, threadId: id }) }} />
+      onChange={(id) => { void onCommand({ action: 'open', scope: state.scope, threadId: id }) }} />
     {threadId && <>
       {compatibility && compatibility.level !== 'compatible' && <Alert type="warning" message={compatibility.advice}
         description={compatibility.disabledCapabilities.length ? `停用能力：${compatibility.disabledCapabilities.join('、')}` : compatibility.error} />}
@@ -179,6 +207,7 @@ function ChatContents({ state, busy, onCommand }: {
         </Typography.Text>
       </div>
       <Typography.Text copyable>Thread：{threadId}</Typography.Text>
+      <TierSwitch state={state} threadId={threadId} busy={busy} onCommand={onCommand} />
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
       {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}
       {!!state.artifacts?.length && <Card size="small" title="Thread 平台附件">
@@ -240,13 +269,9 @@ function ChatContents({ state, busy, onCommand }: {
           {message.request && answered.has(message.request.request_id) && <Typography.Text type="secondary">已回答</Typography.Text>}
         </Card>)}
       </div>
-      <Input.TextArea aria-label="聊天消息" value={text} maxLength={16000} autoSize={{ minRows: 3, maxRows: 10 }}
-        disabled={!canSend || !!pending} placeholder={pending ? '请先回答上方问题' : '发送给平台 Agent'} onChange={(event) => setText(event.target.value)} />
-      <Button type="primary" disabled={!canSend || !!pending || !text.trim()} onClick={() => {
-        const message = text
-        setText('')
-        void onCommand({ action: 'send', scope: state.scope, threadId, turnId: crypto.randomUUID(), text: message })
-      }}>发送</Button>
+      {/* Issue 75: the composer owns the @-delegation and /Skill input
+          commands; the thread key keeps its mounted facts session-scoped. */}
+      <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend} onCommand={onCommand} />
     </>}
     {!!state.events.length && <Collapse items={[{ key: 'progress', label: '服务端工具与子代理进度', children:
       state.events.map((event, i) => <div key={`${event.id}-${i}`}><Typography.Text>{event.id} · {event.event}</Typography.Text><pre className="whitespace-pre-wrap break-all text-xs">{event.detail}</pre></div>) }]} />}
@@ -263,6 +288,9 @@ export default function ChatPanel(): JSX.Element {
   const pollRequest = useRef<Promise<void>>(Promise.resolve())
   const mounted = useRef(true)
   const scope = useRef('')
+  const pendingOpen = useSessionStore((state) => state.pendingOpen)
+  const clearPendingOpen = useSessionStore((state) => state.clearPendingOpen)
+  const openHandled = useRef(0)
   useEffect(() => {
     mounted.current = true
     let timer: ReturnType<typeof setTimeout>
@@ -272,7 +300,12 @@ export default function ChatPanel(): JSX.Element {
         pollRequest.current = (async () => { try {
           let next = await window.ideer.chat({ action: 'state' })
           if (next.scope && next.scope !== scope.current) next = await window.ideer.chat({ action: 'refresh' })
-          if (mounted.current) { scope.current = next.scope; setState(next); setFailed(false) }
+          if (mounted.current) {
+            scope.current = next.scope
+            setState(next)
+            setFailed(false)
+            useSessionStore.getState().setActiveThreadId(next.thread?.id ?? '')
+          }
         } catch { if (mounted.current) { scope.current = ''; setState(null); setFailed(true) } }
         finally { inFlight.current = false } })()
         await pollRequest.current
@@ -293,6 +326,15 @@ export default function ChatPanel(): JSX.Element {
     } catch { if (mounted.current) { setState(null); setFailed(true) } }
     finally { actionInFlight.current = false; if (mounted.current) setBusy(false) }
   }
+  // Issue 72: the sidebar asks for one thread to open; the open rides this
+  // panel's single serialized command path so it can never race the poll.
+  useEffect(() => {
+    if (!pendingOpen || pendingOpen.nonce === openHandled.current) return
+    if (!state?.scope || actionInFlight.current) return
+    openHandled.current = pendingOpen.nonce
+    clearPendingOpen()
+    void command({ action: 'open', scope: state.scope, threadId: pendingOpen.threadId })
+  }, [pendingOpen, state, command, clearPendingOpen])
   return <Card className="max-w-4xl mt-6 shadow-card" title="平台聊天与历史">
     {failed && <Alert type="error" message="Runtime 或 Server 不可用，请检查连接后恢复状态；旧提交不会自动重发" />}
     {state?.scope ? <ChatView state={state} busy={busy} onCommand={command} /> :

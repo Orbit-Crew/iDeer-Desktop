@@ -11,7 +11,9 @@ resource closure and immutable version snapshots; the UI displays the actual
 The renderer calls one restricted `desktop:chat` IPC method. Its command union
 allows state, catalog refresh, Thread creation/open, send, human-input answer,
 reconnect, scoped Run stopping, an exact local approval decision and the
-session's temporary model choice (`set-model`, issue #73). It accepts no URL,
+session permission tier (#74: one explicit tier switch whose full-tier confirm
+flag only the main process signs after its own dialog) and the session's
+temporary model choice (`set-model`, issue #73). It accepts no URL,
 authentication header, executable, physical path or renderer-supplied write
 content. The main-frame check also applies to this IPC. Python obtains the business
 session from the existing OS secret store and sends same-origin requests with
@@ -42,6 +44,21 @@ model and the switch story. Only model-attributable Server refusals trigger the
 bounded fallback re-submission — today exactly the fixed denial details
 "Model access denied" and "is not in the configured model allowlist" — and
 every other failure keeps the existing uncertain-submission contract.
+
+Issue #72 adds one more restricted platform-facing method, `desktop:threads`,
+for the session sidebar's Thread management. Its command union allows list,
+search, rename and delete only. Every reply carries the Server's own
+post-action list plus the account's thread permissions, so the sidebar never
+keeps a local roster and never merges state. The wire always carries the chat
+session scope the Runtime itself last reported; Python re-fences it against a
+freshly computed session, so a stale identity is rejected. Rename rides the
+Server's state endpoint whose `values.title` the Server syncs into the Thread
+display name; delete requires the Server's own success flag and is confirmed
+in a trusted main-process dialog first. Deleting a Thread never touches the
+local receipt ledger — unconfirmed receipts stay queryable. The Server's
+`threads:write`/`threads:delete` permission and owner checks stay
+authoritative on every request; the renderer only grays out operations early
+and explains why.
 
 `DesktopChat` uses the existing `/api/resources`, `/api/threads` and thread Run
 APIs. Run creation uses `Idempotency-Key`, the human message's stable Turn ID,
@@ -153,6 +170,17 @@ abandoned prompts, changed identity or workspace, cancellation before execution
 and failed durable admission prevent writing. Existing always-allow settings do
 not skip Desktop's per-task write approval.
 
+Issue #74 adds the one standing exception: the chat session's own permission
+tier. In the `autonomous` tier (and for writes also in the `full` tier) a write
+whose target the confirmed workspace proves inside, and outside the protected
+names, runs without a per-task prompt — the tier itself is the standing answer,
+recorded in the receipt as `tier:<tier>` and in the audit log. Every other
+capability, an unprovable or outside target, and a session at the default
+`ask_first` tier keep the per-task approval above. The tier never overrides a
+local DENY, the protected-path refusals or the workspace identity checks, and
+it is scoped to the loaded session only: reloading or reopening a thread falls
+back to `ask_first`, and that expiry is audited like any switch.
+
 The Runtime admits the original task into its identity-bound receipt ledger
 before execution. A failed completion record or unverifiable readback is shown
 as a result that needs verification. Completion-storage failure pauses further
@@ -194,3 +222,25 @@ requests. Identity and Thread generations reject obsolete responses. History
 errors label cached results as needing another check; they never imply success.
 See [issue #104 acceptance](acceptance/issue-104/report.md) and its
 [fault runners](../scripts/acceptance/issue-104/README.md).
+
+## Background sessions and notification jump-back
+
+Switching sessions never aborts a Run: the Run lives on the Server with
+`on_disconnect='continue'`, the desktop only stops foreground stream
+consumption, and reopening the Thread reattaches the truthful state. The
+Runtime keeps a bounded observation ledger of runs a user leaves behind and
+emits one `notify` event per fact on the status stdout — a run that has since
+reached an end state, or a device approval ask on a session the user cannot
+currently see. Events carry identity facts only (thread, run, task, kind, a
+bounded summary line), are deduplicated, and are token-scrubbed like every
+other surface. The cadence bounds Server polling only; the desktop never sets
+a concurrency limit of its own — the platform and device capability
+intersection decide what runs in parallel.
+
+The trusted main process parses each event strictly, keeps the bounded
+notification ledger, shows the OS toast and pushes the full list to the
+renderer after every change; the renderer's notification center pane and
+sidebar bell read the same ledger, and activating a notification — from a
+toast or a center row — focuses the window and opens the event's session
+through the same handshake the sidebar uses. See
+[issue #77 acceptance](acceptance/issue-077/report.md).

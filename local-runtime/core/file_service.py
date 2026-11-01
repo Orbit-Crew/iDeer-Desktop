@@ -372,6 +372,34 @@ class WorkspaceFileService(LocalFileService):
                 raise FileAccessError('LOCAL_POLICY_DENIED')
             return self.selection.allow_write()
 
+    def classify(self, logical_path):
+        """#74: where does a declared target land, per the confirmed grant?
+
+        ``inside`` only for a path that resolves into the current workspace
+        and is neither a protected name nor the profile directory itself;
+        ``protected`` for the never-touch names; ``outside`` for everything
+        else, including a path that cannot be proven in-root. The session
+        tier gate auto-runs only ``inside`` targets and refuses the rest
+        without asking, so an unprovable path is never widened by a tier.
+        """
+        from pathlib import Path
+        from .files import FileAccessError, RootConfig
+        try:
+            with self.selection.lock:
+                _, grant = self.selection.current()
+                # The store's own _resolve already refuses the protected names
+                # and the profile directory; its error code keeps the two
+                # refusals apart for the tier matrix.
+                files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                    identity=tuple(grant['identity']), resolve_root=False)],
+                    protected_roots=(self.selection.config.parent,))
+                files.resolve(logical_path)
+                return 'inside'
+        except FileAccessError as exc:
+            return 'protected' if exc.code == 'PROTECTED_PATH' else 'outside'
+        except OSError:
+            return 'outside'
+
     def execute(self, capability, payload, *, consent=False, check_only=False):
         import hashlib
         from pathlib import Path

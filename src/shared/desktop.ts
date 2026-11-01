@@ -340,6 +340,28 @@ export type SkillScriptCommand =
   | { action: 'revoke'; authorizationId: string }
 export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[]; revoked?: boolean }
 
+/** Issue 72: one platform thread as the sidebar shows it — identity facts and
+ * the Server's own recency timestamp; no local roster is ever built. */
+export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string }
+/** Issue 72: the account's own Thread capabilities as the Server states them. */
+export interface ThreadPermissionsView { canRename: boolean; canDelete: boolean }
+/** Issue 72: list/search/rename/delete share one wire shape. Every reply
+ * carries the account's thread permissions plus the platform's own post-action
+ * list, so the sidebar re-reads authoritative state in the same round; a
+ * rename or delete also carries its outcome flag. The Server-side permission
+ * and owner checks stay authoritative — the renderer only grays out early. */
+export type ThreadCommand =
+  | { action: 'list' }
+  | { action: 'search'; query: string }
+  | { action: 'rename'; threadId: string; title: string }
+  | { action: 'delete'; threadId: string }
+export interface ThreadView {
+  threads: ThreadRowView[]
+  permissions: ThreadPermissionsView
+  renamed?: boolean
+  deleted?: boolean
+}
+
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {
   slug: string
@@ -443,6 +465,9 @@ export interface RuntimeStatus {
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
+  /** Issue 77: the runs the user left behind by switching sessions; the
+   * bounded observation ledger only, never a concurrency limit. */
+  backgroundRuns?: { threadId: string; runId: string }[]
   compatibility?: CompatibilityView
 }
 
@@ -504,6 +529,9 @@ export interface DesktopBridge {
    * the account default it shares with the Web, and the device-local
    * fallback pick. No provider or credential field crosses this bridge. */
   models(command: ModelCommand): Promise<ModelSettingsView>
+  /** Issue 72: search, rename and delete platform threads, always re-reading
+   * the Server's own list; deleting never clears local unconfirmed receipts. */
+  threads(command: ThreadCommand): Promise<ThreadView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand
@@ -516,6 +544,13 @@ export interface DesktopBridge {
   installUpdate(): Promise<InstallOutcome>
   recoveryState(): Promise<RecoveryView | null>
   refreshCompatibility(): Promise<CompatibilityView | { error: string }>
+  /** Issue 77: the notification center's one query/settle entry. */
+  notifications(command: NotificationCommand): Promise<NotificationCenterView>
+  /** Issue 77: the main process pushes the full bounded center list after
+   * every change; the renderer replaces its view instead of merging. */
+  onNotifications(listener: (view: NotificationCenterView) => void): () => void
+  /** Issue 77: a notification (toast or center row) asked to open a session. */
+  onNotificationActivate(listener: (payload: { id: string; threadId: string }) => void): () => void
 }
 
 export interface InstallOutcome {
@@ -524,18 +559,91 @@ export interface InstallOutcome {
   detail: string
 }
 
+/**
+ * Issue 77: one background-session fact the owned Runtime reports on its
+ * status stdout — a Run the user left running by switching sessions that has
+ * since reached an end state, or a device approval ask on a session the user
+ * cannot currently see. Identity facts only; payload bytes never ride it.
+ * The union is the notification center's reuse seam: later tickets (tray
+ * badge, installs, updates) extend it instead of rebuilding the surface.
+ */
+export type RuntimeNotifyEvent =
+  | { kind: 'run-finished'; threadId: string; runId: string; status: string; title: string }
+  | { kind: 'approval-required'; threadId: string; runId: string; taskId: string; approval: string; summary: string; title: string }
+
+/** Issue 77: one recorded notification as the center shows it. `summary` is
+ * the finished run's own status or the approval ask's one bounded line. */
+export interface NotificationRecordView {
+  id: string
+  kind: RuntimeNotifyEvent['kind']
+  threadId: string
+  runId: string
+  taskId?: string
+  approval?: string
+  title: string
+  summary: string
+  createdAt: string
+  read: boolean
+}
+
+/** Issue 77: the full bounded center list plus its unread count; every reply
+ * carries both so the renderer never merges local state. */
+export interface NotificationCenterView { notifications: NotificationRecordView[]; unread: number }
+
+/** Issue 77: the one Chinese fact wording both the OS toast (main) and the
+ * notification center pane (renderer) read, so a label drift can never split
+ * the two surfaces. Unmatched values fall back to the raw wire fact. */
+export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
+  success: '成功', error: '出错', failed: '失败', interrupted: '已中断'
+}
+export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
+  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材'
+}
+
+/** Issue 77: list or settle the device's own notification ledger. */
+export type NotificationCommand =
+  | { action: 'list' }
+  | { action: 'read'; id: string }
+  | { action: 'read-all' }
+  | { action: 'clear' }
+
+/** Issue 74: the three session permission tiers; a loaded session always
+ * starts at the lowest one and a tier choice never outlives the session. */
+export type SessionTierValue = 'ask_first' | 'autonomous' | 'full'
+
+/** The tier values in ascending order; the single source the main-process
+ * validator and the chat switcher both read. */
+export const SESSION_TIERS: readonly SessionTierValue[] = ['ask_first', 'autonomous', 'full']
+
+/** Issue 75: the mounted-Skill bound one composer carries per message. The
+ * platform injects at most one explicit Skill per run (the first chip); the
+ * bound exists so the wire stays finite, not to fake a wider seam. */
+export const MAX_MESSAGE_SKILLS = 8
+
+/** Issue 75: the at-mention delegation and slash-skill semantics ride the
+ * send command as structured, optional facts. `delegateAgentId` names the
+ * agent the user at-mentioned for THIS message: the platform sub-agent
+ * delegation stays inside the current session (the main Agent and Thread are
+ * unchanged, in contrast to `create`, which opens a new session). `skillIds`
+ * carries the skills the user explicitly mounted in the composer, first chip
+ * first: the runtime maps the first onto the platform's per-run explicit
+ * Skill seam (must-use, never trigger-guessed) and records the whole mount
+ * on the run. The account's own trigger-preference injection applies only on
+ * runs without an explicit Skill, and only the Server ever matches it. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
   | { action: 'create'; scope: string; agentId: string; skillId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
-  | { action: 'send'; scope: string; threadId: string; turnId: string; text: string }
+  | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
+    delegateAgentId?: string; skillIds?: string[] }
   | { action: 'set-model'; scope: string; threadId: string; modelName: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
+  | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -605,6 +713,8 @@ export interface ChatSnapshot {
     artifacts?: PlatformArtifact[];
     localResult?: LocalResultView | null }[]
   localConsents?: LocalConsentView[]
+  /** Issue 74: this session's permission tier; absent means the lowest tier. */
+  localTier?: SessionTierValue
   scope: string
   resources: { id: string; type: 'agent' | 'skill'; name: string; visibility: string; version: number | null; available: boolean; reason: string }[]
   threads: { id: string; title: string; status: string }[]

@@ -16,6 +16,7 @@ from .compatibility import CompatibilityGate
 from .connector_install import ConnectorInstallError
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
+from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
@@ -52,6 +53,7 @@ def main() -> int:
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
     model_commands: queue.Queue = queue.Queue(maxsize=1)
+    thread_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
@@ -172,6 +174,25 @@ def main() -> int:
                             and 0 < len(command['authorizationId']) <= 128))):
                     skill_script_commands.put_nowait(command)
                     continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'query', 'scope'},
+                        {'type', 'id', 'action', 'threadId', 'scope'},
+                        {'type', 'id', 'action', 'threadId', 'title', 'scope'})
+                        and command['type'] == 'threads' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'search', 'rename', 'delete'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'search' or (
+                            isinstance(command['query'], str) and len(command['query']) <= 128))
+                        and (command['action'] != 'rename' or (
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128
+                            and isinstance(command['title'], str)
+                            and 0 < len(command['title'].strip()) <= 200))
+                        and (command['action'] != 'delete' or (
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128))):
+                    thread_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
                         and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
@@ -272,6 +293,11 @@ def main() -> int:
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        # Issue 74: the chat session tiers and the audit log they are recorded
+        # in are one device-level pair, shared by the chat surface and the
+        # transport session.
+        audit_log = LocalAuditLog(db_path=args.config.with_name("audit.db"))
+        session_tiers = SessionTierRegistry(audit=audit_log)
         # Registered local results are display-only metadata for this identity;
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
@@ -308,7 +334,8 @@ def main() -> int:
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
-            knowledge_publications=knowledge_publications, skill_imports=skill_imports)
+            knowledge_publications=knowledge_publications, skill_imports=skill_imports,
+            session_tiers=session_tiers)
 
         def chat_control():
             while not stop.is_set():
@@ -351,12 +378,15 @@ def main() -> int:
                 settings.save(args.config)
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
-                audit=LocalAuditLog(db_path=args.config.with_name("audit.db")))
+                audit=audit_log)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
             controller.client.receipt_ledger = receipts
             controller.client.local_results = local_results
+            # Issue 74: the consent coordinator reads the chat session's tier
+            # from the same registry the chat commands write.
+            controller.client.session_tiers = session_tiers
             connector_service = getattr(controller, 'connector_service', None)
             if connector_service is not None:
                 # Issue 123: the platform canonical identity rides this
@@ -574,6 +604,25 @@ def main() -> int:
                 emit({'v': 1, 'type': 'skill-scripts', 'id': script_command['id'],
                       'result': result, 'error': error})
             try:
+                thread_command = thread_commands.get_nowait()
+            except queue.Empty:
+                thread_command = None
+            if thread_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 72: the sidebar's own Thread management. The chat
+                    # session identity is the fence — the command must carry
+                    # the scope of the currently authenticated chat session.
+                    result = chat.threads_manage(thread_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; a
+                    # server detail never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith('CHAT_') else 'THREADS_FAILED'
+                emit({'v': 1, 'type': 'threads', 'id': thread_command['id'],
+                      'result': result, 'error': error})
+            try:
                 model_command = model_commands.get_nowait()
             except queue.Empty:
                 model_command = None
@@ -690,6 +739,16 @@ def main() -> int:
             # unknown count cannot look like an idle queue and falsely block
             # installation. A task appearing during the read still counts too.
             active_tasks_before = controller.client.active_task_count() if controller is not None else 0
+            # Issue 77: the status loop drives the bounded background-session
+            # observation; each event becomes one wire notification for the
+            # Desktop's own notification center. The tick bounds Server
+            # polling only — the platform's own concurrency is never narrowed.
+            try:
+                notify_events = chat.background_tick()
+            except Exception:
+                notify_events = []
+            for event in notify_events:
+                emit({'v': 1, 'type': 'notify', 'event': event})
             receipt_view = receipts.snapshot(current_receipt_owner)
             try:
                 unknown_write_effects = receipts.unknown_write_effects(None)
@@ -708,6 +767,7 @@ def main() -> int:
                       "installDrain": install_draining,
                       "activeTasks": max(active_tasks_before,
                           controller.client.active_task_count() if controller is not None else 0),
+                      "backgroundRuns": chat.background_runs()[:20],
                       "receiptStorageError": receipts.error,
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],

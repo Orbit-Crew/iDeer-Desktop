@@ -11,14 +11,15 @@ from core.settings import RuntimeSettings
 
 AGENT = '11111111-1111-4111-8111-111111111111'
 SKILL = '22222222-2222-4222-8222-222222222222'
+SKILL2 = '44444444-4444-4444-8444-444444444444'
 
 
 @contextmanager
 def platform(human_request=None, disconnect=False, can_run=True, agent_binding=AGENT, plain_answer=False,
-             optional_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
+             optional_skill=False, second_skill=False, lifecycle='active', version=3, missing_dependency=False, rewritten_human=False,
              cancel_status=202, local_tasks=None, history_gate=None, history_started=None,
              artifact_status=None, artifact_responder=None, grant_status=200, on_grant=None,
-             drop_once=False, silent_phase=False, resume_flake=False):
+             drop_once=False, silent_phase=False, resume_flake=False, hold_stream=None, list_run=False):
     records = []
     artifacts = {}
     grants = set()
@@ -58,6 +59,12 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status, data = 409, {}
             elif self.path == f'/api/resources/{SKILL}/published':
                 data = {'resource': dict(resource, id=SKILL, type='skill'), 'version': {'version': 1}, 'dependencies': []}
+            elif self.path == f'/api/resources/{SKILL2}/published':
+                if not second_skill:
+                    status, data = 404, {}
+                else:
+                    data = {'resource': dict(resource, id=SKILL2, type='skill'), 'version': {'version': 2},
+                            'dependencies': []}
             elif self.path == '/api/threads/search':
                 data = [{'thread_id': 'thread-A', 'status': 'idle', 'metadata': {'agent_name': AGENT}}] if user == 'A' else []
             elif self.path == '/api/threads':
@@ -67,6 +74,21 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status, data = 404, {}
                 else:
                     data = {'thread_id': 'thread-A', 'status': 'idle', 'metadata': {'agent_name': agent_binding}}
+            elif self.path == '/api/threads/thread-B':
+                if user == 'B':
+                    status, data = 404, {}
+                else:
+                    data = {'thread_id': 'thread-B', 'status': 'idle', 'metadata': {'agent_name': agent_binding}}
+            elif self.path == '/api/threads/thread-B/state':
+                data = {'values': {'messages': []}}
+            elif self.path.startswith('/api/threads/thread-B/messages/page'):
+                data = {'data': [], 'has_more': False}
+            elif self.path == '/api/threads/thread-B/runs':
+                data = []
+            elif self.path.startswith('/api/threads/thread-B/local-tasks?'):
+                data = {'tasks': [], 'has_more': False, 'next_offset': None}
+            elif self.path.startswith('/api/threads/thread-B/artifacts?'):
+                data = {'artifacts': [], 'has_more': False, 'next_offset': None}
             elif self.path == '/api/resources/aliases/agent/expert-slug':
                 data = resource
             elif self.path == '/api/threads/thread-A/state':
@@ -86,13 +108,19 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     data['data'] = [{'content': {'id': 'h1', 'type': 'human', 'content': 'Unique T99 message'}}]
             elif self.path == '/api/threads/thread-A/runs':
                 if body is None:
-                    data = []
+                    # Issue 77: list_run lets the reopen path see the run the
+                    # fixture started; the default stays an empty history so
+                    # older reopen tests keep proving no Run is restarted.
+                    data = [{'run_id': 'run-1', 'thread_id': 'thread-A',
+                             'status': 'running' if hold_stream is not None and not hold_stream.is_set() else 'success',
+                             'created_at': '2026-01-01T00:00:00Z', 'metadata': {}}] if list_run else []
                 else:
                     data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': 'running', 'metadata': {}}
                     if body.get('stream_mode') != ['messages-tuple', 'values', 'custom']:
                         status, data = 422, {'detail': 'Unsupported public stream mode'}
             elif self.path == '/api/threads/thread-A/runs/run-1':
-                data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': 'success', 'metadata': {}}
+                run_status = 'running' if hold_stream is not None and not hold_stream.is_set() else 'success'
+                data = {'run_id': 'run-1', 'thread_id': 'thread-A', 'status': run_status, 'metadata': {}}
             elif self.path == '/api/threads/thread-A/runs/run-1/cancel?wait=false&action=interrupt':
                 status, data = cancel_status, None
             elif self.path.startswith('/api/threads/thread-A/local-tasks?'):
@@ -166,6 +194,15 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     return
                 self.wfile.write(b'id: 1\nevent: messages\ndata: [{"id":"a1","type":"AIMessageChunk","content":"Streamed"},{}]\n\n')
                 self.wfile.flush()
+                if hold_stream is not None:
+                    # Issue 77: the run keeps streaming (Server side) until the
+                    # test releases it; a switched-away session must not end it.
+                    hold_stream.wait(10)
+                    try:
+                        self.wfile.write(b'id: 2\nevent: end\ndata: null\n\n')
+                    except OSError:
+                        pass  # the switched-away consumer already hung up
+                    return
                 time.sleep(0.1)
                 if silent_phase:
                     # The run stays silent past the client's read window; a
@@ -874,3 +911,338 @@ def test_thread_history_separates_local_results_from_platform_attachments(tmp_pa
         assert local['localResult']['sha256'] and not local['localResult']['artifact_ref']
         assert 'artifacts' not in local
         assert upload_posts(records) == []
+
+
+def test_chat_tier_switch_is_validated_recorded_and_reset_by_thread_load(tmp_path):
+    """#74: the three session tiers ride one explicit command; a session
+    always starts at the lowest tier, switching needs the matching confirm
+    for the full tier, and reopening a thread forgets any tier choice —
+    with the fall-back itself recorded in the audit log."""
+    from core.session_tier import SessionTier, SessionTierRegistry
+
+    class _AuditSpy:
+        def __init__(self):
+            self.entries = []
+
+        def record(self, kind, action, **kwargs):
+            self.entries.append((action, kwargs.get('detail')))
+            return kwargs
+
+    audit = _AuditSpy()
+    registry = SessionTierRegistry(audit=audit)
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, session_tiers=registry)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '34343434-3434-4343-8343-343434343434', 'text': 'Hello'})
+        # A loaded session is always at the lowest tier.
+        assert state['localTier'] == 'ask_first'
+
+        upgraded = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                                'tier': 'autonomous'})
+        assert upgraded['localTier'] == 'autonomous'
+        assert upgraded['error'] == ''
+        assert registry.tier_for('thread-A') is SessionTier.AUTONOMOUS
+
+        full = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                            'tier': 'full', 'confirm': True})
+        assert full['localTier'] == 'full'
+        assert registry.tier_for('thread-A') is SessionTier.FULL
+
+        downgraded = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                                  'tier': 'ask_first'})
+        assert downgraded['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        assert [action for action, _ in audit.entries] == ['session_tier_changed'] * 3
+
+        # Reopening the thread forgets whatever the session chose before, and
+        # the expiry is recorded just like a switch (#74 review).
+        chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'full',
+                     'confirm': True})
+        reopened = chat.handle({'action': 'reconnect', 'scope': scope, 'threadId': 'thread-A'})
+        assert reopened['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        assert audit.entries[-1] == ('session_tier_expired',
+                                {'thread_id': 'thread-A', 'from': 'full', 'to': 'ask_first'})
+
+
+def test_chat_tier_command_rejects_malformed_and_mismatched_requests(tmp_path):
+    from core.session_tier import SessionTier, SessionTierRegistry
+
+    registry = SessionTierRegistry()
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, session_tiers=registry)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '35353535-3535-4353-8353-353535353535', 'text': 'Hello'})
+        for command, expected in (
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'full'},
+             'CHAT_COMMAND_INVALID'),  # the full tier needs the explicit confirm
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'unlimited'},
+             'CHAT_COMMAND_INVALID'),
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'autonomous',
+              'confirm': True}, 'CHAT_COMMAND_INVALID'),  # confirm belongs to full only
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-A', 'tier': 'autonomous',
+              'extra': 'x'}, 'CHAT_COMMAND_INVALID'),
+            ({'action': 'tier', 'scope': scope, 'threadId': 'thread-B', 'tier': 'autonomous'},
+             'CHAT_THREAD_CHANGED'),
+        ):
+            state = chat.handle(command)
+            assert state['error'] == expected
+            assert state['localTier'] == 'ask_first'
+        assert registry.tier_for('thread-A') is SessionTier.ASK_FIRST
+        # The thread mismatch never reloaded anything, so the tier command
+        # against the open thread still works afterwards.
+        state = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                             'tier': 'autonomous'})
+        assert state['localTier'] == 'autonomous'
+
+
+def test_chat_tier_command_needs_a_runtime_registry(tmp_path):
+    """A DesktopChat built without the device registry refuses to fake one."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '36363636-3636-4363-8363-363636363636', 'text': 'Hello'})
+        state = chat.handle({'action': 'tier', 'scope': scope, 'threadId': 'thread-A',
+                             'tier': 'autonomous'})
+        assert state['error'] == 'CHAT_COMMAND_INVALID'
+        assert state['localTier'] == 'ask_first'
+
+
+# --- Input commands on send (issue 75) --------------------------------------
+
+
+def run_posts(records):
+    """The recorded /runs submissions with a JSON body."""
+    return [body for path, body, _ in records
+            if path == '/api/threads/thread-A/runs' and isinstance(body, dict) and 'assistant_id' in body]
+
+
+def test_send_delegate_agent_stays_in_the_session_and_records_the_choice(tmp_path):
+    """#75: @ delegation keeps the main Agent and Thread — the platform's lead
+    Agent delegates through its own sub-agents; the picked id rides the run
+    metadata and the context carries no per-send skill unless one is mounted."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '@Published expert 帮我看看', 'delegateAgentId': AGENT})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['assistant_id'] == AGENT
+        assert body['metadata']['desktop_delegate_agent_id'] == AGENT
+        assert body['metadata']['desktop_turn_id'] == '75757575-7575-4757-8757-757575757575'
+        assert 'skill_resource_id' not in body['context']
+
+
+def test_send_mounted_skill_maps_first_onto_the_explicit_seam(tmp_path):
+    """#75: the first mounted chip is the run's explicit Skill — never a
+    trigger guess — mapped onto the same context seam a create-time Skill
+    uses, and validated by the same agent-closure rule."""
+    with platform(optional_skill=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL]})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['context']['skill_resource_id'] == SKILL
+        assert body['metadata']['desktop_skill_ids'] == [SKILL]
+        assert 'desktop_delegate_agent_id' not in body['metadata']
+
+
+def test_send_records_the_whole_mount_on_the_run(tmp_path):
+    """#75: every mounted chip rides the run in the user's pick order — the
+    first onto the explicit seam, the whole list into the run metadata — so a
+    mount is never UI-only dead weight."""
+    with platform(optional_skill=True, second_skill=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL, SKILL2]})
+        assert state['error'] == ''
+        body = run_posts(records)[-1]
+        assert body['context']['skill_resource_id'] == SKILL
+        assert body['metadata']['desktop_skill_ids'] == [SKILL, SKILL2]
+
+
+def test_send_explicit_skill_outside_agent_closure_is_rejected(tmp_path):
+    """#75: a published Skill outside the agent's closure fails exactly like a
+    create-time selection, before any run is submitted."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575',
+                             'text': '跑一次', 'skillIds': [SKILL]})
+        assert state['error'] == 'CHAT_SKILL_OUTSIDE_AGENT'
+        assert run_posts(records) == []
+        # The turn was never consumed, so the same id can still send plainly.
+        recovered = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                                 'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次'})
+        assert recovered['error'] == ''
+
+
+def test_send_rejects_malformed_input_commands(tmp_path):
+    """#75: shape violations fail without consuming the turn; the fields ride
+    the send action only, and an unknown delegate is a protocol failure."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        for patch in ({'skillIds': []}, {'skillIds': 'skill'}, {'skillIds': ['x', 'x']},
+                      {'skillIds': ['x' * 129]}, {'delegateAgentId': ''},
+                      {'delegateAgentId': 'not-a-uuid'}, {'delegateAgentId': 'y' * 129}):
+            state = chat.handle(dict(action='send', scope=scope, threadId='thread-A',
+                                     turnId='75757575-7575-4757-8757-757575757575',
+                                     text='跑一次', **patch))
+            assert state['error'] == 'CHAT_COMMAND_INVALID', patch
+        # An answer never carries the input commands, whatever its state.
+        stale = chat.handle({'action': 'answer', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575', 'requestId': 'req',
+                             'text': 'ok', 'skillIds': [SKILL]})
+        assert stale['error'] == 'CHAT_COMMAND_INVALID'
+        assert run_posts(records) == []
+        unknown = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                               'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次',
+                               'delegateAgentId': '99999999-9999-4999-8999-999999999999'})
+        assert unknown['error'] == 'CHAT_NOT_FOUND'
+        # Nothing consumed the turn; the plain send still goes through.
+        final = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '75757575-7575-4757-8757-757575757575', 'text': '跑一次'})
+        assert final['error'] == ''
+        assert len(run_posts(records)) == 1
+
+
+def test_background_run_keeps_running_and_reports_finish_once(tmp_path):
+    """#77: switching away never aborts a Run — the Server keeps it and the
+    Desktop observes it until it ends, reports exactly one finish notification,
+    and reopening the session reattaches the truthful end state."""
+    hold = threading.Event()
+    with platform(hold_stream=hold, list_run=True) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                             'turnId': '76767676-7676-4776-8776-767676767676', 'text': '跑后台任务'})
+        assert state['stream'] == 'streaming'
+        # 切到另一个会话：thread-A 的 Run 被登记为后台观察对象，而不是被中止。
+        opened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert opened['thread']['id'] == 'thread-B'
+        assert chat.background_runs() == [{'threadId': 'thread-A', 'runId': 'run-1'}]
+        assert not any('/cancel' in route for route, _, _ in records)
+        # 还在跑：不产生完成通知；重复观察也不产生。
+        assert chat.background_tick(force=True) == []
+        assert chat.background_tick(force=True) == []
+        hold.set()
+        finished = chat.background_tick(force=True)
+        assert len(finished) == 1
+        assert finished[0]['kind'] == 'run-finished'
+        assert finished[0]['threadId'] == 'thread-A' and finished[0]['runId'] == 'run-1'
+        assert finished[0]['status'] == 'success'
+        assert chat.background_runs() == []
+        # 完成通知只发一次。
+        assert chat.background_tick(force=True) == []
+        # 重开会话：状态如实显示结束态，不再重挂流。
+        reopened = chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-A'})
+        assert reopened['run']['status'] == 'success'
+        assert reopened['stream'] == 'idle'
+
+
+def test_background_consent_ask_notifies_once_and_skips_foreground(tmp_path):
+    """#77: a device approval ask on a backgrounded session reaches the user
+    as a notification exactly once — identity facts only, never the payload
+    bytes — and asks on the visible session stay on the chat cards."""
+    from core.consent import PendingConsent
+    hold = threading.Event()
+    background_ask = PendingConsent('task-bg', 'local.files.write',
+        {'run_id': 'run-1', 'thread_id': 'thread-A',
+         'arguments': {'path': '/workspace/bg/target.txt', 'content': 'SECRET BODY\n'}},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    foreground_ask = PendingConsent('task-fg', 'local.files.write',
+        {'run_id': 'run-B', 'thread_id': 'thread-B',
+         'arguments': {'path': '/workspace/fg/target.txt', 'content': 'VISIBLE\n'}},
+        'f' * 64, 'level_1', False, {}, time.monotonic())
+    with platform(hold_stream=hold) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [background_ask, foreground_ask])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '78787878-7878-4788-8888-787878787878', 'text': '写文件'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        events = chat.background_tick(force=True)
+        assert len(events) == 1
+        event = events[0]
+        assert event['kind'] == 'approval-required'
+        assert event['threadId'] == 'thread-A' and event['runId'] == 'run-1'
+        assert event['taskId'] == 'task-bg' and event['approval'] == 'file-write'
+        assert event['summary'] == '/workspace/bg/target.txt'
+        assert 'SECRET' not in json.dumps(events) and 'VISIBLE' not in json.dumps(events)
+        # 只通知一次；前台会话的请求不进通知。
+        assert chat.background_tick(force=True) == []
+        # 请求先消失（已被解决）再出现：视为新的一问，重新通知。
+        chat.local_consents = lambda: []
+        assert chat.background_tick(force=True) == []
+        chat.local_consents = lambda: [PendingConsent('task-bg', 'local.files.write',
+            {'run_id': 'run-1', 'thread_id': 'thread-A',
+             'arguments': {'path': '/workspace/bg/target.txt', 'content': 'SECRET BODY\n'}},
+            'e' * 64, 'level_1', False, {}, time.monotonic())]
+        replayed = chat.background_tick(force=True)
+        assert [row['taskId'] for row in replayed] == ['task-bg']
+        # 审批快照不可用时，完成观察照常进行，下一轮恢复。
+        def unavailable():
+            raise RuntimeError('fixture snapshot unavailable')
+        chat.local_consents = unavailable
+        assert chat.background_tick(force=True) == []
+
+
+def test_background_registry_resets_when_identity_changes(tmp_path):
+    """#77: the background ledger is a live-observation seam of the current
+    pairing — an identity change fences it off instead of ever reporting a
+    retired account's runs."""
+    hold = threading.Event()
+    with platform(hold_stream=hold) as (origin, _):
+        chat, settings, config = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '79797979-7979-4799-8999-797979797979', 'text': '跑后台任务'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert chat.background_runs() == [{'threadId': 'thread-A', 'runId': 'run-1'}]
+        settings.business_token_ref = 'business-B'
+        settings.save(config)
+        assert chat.background_tick(force=True) == []
+        assert chat.background_runs() == []
+
+
+def test_background_consent_facts_outside_the_wire_charset_are_skipped(tmp_path):
+    """#77: an ask whose run/task identity cannot survive the notify wire is
+    skipped entirely — the Desktop must never emit an event the strict main
+    process would treat as a malformed status line and kill the Runtime for."""
+    from core.consent import PendingConsent
+    hold = threading.Event()
+    malformed = PendingConsent('task/evil', 'local.files.write',
+        {'run_id': 'run 1', 'thread_id': 'thread-A',
+         'arguments': {'path': '/workspace/x/target.txt', 'content': 'BODY\n'}},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    with platform(hold_stream=hold) as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [malformed])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+                     'turnId': '80808080-8080-4800-9000-808080808080', 'text': '写文件'})
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert chat.background_tick(force=True) == []
+        assert chat.background_tick(force=True) == []

@@ -1,10 +1,11 @@
 // Node 16 compatibility runs in the build banner before any imports.
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
+import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
 import { type PendingUpdate, type UpdateVerification } from './updates'
 import { UpdateService } from './update-stage'
@@ -71,6 +72,55 @@ if (!app.requestSingleInstanceLock()) {
       quit: async () => { app.quit() } }) : null
     if (maintenanceId && !maintenanceSession) return
     mainWindow = createMainWindow()
+    // Issue 77: the Desktop's notification center. The owned Runtime reports
+    // background-session facts; the trusted main process owns the ledger, the
+    // OS toasts and the one push channel back to the renderer. Records made
+    // before this point would have no window to reach, and the Runtime has
+    // just started with no sessions to report — nothing is silently dropped.
+    const notifications = new NotificationRegistry()
+    const pushNotifications = (): void => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:notifications', notifications.list())
+    }
+    const activateNotification = (payload: { id: string; threadId: string }): void => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('desktop:notification:activate', payload)
+    }
+    runtime.onNotify((event: RuntimeNotifyEvent) => {
+      const record = notifications.record(event)
+      if (!record) return
+      if (Notification.isSupported()) {
+        // The one shared fact line (notifications.ts) keeps the toast and the
+        // center pane wording identical; future event kinds extend the union
+        // and the descriptor instead of this chat-agnostic handler.
+        const copy = describeNotification(event)
+        const toast = new Notification(copy)
+        toast.on('click', () => activateNotification({ id: record.id, threadId: event.threadId }))
+        toast.show()
+      }
+      pushNotifications()
+    })
+    ipcMain.handle('desktop:notifications', (event, command: NotificationCommand): NotificationCenterView => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object') throw new Error('NOTIFICATION_COMMAND_INVALID')
+      const keys = Object.keys(command).length
+      if (command.action === 'list' && keys === 1) return notifications.list()
+      if (command.action === 'read' && keys === 2 && typeof command.id === 'string' && command.id.length <= 64) {
+        notifications.markRead(command.id)
+        return notifications.list()
+      }
+      if (command.action === 'read-all' && keys === 1) {
+        notifications.markAllRead()
+        return notifications.list()
+      }
+      if (command.action === 'clear' && keys === 1) {
+        notifications.clear()
+        return notifications.list()
+      }
+      throw new Error('NOTIFICATION_COMMAND_INVALID')
+    })
     if (maintenanceSession) {
       const healthWindow = mainWindow
       let loadFailed = false
@@ -132,6 +182,20 @@ if (!app.requestSingleInstanceLock()) {
             defaultPath: name, buttonLabel: '保存附件', properties: ['showOverwriteConfirmation'] })
           return selected.canceled ? undefined : selected.filePath
         })
+      }
+      // Issue 74: entering the full tier is an explicit decision made in the
+      // trusted main process. The renderer never signs the confirm flag; the
+      // runtime refuses a full-tier switch without it, so the dialog is not
+      // decoration but the only path that can produce one.
+      if (command?.action === 'tier' && command.tier === 'full') {
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'warning', title: '切入完全模式',
+          message: '在当前会话切入完全模式？',
+          detail: '完全模式下，Agent 在授权文件夹内的操作（含命令行执行）不再逐次询问；文件夹外与保护路径在所有档位始终拒绝。档位只在当前会话生效，重新打开或新建会话都会恢复默认的“变更前询问”。',
+          buttons: ['取消，保持现状', '切入完全模式'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('SESSION_TIER_CANCELED')
+        return runtime.chat({ ...command, confirm: true })
       }
       return runtime.chat(command)
     })
@@ -317,6 +381,28 @@ if (!app.requestSingleInstanceLock()) {
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('SKILL_SCRIPT_UNAUTHENTICATED')
       return runtime.skillScripts(command)
+    })
+    // Issue 72: the session sidebar's Thread management. Rename and delete
+    // write the Server's own Thread API after the identity fence; a delete is
+    // confirmed here in the trusted main process, and the local receipt ledger
+    // is never touched — unconfirmed receipts stay queryable on this device.
+    ipcMain.handle('desktop:threads', async (event, command: ThreadCommand): Promise<ThreadView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['list', 'search', 'rename', 'delete'].includes(command.action)) throw new Error('THREADS_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('THREADS_UNAUTHENTICATED')
+      if (command.action === 'delete') {
+        if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId)) throw new Error('THREADS_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认删除平台会话',
+          message: `删除平台会话 ${command.threadId}？`,
+          detail: '删除会同时移除该会话在平台上的对话历史，操作不可恢复。本机保存的未确认回执不会清除，仍可在回执历史中查看。'
+            + '如该会话正在对话中，请先等当前 Run 结束再删除。',
+          buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('THREADS_CANCELED')
+      }
+      return runtime.threads(command)
     })
     // Issue 123: the optional local connector install. The renderer only
     // names the action; the candidate directory is located and both the

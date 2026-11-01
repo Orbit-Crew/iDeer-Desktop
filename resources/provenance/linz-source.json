@@ -19,6 +19,18 @@
     "src/renderer/src/components/Layout/Sidebar.tsx": "87fe672adf46dd2c5f131f4456142526d58567ed4444d952c34611373950581b",
     "src/renderer/src/components/ErrorBoundary.tsx": "e83108e9ecb76465775eda311debdab9af89d19ee59e93ec95aef8cacfe7d9a2",
     "src/renderer/src/stores/uiStore.ts": "18bcbd497b6237e8dc8c8b83880185448045bf0d04fba0e66ed4443927f7e3a8",
-    "src/renderer/src/assets/styles/globals.css": "7f062a58be1c5b25aa305ddc89a883695750f7785dac1dcdb54686ad8525f146"
+    "src/renderer/src/assets/styles/globals.css": "7f062a58be1c5b25aa305ddc89a883695750f7785dac1dcdb54686ad8525f146",
+    "src/renderer/src/dock/AddPanelPicker.tsx": "e0006e2ce9eadb9f914855230affb89b096c06e31b7e8118a0995d528f467e8b",
+    "src/renderer/src/dock/DockWorkspace.tsx": "1d3a1d43c6e162a0c3603eee198c147954f74b43f51ee26c8bf0eca63f86b60f",
+    "src/renderer/src/dock/InstanceHostOverlay.tsx": "4eff43ff8add3be063ebedc5ee880fde2ba1dd68f94cced73460f40cd6e15106",
+    "src/renderer/src/dock/PaneFrame.tsx": "275dfc20b0af0c38ebc844b61b8aba0460ec36012eb41a2edd725a9d6f11739e",
+    "src/renderer/src/dock/defaultLayout.ts": "bae105438eaf24277ca361a879c50417e74931bff617ab0d2d578e7655e33eca",
+    "src/renderer/src/dock/dockStore.ts": "bc6424169f7e5e98d5edf3f29413a2b99682b21ee2a395872722dcb9338b6c86",
+    "src/renderer/src/dock/layoutPresets.tsx": "942d0d8ca0d98243cf52b8f26e621c140cc51f1572d4d50c006c259ba63ae56f",
+    "src/renderer/src/dock/panelMeta.ts": "dd9e72d53cd2fb2a66fc6c3602ad1f88b861d993046f4d7155f7adc619ac419d",
+    "src/renderer/src/dock/panelRegistry.tsx": "e6f3c1260807168f2a4d891cb4a57800172915c1761e3542c64ea4d96bcb2cc5",
+    "src/renderer/src/dock/persistence.ts": "e262e927bf3c40fb5e21fd2e6f84e9e53343210e0f1d26d60477a8fb347b52a5",
+    "src/renderer/src/dock/types.ts": "bc8fcea7eea9cf3fc1dad18af119dcebf94a607752c159246bdffccf21378ee2",
+    "src/renderer/src/components/Chat/LayoutPresetDropdown.tsx": "a080e7e214b73c997cc12839c9098866ef469413008f07d9825bb8ab1e71b1f5"
   }
 }

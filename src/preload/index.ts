@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, KnowledgeGraphCommand, ModelCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, WikiCommand } from '../shared/desktop'
+import type { ChatCommand, ConnectorCommand, DesktopBridge, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -19,12 +19,26 @@ const bridge: DesktopBridge = Object.freeze({
   skillPreferences: (command: SkillPreferenceCommand) => ipcRenderer.invoke('desktop:skill-preferences', command),
   skillScripts: (command: SkillScriptCommand) => ipcRenderer.invoke('desktop:skill-scripts', command),
   models: (command: ModelCommand) => ipcRenderer.invoke('desktop:models', command),
+  threads: (command: ThreadCommand) => ipcRenderer.invoke('desktop:threads', command),
   connectors: (command: ConnectorCommand) => ipcRenderer.invoke('desktop:connectors', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
   installUpdate: () => ipcRenderer.invoke('desktop:updates:install'),
   recoveryState: () => ipcRenderer.invoke('desktop:updates:recovery'),
-  refreshCompatibility: () => ipcRenderer.invoke('desktop:compatibility:refresh')
+  refreshCompatibility: () => ipcRenderer.invoke('desktop:compatibility:refresh'),
+  // Issue 77: the notification center rides one invoke entry plus the two
+  // push channels; every push replaces the renderer's whole view.
+  notifications: (command: NotificationCommand) => ipcRenderer.invoke('desktop:notifications', command),
+  onNotifications: (listener: (view: NotificationCenterView) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, view: NotificationCenterView): void => listener(view)
+    ipcRenderer.on('desktop:notifications', wrapped)
+    return () => { ipcRenderer.removeListener('desktop:notifications', wrapped) }
+  },
+  onNotificationActivate: (listener: (payload: { id: string; threadId: string }) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, payload: { id: string; threadId: string }): void => listener(payload)
+    ipcRenderer.on('desktop:notification:activate', wrapped)
+    return () => { ipcRenderer.removeListener('desktop:notification:activate', wrapped) }
+  }
 })
 
 contextBridge.exposeInMainWorld('ideer', bridge)
