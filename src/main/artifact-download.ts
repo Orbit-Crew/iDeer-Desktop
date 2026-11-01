@@ -1,8 +1,7 @@
 import type { ChatCommand, ChatSnapshot } from '../shared/desktop'
 import type { RuntimeProcess } from './runtime'
-import { createHash, randomUUID } from 'node:crypto'
-import { renameSync, unlinkSync, writeFileSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { atomicWriteFile } from './atomic-save'
+import { createHash } from 'node:crypto'
 
 /** Owns the native save step; artifact bytes never enter the renderer. */
 export async function downloadThreadArtifact(runtime: Pick<RuntimeProcess, 'chat'>,
@@ -24,17 +23,10 @@ export async function downloadThreadArtifact(runtime: Pick<RuntimeProcess, 'chat
   // current Runtime scope includes the device binding and business identity.
   const current = await runtime.chat({ action: 'state' })
   if (current.error || current.scope !== command.scope) throw new Error('DOWNLOAD_IDENTITY_CHANGED')
-  const temporary = join(dirname(destination), `.${basename(destination)}.${randomUUID()}.download`)
-  let staged = false
   try {
-    writeFileSync(temporary, bytes, { flag: 'wx', mode: 0o600 })
-    staged = true
-    renameSync(temporary, destination)
-    staged = false
+    atomicWriteFile(destination, bytes, 'download')
   } catch {
     throw new Error('DOWNLOAD_SAVE_FAILED')
-  } finally {
-    if (staged) { try { unlinkSync(temporary) } catch { /* Preserve the original failure. */ } }
   }
   return { ...current, downloadStatus: 'saved' }
 }

@@ -7,6 +7,7 @@ import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, Desk
 import { RuntimeProcess } from './runtime'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
+import { exportChatTranscript } from './chat-export'
 import { type PendingUpdate, type UpdateVerification } from './updates'
 import { UpdateService } from './update-stage'
 import { requestInstall } from './installer'
@@ -180,6 +181,18 @@ if (!app.requestSingleInstanceLock()) {
           if (!mainWindow) throw new Error('DOWNLOAD_WINDOW_UNAVAILABLE')
           const selected = await dialog.showSaveDialog(mainWindow, { title: '保存平台附件',
             defaultPath: name, buttonLabel: '保存附件', properties: ['showOverwriteConfirmation'] })
+          return selected.canceled ? undefined : selected.filePath
+        })
+      }
+      // Issue 79: the conversation export. The renderer names the mode and
+      // target only; the document is derived in this trusted process from the
+      // Runtime's own state reply, the save dialog stays native and the
+      // renderer never supplies write content.
+      if (command?.action === 'export') {
+        return exportChatTranscript(runtime, command, async (name) => {
+          if (!mainWindow) throw new Error('CHAT_EXPORT_WINDOW_UNAVAILABLE')
+          const selected = await dialog.showSaveDialog(mainWindow, { title: '导出会话为 Markdown',
+            defaultPath: name, buttonLabel: '导出', properties: ['showOverwriteConfirmation'] })
           return selected.canceled ? undefined : selected.filePath
         })
       }

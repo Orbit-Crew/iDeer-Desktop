@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tag, Typography } from 'antd'
 import type { ChatCommand, ChatSnapshot, ChatSubagent, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
-import { SESSION_TIERS } from '../../../shared/desktop'
+import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
 import { useSessionStore } from '../stores/sessionStore'
 
@@ -27,6 +27,16 @@ const tierLabels: Record<SessionTierValue, string> = {
   ask_first: '变更前询问（默认）', autonomous: '自主模式', full: '完全模式'
 }
 const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
+
+// Issue 79: every expected export refusal is a local, recoverable condition —
+// name it as one instead of letting the generic outage alert speak for it.
+const exportOutcomeText: Record<string, string> = {
+  CHAT_EXPORT_SCOPE_CHANGED: '当前打开的会话已变化，请刷新后重新导出。',
+  CHAT_EXPORT_TARGET_MISSING: '未找到要导出的回复，请刷新后重试。',
+  CHAT_EXPORT_TOO_LARGE: '会话内容超出导出大小上限（2 MiB）。',
+  CHAT_EXPORT_IDENTITY_CHANGED: '导出期间账号状态已变化，请重新登录后重试。',
+  CHAT_EXPORT_SAVE_FAILED: '写入本机文件失败，请重试或更换保存位置。'
+}
 
 function Clarification({ request, disabled, onAnswer }: {
   request: HumanInputRequest; disabled: boolean; onAnswer: (text?: string, optionId?: string) => void
@@ -276,6 +286,12 @@ function ChatContents({ state, busy, onCommand }: {
       <TierSwitch state={state} threadId={threadId} busy={busy} onCommand={onCommand} />
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
       {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}
+      {/* Issue 79: the export outcome rides the reply snapshot exactly like the
+          attachment download; the document itself never passes through here. */}
+      {state.exportStatus === 'saved' && <Alert type="success" message="会话导出已保存到本机。" />}
+      {state.exportStatus === 'cancelled' && <Alert type="info" message="已取消导出。" />}
+      {state.exportStatus === 'failed' && <Alert type="warning" showIcon
+        message={`导出未完成：${exportOutcomeText[state.exportError ?? ''] ?? '导出出现问题，请重试。'}`} />}
       {!!state.artifacts?.length && <Card size="small" title="Thread 平台附件">
         {state.artifacts.map((artifact) => <div key={artifact.artifact_id}>
           <Typography.Paragraph>{artifact.name} · {artifact.bytes} 字节 · SHA-256 {artifact.sha256}</Typography.Paragraph>
@@ -326,8 +342,17 @@ function ChatContents({ state, busy, onCommand }: {
         return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
       })}
+      {/* Issue 79: the renderer only names the export action and target; the
+          trusted main process derives the document and owns the save dialog. */}
+      <Space wrap>
+        <Button disabled={busy || !state.messages.length}
+          onClick={() => void onCommand({ action: 'export', mode: 'session', scope: state.scope, threadId })}>导出整会话 Markdown</Button>
+        <Typography.Text type="secondary">导出内容为界面可见消息的原样文本，保存位置在系统对话框中选择。</Typography.Text>
+      </Space>
       <div role="log" aria-label="平台聊天消息" className="space-y-3 max-h-[50vh] overflow-auto">
-        {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}>
+        {state.messages.map((message) => <Card size="small" key={message.id} title={messageRoleLabel(message)}
+          extra={message.role === 'ai' && <Button type="text" size="small" aria-label="导出本条回复" disabled={busy}
+            onClick={() => void onCommand({ action: 'export', mode: 'message', scope: state.scope, threadId, messageId: message.id })}>导出</Button>}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>
           {message.role === 'ai' && <Button type="link" size="small" className="px-0" aria-label="从此回复分支"
             disabled={!canBranch} title="从这条回复开启新支线（历史保持一致，后续各自独立）"

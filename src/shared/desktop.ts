@@ -655,6 +655,10 @@ export type ChatCommand =
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
+  // Issue 79: the conversation export. The renderer names the mode and target
+  // only; the document is derived in the trusted main process from the
+  // Runtime's own state reply, and the destination stays a native dialog.
+  | { action: 'export'; scope: string; threadId: string; mode: 'session' | 'message'; messageId?: string }
   | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
   /** Issue 78: 消息级分支. The renderer names the target turn only — one
    * assistant message plus, when the transcript groups more than one, the
@@ -683,6 +687,12 @@ export interface ChatMessage {
   request?: HumanInputRequest | null
   response?: { request_id: string } | null
 }
+/** Issue 79: the card title and the export section heading must stay the same
+ * words — the export mirrors the interface by construction, not by assertion. */
+export function messageRoleLabel(message: Pick<ChatMessage, 'role' | 'name'>): string {
+  return message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`
+}
+
 /** Issue 76: one parallel sub-agent the platform's lead Agent dispatched
  * through its own task tool. Every field is a bounded projection of the
  * platform's own task_* custom events (or the parent AI message's published
@@ -744,6 +754,12 @@ export interface ChatSnapshot {
   /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
   download?: PlatformArtifact & { content: string }
   downloadStatus?: 'saved' | 'cancelled'
+  /** Issue 79: main-process export outcome on the reply snapshot; transient
+   * like downloadStatus and never part of the Runtime's own state. A refusal
+   * carries its code in exportError so the card can explain it locally
+   * instead of presenting it as a Runtime or Server outage. */
+  exportStatus?: 'saved' | 'cancelled' | 'failed'
+  exportError?: string
   stop?: { runId: string; state: 'requested' | 'uncertain' } | null
   taskError?: string
   localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;

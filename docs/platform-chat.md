@@ -21,6 +21,20 @@ the existing session-cookie and CSRF contract. Device credentials do not
 authenticate chat. No model, Agent graph, shell or fallback executor is added
 to Desktop.
 
+Issue #79 adds the conversation export to the same command union: the renderer
+names `export` with the mode (`session` or `message`) and the target message id
+only. The command never reaches the Runtime; the trusted main process derives
+the Markdown document from its own `state` reply, so the export is exactly the
+interface-visible message log — message text verbatim (the interface itself
+renders plain preformatted text, and the document says so), clarification
+prompts as visible prompt text with an answered marker, and nothing else:
+no attachments, no local task receipts, no server events, no message/request
+identifiers. The destination is a native save dialog with a suggested file
+name; the write is staged and renamed atomically, the scope is re-checked
+after the dialog like the artifact download, and the outcome rides the reply
+snapshot as a transient `exportStatus` the same way `downloadStatus` does.
+
+## Model selection (issue #73)
 ## Model selection (issue #73)
 
 The settings entry restores the original position with a restricted
