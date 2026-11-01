@@ -182,7 +182,9 @@ def test_branch_fences_the_open_session(tmp_path):
         result = chat.handle({'action': 'branch', 'scope': scope, 'threadId': 'thread-elsewhere', 'messageId': 'a1'})
         assert result['error'] == 'CHAT_THREAD_CHANGED'
         result = chat.handle({'action': 'branch', 'scope': 'not-the-scope', 'threadId': SOURCE, 'messageId': 'a1'})
-        assert result['error'] in {'CHAT_IDENTITY_CHANGED', 'CHAT_COMMAND_INVALID'}
+        # The scope fence runs before the action dispatch, so the category is
+        # the identity one, not a malformed-command one.
+        assert result['error'] == 'CHAT_IDENTITY_CHANGED'
         assert not [row for row in records if row[0] == 'POST' and row[1].endswith('/branches')]
 
 

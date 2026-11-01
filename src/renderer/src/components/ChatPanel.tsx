@@ -224,11 +224,12 @@ function ChatContents({ state, busy, onCommand }: {
   const pending = [...state.messages].reverse().find((m) => m.request && !answered.has(m.request.request_id))?.request
   // Issue 73: an unavailable model pauses sending until the user switches;
   // nothing switches silently behind the user's back.
-  const canSend = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !!state.thread?.agentId &&
-    state.model?.available !== false
-  // Issue 78: a branch names a settled turn — no in-flight run, no stream and
-  // no open clarification; the platform refuses anything else on its own.
-  const canBranch = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId && !pending
+  // Issue 78: both actions need a settled session — no in-flight run, no
+  // stream; a branch additionally refuses an open clarification, the
+  // platform refuses anything else on its own.
+  const settled = !busy && state.stream === 'idle' && !['pending', 'running'].includes(state.run?.status || '') && !!threadId
+  const canSend = settled && !!state.thread?.agentId && state.model?.available !== false
+  const canBranch = settled && !pending
   const turnIds = turnGroups(state.messages)
   const modelSourceLabels: Record<string, string> = {
     'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
