@@ -83,7 +83,7 @@ and installed UI start/stop/crash/recovery, quit and native window close.
 | --- | --- |
 | core/transport.py | Verify HELLO before connected; persistent task admission before dispatch; signed rejection receipts; denied echo returns no value |
 | core/python.py | Cancel/timeout closes the already assigned Windows Job Object immediately. The original regression reproduced a descendant side effect while taskkill was starting; all 22 original Python tests pass after the fix |
-| pyproject.toml | Pin production versions, retain explicit core wheel package fix, add Desktop entry and test extras/config |
+| pyproject.toml | Pin production versions, retain explicit core wheel package fix, add Desktop entry and test extras/config; #81 adds the pure-Python pypdf wheel for real device-side PDF parsing |
 | core/settings.py, issue #98 | Add separate business identity and OS credential references plus business expiry; preserve plaintext-free serialization |
 
 Issue #98 adds `core/browser_login.py` and extends Desktop-only `core/desktop.py`.
@@ -185,8 +185,9 @@ history. Native window close remains a true exit; there is no tray-hide entry.
 ## Build and evidence
 
 `npm.cmd run dist:win` prepares the Runtime before NSIS packaging.
-distribution.lock.json pins the official CPython archive and four wheels by URL
-and SHA-256. Build output retains their licenses and LICENSE.upstream.
+distribution.lock.json pins the official CPython archive and the locked
+wheels (production dependencies plus the #81 pypdf parser) by URL and
+SHA-256. Build output retains their licenses and LICENSE.upstream.
 scripts/verify-issue-97.ps1 saves commands, exit codes, durations, test counts,
 dependency graph, environment and hashes in artifacts/issue-97/.
 The acceptance record is docs/acceptance/issue-97/report.md. Test results do not

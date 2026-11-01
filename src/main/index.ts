@@ -258,7 +258,7 @@ if (!app.requestSingleInstanceLock()) {
       const confirmation = await dialog.showMessageBox(mainWindow!, {
         type: 'question', title: '确认本地知识导入',
         message: '在设备侧解析所选文件，并在平台登记你的私有知识库新版本？',
-        detail: '仅登记文件名、大小、类型与 SHA-256 指纹清单；原文件与设备侧索引不会自动上传。每次导入生成一个新的不可变版本，不覆盖已登记版本。',
+        detail: '设备侧将真实解析 PDF/DOCX/XLSX/CSV 与文本文件，并在本机记录解析结果（解析器与版本、页/表定位）；平台仅登记文件名、大小、类型与 SHA-256 指纹清单，原文件与解析结果不会自动上传。本机不解析的格式（如 .doc/.xls/.ppt）会如实标记，可在导入后通过「发布此版本到服务端」显式上传原件交平台解析。每次导入生成一个新的不可变版本，不覆盖已登记版本。',
         buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0, noLink: true
       })
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
