@@ -190,6 +190,10 @@ function ChatContents({ state, busy, onCommand }: {
       <TierSwitch state={state} threadId={threadId} busy={busy} onCommand={onCommand} />
       {state.downloadStatus === 'saved' && <Alert type="success" message="附件已保存，内容 SHA-256 已核验。" />}
       {state.downloadStatus === 'cancelled' && <Alert type="info" message="已取消保存附件。" />}
+      {/* Issue 79: the export outcome rides the reply snapshot exactly like the
+          attachment download; the document itself never passes through here. */}
+      {state.exportStatus === 'saved' && <Alert type="success" message="会话导出已保存到本机。" />}
+      {state.exportStatus === 'cancelled' && <Alert type="info" message="已取消导出。" />}
       {!!state.artifacts?.length && <Card size="small" title="Thread 平台附件">
         {state.artifacts.map((artifact) => <div key={artifact.artifact_id}>
           <Typography.Paragraph>{artifact.name} · {artifact.bytes} 字节 · SHA-256 {artifact.sha256}</Typography.Paragraph>
@@ -239,8 +243,17 @@ function ChatContents({ state, busy, onCommand }: {
         return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
       })}
+      {/* Issue 79: the renderer only names the export action and target; the
+          trusted main process derives the document and owns the save dialog. */}
+      <Space wrap>
+        <Button disabled={busy || !state.messages.length}
+          onClick={() => void onCommand({ action: 'export', mode: 'session', scope: state.scope, threadId })}>导出整会话 Markdown</Button>
+        <Typography.Text type="secondary">导出内容为界面可见消息的原样文本，保存位置在系统对话框中选择。</Typography.Text>
+      </Space>
       <div role="log" aria-label="平台聊天消息" className="space-y-3 max-h-[50vh] overflow-auto">
-        {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}>
+        {state.messages.map((message) => <Card size="small" key={message.id} title={message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`}
+          extra={message.role === 'ai' && <Button type="text" size="small" aria-label="导出本条回复" disabled={busy}
+            onClick={() => void onCommand({ action: 'export', mode: 'message', scope: state.scope, threadId, messageId: message.id })}>导出</Button>}>
           <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.text}</Typography.Paragraph>
           {pending && message.request?.request_id === pending.request_id && <Clarification key={pending.request_id} request={pending}
             disabled={!canSend} onAnswer={(answer, optionId) => void onCommand({ action: 'answer', scope: state.scope,

@@ -610,6 +610,10 @@ export type ChatCommand =
     decision: 'allow' | 'allow-directory' | 'deny'; rememberScript?: boolean }
   | { action: 'upload'; scope: string; threadId: string; runId: string; taskId: string; decision: 'allow' }
   | { action: 'download'; scope: string; threadId: string; artifactId: string }
+  // Issue 79: the conversation export. The renderer names the mode and target
+  // only; the document is derived in the trusted main process from the
+  // Runtime's own state reply, and the destination stays a native dialog.
+  | { action: 'export'; scope: string; threadId: string; mode: 'session' | 'message'; messageId?: string }
   | { action: 'tier'; scope: string; threadId: string; tier: SessionTierValue; confirm?: true }
 
 export interface HumanInputRequest {
@@ -659,6 +663,9 @@ export interface ChatSnapshot {
   /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
   download?: PlatformArtifact & { content: string }
   downloadStatus?: 'saved' | 'cancelled'
+  /** Issue 79: main-process export outcome on the reply snapshot; transient
+   * like downloadStatus and never part of the Runtime's own state. */
+  exportStatus?: 'saved' | 'cancelled'
   stop?: { runId: string; state: 'requested' | 'uncertain' } | null
   taskError?: string
   localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;
