@@ -64,6 +64,12 @@ describe('chat export surface (#79)', () => {
       onCommand={vi.fn(async () => {})} />)
     expect(cancelled.getByText('已取消导出。')).toBeTruthy()
     cancelled.unmount()
+    const failed = render(<ChatView state={stateWith({ exportStatus: 'failed', exportError: 'CHAT_EXPORT_SAVE_FAILED' })}
+      busy={false} onCommand={vi.fn(async () => {})} />)
+    expect(failed.getByText('导出未完成：写入本机文件失败，请重试或更换保存位置。')).toBeTruthy()
+    // A local save failure never presents as the generic outage message.
+    expect(failed.queryByText('Runtime 或 Server 不可用，请检查连接后恢复状态；旧提交不会自动重发')).toBeNull()
+    failed.unmount()
     const silent = render(<ChatView state={stateWith()} busy={false} onCommand={vi.fn(async () => {})} />)
     expect(silent.queryByText('会话导出已保存到本机。')).toBeNull()
   })

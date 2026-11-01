@@ -79,6 +79,8 @@ describe('main-process conversation export (#79)', () => {
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'everything' },
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'session', extra: 1 },
       { action: 'export', scope: '', threadId: 'thread-1', mode: 'session' },
+      { action: 'export', scope: 's'.repeat(257), threadId: 'thread-1', mode: 'session' },
+      { action: 'export', scope: 'scope-1', threadId: 't'.repeat(257), mode: 'session' },
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'message' },
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'message', messageId: 7 },
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'message', messageId: 'x'.repeat(257) }
@@ -100,12 +102,13 @@ describe('main-process conversation export (#79)', () => {
   })
 
   it('refuses a thread other than the currently open one', async () => {
-    await expect(run(stateWith(),
-      { action: 'export', scope: 'scope-1', threadId: 'thread-other', mode: 'session' } as ChatCommand, 'x.md'))
-      .rejects.toThrow('CHAT_EXPORT_SCOPE_CHANGED')
-    await expect(run(stateWith(),
-      { action: 'export', scope: 'scope-other', threadId: 'thread-1', mode: 'session' } as ChatCommand, 'x.md'))
-      .rejects.toThrow('CHAT_EXPORT_SCOPE_CHANGED')
+    const changedThread = await run(stateWith(),
+      { action: 'export', scope: 'scope-1', threadId: 'thread-other', mode: 'session' } as ChatCommand, 'x.md')
+    expect(changedThread.result.exportStatus).toBe('failed')
+    expect(changedThread.result.exportError).toBe('CHAT_EXPORT_SCOPE_CHANGED')
+    const changedScope = await run(stateWith(),
+      { action: 'export', scope: 'scope-other', threadId: 'thread-1', mode: 'session' } as ChatCommand, 'x.md')
+    expect(changedScope.result.exportError).toBe('CHAT_EXPORT_SCOPE_CHANGED')
   })
 
   it('exports a single reply only by its own message id', async () => {
@@ -123,9 +126,10 @@ describe('main-process conversation export (#79)', () => {
 
   it('refuses message targets that are missing or not replies', async () => {
     for (const messageId of ['missing-id', 'human-id-1']) {
-      await expect(run(stateWith(),
-        { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'message', messageId } as ChatCommand, 'x.md'))
-        .rejects.toThrow('CHAT_EXPORT_TARGET_MISSING')
+      const { result } = await run(stateWith(),
+        { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'message', messageId } as ChatCommand, 'x.md')
+      expect(result.exportStatus).toBe('failed')
+      expect(result.exportError).toBe('CHAT_EXPORT_TARGET_MISSING')
     }
   })
 
@@ -133,22 +137,24 @@ describe('main-process conversation export (#79)', () => {
     const directory = scratch()
     const blocker = join(directory, 'file-blocks-the-way')
     writeFileSync(blocker, 'not a directory')
-    await expect(run(stateWith(),
+    const { result } = await run(stateWith(),
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'session' } as ChatCommand,
-      join(blocker, 'out.md')))
-      .rejects.toThrow('CHAT_EXPORT_SAVE_FAILED')
+      join(blocker, 'out.md'))
+    expect(result.exportStatus).toBe('failed')
+    expect(result.exportError).toBe('CHAT_EXPORT_SAVE_FAILED')
     expect(readFileSync(blocker, 'utf8')).toBe('not a directory')
   })
 
-  it('aborts when the identity changes while the dialog is pending', async () => {
+  it('reports an identity change while the dialog is pending without writing', async () => {
     const directory = scratch()
     const state = stateWith()
     let dialogPending = false
     const chat = vi.fn(async () => (dialogPending ? stateWith({ scope: 'scope-2' }) : state))
-    await expect(exportChatTranscript({ chat } as never,
+    const result = await exportChatTranscript({ chat } as never,
       { action: 'export', scope: 'scope-1', threadId: 'thread-1', mode: 'session' } as ChatCommand,
-      async () => { dialogPending = true; return join(directory, 'out.md') }, () => at))
-      .rejects.toThrow('CHAT_EXPORT_IDENTITY_CHANGED')
+      async () => { dialogPending = true; return join(directory, 'out.md') }, () => at)
+    expect(result.exportStatus).toBe('failed')
+    expect(result.exportError).toBe('CHAT_EXPORT_IDENTITY_CHANGED')
     expect(readdirSync(directory)).toEqual([])
   })
 

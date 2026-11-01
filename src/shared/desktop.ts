@@ -636,6 +636,11 @@ export interface ChatMessage {
   request?: HumanInputRequest | null
   response?: { request_id: string } | null
 }
+/** Issue 79: the card title and the export section heading must stay the same
+ * words — the export mirrors the interface by construction, not by assertion. */
+export function messageRoleLabel(message: Pick<ChatMessage, 'role' | 'name'>): string {
+  return message.role === 'human' ? '你' : message.role === 'ai' ? 'Agent' : `工具 ${message.name}`
+}
 /** Issue 39: one pending device decision the Desktop chat can settle — a
  * file write (#102), a Skill script run (#122), or a knowledge material read
  * (#116). Identity and scope facts only; bytes never cross to the renderer. */
@@ -664,8 +669,11 @@ export interface ChatSnapshot {
   download?: PlatformArtifact & { content: string }
   downloadStatus?: 'saved' | 'cancelled'
   /** Issue 79: main-process export outcome on the reply snapshot; transient
-   * like downloadStatus and never part of the Runtime's own state. */
-  exportStatus?: 'saved' | 'cancelled'
+   * like downloadStatus and never part of the Runtime's own state. A refusal
+   * carries its code in exportError so the card can explain it locally
+   * instead of presenting it as a Runtime or Server outage. */
+  exportStatus?: 'saved' | 'cancelled' | 'failed'
+  exportError?: string
   stop?: { runId: string; state: 'requested' | 'uncertain' } | null
   taskError?: string
   localTasks?: { task_id: string; run_id: string; tool_call_id?: string; capability: string; logical_target: string;
