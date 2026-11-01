@@ -1,8 +1,11 @@
+// Adapted from the pinned linz Sidebar. Business navigation is not enabled.
+// Issue 73: the original bottom settings entry restored; the modal carries
+// the model settings surface only (no provider or credential section).
 // Issue 72: the session sidebar's full management — search, rename, delete and
 // recency ordering, all riding the platform's own Thread API. The list is the
 // Server's own post-action reply; nothing local is kept, and deleting a thread
 // never clears this device's unconfirmed receipts.
-import { BellOutlined, DeleteOutlined, EditOutlined, DoubleLeftOutlined, RocketOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons'
+import { BellOutlined, DeleteOutlined, EditOutlined, DoubleLeftOutlined, RocketOutlined, SearchOutlined, SettingOutlined, UndoOutlined } from '@ant-design/icons'
 import { Alert, Badge, Button, Input, Popconfirm, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../stores/uiStore'
@@ -10,6 +13,7 @@ import { useSessionStore } from '../../stores/sessionStore'
 import { useNotificationCenter } from '../../stores/notificationCenter'
 import { useDockStore } from '../../dock/dockStore'
 import { explainThreadError, SessionSidebarController, emptySessionSidebarView, type SessionSidebarView } from '../../stores/sessionSidebar'
+import ModelSettingsModal from './ModelSettingsModal'
 import type { ThreadRowView } from '../../../../shared/desktop'
 
 const statusLabels: Record<string, string> = { idle: '空闲', busy: '进行中', interrupted: '已中断', error: '异常' }
@@ -129,6 +133,8 @@ export default function Sidebar(): JSX.Element {
   const requestOpen = useSessionStore((state) => state.requestOpen)
   const activeThreadId = useSessionStore((state) => state.activeThreadId)
   const unreadNotifications = useNotificationCenter((state) => state.view.unread)
+  // Issue 73: the model settings modal rides the restored bottom entry.
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [view, setView] = useState<SessionSidebarView>(emptySessionSidebarView)
   const controllerRef = useRef<SessionSidebarController | null>(null)
   // Static startup markup renders without a preload bridge; the sidebar then
@@ -182,8 +188,11 @@ export default function Sidebar(): JSX.Element {
       </div>
       <div className="px-5 py-4 border-t border-line-light text-xs text-gray-500">
         <p className="mb-3">版本 0.1.0</p>
+        <Button block icon={<SettingOutlined />} className="mb-2"
+          onClick={() => setSettingsOpen(true)}>设置</Button>
         <Button block onClick={() => void window.ideer.quit()}>退出应用</Button>
       </div>
+      <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   )
 }

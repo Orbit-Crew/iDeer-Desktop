@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
@@ -29,6 +29,7 @@ export class RuntimeProcess {
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
+  private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
@@ -349,6 +350,36 @@ export class RuntimeProcess {
     })
   }
 
+  /** Issue 73: the model settings surface. The command is a fixed per-action
+   * key set that only reaches the owned Runtime and on to the platform's own
+   * model/preference endpoints; no provider, Base URL or key field exists in
+   * the family, and the account default rides the same setting the Web uses. */
+  async models(command: ModelCommand): Promise<ModelSettingsView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('MODEL_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'models', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('MODEL_COMMAND_INVALID')
+    } else {
+      if (!['set-default', 'set-fallback'].includes(command.action)) throw new Error('MODEL_COMMAND_INVALID')
+      if (typeof command.modelName !== 'string' || command.modelName.length > 200 ||
+          Object.keys(command).length !== 2) throw new Error('MODEL_COMMAND_INVALID')
+      wire.modelName = command.modelName
+    }
+    if (this.modelRequests.size) throw new Error('MODEL_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.modelRequests.delete(id); reject(new Error('MODEL_TIMEOUT')) }, 30000)
+      this.modelRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.modelRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.modelRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
   /**
    * Issue 72: the session sidebar's Thread management. The wire command is a
    * fixed per-action key set and always carries the chat session scope the
@@ -443,6 +474,10 @@ export class RuntimeProcess {
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
       send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
+      // Issue 73: the session's temporary model choice; '' clears back to the
+      // account default resolution chain. The model name is bounded at the
+      // same 200 characters the platform preference accepts.
+      'set-model': ['action', 'scope', 'threadId', 'modelName'],
       answer: ['action', 'scope', 'threadId', 'turnId', 'requestId', 'text', 'optionId'],
       consent: ['action', 'scope', 'threadId', 'runId', 'taskId', 'requestHash', 'decision'],
       upload: ['action', 'scope', 'threadId', 'runId', 'taskId', 'decision'],
@@ -502,7 +537,7 @@ export class RuntimeProcess {
       if ((key === 'confirm' || key === 'rememberScript') && value === true) return false
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
       if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
-      return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : 256)
+      return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : key === 'modelName' ? 200 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')
     }
@@ -1034,6 +1069,30 @@ export class RuntimeProcess {
             else this.workspaceRequest?.resolve()
             continue
           }
+          if (value.v === 1 && value.type === 'models') {
+            // Issue 73: the Server's own authorized list and preference
+            // facts, bounded before they reach the renderer. The projection
+            // drops anything the Server did not state and can never carry a
+            // provider, endpoint or key field — the family has none.
+            const pending = this.modelRequests.get(value.id)
+            if (!pending) continue
+            this.modelRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            if (!result || !Array.isArray(result.models) || typeof result.canRead !== 'boolean') {
+              pending.reject(new Error('MODEL_SETTINGS_FAILED')); continue
+            }
+            const models: ModelRowView[] = result.models.slice(0, 50).map((row: Record<string, unknown>) => ({
+              name: text(row?.name, 200), displayName: text(row?.displayName, 200),
+              description: text(row?.description, 500), supportsThinking: row?.supportsThinking === true
+            })).filter((row: ModelRowView) => row.name !== '')
+            pending.resolve({ models, canRead: result.canRead,
+              reason: text(result.reason, 64),
+              accountDefault: text(result.accountDefault, 200),
+              fallback: text(result.fallback, 200) })
+            continue
+          }
           if (value.v === 1 && value.type === 'chat') {
             const result = value.result
             if (!result || typeof result.scope !== 'string' || typeof result.error !== 'string' ||
@@ -1041,6 +1100,26 @@ export class RuntimeProcess {
                 // Issue 76: the sub-agent ledger is part of every snapshot the
                 // Runtime returns, exactly like the transcript arrays.
                 !['resources', 'threads', 'messages', 'events', 'subagents'].every((key) => Array.isArray(result[key]))) throw new Error('Invalid chat response')
+            // Issue 73: the model display facts ride every snapshot; a shape
+            // violation kills the child rather than showing invented state.
+            // The option rows get the same bounded projection as the models
+            // reply — display facts only, no invented fields.
+            if (result.model && (typeof result.model !== 'object' ||
+                !['session-override', 'account-default', 'platform-default'].includes(result.model.source) ||
+                typeof result.model.name !== 'string' || result.model.name.length > 200 ||
+                typeof result.model.reason !== 'string' || result.model.reason.length > 64 ||
+                typeof result.model.notice !== 'string' || result.model.notice.length > 500 ||
+                typeof result.model.switchedFrom !== 'string' || result.model.switchedFrom.length > 200 ||
+                typeof result.model.available !== 'boolean')) throw new Error('Invalid chat response')
+            if (result.modelOptions !== undefined) {
+              if (!Array.isArray(result.modelOptions)) throw new Error('Invalid chat response')
+              result.modelOptions = result.modelOptions.slice(0, 50).map((row: Record<string, unknown>) => ({
+                name: typeof row?.name === 'string' ? row.name.slice(0, 200) : '',
+                displayName: typeof row?.displayName === 'string' ? row.displayName.slice(0, 200) : '',
+                description: typeof row?.description === 'string' ? row.description.slice(0, 500) : '',
+                supportsThinking: row?.supportsThinking === true
+              })).filter((row: ModelRowView) => row.name !== '')
+            }
             // Issue 72: the sidebar's Thread management carries the same
             // identity the chat session itself last reported.
             this.chatScope = result.scope
@@ -1237,6 +1316,7 @@ export class RuntimeProcess {
       for (const pending of this.knowledgeGraphRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.knowledgeWikiRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
