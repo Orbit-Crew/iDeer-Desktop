@@ -273,13 +273,29 @@ export interface WikiCommand {
   revisionId: string
   documentId?: string
 }
-/** Issue 120: one package member in the upload scope, bound to its frozen hash. */
+/** Issue 120: one package member in the upload scope, bound to its frozen hash.
+ * Issue 82: script members carry their declared language (empty for the
+ * other roles and for members outside the four-language mapping). */
+export type SkillScriptLanguage = 'python' | 'js' | 'shell' | 'executable'
 export interface SkillPackageFileView {
   path: string
   role: 'body' | 'script' | 'reference' | 'attachment'
   bytes: number
   sha256: string
+  language: SkillScriptLanguage | ''
 }
+/** Issue 82: the package's declared execution environment, normalized to the
+ * frozen wire grammar (target + the five requirement dimensions). */
+export interface SkillImportEnvironmentView {
+  target: 'server' | 'user_device'
+  os: string[]
+  dependencies: string[]
+  software: string[]
+  tools: string[]
+  data: string[]
+}
+/** Issue 82: the permissions a package declares, as shown at import. */
+export interface SkillImportPermissionsView { network: boolean; subprocess: boolean }
 export interface SkillImportDestination { resourceType: string; visibility: string; ownerId?: string }
 /** Issue 120: the read-only device-side preview; nothing uploads in this step. */
 export interface SkillImportPreview {
@@ -288,6 +304,8 @@ export interface SkillImportPreview {
   name: string
   description: string
   bodyExcerpt: string
+  environment: SkillImportEnvironmentView | null
+  permissions: SkillImportPermissionsView
   files: SkillPackageFileView[]
   fileCount: number
   totalBytes: number

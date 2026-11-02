@@ -5,7 +5,14 @@ trusted main process; the device reads and validates the package locally —
 illegal members (path traversal, absolute paths, links, unscanned
 executables, oversized entries) are refused before a single byte leaves the
 machine — and projects the upload scope: body, scripts, references, per-file
-and package SHA-256. Only after the explicit confirmation are the exact bytes
+and package SHA-256. Since #82 the preview also projects the package's own
+declaration — the ``execution-environment`` block, the declared script
+languages, and the ``network``/``subprocess`` permissions — so the user
+confirms the upload knowing what the package claims to need. The projection
+is display-only and changes no bytes: the canonical package hash, and with
+it the platform's preview identity, still names exactly the uploaded bytes.
+
+Only after the explicit confirmation are the exact bytes
 uploaded: a Server preview binds the authoritative identity, and the confirm
 call lands it as the account's private draft. Publication then rides the
 existing draft/validate/publish flow to a version copy. The device never
@@ -26,6 +33,13 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .compat import is_junction
+from .skill_script import (
+    DECLARATION_FIELDS,
+    EXECUTION_ENVIRONMENT_KEY,
+    SkillScriptError,
+    parse_execution_environment,
+    script_language,
+)
 
 # Frozen cross-repo contract (server backend/app/agentplatform/resources):
 # the platform enforces the same shape limits and the same canonical package
@@ -38,6 +52,11 @@ EXECUTABLE_SUFFIXES = {".bat", ".cmd", ".com", ".dll", ".exe", ".msi", ".ps1", "
 PREVIEW_BODY_LIMIT = 20000
 PREVIEW_FILE_LIMIT = 200
 PACKAGE_KINDS = ("markdown", "zip", "directory")
+
+#: The permission vocabulary a package may declare (#82 AC2). The platform's
+#: enterprise front-matter allowlist already tolerates the ``permissions`` and
+#: ``requires-internet`` keys; the device reads them for the import display.
+DECLARATION_PERMISSIONS = ("network", "subprocess")
 
 
 class SkillImportError(RuntimeError):
@@ -100,6 +119,214 @@ def _frontmatter_name_description(text: str) -> tuple[str, str]:
     if not name or not description:
         raise _refuse("SKILL_IMPORT_INVALID_FRONTMATTER")
     return name, description
+
+
+class _DeclarationUnreadable(Exception):
+    """The bounded front-matter reader met something it refuses to guess about."""
+
+
+def _strip_comment(text: str) -> str:
+    """Drop a trailing `` #…`` comment that is not inside quotes."""
+    quote = ""
+    for index, char in enumerate(text):
+        if quote:
+            if char == quote:
+                quote = ""
+        elif char in "'\"":
+            quote = char
+        elif char == "#" and index > 0 and text[index - 1] in " \t":
+            return text[:index].rstrip()
+    return text.rstrip()
+
+
+def _unquote(text: str) -> str:
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return text[1:-1]
+    return text
+
+
+def _refuse_unreadable(entry: str) -> str:
+    if entry.startswith(("&", "*", "!", "- ")):
+        raise _DeclarationUnreadable()
+    return _unquote(entry)
+
+
+def _flow_items(inline: str) -> list[str]:
+    """A one-level flow list ``[a, b]``; anything nested refuses."""
+    if not (inline.startswith("[") and inline.endswith("]")):
+        raise _DeclarationUnreadable()
+    inner = inline[1:-1].strip()
+    if not inner:
+        return []
+    items: list[str] = []
+    current = ""
+    quote = ""
+    depth = 0
+    for char in inner:
+        if quote:
+            current += char
+            if char == quote:
+                quote = ""
+        elif char in "'\"":
+            quote = char
+            current += char
+        elif char == "[":
+            depth += 1
+            current += char
+        elif char == "]":
+            depth -= 1
+            current += char
+        elif char == "," and depth == 0:
+            items.append(current.strip())
+            current = ""
+        else:
+            current += char
+    items.append(current.strip())
+    return [_refuse_unreadable(item) for item in items if item]
+
+
+def _list_value(inline: str, block: list[str]) -> list[str]:
+    """One declared list: block items ``- entry`` or a one-level flow list."""
+    items = [line.strip() for line in block if line.strip() and not line.strip().startswith("#")]
+    if items:
+        if inline:
+            raise _DeclarationUnreadable()
+        entries = []
+        for item in items:
+            if not item.startswith("- "):
+                raise _DeclarationUnreadable()
+            entries.append(_refuse_unreadable(_strip_comment(item[2:]).strip()))
+        return entries
+    inline = _strip_comment(inline).strip()
+    if not inline:
+        return []
+    return _flow_items(inline)
+
+
+def _scalar_value(inline: str, block: list[str]) -> str:
+    if block:
+        raise _DeclarationUnreadable()
+    return _refuse_unreadable(_strip_comment(inline).strip())
+
+
+def _frontmatter_frames(block: str) -> dict[str, list[str]]:
+    """Frame the front-matter into top-level keys with their raw value lines.
+
+    The reader is deliberately bounded: tab indentation, an indented line
+    before any key, a second ``---`` document marker, or a duplicated key
+    refuse as unreadable — the platform's YAML validation refuses such a
+    package too, and a declaration the device cannot read is never uploaded
+    silently (#82 AC2).
+    """
+    frames: dict[str, list[str]] = {}
+    key: str | None = None
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if line[0] == "\t" or "\t" in line[: len(line) - len(line.lstrip())]:
+            raise _DeclarationUnreadable()
+        if not line[0].isspace():
+            if line.startswith("---"):
+                raise _DeclarationUnreadable()
+            match = re.match(r"([A-Za-z0-9_-]+):(.*)$", line)
+            if match is None:
+                raise _DeclarationUnreadable()
+            key = match.group(1)
+            if key in frames:
+                raise _DeclarationUnreadable()
+            frames[key] = [match.group(2).strip()]
+        else:
+            if key is None:
+                raise _DeclarationUnreadable()
+            frames[key].append(line)
+    return frames
+
+
+def _environment_block(block: list[str]) -> dict:
+    """The bounded ``execution-environment`` mapping, in the frozen grammar's shape."""
+    children: dict[str, tuple[str, list[str]]] = {}
+    order: list[str] = []
+    key: str | None = None
+    indent = -1
+    for line in block:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        line_indent = len(line) - len(line.lstrip())
+        child = re.match(r"([A-Za-z][A-Za-z0-9_-]*):(.*)$", stripped)
+        if child is not None and not stripped.startswith("- "):
+            if indent == -1:
+                indent = line_indent
+            elif line_indent != indent:
+                raise _DeclarationUnreadable()
+            key = child.group(1)
+            if key in children:
+                raise _DeclarationUnreadable()
+            order.append(key)
+            children[key] = (child.group(2).strip(), [])
+            continue
+        if key is None or line_indent <= indent:
+            raise _DeclarationUnreadable()
+        children[key][1].append(line)
+    normalized: dict[str, Any] = {}
+    for name in order:
+        inline, entries = children[name]
+        if name == "target":
+            normalized["target"] = _scalar_value(inline, entries)
+        elif name in DECLARATION_FIELDS:
+            normalized[name] = _list_value(inline, entries)
+        else:
+            # An unknown key inside the frozen block: the platform refuses it
+            # authoritatively, so the preview refuses early with the same
+            # outcome instead of projecting a partial declaration.
+            raise _DeclarationUnreadable()
+    if "target" not in normalized:
+        raise _DeclarationUnreadable()
+    return normalized
+
+
+def _declaration_facts(body: str) -> tuple[dict | None, dict[str, bool]]:
+    """Read the bounded declaration facts one SKILL.md carries (#82).
+
+    Returns the normalized ``execution-environment`` mapping (``None`` when
+    the package declares none) plus the declared ``network``/``subprocess``
+    permissions (``requires-internet: true`` implies ``network``). The reader
+    accepts the canonical front-matter spellings — block and one-level flow
+    lists, quoted scalars, comments, unrelated enterprise keys — and refuses
+    anything it cannot confidently parse with a fixed category, mirroring the
+    runtime's wire-declaration rule that an unreadable claim is refused, never
+    silently ignored (#170).
+    """
+    match = re.match(r"\A---\s*\n(.*?)\n---", body, re.DOTALL)
+    if match is None:
+        raise _refuse("SKILL_IMPORT_INVALID_DECLARATION")
+    frames = _frontmatter_frames(match.group(1))
+    environment: dict | None = None
+    if EXECUTION_ENVIRONMENT_KEY in frames:
+        inline, block = frames[EXECUTION_ENVIRONMENT_KEY][0], frames[EXECUTION_ENVIRONMENT_KEY][1:]
+        if inline or block:
+            # A bare ``execution-environment:`` key declares nothing (YAML
+            # null, the same as an absent key); anything else must be the
+            # bounded mapping shape.
+            declared = _environment_block(block)
+            try:
+                environment = parse_execution_environment(declared)
+            except SkillScriptError as exc:
+                raise _refuse("SKILL_IMPORT_INVALID_DECLARATION") from exc
+    permissions = {"network": False, "subprocess": False}
+    if "permissions" in frames:
+        for entry in _list_value(frames["permissions"][0], frames["permissions"][1:]):
+            if entry not in DECLARATION_PERMISSIONS:
+                raise _DeclarationUnreadable()
+            permissions[entry] = True
+    if "requires-internet" in frames:
+        value = _scalar_value(frames["requires-internet"][0], frames["requires-internet"][1:]).lower()
+        if value == "true":
+            permissions["network"] = True
+        elif value != "false":
+            raise _DeclarationUnreadable()
+    return environment, permissions
 
 
 def _hash_members(members: list[tuple[str, bytes]]) -> str:
@@ -244,9 +471,18 @@ def read_package(paths: list[Any], kind: str, *, protected: tuple[Path, ...] = (
         name, description = _members_frontmatter(members)
     if "SKILL.md" not in {relative for relative, _data in members}:
         raise _refuse("SKILL_IMPORT_MISSING_SKILL_MD")
+    # #82 AC1/AC2/AC5: the package's own declaration — languages, permissions,
+    # dependencies — is projected for the confirmation dialog. The projection
+    # is display-only: the members, and with them the canonical package hash,
+    # are exactly the bytes that upload.
+    body_text = next(data.decode("utf-8") for relative, data in members if relative == "SKILL.md")
+    try:
+        environment, permissions = _declaration_facts(body_text)
+    except _DeclarationUnreadable as exc:
+        raise _refuse("SKILL_IMPORT_INVALID_DECLARATION") from exc
     files = [
-        {"path": relative, "role": _member_role(PurePosixPath(relative)), "bytes": len(data),
-         "sha256": hashlib.sha256(data).hexdigest()}
+        {"path": relative, "role": (role := _member_role(PurePosixPath(relative))), "bytes": len(data),
+         "sha256": hashlib.sha256(data).hexdigest(), "language": _member_language(relative, role)}
         for relative, data in sorted(members, key=lambda item: item[0])
     ]
     return {
@@ -254,12 +490,29 @@ def read_package(paths: list[Any], kind: str, *, protected: tuple[Path, ...] = (
         "name": name,
         "description": description,
         "body": next(data.decode("utf-8", "replace") for relative, data in members if relative == "SKILL.md")[:PREVIEW_BODY_LIMIT],
+        "environment": environment,
+        "permissions": permissions,
         "files": files[:PREVIEW_FILE_LIMIT],
         "file_count": len(members),
         "total_bytes": sum(len(data) for _relative, data in members),
         "package_hash": _hash_members(members),
         "upload": upload,
     }
+
+
+def _member_language(relative: str, role: str) -> str:
+    """The declared language of one member (#82 AC1); non-scripts carry none.
+
+    A script member outside the four-language mapping stays importable — the
+    platform accepts it as catalog content — and simply declares no language
+    here; the strict refusal is the execution gate's (``skill_script``).
+    """
+    if role != "script":
+        return ""
+    try:
+        return script_language(relative)
+    except SkillScriptError:
+        return ""
 
 
 def _members_frontmatter(members: list[tuple[str, bytes]]) -> tuple[str, str]:

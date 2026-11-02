@@ -11,9 +11,14 @@ anything runs the device re-derives every fact locally:
    Skill never downgrades onto the device (``SKILL_SCRIPT_ENVIRONMENT_MISMATCH``);
 3. the declared ``os`` requirements must match this machine, otherwise the
    execution is explicitly unavailable (``SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE``);
-4. local policy decides first: a configured DENY wins over every grant,
+4. the script's own suffix must declare a language this leg can execute
+   (#82): the device ships exactly one constrained executor, so a declared
+   js/shell/executable script refuses as
+   ``SKILL_SCRIPT_LANGUAGE_UNSUPPORTED`` before any grant lookup — a package
+   importing successfully is never executability;
+5. local policy decides first: a configured DENY wins over every grant,
    directory grant, sharing status, or built-in identity (AC3);
-5. scripts are OFF by default. Execution needs either an exact content-bound
+6. scripts are OFF by default. Execution needs either an exact content-bound
    grant remembered in the binding-scoped registry, or a fresh consent. A
    changed script or a changed declared scope is a different grant identity
    (re-authorization), while a prose-only SKILL.md change with identical
@@ -37,7 +42,7 @@ import tempfile
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .consent import ConsentStore, request_hash
@@ -61,6 +66,18 @@ GRANTED = "granted"
 
 #: The one capability the device announces for Skill scripts.
 SKILL_SCRIPT_CAPABILITIES = ("local.skill.script",)
+
+#: The four script languages a package may declare (#82), classified from the
+#: script's own suffix — the way the original product dispatched interpreters.
+#: The bounded mapping is the recognition grammar; anything else is an explicit
+#: unavailability, never a guessed interpreter.
+SCRIPT_LANGUAGES = ("python", "js", "shell", "executable")
+SCRIPT_LANGUAGE_SUFFIXES = {
+    "python": (".py",),
+    "js": (".js", ".mjs"),
+    "shell": (".sh", ".bat", ".cmd", ".ps1"),
+    "executable": (".exe", ".com"),
+}
 
 MAX_SCRIPT_CHARS = 200_000
 MAX_SCRIPT_PATH_CHARS = 512
@@ -242,6 +259,21 @@ def normalize_script_path(raw: Any) -> str:
     ):
         return raw
     raise _refuse("SKILL_SCRIPT_INVALID")
+
+
+def script_language(script_path: str) -> str:
+    """The declared language of one ``scripts/`` member (#82 AC1).
+
+    The suffix is the declaration: one of the four bounded classes, matched
+    case-insensitively like every filesystem. A member outside the mapping is
+    an explicit ``SKILL_SCRIPT_LANGUAGE_UNSUPPORTED`` refusal — the device
+    never guesses an interpreter for an undeclared script.
+    """
+    suffix = PurePosixPath(script_path).suffix.lower()
+    for language, members in SCRIPT_LANGUAGE_SUFFIXES.items():
+        if suffix in members:
+            return language
+    raise _refuse("SKILL_SCRIPT_LANGUAGE_UNSUPPORTED")
 
 
 def validate_payload(payload: Any) -> dict:
@@ -530,6 +562,13 @@ class SkillScriptService:
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_MISMATCH")
         if not os_matches(declaration["os"], self._system()):
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+        # #82 AC1: this device leg ships exactly one constrained executor (the
+        # runtime's own Python). A declared js/shell/executable script is an
+        # explicit unavailability that refuses before the grant lookup — a
+        # package importing successfully is never executability, and no grant
+        # row is created for a script the device cannot run.
+        if script_language(payload["script_path"]) != "python":
+            raise _refuse("SKILL_SCRIPT_LANGUAGE_UNSUPPORTED")
         verify_environment(declaration)
 
         # Local policy is the first and final authority on this device: a
@@ -583,6 +622,8 @@ class SkillScriptService:
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_MISMATCH")
         if not os_matches(declaration["os"], self._system()):
             raise _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+        if script_language(payload["script_path"]) != "python":
+            raise _refuse("SKILL_SCRIPT_LANGUAGE_UNSUPPORTED")
         verify_environment(declaration)
         executor = self._executor
         if executor is None:
