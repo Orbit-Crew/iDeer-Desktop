@@ -99,6 +99,23 @@ def _validate_picked_path(raw: Any, protected: tuple[Path, ...]) -> Path:
     return resolved
 
 
+def _frontmatter_block(text: str) -> str | None:
+    """The YAML front-matter block between the leading ``---`` fences, or None."""
+    match = re.match(r"\A---\s*\n(.*?)\n---", text, re.DOTALL)
+    return match.group(1) if match is not None else None
+
+
+def _skill_md_text(members: list[tuple[str, bytes]]) -> str:
+    """The SKILL.md member as UTF-8 text; anything else is a fixed refusal."""
+    body = next((data for relative, data in members if relative == "SKILL.md"), None)
+    if body is None:
+        raise _refuse("SKILL_IMPORT_MISSING_SKILL_MD")
+    try:
+        return body.decode("utf-8")
+    except UnicodeError as exc:
+        raise _refuse("SKILL_IMPORT_UNSUPPORTED_TYPE") from exc
+
+
 def _frontmatter_name_description(text: str) -> tuple[str, str]:
     """The light device-side front-matter read for the preview display.
 
@@ -106,11 +123,11 @@ def _frontmatter_name_description(text: str) -> tuple[str, str]:
     authoritatively; here a missing name or description only fails the
     preview early with a fixed category.
     """
-    match = re.match(r"\A---\s*\n(.*?)\n---", text, re.DOTALL)
-    if match is None:
+    block = _frontmatter_block(text)
+    if block is None:
         raise _refuse("SKILL_IMPORT_INVALID_FRONTMATTER")
     name = description = ""
-    for line in match.group(1).splitlines():
+    for line in block.splitlines():
         stripped = line.strip()
         if stripped.startswith("name:") and not name:
             name = stripped.split(":", 1)[1].strip().strip("'\"")
@@ -214,9 +231,11 @@ def _frontmatter_frames(block: str) -> dict[str, list[str]]:
 
     The reader is deliberately bounded: tab indentation, an indented line
     before any key, a second ``---`` document marker, or a duplicated key
-    refuse as unreadable — the platform's YAML validation refuses such a
-    package too, and a declaration the device cannot read is never uploaded
-    silently (#82 AC2).
+    refuse as unreadable. Such front-matter can be valid YAML the platform
+    would accept — the reader still refuses rather than guesses, because a
+    declared permission the device cannot read is never uploaded silently
+    (#82 AC2); the frozen-grammar refusals (unknown keys, bad targets, wrong
+    entry shapes) are the cases both legs refuse identically.
     """
     frames: dict[str, list[str]] = {}
     key: str | None = None
@@ -224,7 +243,7 @@ def _frontmatter_frames(block: str) -> dict[str, list[str]]:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        if line[0] == "\t" or "\t" in line[: len(line) - len(line.lstrip())]:
+        if "\t" in line[: len(line) - len(line.lstrip())]:
             raise _DeclarationUnreadable()
         if not line[0].isspace():
             if line.startswith("---"):
@@ -298,10 +317,10 @@ def _declaration_facts(body: str) -> tuple[dict | None, dict[str, bool]]:
     runtime's wire-declaration rule that an unreadable claim is refused, never
     silently ignored (#170).
     """
-    match = re.match(r"\A---\s*\n(.*?)\n---", body, re.DOTALL)
-    if match is None:
+    block = _frontmatter_block(body)
+    if block is None:
         raise _refuse("SKILL_IMPORT_INVALID_DECLARATION")
-    frames = _frontmatter_frames(match.group(1))
+    frames = _frontmatter_frames(block)
     environment: dict | None = None
     if EXECUTION_ENVIRONMENT_KEY in frames:
         inline, block = frames[EXECUTION_ENVIRONMENT_KEY][0], frames[EXECUTION_ENVIRONMENT_KEY][1:]
@@ -475,9 +494,8 @@ def read_package(paths: list[Any], kind: str, *, protected: tuple[Path, ...] = (
     # dependencies — is projected for the confirmation dialog. The projection
     # is display-only: the members, and with them the canonical package hash,
     # are exactly the bytes that upload.
-    body_text = next(data.decode("utf-8") for relative, data in members if relative == "SKILL.md")
     try:
-        environment, permissions = _declaration_facts(body_text)
+        environment, permissions = _declaration_facts(_skill_md_text(members))
     except _DeclarationUnreadable as exc:
         raise _refuse("SKILL_IMPORT_INVALID_DECLARATION") from exc
     files = [
@@ -516,14 +534,7 @@ def _member_language(relative: str, role: str) -> str:
 
 
 def _members_frontmatter(members: list[tuple[str, bytes]]) -> tuple[str, str]:
-    body = next((data for relative, data in members if relative == "SKILL.md"), None)
-    if body is None:
-        raise _refuse("SKILL_IMPORT_MISSING_SKILL_MD")
-    try:
-        text = body.decode("utf-8")
-    except UnicodeError as exc:
-        raise _refuse("SKILL_IMPORT_UNSUPPORTED_TYPE") from exc
-    return _frontmatter_name_description(text)
+    return _frontmatter_name_description(_skill_md_text(members))
 
 
 class SkillImportRegistry:

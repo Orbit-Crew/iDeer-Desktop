@@ -892,13 +892,13 @@ export class RuntimeProcess {
             const importer = this.skillImportRequests.get(value.id)
             if (importer) {
               const outcome = value.result
-              const languages = ['python', 'js', 'shell', 'executable']
+              const languages: SkillPackageFileView['language'][] = ['python', 'js', 'shell', 'executable', '']
               const files = (rows: unknown): SkillImportPreview['files'] => Array.isArray(rows) ? rows.slice(0, 200).map((row: Record<string, unknown>) => ({
                 path: text(row?.path, 255),
                 role: ['body', 'script', 'reference', 'attachment'].includes(row?.role as string) ? row.role as SkillImportPreview['files'][number]['role'] : 'attachment',
                 bytes: Number.isSafeInteger(row?.bytes) && (row.bytes as number) >= 0 ? row.bytes as number : 0,
                 sha256: text(row?.sha256, 64),
-                language: languages.includes(row?.language as string) ? row.language as SkillPackageFileView['language'] : ''
+                language: languages.includes(row?.language as SkillPackageFileView['language']) ? row.language as SkillPackageFileView['language'] : ''
               })).filter((row: SkillPackageFileView) => row.path !== '' && /^[0-9a-f]{64}$/.test(row.sha256)) : []
               // Issue 82: the projected declaration must match the runtime's
               // normalized shapes exactly — an unknown permission, an extra
@@ -910,13 +910,14 @@ export class RuntimeProcess {
                 if (raw === null) return null
                 if (!raw || typeof raw !== 'object') return null
                 const record = raw as Record<string, unknown>
-                const target = record.target
-                if (target !== 'server' && target !== 'user_device') return null
-                const lists: (string[] | null)[] = [entries(record.os), entries(record.dependencies),
-                  entries(record.software), entries(record.tools), entries(record.data)]
-                if (lists.some((list) => list === null)) return null
-                return { target, os: lists[0] as string[], dependencies: lists[1] as string[],
-                  software: lists[2] as string[], tools: lists[3] as string[], data: lists[4] as string[] }
+                if (record.target !== 'server' && record.target !== 'user_device') return null
+                const os = entries(record.os)
+                const dependencies = entries(record.dependencies)
+                const software = entries(record.software)
+                const tools = entries(record.tools)
+                const data = entries(record.data)
+                return os && dependencies && software && tools && data
+                  ? { target: record.target, os, dependencies, software, tools, data } : null
               }
               const permissions = (raw: unknown): SkillImportPermissionsView | null => {
                 if (!raw || typeof raw !== 'object') return null

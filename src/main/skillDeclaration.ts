@@ -1,12 +1,16 @@
-import type { SkillImportEnvironmentView, SkillImportPermissionsView, SkillPackageFileView } from '../shared/desktop'
+import type { SkillImportEnvironmentView, SkillImportPermissionsView, SkillPackageFileView, SkillScriptLanguage } from '../shared/desktop'
 
 /** Issue 82: the human labels of the four declared script languages. */
-const LANGUAGE_LABELS: Record<string, string> = {
+const LANGUAGE_LABELS: Record<SkillScriptLanguage, string> = {
   python: 'Python',
   js: 'JS',
   shell: 'Shell',
   executable: '可执行'
 }
+
+/** The dialog names at most this many scripts; larger packages summarize by
+ * the file count line instead of an unbounded language list. */
+const MAX_SUMMARY_SCRIPTS = 8
 
 /** Issue 82: the confirmation dialog's declaration summary.
  *
@@ -22,7 +26,7 @@ export function formatDeclarationSummary(
   environment: SkillImportEnvironmentView | null,
   permissions: SkillImportPermissionsView
 ): string {
-  const scripts = files.filter((file) => file.role === 'script').slice(0, 8)
+  const scripts = files.filter((file) => file.role === 'script').slice(0, MAX_SUMMARY_SCRIPTS)
   const languageParts: string[] = []
   for (const script of scripts) {
     languageParts.push(script.language ? `${script.path}（${LANGUAGE_LABELS[script.language]}）` : script.path)
