@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { ChatView } from '../src/renderer/src/components/ChatPanel'
+import ChatPanel, { ChatView } from '../src/renderer/src/components/ChatPanel'
 import type { ChatCommand, ChatSnapshot } from '../src/shared/desktop'
 import { MAX_MESSAGE_ATTACHMENTS } from '../src/shared/desktop'
 
@@ -138,26 +138,57 @@ describe('attachment outcome display (#93)', () => {
     expect(view.getByText('附件 gone.txt：处理失败（ATTACHMENT_READ_FAILED）')).toBeTruthy()
   })
 
-  it('shows the local view as a read-only dialog with the device parse facts', async () => {
-    const view = render(<ChatView state={stateWith({ attachmentView: {
-      id: 'v1', name: 'notes.txt', status: 'parsed', text: '只读的解析内容', truncated: false,
-      summary: { status: 'parsed', parser: 'text-utf8', parserVersion: '1', pages: 0, tables: 0, truncated: false, errorCode: '' }
-    } }) } busy={false} onCommand={vi.fn(async () => {})} />)
-    const dialog = view.getByRole('dialog')
+  it('shows the local view as a read-only dialog that outlives the poll until closed', async () => {
+    // The view rides the attachment-view reply only; the panel must hold it
+    // outside the polled snapshot or the 500ms poll would unmount the
+    // dialog without user action.
+    const base = stateWith()
+    const ideer = {
+      chat: vi.fn(async (command: ChatCommand) => {
+        if (command.action === 'attachment-view') return { ...base, attachmentView: {
+          id: command.id, name: command.name, status: 'parsed', text: '只读的解析内容', truncated: false,
+          summary: { status: 'parsed', parser: 'text-utf8', parserVersion: '1', pages: 0, tables: 0, truncated: false, errorCode: '' }
+        } }
+        return base
+      })
+    }
+    ;(window as unknown as { ideer: unknown }).ideer = ideer
+    const view = render(<ChatPanel />)
+    await waitFor(() => expect(screen.getByLabelText('聊天消息')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('选择附件文件') as HTMLInputElement,
+      { target: { files: [fileWith('notes.txt', 'C:/work/notes.txt')] } })
+    pickDestination('notes.txt', 'local-view')
+    const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('仅本机查看：notes.txt')).toBeTruthy()
     expect(within(dialog).getByText('只读的解析内容')).toBeTruthy()
     expect(within(dialog).getByText(/text-utf8@1/)).toBeTruthy()
+    // After the next poll tick replaced the snapshot, the dialog is still
+    // open — closing is the user's own action, never the poll's.
+    await new Promise((resolve) => setTimeout(resolve, 650))
+    expect(screen.getByRole('dialog')).toBeTruthy()
     // Closing is local and does not fire any command.
-    fireEvent.click(within(dialog).getByRole('button', { name: '关闭预览' }))
-    expect(view.queryByRole('dialog')).toBeNull()
-  })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '关闭预览' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  }, 15000)
 
-  it('shows a failed local view honestly instead of pretending a preview', () => {
-    const view = render(<ChatView state={stateWith({ attachmentView: {
-      id: 'v2', name: 'gone.txt', status: 'failed', text: '', truncated: false, errorCode: 'ATTACHMENT_READ_FAILED'
-    } }) } busy={false} onCommand={vi.fn(async () => {})} />)
-    const dialog = view.getByRole('dialog')
+  it('shows a failed local view honestly instead of pretending a preview', async () => {
+    const base = stateWith()
+    const ideer = {
+      chat: vi.fn(async (command: ChatCommand) => {
+        if (command.action === 'attachment-view') return { ...base, attachmentView: {
+          id: command.id, name: 'gone.txt', status: 'failed', text: '', truncated: false, errorCode: 'ATTACHMENT_READ_FAILED'
+        } }
+        return base
+      })
+    }
+    ;(window as unknown as { ideer: unknown }).ideer = ideer
+    render(<ChatPanel />)
+    await waitFor(() => expect(screen.getByLabelText('聊天消息')).toBeTruthy())
+    fireEvent.change(screen.getByLabelText('选择附件文件') as HTMLInputElement,
+      { target: { files: [fileWith('gone.txt', 'C:/work/gone.txt')] } })
+    pickDestination('gone.txt', 'local-view')
+    const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('仅本机查看：gone.txt')).toBeTruthy()
     expect(within(dialog).getByText('本机无法读取或解析该文件：ATTACHMENT_READ_FAILED')).toBeTruthy()
-  })
+  }, 15000)
 })

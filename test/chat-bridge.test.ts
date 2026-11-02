@@ -188,8 +188,8 @@ describe('message-level branch on chat (#78)', () => {
 
 describe('attachment destinations (#93)', () => {
   const send = { action: 'send', scope: 'A', threadId: 'thread', turnId: 'turn', text: 'hello' }
-  const view = { action: 'attachment-view', scope: 'A', threadId: 'thread', id: 'v1', path: 'C:\work\notes.txt', name: 'notes.txt' }
-  const attachment: ChatAttachment = { id: 'a1', path: 'C:\work\notes.txt', name: 'notes.txt', destination: 'parsed-text' }
+  const view = { action: 'attachment-view', scope: 'A', threadId: 'thread', id: 'v1', path: 'C:/work/notes.txt', name: 'notes.txt' }
+  const attachment: ChatAttachment = { id: 'a1', path: 'C:/work/notes.txt', name: 'notes.txt', destination: 'parsed-text' }
   it('lets the explicit destinations ride the send and the local view pass validation', async () => {
     const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-93/unused')
     // The default parsed-text destination and the explicit upload original

@@ -81,10 +81,12 @@ def test_default_destination_parses_on_device_and_never_uploads(tmp_path):
         assert content.startswith('请处理这份附件')
         assert '附件正文第一行' in content and '附件正文第二行' in content
         assert '本机解析' in content and 'text-utf8' in content and '[/附件·notes.txt]' in content
-        # The run records identity facts only — names, destination and hash,
-        # never content.
+        # The run records identity facts only — names, destination, source
+        # hash and the parser identity that lets any later device re-derive
+        # the extraction (#81). Never content.
         assert runs[0]['metadata']['desktop_attachments'] == [
-            dict(id='a1', name='notes.txt', destination='parsed-text', sha256=digest)]
+            dict(id='a1', name='notes.txt', destination='parsed-text', sha256=digest,
+                 parser='text-utf8', parserVersion='1')]
         assert result['attachmentStatuses'] == [
             dict(id='a1', name='notes.txt', destination='parsed-text', status='parsed',
                  sha256=digest, truncated=False)]
@@ -141,11 +143,15 @@ def test_local_view_answers_readonly_without_entering_the_conversation(tmp_path)
         scope = open_thread(chat)
         notes = tmp_path / 'notes.txt'
         notes.write_text('只读预览内容', encoding='utf-8')
+        requests_before_view = len(records)
         view = chat.handle({'action': 'attachment-view', 'scope': scope, 'threadId': 'thread-A',
                             'id': 'v1', 'path': str(notes), 'name': 'notes.txt'})
         assert view['error'] == ''
-        # A local view is a pure device read: no run and no upload ever happens.
+        # A local view is a pure device read: no run and no upload ever
+        # happens — and it stays local even while the platform is away, so
+        # not a single Server request may leave the device for it.
         assert run_posts(records) == [] and artifact_posts(records) == []
+        assert len(records) == requests_before_view
         got = view['attachmentView']
         assert got['id'] == 'v1' and got['name'] == 'notes.txt' and got['status'] == 'parsed'
         assert got['text'] == '只读预览内容' and got['truncated'] is False
@@ -266,6 +272,30 @@ def test_message_budget_bounds_the_parsed_text_honestly(tmp_path):
         assert content.startswith('请总结')
         assert '（已截断）' in content and '[/附件·notes.txt]' in content
         assert result['attachmentStatuses'][0]['truncated'] is True
+
+
+def test_a_send_that_cannot_fit_is_refused_before_anything_executes(tmp_path):
+    """The budget reservation runs before any read, parse or upload: a send
+    that cannot honestly fit the platform's message bound fails without
+    consuming the turn, without reading the file and without uploading an
+    original — even when a long display name forces the worst-case block."""
+    with platform() as (origin, records):
+        chat, settings, config = make_device_chat(tmp_path, origin)
+        scope = open_thread(chat)
+        long_name = '很长的附件名称' + 'n' * 240 + '.txt'
+        notes = tmp_path / long_name
+        notes.write_text('内容', encoding='utf-8')
+        result = send_attachment(chat, scope, [dict(id='a1', path=str(notes), name=long_name,
+                                                    destination='upload')], text='字' * 15500)
+        assert result['error'] == 'CHAT_MESSAGE_INVALID'
+        # Nothing executed: no run, no upload, and the turn was not consumed
+        # so the user can shorten the message and resend.
+        assert run_posts(records) == [] and artifact_posts(records) == []
+        turn = str(uuid.uuid4())
+        retried = send_attachment(chat, scope, [dict(id='a2', path=str(notes), name='短名.txt',
+                                                     destination='parsed-text')], text='简短', turn=turn)
+        assert retried['error'] == ''
+        assert run_posts(records)[0]['input']['messages'][0]['id'] == turn
 
 
 VIEW_BAD_SHAPES = [

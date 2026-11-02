@@ -225,10 +225,14 @@ function SubagentProgress({ subagents }: { subagents: ChatSubagent[] }): JSX.Ele
   </Card>
 }
 
-export function ChatView({ state, busy, onCommand }: {
-  state: ChatSnapshot; busy: boolean; onCommand: CommandHandler
+export function ChatView({ state, busy, attachmentView, onCommand }: {
+  state: ChatSnapshot; busy: boolean
+  /** Issue 93: the attachment-view reply held by the panel — the poll loop
+   * never carries it, so the dialog stays open until the user closes it. */
+  attachmentView: ChatAttachmentView | null
+  onCommand: CommandHandler
 }): JSX.Element {
-  return <ChatContents key={state.scope} state={state} busy={busy} onCommand={onCommand} />
+  return <ChatContents key={state.scope} state={state} busy={busy} attachmentView={attachmentView} onCommand={onCommand} />
 }
 
 /** Issue 78: the platform branches from one completed assistant turn, so the
@@ -253,15 +257,14 @@ const turnGroups = (messages: ChatSnapshot['messages']): Map<string, string[]> =
   return groups
 }
 
-function ChatContents({ state, busy, onCommand }: {
-  state: ChatSnapshot; busy: boolean; onCommand: CommandHandler
+function ChatContents({ state, busy, attachmentView, onCommand }: {
+  state: ChatSnapshot; busy: boolean; attachmentView: ChatAttachmentView | null; onCommand: CommandHandler
 }): JSX.Element {
   const [agentId, setAgentId] = useState<string | undefined>(state.thread?.agentId)
   const [skillId, setSkillId] = useState<string | undefined>(state.thread?.skillId || undefined)
   // Issue 93: the local-view dialog's dismissal is renderer-local; a new
   // view record (fresh id per chip) reopens it.
   const [dismissedViewId, setDismissedViewId] = useState('')
-  const attachmentView = state.attachmentView
   const threadId = state.thread?.id
   const compatibility = state.compatibility
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
@@ -442,6 +445,10 @@ export default function ChatPanel(): JSX.Element {
   const [state, setState] = useState<ChatSnapshot | null>(null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  // Issue 93: the local-view reply lives here, outside the polled snapshot —
+  // the Runtime returns it only on the view's own reply, so keeping it in
+  // component state is what lets the read-only dialog outlive the next poll.
+  const [attachmentView, setAttachmentView] = useState<ChatAttachmentView | null>(null)
   const inFlight = useRef(false)
   const actionInFlight = useRef(false)
   const pollRequest = useRef<Promise<void>>(Promise.resolve())
@@ -485,6 +492,10 @@ export default function ChatPanel(): JSX.Element {
         scope.current = next.scope
         setState(next)
         setFailed(false)
+        // Issue 93: a view reply replaces the displayed record; polls never
+        // carry the field and cannot dismiss it — only an explicit thread
+        // change does (the effect below).
+        if (request.action === 'attachment-view') setAttachmentView(next.attachmentView ?? null)
         // Issue 78: a successful branch put a new Thread on the Server's own
         // session set; the sidebar re-reads it instead of waiting for a
         // manual refresh. Only the platform's own success bumps the signal.
@@ -502,9 +513,17 @@ export default function ChatPanel(): JSX.Element {
     clearPendingOpen()
     void command({ action: 'open', scope: state.scope, threadId: pendingOpen.threadId })
   }, [pendingOpen, state, command, clearPendingOpen])
+  // Issue 93: a local view belongs to the thread it was read in; switching
+  // threads dismisses it.
+  const viewThreadId = useRef('')
+  useEffect(() => {
+    const current = state?.thread?.id ?? ''
+    if (viewThreadId.current && viewThreadId.current !== current) setAttachmentView(null)
+    viewThreadId.current = current
+  }, [state])
   return <Card className="max-w-4xl mt-6 shadow-card" title="平台聊天与历史">
     {failed && <Alert type="error" message="Runtime 或 Server 不可用，请检查连接后恢复状态；旧提交不会自动重发" />}
-    {state?.scope ? <ChatView state={state} busy={busy} onCommand={command} /> :
+    {state?.scope ? <ChatView state={state} busy={busy} attachmentView={attachmentView} onCommand={command} /> :
       <Alert type="info" showIcon message="请先在系统浏览器登录并绑定设备，再选择平台已有 Agent/Skill 聊天" />}
   </Card>
 }

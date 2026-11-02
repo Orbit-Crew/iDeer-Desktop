@@ -69,6 +69,17 @@ MAX_ATTACHMENT_PATH = 4096
 MAX_ATTACHMENT_NAME = 256
 MAX_ATTACHMENT_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_ATTACHMENT_VIEW_CHARS = 100_000
+# Per-attachment message-budget reservations, checked BEFORE any file is
+# read, parsed or staged: an upload block is at most the name plus artifact
+# id and hash fragments (~512), a parsed block is at most its markers plus
+# the no-room fallback line around a full-length name (~600, the engine's
+# parser identity and the truncation marker included). With these reserved
+# the composed message fits by construction; the trailing guard only pins
+# that invariant.
+ATTACHMENT_UPLOAD_RESERVE = 512
+ATTACHMENT_PARSED_RESERVE = 600
+# Slack inside one parsed block: the '\n' pair and the truncation suffix.
+ATTACHMENT_BLOCK_SLACK = 24
 # Issue 80: once the platform answers again, a session left with an unknown
 # outcome reconciles itself at most this often. The cooldown bounds the
 # reconnect attempts the Desktop's own poll can spend — the Server load and
@@ -1602,8 +1613,8 @@ class DesktopChat:
         if not isinstance(text, str) or (attachments is None and not text.strip()) or len(text) > 16000:
             raise ChatError('CHAT_MESSAGE_INVALID')
         if attachments is not None:
-            reserve = 2 * len(attachments) + sum(512 if row['destination'] == 'upload' else 64
-                                                 for row in attachments)
+            reserve = 2 * len(attachments) + sum(ATTACHMENT_UPLOAD_RESERVE if row['destination'] == 'upload'
+                                                 else ATTACHMENT_PARSED_RESERVE for row in attachments)
             if len(text) + reserve > 16000:
                 raise ChatError('CHAT_MESSAGE_INVALID')
         # Issue 75: the delegate Agent must be a published agent; the mention
@@ -1854,7 +1865,7 @@ class DesktopChat:
                 if result['status'] == 'parsed':
                     marker = f'[附件·{name}·本机解析·{result["parser"]}@{result["parser_version"]}]'
                     closing = f'[/附件·{name}]'
-                    allowance = 16000 - used - len(marker) - len(closing) - len('（已截断）') - 16
+                    allowance = 16000 - used - len(marker) - len(closing) - ATTACHMENT_BLOCK_SLACK
                     body_text = result['text']
                     if allowance <= 0:
                         content, over = '（超出本条消息长度预算，附件文本未并入）', True
@@ -1869,6 +1880,13 @@ class DesktopChat:
                     block = f'[附件·{name}·解析失败：{result["reason"]}]'
                     status.update(status=result['status'], errorCode=result['reason'])
                 blocks.append(block)
+                # The citation facts ride the run record too: the parser
+                # identity and version let any later device re-derive the
+                # extraction from the hash-verified bytes (#81). The layout
+                # anchors stay a bounded display fact and never ride the wire.
+                if result['status'] == 'parsed':
+                    fact['parser'] = result['parser']
+                    fact['parserVersion'] = result['parser_version']
             used += len(blocks[-1]) + 2
             statuses.append(status)
             facts.append(fact)

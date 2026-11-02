@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { ChatView } from '../src/renderer/src/components/ChatPanel'
 import type { ChatSnapshot, ChatSubagent } from '../src/shared/desktop'
 
@@ -76,8 +76,11 @@ describe('parallel sub-agent progress (#76)', () => {
     render(<ChatView state={stateWith([subagent({ taskId: 'call-1', description: '检索公开资料' })])}
       busy={false} onCommand={async () => {}} />)
     // 团队组成由主 Agent 配置决定: the progress surface is display-only —
-    // no add/remove/configure controls, no local orchestration entry.
+    // no add/remove/configure controls, no local orchestration entry. The
+    // #93 attachment picker is the user's own file surface, not a dispatch
+    // control, so the assertion stays scoped to the progress card.
     expect(screen.queryByText(/团队管理/)).toBeNull()
-    expect(screen.queryByRole('button', { name: /添加|移除|配置团队|本地派发/ })).toBeNull()
+    const card = screen.getByText('并行子代理进度').closest('.ant-card') as HTMLElement
+    expect(within(card).queryByRole('button', { name: /添加|移除|配置团队|本地派发/ })).toBeNull()
   })
 })

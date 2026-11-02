@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from '
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -493,6 +493,10 @@ export class RuntimeProcess {
       'attachment-view': ['action', 'scope', 'threadId', 'id', 'path', 'name']
     }
     const allowed = keys[command.action]
+    // Issue 93: one attachment's identity facts are bounded strings — the
+    // shared check for the send list and the local-view command.
+    const boundedAttachmentFact = (value: unknown, max: number): value is string =>
+      typeof value === 'string' && value.length > 0 && value.length <= max
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
     // Issue 39: a script approval may carry rememberScript; nothing else may
     // add keys to the fixed consent shape.
@@ -536,16 +540,15 @@ export class RuntimeProcess {
       // string.
       if (inputCommand.attachments !== undefined) {
         const attachments = inputCommand.attachments as unknown
-        const bounded = (value: unknown, max: number): value is string =>
-          typeof value === 'string' && value.length > 0 && value.length <= max
         if (!Array.isArray(attachments) || attachments.length === 0 ||
             attachments.length > MAX_MESSAGE_ATTACHMENTS) throw new Error('CHAT_COMMAND_INVALID')
         const seen = new Set<string>()
         for (const row of attachments) {
           const item = row as { id?: unknown; path?: unknown; name?: unknown; destination?: unknown }
           if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('CHAT_COMMAND_INVALID')
-          if (Object.keys(item).length !== 4 || !bounded(item.id, 128) || seen.has(item.id) ||
-              !bounded(item.path, MAX_ATTACHMENT_PATH) || !bounded(item.name, 256) ||
+          if (Object.keys(item).length !== 4 || !boundedAttachmentFact(item.id, 128) || seen.has(item.id) ||
+              !boundedAttachmentFact(item.path, MAX_ATTACHMENT_PATH) ||
+              !boundedAttachmentFact(item.name, MAX_ATTACHMENT_NAME) ||
               item.destination !== 'parsed-text' && item.destination !== 'upload') throw new Error('CHAT_COMMAND_INVALID')
           seen.add(item.id)
         }
@@ -567,14 +570,13 @@ export class RuntimeProcess {
       }
     }
     // Issue 93: 仅本机查看 is an exact six-key command; the attachment facts
-    // keep the same bounded identity the send list carries. The path is
-    // validated by the generic loop's own path exception above.
+    // keep the same bounded identity the send list carries. The path rides
+    // the generic loop's own path exception below (non-empty, within
+    // MAX_ATTACHMENT_PATH).
     if (command.action === 'attachment-view') {
       const viewCommand = command as unknown as { id?: unknown; path?: unknown; name?: unknown }
-      const bounded = (value: unknown, max: number): value is string =>
-        typeof value === 'string' && value.length > 0 && value.length <= max
-      if (Object.keys(command).length !== 6 || !bounded(viewCommand.id, 128) ||
-          !bounded(viewCommand.path, MAX_ATTACHMENT_PATH) || !bounded(viewCommand.name, 256)) throw new Error('CHAT_COMMAND_INVALID')
+      if (Object.keys(command).length !== 6 || !boundedAttachmentFact(viewCommand.id, 128) ||
+          !boundedAttachmentFact(viewCommand.name, MAX_ATTACHMENT_NAME)) throw new Error('CHAT_COMMAND_INVALID')
     }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
