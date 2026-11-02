@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Select, Space, Tag, Typography } from 'antd'
-import type { ChatCommand, ChatSnapshot, ChatSubagent, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
+import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd'
+import type { ChatAttachmentStatus, ChatCommand, ChatSnapshot, ChatSubagent, ChatAttachmentView, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
 import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
 import { useSessionStore } from '../stores/sessionStore'
@@ -27,6 +27,37 @@ const tierLabels: Record<SessionTierValue, string> = {
   ask_first: '变更前询问（默认）', autonomous: '自主模式', full: '完全模式'
 }
 const deliveryStates: Record<string, string> = { uncertain: '结果待核实', pending: '待补传', confirmed: 'Server 已确认', cleaned: '已清理的已确认回执' }
+
+// Issue 93: one attachment's destination outcome, worded from the Runtime's
+// own status entry — a state the Runtime never reported has no wording here.
+const attachmentOutcome = (row: ChatAttachmentStatus): string => {
+  if (row.status === 'parsed') return `附件 ${row.name}：解析文本已入对话${row.truncated ? '（已截断）' : ''}`
+  if (row.status === 'uploaded') return `附件 ${row.name}：原件已上传为平台附件 ${row.artifactId}（跨设备可见）`
+  if (row.status === 'skipped') return `附件 ${row.name}：设备未解析该格式（${row.errorCode}）`
+  return `附件 ${row.name}：处理失败（${row.errorCode}）`
+}
+
+/** Issue 93: the 仅本机查看 read-only dialog. The record rides the view's own
+ * reply snapshot only; the device parse summary is shown with the text and
+ * closing is a local, command-free dismissal. */
+function AttachmentViewDialog({ view, onClose }: {
+  view: ChatAttachmentView
+  onClose: () => void
+}): JSX.Element {
+  return <Modal open title={`仅本机查看：${view.name}`} onCancel={onClose} footer={
+    <Button aria-label="关闭预览" onClick={onClose}>关闭</Button>}>
+    {view.status !== 'parsed'
+      ? <Alert type="warning" showIcon message={`本机无法读取或解析该文件：${view.errorCode}`} />
+      : <>
+        {view.summary && <Typography.Paragraph type="secondary" className="text-xs">
+          {`设备侧解析 ${view.summary.parser}@${view.summary.parserVersion} · 页 ${view.summary.pages} · 表 ${view.summary.tables}`}
+          {view.truncated || view.summary.truncated ? ' · 已截断' : ''}
+        </Typography.Paragraph>}
+        <Input.TextArea aria-label="附件只读内容" value={view.text} readOnly
+          autoSize={{ minRows: 6, maxRows: 24 }} />
+      </>}
+  </Modal>
+}
 
 // Issue 79: every expected export refusal is a local, recoverable condition —
 // name it as one instead of letting the generic outage alert speak for it.
@@ -227,6 +258,10 @@ function ChatContents({ state, busy, onCommand }: {
 }): JSX.Element {
   const [agentId, setAgentId] = useState<string | undefined>(state.thread?.agentId)
   const [skillId, setSkillId] = useState<string | undefined>(state.thread?.skillId || undefined)
+  // Issue 93: the local-view dialog's dismissal is renderer-local; a new
+  // view record (fresh id per chip) reopens it.
+  const [dismissedViewId, setDismissedViewId] = useState('')
+  const attachmentView = state.attachmentView
   const threadId = state.thread?.id
   const compatibility = state.compatibility
   const blocked = (capability: string): boolean => compatibility?.level === 'core' || !!compatibility?.disabledCapabilities.includes(capability)
@@ -312,6 +347,16 @@ function ChatContents({ state, busy, onCommand }: {
             threadId, artifactId: artifact.artifact_id })}>下载附件 {artifact.name}</Button>
         </div>)}
       </Card>}
+      {/* Issue 93: the per-attachment destination outcomes ride the send's
+          own reply snapshot, transient like the export outcome above; the
+          composed message text is the conversation's durable record. */}
+      {!!state.attachmentStatuses?.length && <Card size="small" title="附件去向结果">
+        {state.attachmentStatuses.map((row) => <Typography.Paragraph key={row.id}
+          type={row.status === 'failed' || row.status === 'skipped' ? 'warning' : undefined}
+          style={{ marginBottom: 4, overflowWrap: 'anywhere' }}>{attachmentOutcome(row)}</Typography.Paragraph>)}
+      </Card>}
+      {attachmentView && dismissedViewId !== attachmentView.id && <AttachmentViewDialog
+        view={attachmentView} onClose={() => setDismissedViewId(attachmentView.id)} />}
       {state.run && <Typography.Text>Run：{state.run.id} · {state.run.status} · {state.stream}</Typography.Text>}
       {state.run && ['pending', 'running'].includes(state.run.status) && state.stop?.state !== 'requested' && <Button danger disabled={busy}
         onClick={() => void onCommand({ action: 'stop', scope: state.scope, threadId, runId: state.run!.id })}>{state.stop ? '重试停止请求' : '停止当前 Turn'}</Button>}

@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
+import type { ChatAttachment } from '../src/shared/desktop'
 
 describe('restricted chat bridge', () => {
   it('accepts only an exact scoped stop command', async () => {
@@ -181,6 +182,61 @@ describe('message-level branch on chat (#78)', () => {
     await expect(runtime.chat(JSON.parse(JSON.stringify({
       action: 'open', scope: 'A', threadId: 'thread', messageIds: ['msg-1'] }))))
       .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+})
+
+describe('attachment destinations (#93)', () => {
+  const send = { action: 'send', scope: 'A', threadId: 'thread', turnId: 'turn', text: 'hello' }
+  const view = { action: 'attachment-view', scope: 'A', threadId: 'thread', id: 'v1', path: 'C:\work\notes.txt', name: 'notes.txt' }
+  const attachment: ChatAttachment = { id: 'a1', path: 'C:\work\notes.txt', name: 'notes.txt', destination: 'parsed-text' }
+  it('lets the explicit destinations ride the send and the local view pass validation', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-93/unused')
+    // The default parsed-text destination and the explicit upload original
+    // both pass as structured facts; the standalone local-view command does
+    // too. Nothing executes on a stopped runtime — the shape is what is
+    // pinned here.
+    await expect(runtime.chat({ ...send, attachments: [attachment] })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, attachments: [{ ...attachment, destination: 'upload' }] }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...send, attachments: [attachment, { ...attachment, id: 'a2', destination: 'upload' }] }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.chat({ ...view })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed attachment lists before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-93/unused')
+    for (const patch of [
+      { attachments: [] }, { attachments: 'a1' }, { attachments: ['nope'] },
+      { attachments: [{ ...attachment, id: '' }] }, { attachments: [{ ...attachment, id: 'x'.repeat(129) }] },
+      { attachments: [{ ...attachment, path: '' }] }, { attachments: [{ ...attachment, path: 'p'.repeat(4097) }] },
+      { attachments: [{ ...attachment, name: '' }] }, { attachments: [{ ...attachment, name: 'n'.repeat(257) }] },
+      { attachments: [{ ...attachment, destination: 'local-view' }] }, { attachments: [{ ...attachment, destination: 'auto' }] },
+      { attachments: [{ ...attachment, extra: 'x' }] },
+      { attachments: [attachment, { ...attachment, name: 'b.txt' }] },
+      { attachments: Array.from({ length: 9 }, (_, i) => ({ ...attachment, id: `a${i}` })) }
+    ]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...send, ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
+    // The destinations ride the send action only; 仅本机查看 is its own
+    // command and never hides inside an answer.
+    await expect(runtime.chat(JSON.parse(JSON.stringify({
+      action: 'answer', scope: 'A', threadId: 'thread', turnId: 'turn', requestId: 'req', text: 'ok',
+      attachments: [attachment] }))))
+      .rejects.toThrow('CHAT_COMMAND_INVALID')
+    expect(runtime.status().process).toBe('stopped')
+  })
+  it('rejects malformed local-view commands before starting Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-93/unused')
+    for (const patch of [
+      { id: '' }, { id: 'x'.repeat(129) }, { id: 42 },
+      { path: '' }, { path: 'p'.repeat(4097) },
+      { name: '' }, { name: 'n'.repeat(257) }, { extra: 'x' }
+    ]) {
+      await expect(runtime.chat(JSON.parse(JSON.stringify({ ...view, ...patch }))))
+        .rejects.toThrow('CHAT_COMMAND_INVALID')
+    }
     expect(runtime.status().process).toBe('stopped')
   })
 })

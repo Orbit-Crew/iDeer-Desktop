@@ -649,6 +649,29 @@ export const MAX_MESSAGE_SKILLS = 8
  * message ids of the single turn the user branches from. */
 export const MAX_BRANCH_TURN_MESSAGES = 64
 
+/** Issue 93: 对话附件去向选择器。每条附件的去向由用户显式选择，默认
+ * "发送解析文本"（设备侧解析，原件不出电脑），显式可选"上传原件"（平台
+ * Thread 附件、跨设备可见）；"仅本机查看"是独立的 attachment-view 命令，
+ * 从不随消息发送。去向绝不默默执行。 */
+export const MAX_MESSAGE_ATTACHMENTS = 8
+/** The device-local path bound on one attachment fact; generous enough for
+ * deep Windows paths, still a wire bound. */
+export const MAX_ATTACHMENT_PATH = 4096
+export const MAX_ATTACHMENT_NAME = 256
+export type ChatAttachmentDestination = 'parsed-text' | 'upload'
+/** The destination the composer carries per chip; `local-view` executes the
+ * attachment-view command immediately and never rides a send. */
+export type ChatAttachmentChoice = ChatAttachmentDestination | 'local-view'
+export interface ChatAttachment {
+  id: string
+  path: string
+  name: string
+  destination: ChatAttachmentDestination
+}
+export const ATTACHMENT_DESTINATION_LABELS: Record<ChatAttachmentChoice, string> = {
+  'parsed-text': '发送解析文本（默认）', upload: '上传原件（平台附件）', 'local-view': '仅本机查看'
+}
+
 /** Issue 75: the at-mention delegation and slash-skill semantics ride the
  * send command as structured, optional facts. `delegateAgentId` names the
  * agent the user at-mentioned for THIS message: the platform sub-agent
@@ -673,7 +696,11 @@ export type ChatCommand =
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
-    delegateAgentId?: string; skillIds?: string[]; collab?: boolean }
+    delegateAgentId?: string; skillIds?: string[]; collab?: boolean;
+    /** Issue 93: the per-attachment destinations the user picked in the
+     * composer. Paths are device-local facts for the Runtime to read and
+     * parse; no content ever rides the command. */
+    attachments?: ChatAttachment[] }
   | { action: 'set-model'; scope: string; threadId: string; modelName: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
@@ -691,6 +718,11 @@ export type ChatCommand =
    * the platform's own Thread branch endpoint and reopens the new Thread;
    * no title, no content and no local copy ever ride this command. */
   | { action: 'branch'; scope: string; threadId: string; messageId: string; messageIds?: string[] }
+  /** Issue 93: 仅本机查看. The composer dispatches it the moment the user
+   * picks that destination for one attachment; the Runtime parses on the
+   * device and answers with a bounded read-only display record. Nothing is
+   * uploaded, no run is created and nothing enters the conversation. */
+  | { action: 'attachment-view'; scope: string; threadId: string; id: string; path: string; name: string }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -782,11 +814,45 @@ export interface PlatformReachabilityView {
   reachable: boolean
   detail: string
 }
+/** Issue 93: one attachment's destination outcome on a send reply. `parsed`
+ * means the extracted text went into the conversation with the original
+ * bytes never leaving the device; `uploaded` names the platform artifact;
+ * `failed`/`skipped` carry the engine's own reason code. Identity facts
+ * only — never content. */
+export interface ChatAttachmentStatus {
+  id: string
+  name: string
+  destination: ChatAttachmentDestination
+  status: 'parsed' | 'uploaded' | 'failed' | 'skipped'
+  sha256?: string
+  artifactId?: string
+  truncated?: boolean
+  errorCode?: string
+}
+/** Issue 93: the bounded read-only display record for 仅本机查看. The text
+ * comes from the device-side parse engine and its summary reuses the import
+ * display record's facts (parser identity/version, page/table counts). */
+export interface ChatAttachmentView {
+  id: string
+  name: string
+  status: 'parsed' | 'failed' | 'skipped'
+  text: string
+  truncated: boolean
+  errorCode?: string
+  summary?: KnowledgeImportDocumentParseView
+}
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
   /** Issue 80: present on every snapshot the Runtime returns. */
   platform?: PlatformReachabilityView
   artifacts?: PlatformArtifact[]
+  /** Issue 93: the per-attachment destination outcomes on a send's own
+   * reply snapshot — transient like exportStatus and never part of the
+   * Runtime's own state. The composed message text is the durable record. */
+  attachmentStatuses?: ChatAttachmentStatus[]
+  /** Issue 93: the read-only display record on an attachment-view's own
+   * reply; bounded device-side and never persisted anywhere. */
+  attachmentView?: ChatAttachmentView
   /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
   download?: PlatformArtifact & { content: string }
   downloadStatus?: 'saved' | 'cancelled'

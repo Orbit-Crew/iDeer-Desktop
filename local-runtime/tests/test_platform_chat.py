@@ -136,7 +136,9 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status = 403
                 token = f'server-issued-grant-{len(records)}'
                 grants.add(token)
-                data = dict(token=token, run_id=body['run_id'], task_id=body['task_id'],
+                # Issue 93: a chat-attachment grant carries no run or task, so
+                # the echo mirrors only the fields the request actually had.
+                data = dict(token=token, run_id=body.get('run_id'), task_id=body.get('task_id'),
                             thread_id='thread-A', name=body['name'], device_id=body['device_id'],
                             expires_at='2099-01-01T00:00:00+00:00') if status == 200 else {}
                 if on_grant:
@@ -174,7 +176,7 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     else:
                         data = dict(artifact_id=f"art-{len(artifacts) + 1}", thread_id='thread-A',
                                     name=body['name'], sha256=body['sha256'], bytes=body['bytes'],
-                                    task_id=body['task_id'], run_id=body['run_id'], content=body['content'],
+                                    task_id=body.get('task_id'), run_id=body.get('run_id'), content=body['content'],
                                     handle=body['handle'], duplicate=False)
                         artifacts[body['handle']] = data
             elif self.path == '/api/threads/thread-A/runs/run-1/stream':
