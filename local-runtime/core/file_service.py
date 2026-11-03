@@ -219,33 +219,35 @@ class WorkspaceFileStore(LocalFileStore):
         return self.list_with_limit(logical_path)[0]
 
     def list_with_limit(self, logical_path):
-        from .files import FileAccessError
         entries = super().list(logical_path, max_entries=MAX_ENTRIES + 1)
-        visible = []
-        for entry in entries:
-            try:
-                self._resolve(entry)
-                visible.append(entry)
-            except FileAccessError as exc:
-                if exc.code != 'PROTECTED_PATH':
-                    raise
+        visible = self._resolve_visible(entries)
         return visible, len(entries) > MAX_ENTRIES
 
-    def list_details_with_limit(self, logical_path):
-        """Issue 94: guarded child entries for the human browser, protected
-        paths filtered exactly like ``list_with_limit``."""
+    def _resolve_visible(self, rows):
+        """Keep rows whose logical path (row itself, or a tuple's first item)
+        passes this store's own resolution; protected entries drop silently,
+        anything else propagates."""
         from .files import FileAccessError
-        rows = super().list_details(logical_path, max_entries=MAX_ENTRIES + 1)
         visible = []
-        for logical, kind, size in rows:
+        for row in rows:
+            logical = row if isinstance(row, str) else row[0]
             try:
                 self._resolve(logical)
             except FileAccessError as exc:
                 if exc.code != 'PROTECTED_PATH':
                     raise
                 continue
-            visible.append({'name': logical.rsplit('/', 1)[-1], 'kind': kind, 'size': size})
-        return visible, len(rows) > MAX_ENTRIES
+            visible.append(row)
+        return visible
+
+    def list_details_with_limit(self, logical_path):
+        """Issue 94: guarded child entries for the human browser, protected
+        paths filtered exactly like ``list_with_limit``. The visible list is
+        trimmed to the cap so the truncation notice never overcounts."""
+        rows = super().list_details(logical_path, max_entries=MAX_ENTRIES + 1)
+        visible = self._resolve_visible(rows)[:MAX_ENTRIES]
+        return [{'name': logical.rsplit('/', 1)[-1], 'kind': kind, 'size': size}
+                for logical, kind, size in visible], len(rows) > MAX_ENTRIES
 
     def preview(self, logical_path):
         """Issue 94: read-only preview facts for the Desktop shell.

@@ -10,6 +10,7 @@ addressed to the trusted main process and never rendered to the renderer.
 """
 import base64
 import json
+import os
 import queue
 import threading
 from pathlib import Path
@@ -373,7 +374,33 @@ def test_store_preview_enforces_entry_cap(tmp_path) -> None:
         (work / f"f{index:04d}.txt").write_text("x", encoding="utf-8")
     store = WorkspaceFileStore([RootConfig("/ws", work, resolve_root=False)])
     entries, truncated = store.list_details_with_limit("/ws")
-    # The same bounded-read convention as list_with_limit: one past-cap read
-    # proves the truncation instead of hiding it from the human browser.
+    # One past-cap read proves the truncation; the visible list itself is
+    # trimmed to the cap so the honest notice never overcounts.
     assert truncated is True
-    assert len(entries) == MAX_ENTRIES + 1
+    assert len(entries) == MAX_ENTRIES
+
+
+@pytest.mark.skipif(__import__("os").name != "nt", reason="requires Windows junctions")
+def test_browse_skips_a_junction_entry_and_keeps_the_directory_browsable(tmp_path, monkeypatch) -> None:
+    harness = make_harness(tmp_path, monkeypatch)
+    work = seeded_work(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_bytes(b"secret")
+    junction = work / "linked"
+    if os.system(f'cmd /c mklink /J "{junction}" "{outside}" >NUL') != 0:
+        pytest.skip("junction creation is unavailable")
+    root = harness.select_workspace(work)
+    harness.start()
+    try:
+        frame = browse(harness, "list", root)
+        assert frame["error"] == ""
+        names = [entry["name"] for entry in frame["result"]["entries"]]
+        # The junction never surfaces, but the rest of the folder stays
+        # browsable instead of failing wholesale.
+        assert "linked" not in names
+        assert "src" in names and "README.md" in names
+        frame = browse(harness, "read", root + "/linked/secret.txt")
+        assert frame["error"] == "OUTSIDE_ALLOWED_ROOTS"
+    finally:
+        harness.finish()

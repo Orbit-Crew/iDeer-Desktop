@@ -29,7 +29,6 @@ PERMISSION_DENIED = "PERMISSION_DENIED"
 LOCKED_OR_UNAVAILABLE = "LOCKED_OR_UNAVAILABLE"
 FILE_BINARY = "FILE_BINARY"
 FILE_TOO_LARGE = "FILE_TOO_LARGE"
-PREVIEW_UNSUPPORTED = "PREVIEW_UNSUPPORTED"
 
 
 @dataclass(frozen=True)
@@ -190,9 +189,14 @@ class LocalFileStore:
     ) -> list[tuple[str, str, int]]:
         """Logical child entries with kind and size for the human browser (#94).
 
-        Same link discipline as ``list`` — a symlink, junction or other
-        reparse point fails the whole directory — plus one kinder mapping:
-        listing a file path is NOT_A_DIRECTORY instead of a locked error.
+        Link discipline matches the read path where it matters: a symlink,
+        junction or other reparse point never surfaces as an entry and can
+        never be traversed. The listing differs from the Agent's ``list`` in
+        one deliberate way — such an entry is skipped instead of failing the
+        whole directory, because a read-only human view gains nothing from a
+        wholesale refusal (real project folders carry junctions and cloud
+        placeholders), and nothing can sneak through a skipped entry.
+        Listing a file path is NOT_A_DIRECTORY instead of a locked error.
         Directories sort before files, then casefolded names.
         """
         root, path = self._resolve(logical_path)
@@ -223,9 +227,7 @@ class LocalFileStore:
                             LOCKED_OR_UNAVAILABLE, "locked or unavailable"
                         ) from exc
                     if stat.S_ISLNK(item_stat.st_mode):
-                        raise FileAccessError(
-                            OUTSIDE_ALLOWED_ROOTS, "outside allowed roots"
-                        )
+                        continue
                     relative = item.relative_to(root.physical_root)
                     kind = "dir" if stat.S_ISDIR(item_stat.st_mode) else "file"
                     rows.append(
@@ -367,15 +369,18 @@ class LocalFileStore:
     def _list_details_nt(
         root: RootConfig, path: Path, *, max_entries: int = -1
     ) -> list[tuple[str, str, int]]:
-        """The _list_nt link discipline, plus kinds and sizes for the browser."""
+        """The _list_nt vetting, with kinds and sizes for the browser (#94).
+
+        A symlink, junction or any other reparse point — including one that
+        stays inside the root, and cloud placeholders — is skipped, never
+        surfaced, never traversed; the rest of the directory stays browsable.
+        """
         rows: list[tuple[str, str, int]] = []
         with os.scandir(path) as scan:
             for entry in scan:
                 item_stat = entry.stat(follow_symlinks=False)
                 if stat.S_ISLNK(item_stat.st_mode) or item_stat.st_reparse_tag:
-                    raise FileAccessError(
-                        OUTSIDE_ALLOWED_ROOTS, "outside allowed roots"
-                    )
+                    continue
                 relative = (path / entry.name).relative_to(root.physical_root)
                 kind = "dir" if stat.S_ISDIR(item_stat.st_mode) else "file"
                 rows.append(

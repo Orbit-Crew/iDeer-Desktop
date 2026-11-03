@@ -28,7 +28,10 @@ const PREVIEW_ERROR_TEXT: Record<string, string> = {
   INVALID_PATH: '路径格式无效',
   WORKSPACE_UNAVAILABLE: '工作目录已失效，请在本机 Runtime 面板重新选择并确认',
   PERMISSION_DENIED: '系统拒绝了读取，请外部打开',
-  LOCKED_OR_UNAVAILABLE: '文件暂不可读（可能被占用）'
+  LOCKED_OR_UNAVAILABLE: '文件暂不可读（可能被占用）',
+  FILES_BUSY: '读取请求太多，请稍候再试',
+  FILES_TIMEOUT: '读取超时，请重试',
+  FILES_FAILED: '无法预览该文件'
 }
 const previewErrorText = (code: string): string =>
   PREVIEW_ERROR_TEXT[code] ?? '无法预览该文件'
