@@ -58,6 +58,15 @@ READ_CAPABILITIES = ('local.files.list', 'local.files.read', 'local.files.search
 KNOWLEDGE_CAPABILITIES = ('local.knowledge.search', 'local.knowledge.material')
 WORKSPACE_CAPABILITIES = (*READ_CAPABILITIES, *KNOWLEDGE_CAPABILITIES, 'local.files.write')
 MAX_TEXT_BYTES = 65536
+# Issue 94: the human browsing seam reads bigger slices than the Agent's
+# material path because the bytes stay on the device — they feed a read-only
+# preview in the trusted shell, never a task payload or a Server upload.
+MAX_PREVIEW_TEXT_BYTES = 1048576
+MAX_PREVIEW_IMAGE_BYTES = 2097152
+# Deliberately script-free formats only: SVG renders script-capable content,
+# so it stays an external-app file.
+PREVIEW_IMAGE_MIME = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp', '.ico': 'image/x-icon'}
 MAX_ENTRIES = 500
 MAX_SEARCH_FILES = 500
 MAX_MATCHES = 100
@@ -221,6 +230,74 @@ class WorkspaceFileStore(LocalFileStore):
                 if exc.code != 'PROTECTED_PATH':
                     raise
         return visible, len(entries) > MAX_ENTRIES
+
+    def list_details_with_limit(self, logical_path):
+        """Issue 94: guarded child entries for the human browser, protected
+        paths filtered exactly like ``list_with_limit``."""
+        from .files import FileAccessError
+        rows = super().list_details(logical_path, max_entries=MAX_ENTRIES + 1)
+        visible = []
+        for logical, kind, size in rows:
+            try:
+                self._resolve(logical)
+            except FileAccessError as exc:
+                if exc.code != 'PROTECTED_PATH':
+                    raise
+                continue
+            visible.append({'name': logical.rsplit('/', 1)[-1], 'kind': kind, 'size': size})
+        return visible, len(rows) > MAX_ENTRIES
+
+    def preview(self, logical_path):
+        """Issue 94: read-only preview facts for the Desktop shell.
+
+        The human seam never writes and never consults the policy or consent
+        stores; it reuses this store's guarded resolution so a preview cannot
+        reach farther than the Agent's own read path could. Images are the one
+        sanctioned binary form; everything else must decode as UTF-8 text or
+        the caller is told to use an external app.
+        """
+        import base64
+        import os
+        from .files import (FILE_BINARY, FILE_TOO_LARGE, FileAccessError,
+                            LOCKED_OR_UNAVAILABLE, PERMISSION_DENIED)
+        root, path = self._resolve(logical_path)
+        suffix = path.suffix.casefold()
+        if suffix in PREVIEW_IMAGE_MIME:
+            try:
+                size = os.stat(path).st_size
+            except PermissionError as exc:
+                raise FileAccessError(PERMISSION_DENIED, 'permission denied') from exc
+            except OSError as exc:
+                raise FileAccessError(LOCKED_OR_UNAVAILABLE, 'locked or unavailable') from exc
+            if size > MAX_PREVIEW_IMAGE_BYTES:
+                raise FileAccessError(FILE_TOO_LARGE, 'preview file too large')
+            raw = self.read_bytes(logical_path, max_bytes=MAX_PREVIEW_IMAGE_BYTES + 1)
+            if len(raw) > MAX_PREVIEW_IMAGE_BYTES:
+                raise FileAccessError(FILE_TOO_LARGE, 'preview file too large')
+            return {'kind': 'image', 'mime': PREVIEW_IMAGE_MIME[suffix],
+                    'data': base64.b64encode(raw).decode('ascii')}
+        raw = self.read_bytes(logical_path, max_bytes=MAX_PREVIEW_TEXT_BYTES + 1)
+        truncated = len(raw) > MAX_PREVIEW_TEXT_BYTES
+        if truncated:
+            raw = raw[:MAX_PREVIEW_TEXT_BYTES]
+        if b'\x00' in raw:
+            raise FileAccessError(FILE_BINARY, 'binary file needs an external app')
+        return {'kind': 'text', 'content': self._decode_preview(raw, truncated=truncated),
+                'truncated': truncated}
+
+    @staticmethod
+    def _decode_preview(raw, *, truncated):
+        """Strict UTF-8, tolerating one cut multibyte tail from a capped read."""
+        from .files import FILE_BINARY, FileAccessError
+        data = raw
+        for _ in range(4):
+            try:
+                return data.decode('utf-8')
+            except UnicodeDecodeError:
+                if not truncated or not data:
+                    raise FileAccessError(FILE_BINARY, 'not utf-8 text') from None
+                data = data[:-1]
+        raise FileAccessError(FILE_BINARY, 'not utf-8 text') from None
 
     def _resolve(self, logical_path):
         from .files import FileAccessError

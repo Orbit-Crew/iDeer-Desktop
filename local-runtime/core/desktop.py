@@ -32,6 +32,31 @@ from .receipts import content_hash
 from .tray import load_controller
 
 
+def browse_files_view(workspace, protected_root, action, logical_path):
+    """Issue 94: the human file-browsing seam.
+
+    A human looking at their own confirmed workspace folder is free — this
+    path consults no policy and no consent store, and records no grant rows.
+    It reuses the workspace store's guarded resolution so a browse or a
+    preview cannot reach farther than the Agent's read path could. The only
+    physical path this can produce rides ``locate`` back to the trusted main
+    process for an external open; it never reaches the renderer.
+    """
+    settings, grant = workspace.current()
+    files = WorkspaceFileStore(
+        [RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                    identity=tuple(grant['identity']), resolve_root=False)],
+        protected_roots=(protected_root,))
+    if action == 'list':
+        entries, truncated = files.list_details_with_limit(logical_path)
+        return {'entries': entries, 'truncated': truncated}
+    if action == 'read':
+        return files.preview(logical_path)
+    if action == 'locate':
+        return {'physical': str(files.resolve(logical_path))}
+    raise FileAccessError('FILES_FAILED')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, type=Path)
@@ -55,6 +80,7 @@ def main() -> int:
     model_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
+    files_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -247,6 +273,14 @@ def main() -> int:
                         and len(command['path']) <= 32768 and command['confirmed'] is True
                         and isinstance(command['scope'], str)):
                     workspace_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'path', 'scope'}
+                        and command['type'] == 'files' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'read', 'locate'}
+                        and isinstance(command['path'], str) and 0 < len(command['path']) <= 4096
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    files_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
@@ -678,6 +712,23 @@ def main() -> int:
                     error = 'CONNECTOR_FAILED'
                 emit({'v': 1, 'type': 'connectors', 'id': connector_command['id'],
                       'result': result, 'error': error})
+            try:
+                browse = files_commands.get_nowait()
+            except queue.Empty:
+                browse = None
+            if browse:
+                error = ''
+                result = None
+                try:
+                    if login.status()['state'] != 'authenticated' or browse['scope'] != workspace.scope():
+                        raise FileAccessError('WORKSPACE_UNAVAILABLE')
+                    result = browse_files_view(workspace, args.config.parent,
+                                               browse['action'], browse['path'])
+                except FileAccessError as exc:
+                    error = exc.code
+                except Exception:
+                    error = 'FILES_FAILED'
+                emit({'v': 1, 'type': 'files', 'id': browse['id'], 'result': result, 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:

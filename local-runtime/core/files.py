@@ -27,6 +27,9 @@ NOT_A_FILE = "NOT_A_FILE"
 NOT_A_DIRECTORY = "NOT_A_DIRECTORY"
 PERMISSION_DENIED = "PERMISSION_DENIED"
 LOCKED_OR_UNAVAILABLE = "LOCKED_OR_UNAVAILABLE"
+FILE_BINARY = "FILE_BINARY"
+FILE_TOO_LARGE = "FILE_TOO_LARGE"
+PREVIEW_UNSUPPORTED = "PREVIEW_UNSUPPORTED"
 
 
 @dataclass(frozen=True)
@@ -182,6 +185,67 @@ class LocalFileStore:
                 LOCKED_OR_UNAVAILABLE, "locked or unavailable"
             ) from exc
 
+    def list_details(
+        self, logical_path: str, *, max_entries: int = -1
+    ) -> list[tuple[str, str, int]]:
+        """Logical child entries with kind and size for the human browser (#94).
+
+        Same link discipline as ``list`` — a symlink, junction or other
+        reparse point fails the whole directory — plus one kinder mapping:
+        listing a file path is NOT_A_DIRECTORY instead of a locked error.
+        Directories sort before files, then casefolded names.
+        """
+        root, path = self._resolve(logical_path)
+        try:
+            if os.name == "nt":
+                from .files_nt import pinned
+                if __import__("sys").platform == "win32":
+                    with pinned(path, root=root):
+                        return self._list_details_nt(root, path, max_entries=max_entries)
+                return self._list_details_nt(root, path, max_entries=max_entries)
+            directory_fd = self._open_directory(root, path)
+            rows: list[tuple[str, str, int]] = []
+            try:
+                with os.scandir(directory_fd) as scan:
+                    names = []
+                    for item in scan:
+                        names.append(item.name)
+                        if max_entries >= 0 and len(names) >= max_entries:
+                            break
+                for name in names:
+                    item = path / name
+                    try:
+                        item_stat = os.stat(
+                            name, dir_fd=directory_fd, follow_symlinks=False
+                        )
+                    except FileNotFoundError as exc:
+                        raise FileAccessError(
+                            LOCKED_OR_UNAVAILABLE, "locked or unavailable"
+                        ) from exc
+                    if stat.S_ISLNK(item_stat.st_mode):
+                        raise FileAccessError(
+                            OUTSIDE_ALLOWED_ROOTS, "outside allowed roots"
+                        )
+                    relative = item.relative_to(root.physical_root)
+                    kind = "dir" if stat.S_ISDIR(item_stat.st_mode) else "file"
+                    rows.append(
+                        (f"{root.logical_root}/{relative.as_posix()}", kind, item_stat.st_size)
+                    )
+            finally:
+                os.close(directory_fd)
+            rows.sort(key=lambda row: (row[1] != "dir", row[0].casefold()))
+            return rows
+        except FileAccessError:
+            raise
+        except NotADirectoryError as exc:
+            raise FileAccessError(NOT_A_DIRECTORY, "not a directory") from exc
+        except PermissionError as exc:
+            raise FileAccessError(PERMISSION_DENIED, "permission denied") from exc
+        except OSError as exc:
+            raise FileAccessError(
+                LOCKED_OR_UNAVAILABLE, "locked or unavailable"
+            ) from exc
+
     def read(self, logical_path: str) -> str:
         root, path = self._resolve(logical_path)
         try:
@@ -298,6 +362,29 @@ class LocalFileStore:
                 if max_entries >= 0 and len(entries) >= max_entries:
                     break
         return sorted(entries)
+
+    @staticmethod
+    def _list_details_nt(
+        root: RootConfig, path: Path, *, max_entries: int = -1
+    ) -> list[tuple[str, str, int]]:
+        """The _list_nt link discipline, plus kinds and sizes for the browser."""
+        rows: list[tuple[str, str, int]] = []
+        with os.scandir(path) as scan:
+            for entry in scan:
+                item_stat = entry.stat(follow_symlinks=False)
+                if stat.S_ISLNK(item_stat.st_mode) or item_stat.st_reparse_tag:
+                    raise FileAccessError(
+                        OUTSIDE_ALLOWED_ROOTS, "outside allowed roots"
+                    )
+                relative = (path / entry.name).relative_to(root.physical_root)
+                kind = "dir" if stat.S_ISDIR(item_stat.st_mode) else "file"
+                rows.append(
+                    (f"{root.logical_root}/{relative.as_posix()}", kind, item_stat.st_size)
+                )
+                if max_entries >= 0 and len(rows) >= max_entries:
+                    break
+        rows.sort(key=lambda row: (row[1] != "dir", row[0].casefold()))
+        return rows
 
     @staticmethod
     def _open_directory(root: RootConfig, path: Path) -> int:

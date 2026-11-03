@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from '
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
@@ -171,6 +171,33 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (runtime.workspaceScope() !== binding) throw new Error('WORKSPACE_BINDING_CHANGED')
       if (confirmation.response === 1) await runtime.selectWorkspace(chosen.filePaths[0], binding)
+    })
+    // Issue 94: the human file-browsing seam. The renderer names a
+    // workspace-logical path and one action; browsing and previewing need no
+    // approval (the Runtime resolves with the same guards as the Agent read
+    // path, consent-free), and an external open/reveal resolves the physical
+    // path here in the trusted process only — it never reaches the renderer,
+    // and the OS launch stays a shell call on a Runtime-guarded location.
+    ipcMain.handle('desktop:files', async (event, command: FilesCommand) => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object') throw new Error('FILES_COMMAND_INVALID')
+      const keys = Object.keys(command).length
+      if (typeof command.path !== 'string' || command.path.length === 0 || keys !== 2) throw new Error('FILES_COMMAND_INVALID')
+      if (command.action === 'list' || command.action === 'read') return runtime.files(command.action, command.path)
+      if (command.action === 'open' || command.action === 'reveal') {
+        if (runtime.status().workspace?.state !== 'ready') throw new Error('WORKSPACE_UNAVAILABLE')
+        const located = await runtime.files('locate', command.path)
+        const physical = located as { physical: string }
+        if (typeof physical.physical !== 'string' || !physical.physical) throw new Error('FILES_OPEN_FAILED')
+        if (command.action === 'open') {
+          const failure = await shell.openPath(physical.physical)
+          if (failure) throw new Error('FILES_OPEN_FAILED')
+          return
+        }
+        shell.showItemInFolder(physical.physical)
+        return
+      }
+      throw new Error('FILES_COMMAND_INVALID')
     })
     ipcMain.handle('desktop:chat', async (event, command) => {
       requireMainFrame(event)

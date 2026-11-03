@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
@@ -35,6 +35,10 @@ export class RuntimeProcess {
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
   private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
+  /** Issue 94: the human browsing seam's bounded in-flight set; the tree and
+   * the preview drive it concurrently, so unlike the single-slot families it
+   * caps instead of serializing. */
+  private filesRequests = new Map<string, { resolve: (view: FilesListView | FilesPreview | { physical: string }) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   /** Issue 77: background-session facts the Runtime reports between polls. */
@@ -132,6 +136,34 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.workspaceRequest = null; reject(error) }
       }
       this.child!.stdin.write(JSON.stringify({ type: 'workspace', id, path, scope, confirmed: true }) + '\n')
+    })
+  }
+
+  /**
+   * Issue 94: the human file-browsing seam. `list`/`read` return guarded
+   * views of the confirmed workspace; `locate` resolves the workspace's own
+   * physical path for the trusted main process's external open and is never
+   * forwarded to the renderer. The logical-path shape here only mirrors the
+   * Runtime's gate — its store still owns the real containment decision.
+   */
+  async files(action: 'list' | 'read' | 'locate', path: string):
+      Promise<FilesListView | FilesPreview | { physical: string }> {
+    if (!['list', 'read', 'locate'].includes(action)) throw new Error('FILES_ACTION_INVALID')
+    if (typeof path !== 'string' || !path.startsWith('/') || path.includes('\\') ||
+        path.includes('\0') || path.startsWith('//') || path.split('/').some((part) => part === '..') ||
+        path.split('/').some((part) => part.includes(':')) || path.length > 4096) throw new Error('FILES_PATH_INVALID')
+    if (this.filesRequests.size >= 8) throw new Error('FILES_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' ||
+        this.snapshot.login?.state !== 'authenticated' || !this.selectionScope) throw new Error('WORKSPACE_UNAVAILABLE')
+    if (this.snapshot.workspace?.state !== 'ready') throw new Error('WORKSPACE_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.filesRequests.delete(id); reject(new Error('FILES_TIMEOUT')) }, 30000)
+      this.filesRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.filesRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.filesRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'files', id, action, path, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -1086,6 +1118,52 @@ export class RuntimeProcess {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
             else this.workspaceRequest?.resolve()
+            continue
+          }
+          if (value.v === 1 && value.type === 'files') {
+            // Issue 94: bounded browse/preview/locate replies. The `locate`
+            // result (a physical path) is consumed only by the trusted main
+            // process for the external open; the renderer never receives it.
+            const pending = this.filesRequests.get(value.id)
+            if (!pending) continue
+            this.filesRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const bad = (): void => { pending.reject(new Error('FILES_FAILED')) }
+            if (!result || typeof result !== 'object') { bad(); continue }
+            if (Array.isArray((result as FilesListView).entries)) {
+              const rows: FilesListView['entries'] = (result as FilesListView).entries
+              if (typeof (result as FilesListView).truncated !== 'boolean' || rows.length > 501 ||
+                  rows.some((row) => !row || typeof row.name !== 'string' || !row.name ||
+                    row.name.length > 256 || (row.kind !== 'dir' && row.kind !== 'file') ||
+                    !Number.isSafeInteger(row.size) || row.size < 0)) { bad(); continue }
+              pending.resolve({ entries: rows.map((row) => ({ name: row.name, kind: row.kind, size: row.size })),
+                truncated: (result as FilesListView).truncated })
+              continue
+            }
+            if ((result as FilesPreview).kind === 'text') {
+              const text = result as { kind: 'text'; content: unknown; truncated: unknown }
+              if (typeof text.content !== 'string' || text.content.length > 1048576 ||
+                  typeof text.truncated !== 'boolean') { bad(); continue }
+              pending.resolve({ kind: 'text', content: text.content, truncated: text.truncated })
+              continue
+            }
+            if ((result as FilesPreview).kind === 'image') {
+              const image = result as { kind: 'image'; mime: unknown; data: unknown }
+              const mimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp', 'image/x-icon']
+              if (typeof image.mime !== 'string' || !mimes.includes(image.mime) ||
+                  typeof image.data !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data) ||
+                  image.data.length > 2800000) { bad(); continue }
+              pending.resolve({ kind: 'image', mime: image.mime, data: image.data })
+              continue
+            }
+            if (typeof (result as { physical?: unknown }).physical === 'string' &&
+                (result as { physical: string }).physical.length > 0 &&
+                (result as { physical: string }).physical.length <= 4096) {
+              pending.resolve({ physical: (result as { physical: string }).physical })
+              continue
+            }
+            bad()
             continue
           }
           if (value.v === 1 && value.type === 'models') {

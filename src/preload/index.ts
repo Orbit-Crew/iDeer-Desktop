@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -29,6 +29,9 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 77: the notification center rides one invoke entry plus the two
   // push channels; every push replaces the renderer's whole view.
   notifications: (command: NotificationCommand) => ipcRenderer.invoke('desktop:notifications', command),
+  // Issue 94: the human file-browsing seam — logical workspace paths only;
+  // open/reveal resolve to physical paths inside the trusted main process.
+  files: (command: FilesCommand) => ipcRenderer.invoke('desktop:files', command),
   onNotifications: (listener: (view: NotificationCenterView) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, view: NotificationCenterView): void => listener(view)
     ipcRenderer.on('desktop:notifications', wrapped)
