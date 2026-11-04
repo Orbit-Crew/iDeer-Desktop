@@ -33,6 +33,14 @@ class LocalPolicy:
         del payload
         if capability in {"echo", "local.files.list", "local.files.read", "local.files.search"}:
             return RiskLevel.LEVEL_0
+        if capability in {
+            "local.calculator",
+            "local.aero_calculator",
+        }:
+            # Issue 83: the fixed calculators are desktop built-ins - pure
+            # functions with no side effects - so like echo they never ask
+            # and the session tier is never consulted for them.
+            return RiskLevel.LEVEL_0
         if capability == "local.knowledge.search":
             # Read-only over content the user explicitly imported and froze;
             # the manifest revalidation is what makes any result trustworthy.
@@ -61,6 +69,12 @@ class LocalPolicy:
             # content-bound grants short-circuit the ask, local DENY never
             # does.
             "local.skill.script",
+            # Issue 104: installing a Skill's locked dependencies modifies
+            # this machine and reaches the configured wheelhouse source, so
+            # it is always an explicit ask. The tier machinery never auto-runs
+            # it (it is not folder-anchored), and the coordinator drops the
+            # always-allow upgrade: installs have no standing approval.
+            "local.skill.dependencies",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

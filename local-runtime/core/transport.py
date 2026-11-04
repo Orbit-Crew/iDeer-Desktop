@@ -22,6 +22,11 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
 
 from .audit import AuditEntry, AuditKind, LocalAuditLog
+from .calculator import (
+    CALCULATOR_OPERATIONS,
+    evaluate_aero_arguments,
+    evaluate_expression,
+)
 from .consent import (
     ConsentRequest,
     ConsentStore,
@@ -48,7 +53,8 @@ from .python import LocalPythonService, PythonResult
 from .receipts import LocalExecutionReceipt, content_hash, safe_logical_target
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError
 from .secrets import SecretStoreError
-from .skill_script import SkillScriptError, SkillScriptService
+from .skill_dependencies import SkillDependencyError
+from .skill_script import SkillEnvironmentUnavailable, SkillScriptError, SkillScriptService
 from .task_guard import TaskGuard
 
 
@@ -78,6 +84,7 @@ class LocalRuntimeClient:
         python_service: LocalPythonService | None = None,
         mcp_service: LocalMCPService | None = None,
         skill_script_service: SkillScriptService | None = None,
+        skill_dependency_service: Any | None = None,
         audit: LocalAuditLog | None = None,
         consent_prompt: ConsentPrompt | None = None,
         on_session_id: Any | None = None,
@@ -113,6 +120,10 @@ class LocalRuntimeClient:
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
+            # Issue 83: the fixed calculators are desktop built-ins - pure
+            # functions with no service and no external dependency - so they
+            # are announced unconditionally, like echo.
+            default_capabilities.extend(tuple(sorted(CALCULATOR_OPERATIONS)))
             if file_service is not None:
                 default_capabilities.extend(
                     ("local.files.list", "local.files.read", "local.files.write")
@@ -134,6 +145,9 @@ class LocalRuntimeClient:
         # Issue 122: the device-leg Skill script gate; None keeps the
         # capability unannounced and every such task refused.
         self.skill_script_service = skill_script_service
+        # Issue 104: the on-demand locked-dependency installer behind the
+        # script gate; None means the device has no install channel at all.
+        self.skill_dependency_service = skill_dependency_service
         if self.mcp_service is not None:
             self.mcp_service.on_capabilities_changed = self._on_mcp_capabilities_changed
         self.connection: ClientConnection | None = None
@@ -732,6 +746,17 @@ class LocalRuntimeClient:
                 if receipt.policy_decision != PolicyDecision.ALLOW.value:
                     await self._denial_response(operation, task_id, envelope.payload, PolicyDecision(receipt.policy_decision))
                     return
+            elif operation in CALCULATOR_OPERATIONS:
+                # Issue 83: the fixed calculators are pure built-ins - the
+                # local policy can still veto them, but they never reach the
+                # consent path or the session tier, and the original's error
+                # strings come back as completed results.
+                decision = self.policy.authorize(operation, dict(envelope.payload))
+                if decision is PolicyDecision.DENY:
+                    await self._denial_response(operation, task_id, envelope.payload, decision)
+                    return
+                result = self.handle_calculator_task(operation, dict(envelope.payload))
+                receipt = self._file_receipt(envelope, operation, result)
             elif operation in {"local.files.list", "local.files.read", "local.files.search"}:
                 if not self.server_public_key:
                     # No broker key is bound: pairing never completed and no
@@ -840,7 +865,15 @@ class LocalRuntimeClient:
                         operation, task_id, envelope.payload, PolicyDecision.DENY
                     )
                     return
-                script_task, _declaration = self.handle_skill_script_task(dict(envelope.payload))
+                try:
+                    script_task, _declaration = self.handle_skill_script_task(dict(envelope.payload))
+                except SkillEnvironmentUnavailable as gap:
+                    # Issue 104: the environment refused with the per-entry
+                    # report. A fully exact-pinned dependency gap with a
+                    # configured source becomes an explicit install ask;
+                    # anything else refuses naming what is missing.
+                    await self._handle_environment_gap(envelope, gap, dict(envelope.payload))
+                    return
                 if script_task.decision is PolicyDecision.CONSENT_REQUIRED:
                     await self.consent_coord._request_consent(
                         envelope,
@@ -976,6 +1009,14 @@ class LocalRuntimeClient:
             )
             return
         except (RuntimeError, ValueError, TypeError, KeyError) as exc:
+            await self._send_error(
+                task_id, str(exc), "INVALID_TASK", envelope.payload, operation
+            )
+            return
+        except ArithmeticError as exc:
+            # A pure computation that overflows or divides by zero still owes
+            # the broker an answer; an unhandled ArithmeticError here would
+            # leave the task silently dangling (ZeroDivisionError, overflow).
             await self._send_error(
                 task_id, str(exc), "INVALID_TASK", envelope.payload, operation
             )
@@ -1129,6 +1170,8 @@ class LocalRuntimeClient:
             service = self.python_service
         elif capability == "local.skill.script":
             service = self.skill_script_service
+        elif capability == "local.skill.dependencies":
+            service = self.skill_dependency_service
         else:
             service = self.file_service
         if service is None:
@@ -1221,6 +1264,7 @@ class LocalRuntimeClient:
         policy_decision: str = "allow",
         status: str = "failed",
         consent_decision: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         await self.consent_coord._send_error(
             task_id,
@@ -1231,6 +1275,7 @@ class LocalRuntimeClient:
             policy_decision=policy_decision,
             status=status,
             consent_decision=consent_decision,
+            details=details,
         )
 
     async def _send_python_output(self, task_id: str, stream: str, output: str) -> None:
@@ -1257,6 +1302,24 @@ class LocalRuntimeClient:
             payload_hash=content_hash(payload),
             result_hash=result_hash,
         )
+
+    def handle_calculator_task(self, operation: str, payload: dict[str, Any]) -> str:
+        """Evaluate one fixed-calculator task to its result string (#83).
+
+        Pure built-ins with no execution channel: the only inputs are the
+        payload's own arguments, and the original's error strings (除以零,
+        未识别的标识符, 未知公式, …) come back as completed results, exactly
+        as the original tools answered. Malformed payload shapes raise, so
+        the generic task handler reports INVALID_TASK.
+        """
+        arguments = payload.get("arguments")
+        if not isinstance(arguments, dict):
+            raise ValueError("calculator arguments object is required")
+        if operation == "local.calculator":
+            if "expression" not in arguments:
+                raise ValueError("calculator arguments require an expression")
+            return evaluate_expression(arguments["expression"])
+        return evaluate_aero_arguments(arguments)
 
     def handle_knowledge_search_task(
         self, payload: dict[str, Any], *, consent: bool = False
@@ -1292,6 +1355,49 @@ class LocalRuntimeClient:
             raise RuntimeError("skill_script_service is required for local Skill scripts")
         return await self.skill_script_service.execute(
             payload, consent=consent, authorization_basis=authorization_basis
+        )
+
+    async def run_skill_dependency_install(self, payload: dict[str, Any]) -> Any:
+        """The consented install half (#104), run off the event loop."""
+        if self.skill_dependency_service is None:
+            raise RuntimeError("skill_dependency_service is required for dependency installs")
+        return await asyncio.to_thread(self.skill_dependency_service.install, payload)
+
+    async def _handle_environment_gap(
+        self,
+        envelope: Any,
+        gap: SkillEnvironmentUnavailable,
+        payload: dict[str, Any],
+    ) -> None:
+        """Turn one environment refusal into an ask or an honest error (#104).
+
+        The local veto applies to installs like to everything else; an ALLOW
+        from the policy never skips the ask — installs have no standing
+        approval. Without a usable plan the refusal stays the fixed
+        environment category, now carrying the per-entry detail.
+        """
+        task_id = envelope.task_id or ""
+        service = self.skill_dependency_service
+        plan_payload = None
+        if service is not None:
+            if self.policy.authorize("local.skill.dependencies", payload) is PolicyDecision.DENY:
+                await self._denial_response(
+                    "local.skill.dependencies", task_id, payload, PolicyDecision.DENY
+                )
+                return
+            try:
+                plan_payload = service.plan(payload, gap.report)
+            except SkillDependencyError:
+                plan_payload = None
+        if plan_payload is None:
+            await self._send_error(
+                task_id, str(gap), str(gap), payload, "local.skill.script",
+                policy_decision=PolicyDecision.DENY.value, status="denied",
+                details=gap.details,
+            )
+            return
+        await self.consent_coord._request_dependency_install(
+            envelope, plan_payload, payload, service.consent
         )
 
     def handle_file_task(

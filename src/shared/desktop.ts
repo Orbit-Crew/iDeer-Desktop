@@ -273,13 +273,29 @@ export interface WikiCommand {
   revisionId: string
   documentId?: string
 }
-/** Issue 120: one package member in the upload scope, bound to its frozen hash. */
+/** Issue 120: one package member in the upload scope, bound to its frozen hash.
+ * Issue 82: script members carry their declared language (empty for the
+ * other roles and for members outside the four-language mapping). */
+export type SkillScriptLanguage = 'python' | 'js' | 'shell' | 'executable'
 export interface SkillPackageFileView {
   path: string
   role: 'body' | 'script' | 'reference' | 'attachment'
   bytes: number
   sha256: string
+  language: SkillScriptLanguage | ''
 }
+/** Issue 82: the package's declared execution environment, normalized to the
+ * frozen wire grammar (target + the five requirement dimensions). */
+export interface SkillImportEnvironmentView {
+  target: 'server' | 'user_device'
+  os: string[]
+  dependencies: string[]
+  software: string[]
+  tools: string[]
+  data: string[]
+}
+/** Issue 82: the permissions a package declares, as shown at import. */
+export interface SkillImportPermissionsView { network: boolean; subprocess: boolean }
 export interface SkillImportDestination { resourceType: string; visibility: string; ownerId?: string }
 /** Issue 120: the read-only device-side preview; nothing uploads in this step. */
 export interface SkillImportPreview {
@@ -288,6 +304,8 @@ export interface SkillImportPreview {
   name: string
   description: string
   bodyExcerpt: string
+  environment: SkillImportEnvironmentView | null
+  permissions: SkillImportPermissionsView
   files: SkillPackageFileView[]
   fileCount: number
   totalBytes: number
@@ -626,7 +644,8 @@ export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
   success: '成功', error: '出错', failed: '失败', interrupted: '已中断'
 }
 export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
-  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材'
+  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'skill-dependencies': '技能依赖安装',
+  'knowledge-material': '知识取材'
 }
 
 /** Issue 77: list or settle the device's own notification ledger. */
@@ -779,7 +798,7 @@ export interface LocalConsentView {
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'knowledge-material'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material'
   path?: string
   content?: string
   directory?: string
@@ -791,6 +810,11 @@ export interface LocalConsentView {
   revisionId?: string
   manifestHash?: string
   documents?: { filename: string; contentHash: string }[]
+  /** Issue 104: the locked dependency entries and the configured source the
+   * install ask names — the source is the only network destination the
+   * approval covers. */
+  entries?: { entry: string; name: string; version: string }[]
+  source?: { kind: string; location: string }
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback
