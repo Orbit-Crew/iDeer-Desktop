@@ -47,6 +47,7 @@ from typing import Any, Callable
 from .consent import ConsentStore
 from .policy import LocalPolicy
 from .skill_script import (
+    EnvironmentEntry,
     _exact_lock,
     _parse_requirement,
     installable_pins,
@@ -69,9 +70,15 @@ MANIFEST_NAME = "skill-deps.lock.json"
 
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_WHEEL_BYTES = 512 * 1024 * 1024
+#: The uncompressed bound a wheel may claim across its members; a lock
+#: artifact claiming more is a bomb-shaped wheel, not a provisionable one.
+MAX_EXTRACTED_BYTES = 4 * MAX_WHEEL_BYTES
 FETCH_TIMEOUT_SECONDS = 30.0
 MAX_WHEEL_MEMBERS = 20_000
+MAX_LOCK_WHEELS = 4096
 MAX_ENTRIES = 16
+
+_INTRANET_SCHEMES = ("http://", "https://")
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _VERSION_PATTERN = re.compile(r"^[0-9][A-Za-z0-9.+-]*$")
@@ -80,6 +87,17 @@ _PLAN_FIELDS = frozenset({
     "operation", "skill_id", "skill_version", "requirements_sha256",
     "entries", "source", "run_id", "thread_id",
 })
+_ENTRY_FIELDS = frozenset({"entry", "name", "version"})
+
+
+def install_entry_shape(item: Any) -> bool:
+    """The one locked-entry shape both the wire plan and the chat card
+    project; one validator so display and execution can never drift."""
+    return (
+        isinstance(item, dict)
+        and set(item) == _ENTRY_FIELDS
+        and all(isinstance(item[key], str) and item[key] for key in _ENTRY_FIELDS)
+    )
 
 
 class SkillDependencyError(RuntimeError):
@@ -121,23 +139,6 @@ def resolve_target_dir() -> Path:
     return Path(sysconfig.get_path("purelib"))
 
 
-def source_from_settings(raw: Any) -> DependencySource | None:
-    """The configured install source, or ``None`` when none is configured.
-
-    A malformed setting returns ``None`` rather than raising: the runtime
-    must still boot (this runs at controller construction), and a malformed
-    source then refuses installs exactly like an absent one — never a
-    silent fallback to some default index.
-    """
-    if not raw or not isinstance(raw, dict):
-        return None
-    kind = str(raw.get("kind", ""))
-    location = str(raw.get("location", "")).strip()
-    if kind not in ("offline", "intranet") or not location:
-        return None
-    return DependencySource(kind, location)
-
-
 @dataclass(frozen=True)
 class DependencySource:
     """One configured wheelhouse: an offline directory or an intranet URL."""
@@ -147,6 +148,26 @@ class DependencySource:
 
     def artifact_url(self, filename: str) -> str:
         return f"{self.location.rstrip('/')}/{urllib.parse.quote(filename)}"
+
+
+def source_from_settings(raw: Any) -> DependencySource | None:
+    """The configured install source, or ``None`` when none is configured.
+
+    A malformed setting returns ``None`` rather than raising: the runtime
+    must still boot (this runs at controller construction), and a malformed
+    source then refuses installs exactly like an absent one — never a
+    silent fallback to some default index. An intranet location must name
+    http(s): the fetcher opens exactly that URL and nothing else.
+    """
+    if not raw or not isinstance(raw, dict):
+        return None
+    kind = str(raw.get("kind", ""))
+    location = str(raw.get("location", "")).strip()
+    if kind not in ("offline", "intranet") or not location:
+        return None
+    if kind == "intranet" and not location.lower().startswith(_INTRANET_SCHEMES):
+        return None
+    return DependencySource(kind, location)
 
 
 class SkillDependencyService:
@@ -180,7 +201,7 @@ class SkillDependencyService:
 
     # --- planning -----------------------------------------------------------
 
-    def plan(self, skill_payload: dict[str, Any], report: list) -> dict[str, Any] | None:
+    def plan(self, skill_payload: dict[str, Any], report: list[EnvironmentEntry]) -> dict[str, Any] | None:
         """The consent payload for one install ask, or ``None`` when the gap
         is not fully curable with exact pins.
 
@@ -238,6 +259,8 @@ class SkillDependencyService:
         )
         if source.kind not in ("offline", "intranet") or not source.location:
             raise _refuse("the plan's source is not a configured wheelhouse")
+        if source.kind == "intranet" and not source.location.lower().startswith(_INTRANET_SCHEMES):
+            raise _refuse("the intranet source must be an http(s) URL")
         lock = self._load_lock(source)
         resolved = []
         missing = []
@@ -261,9 +284,14 @@ class SkillDependencyService:
             staged.append((wheel, data))
 
         target = self.target_dir()
-        target.mkdir(parents=True, exist_ok=True)
-        for wheel, data in staged:
-            self._extract_wheel(data, target)
+        try:
+            target.mkdir(parents=True, exist_ok=True)
+            for wheel, data in staged:
+                self._extract_wheel(data, target)
+        except OSError as exc:
+            # A disk failure mid-install owes the same honest category as a
+            # refused artifact, with what landed left in place and named.
+            raise _refuse(f"dependency install failed: {type(exc).__name__}") from None
         return {
             "installed": [
                 {"name": wheel["name"], "version": wheel["version"],
@@ -290,11 +318,7 @@ class SkillDependencyService:
         if not isinstance(entries, list) or not entries or len(entries) > MAX_ENTRIES:
             raise _refuse("install plan entries are invalid")
         for item in entries:
-            if (
-                not isinstance(item, dict)
-                or set(item) != {"entry", "name", "version"}
-                or not all(isinstance(item[key], str) and item[key] for key in ("entry", "name", "version"))
-            ):
+            if not install_entry_shape(item):
                 raise _refuse("install plan entry is invalid")
         source = plan_payload.get("source")
         if (
@@ -323,7 +347,7 @@ class SkillDependencyService:
         except (UnicodeDecodeError, json.JSONDecodeError):
             raise _refuse(f"dependency lock is not valid JSON: {MANIFEST_NAME}") from None
         wheels = document.get("wheels") if isinstance(document, dict) else None
-        if not isinstance(wheels, list) or not wheels or len(wheels) > 4096:
+        if not isinstance(wheels, list) or not wheels or len(wheels) > MAX_LOCK_WHEELS:
             raise _refuse("dependency lock wheels are invalid")
         lock: dict[tuple[str, str], dict[str, str]] = {}
         for wheel in wheels:
@@ -367,12 +391,14 @@ class SkillDependencyService:
         """One bounded read from the configured source, and nothing else.
 
         The URL is the operator's configured location plus a validated lock
-        filename; no redirect-following index walks, no default indexes.
+        filename. Redirects are refused, not followed: the location the user
+        approved is the only destination this fetch may touch, and no
+        default index ever is.
         """
         if self._fetcher is not None:
             return self._fetcher(url, limit)
         try:
-            with urllib.request.urlopen(url, timeout=FETCH_TIMEOUT_SECONDS) as response:
+            with _NO_REDIRECTS.open(url, timeout=FETCH_TIMEOUT_SECONDS) as response:
                 chunks: list[bytes] = []
                 total = 0
                 while True:
@@ -394,14 +420,18 @@ class SkillDependencyService:
     @staticmethod
     def _validate_wheel(data: bytes) -> None:
         """Refuse every wheel this device leg does not provision: a valid
-        zip with a bounded member count and purelib-only layout (``.data``
-        members have no contract here; a curated lock does not carry them).
+        zip with a bounded member count, an uncompressed bound (a
+        bomb-shaped claim is not provisionable), and purelib-only layout
+        (``.data`` members have no contract here; a curated lock does not
+        carry them).
         """
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as bundle:
                 members = bundle.infolist()
                 if not members or len(members) > MAX_WHEEL_MEMBERS:
                     raise _refuse("wheel member count is invalid")
+                if sum(member.file_size for member in members) > MAX_EXTRACTED_BYTES:
+                    raise _refuse("wheel's uncompressed size exceeds the bounded budget")
                 for member in members:
                     _validate_member_name(member.filename)
         except zipfile.BadZipFile:
@@ -433,7 +463,18 @@ def _validate_member_name(name: str) -> None:
 
 
 def _bounded_file_read(path: Path, limit: int) -> bytes:
-    data = path.read_bytes()
-    if len(data) > limit:
+    size = path.stat().st_size
+    if size > limit:
         raise OSError("artifact exceeds the bounded size")
-    return data
+    return path.read_bytes()
+
+
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    """The approved location is the only destination: a redirecting source
+    refuses instead of bouncing the fetch off-site."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001 - stdlib shape
+        return None
+
+
+_NO_REDIRECTS = urllib.request.build_opener(_NoRedirects)

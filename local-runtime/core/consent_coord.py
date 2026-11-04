@@ -986,6 +986,18 @@ class LocalConsentCoordinator:
                 details={"reason": str(exc)[:500]},
             )
             return None, None
+        except OSError as exc:
+            # Disk or socket failures during the install owe the broker the
+            # same honest answer as a refused artifact: without this frame
+            # the task would strand silently on a background settle.
+            await wire._send_error(
+                task_id, f"dependency install failed: {type(exc).__name__}",
+                SKILL_DEPENDENCIES_INSTALL_FAILED, request.payload,
+                request.capability, policy_decision=PolicyDecision.ALLOW.value,
+                status="failed", consent_decision=consent_decision,
+                details={"reason": str(exc)[:500]},
+            )
+            return None, None
         self._audit(
             AuditKind.TASK,
             "completed",

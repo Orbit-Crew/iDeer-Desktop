@@ -69,7 +69,7 @@ def render_consent_summary(
         summary["version"] = text(payload.get("skill_version", ""))
         entries = payload.get("entries")
         if isinstance(entries, list):
-            summary["command"] = text(", ".join(
+            summary["entries"] = text(", ".join(
                 str(item.get("entry", "")) for item in entries if isinstance(item, dict)
             ))
         source = payload.get("source")

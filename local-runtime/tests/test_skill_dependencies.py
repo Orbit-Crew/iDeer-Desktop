@@ -669,3 +669,100 @@ async def test_wire_policy_denied_installs_never_ask(tmp_path) -> None:
     assert error["payload"]["error_code"] == "LOCAL_POLICY_DENIED"
     assert error["payload"]["receipt"]["capability"] == "local.skill.dependencies"
     assert not target.exists()
+
+
+def test_intranet_source_must_be_http_s() -> None:
+    """The fetcher opens exactly the configured URL: only http(s) locations
+    are a source at all (a file:// or ftp:// string is not one)."""
+    assert source_from_settings({"kind": "intranet", "location": "file:///C:/wheels"}) is None
+    assert source_from_settings({"kind": "intranet", "location": "ftp://intranet/wheels"}) is None
+    assert source_from_settings({"kind": "intranet", "location": "http://intranet/wheels"}) is not None
+    assert source_from_settings({"kind": "intranet", "location": "https://intranet/wheels"}) is not None
+
+
+def test_install_refuses_a_non_http_intranet_plan(tmp_path) -> None:
+    service = make_service(tmp_path, source=DependencySource("intranet", "file:///C:/wheels"))
+    with pytest.raises(SkillDependencyError) as excinfo:
+        service.install(install_plan(
+            [{"entry": "x==1.0.0", "name": "x", "version": "1.0.0"}],
+            {"kind": "intranet", "location": "file:///C:/wheels"}))
+    assert excinfo.value.code == SKILL_DEPENDENCIES_INSTALL_FAILED
+
+
+def test_fetch_refuses_redirects(tmp_path) -> None:
+    """The approved location is the only destination: a redirecting source
+    refuses instead of following the bounce off-site."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class Redirecting(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(302)
+            self.send_header("Location", "http://elsewhere.example/wheel.whl")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Redirecting)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        service = make_service(
+            tmp_path,
+            source=DependencySource("intranet", f"http://127.0.0.1:{server.server_port}"),
+        )
+        with pytest.raises(SkillDependencyError) as excinfo:
+            service.install(install_plan(
+                [{"entry": "x==1.0.0", "name": "x", "version": "1.0.0"}],
+                {"kind": "intranet", "location": f"http://127.0.0.1:{server.server_port}"}))
+        assert excinfo.value.code == SKILL_DEPENDENCIES_INSTALL_FAILED
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+
+
+def test_bounded_read_stats_before_reading(tmp_path) -> None:
+    from core.skill_dependencies import _bounded_file_read
+    big = tmp_path / "big.bin"
+    big.write_bytes(b"x" * 16)
+    with pytest.raises(OSError):
+        _bounded_file_read(big, 8)
+    assert _bounded_file_read(big, 16) == b"x" * 16
+
+
+def test_wheel_uncompressed_budget_is_enforced(tmp_path, monkeypatch) -> None:
+    import core.skill_dependencies as module
+    house = tmp_path / "house"
+    house.mkdir()
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as bundle:
+        bundle.writestr("demo/__init__.py", "x = '" + "0" * 4096 + "'\n")
+        bundle.writestr("demo-1.0.0.dist-info/METADATA", "Name: demo\n")
+    (house / "demo-1.0.0-py3-none-any.whl").write_bytes(buffer.getvalue())
+    (house / MANIFEST_NAME).write_text(json.dumps({"wheels": [{
+        "name": "demo", "version": "1.0.0", "file": "demo-1.0.0-py3-none-any.whl",
+        "sha256": hashlib.sha256(buffer.getvalue()).hexdigest(),
+    }]}), encoding="utf-8")
+    monkeypatch.setattr(module, "MAX_EXTRACTED_BYTES", 1024)
+    service = make_service(tmp_path, source=DependencySource("offline", str(house)))
+    with pytest.raises(SkillDependencyError) as excinfo:
+        service.install(install_plan(
+            [{"entry": "demo==1.0.0", "name": "demo", "version": "1.0.0"}],
+            {"kind": "offline", "location": str(house)}))
+    assert excinfo.value.code == SKILL_DEPENDENCIES_INSTALL_FAILED
+    assert "uncompressed" in str(excinfo.value)
+
+
+def test_oserror_during_install_answers_the_wire(tmp_path) -> None:
+    """AC4: even a disk failure mid-install is one honest category, never a
+    stranded task."""
+    from unittest.mock import patch
+    source = make_offline_house(tmp_path, {("ideer-demo", "1.2.3"): ("ideer_demo-1.2.3-py3-none-any.whl", "")})
+    service = make_service(tmp_path, source=source)
+    with patch.object(SkillDependencyService, "_extract_wheel", side_effect=OSError("disk full")):
+        with pytest.raises(SkillDependencyError) as excinfo:
+            service.install(install_plan(
+                [{"entry": "ideer-demo==1.2.3", "name": "ideer-demo", "version": "1.2.3"}],
+                offline_source(source)))
+    assert excinfo.value.code == SKILL_DEPENDENCIES_INSTALL_FAILED
