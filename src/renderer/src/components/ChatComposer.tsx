@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { Button, Input, Space, Switch, Tag, Typography } from 'antd'
 import type { TextAreaRef } from 'rc-textarea'
-import type { ChatCommand, ChatSnapshot } from '../../../shared/desktop'
-import { MAX_MESSAGE_SKILLS } from '../../../shared/desktop'
+import type { ChatAttachment, ChatAttachmentChoice, ChatCommand, ChatSnapshot } from '../../../shared/desktop'
+import { ATTACHMENT_DESTINATION_LABELS, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS } from '../../../shared/desktop'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
@@ -60,8 +60,46 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
   const [skills, setSkills] = useState<ComposerPick[]>([])
   const [picker, setPicker] = useState<PickerState | null>(null)
   const [collab, setCollab] = useState(true)
+  // Issue 93: one chip per picked attachment, each carrying its explicit
+  // destination. The default is always 发送解析文本 — the device parses and
+  // only the extracted text rides the message, the original never leaves
+  // the machine. Nothing executes until the user acts.
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
   const areaRef = useRef<TextAreaRef | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
   const threadId = state.thread?.id
+
+  const addFiles = (files: FileList | File[] | null | undefined): void => {
+    if (!files || !('length' in files) || files.length === 0) return
+    setAttachments((current) => {
+      const next = [...current]
+      for (const file of Array.from(files)) {
+        if (next.length >= MAX_MESSAGE_ATTACHMENTS) break
+        const path = (file as File & { path?: string }).path
+        // A dropped or picked item without a device path has no local file
+        // to bind — skip it instead of inventing one.
+        if (!path) continue
+        next.push({ id: crypto.randomUUID(), path, name: file.name, destination: 'parsed-text' })
+      }
+      return next
+    })
+  }
+
+  const removeAttachment = (id: string): void =>
+    setAttachments((current) => current.filter((row) => row.id !== id))
+
+  const chooseDestination = (row: ChatAttachment, choice: ChatAttachmentChoice): void => {
+    if (choice === 'local-view') {
+      // 仅本机查看 executes immediately: the Runtime parses on the device
+      // and answers with a read-only display record; the chip is consumed
+      // and never rides a send.
+      if (!threadId) return
+      removeAttachment(row.id)
+      void onCommand({ action: 'attachment-view', scope: state.scope, threadId, id: row.id, path: row.path, name: row.name })
+      return
+    }
+    setAttachments((current) => current.map((item) => item.id === row.id ? { ...item, destination: choice } : item))
+  }
 
   const options = useMemo(() => {
     // Issue 76: collaboration off — delegation cannot take effect this run,
@@ -119,18 +157,21 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
   const pick = (option: ComposerPick): void => picker?.kind === 'agent' ? pickAgent(option) : pickSkill(option)
 
   const send = (): void => {
-    if (!canSend || pending || !text.trim() || !threadId) return
+    if (!canSend || pending || (!text.trim() && attachments.length === 0) || !threadId) return
     const message = text
     setText('')
     setDelegate(null)
     // Mounted Skills persist across the session's messages; only the
     // per-message delegation clears with the text. The collab switch rides
     // every send as an explicit boolean (#76): the platform's own silent
-    // default is delegation OFF, so "on" must say so too.
+    // default is delegation OFF, so "on" must say so too. Each attachment's
+    // chosen destination rides along (#93); the chips clear with the message.
     void onCommand({ action: 'send', scope: state.scope, threadId, turnId: crypto.randomUUID(), text: message,
       ...(delegate ? { delegateAgentId: delegate.id } : {}),
       ...(skills.length ? { skillIds: skills.map((skill) => skill.id) } : {}),
+      ...(attachments.length ? { attachments: attachments.map(({ id, path, name, destination }) => ({ id, path, name, destination })) } : {}),
       collab })
+    setAttachments([])
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
@@ -166,7 +207,9 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
   }
 
   const disabled = !canSend || !!pending
-  return <div className="w-full">
+  return <div className="w-full" role="group" aria-label="消息编辑区"
+    onDragOver={(event) => { event.preventDefault(); event.stopPropagation() }}
+    onDrop={(event) => { event.preventDefault(); event.stopPropagation(); if (!disabled) addFiles(event.dataTransfer?.files) }}>
     {disabled && !pending && sendBlockedReason && <Typography.Text type="warning" className="text-xs"
       role="status">{sendBlockedReason}</Typography.Text>}
     {(delegate || skills.length > 0) && <div className="mb-2 flex flex-wrap gap-2">
@@ -176,6 +219,21 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
         onClose={() => setSkills((mounted) => mounted.filter((row) => row.id !== skill.id))}>
         {index === 0 ? '必用：' : '挂载：'}{skill.name}</Tag>)}
     </div>}
+    {attachments.length > 0 && <ul role="list" aria-label="待发送附件" className="mb-2 flex flex-wrap gap-2 list-none p-0">
+      {attachments.map((row) => <li key={row.id} aria-label={`附件 ${row.name}`}
+        className="flex items-center gap-2 rounded border border-gray-200 bg-white px-2 py-1">
+        <Typography.Text className="text-xs" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</Typography.Text>
+        <select aria-label={`附件去向 ${row.name}`} className="text-xs rounded border border-gray-200 bg-white px-1 py-0.5"
+          value={row.destination} disabled={disabled}
+          onChange={(event) => chooseDestination(row, event.target.value as ChatAttachmentChoice)}>
+          {(Object.keys(ATTACHMENT_DESTINATION_LABELS) as ChatAttachmentChoice[]).map((choice) => (
+            <option key={choice} value={choice}>{ATTACHMENT_DESTINATION_LABELS[choice]}</option>
+          ))}
+        </select>
+        <Button type="text" size="small" aria-label={`移除附件 ${row.name}`} disabled={disabled}
+          onClick={() => removeAttachment(row.id)}>×</Button>
+      </li>)}
+    </ul>}
     <div className="relative">
       <Input.TextArea aria-label="聊天消息" ref={areaRef} value={text} maxLength={16000}
         autoSize={{ minRows: 3, maxRows: 10 }} disabled={disabled}
@@ -192,10 +250,13 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
       </ul>}
     </div>
     <Space className="mt-2" wrap>
-      <Button type="primary" aria-label="发送消息" disabled={disabled || !text.trim()} onClick={send}>发送</Button>
+      <Button type="primary" aria-label="发送消息" disabled={disabled || (!text.trim() && attachments.length === 0)} onClick={send}>发送</Button>
+      {!disabled && <input ref={fileRef} type="file" multiple aria-label="选择附件文件" className="hidden"
+        onChange={(event) => { addFiles(event.target.files); event.target.value = '' }} />}
+      <Button aria-label="添加附件" disabled={disabled} onClick={() => fileRef.current?.click()}>附件</Button>
       <Switch aria-label="协同模式" checked={collab} disabled={disabled} onChange={setCollab} size="small" />
       <Typography.Text type="secondary" className="text-xs">协同：一句话派发多个专业 Agent，平台并行子代理执行（团队由主 Agent 配置决定）</Typography.Text>
-      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（仅本条消息，协同关闭时不可用）· / 挂载 Skill（首个为本会话必用）</Typography.Text>
+      <Typography.Text type="secondary" className="text-xs">Enter 发送 · Shift+Enter 换行 · @ 委派（仅本条消息，协同关闭时不可用）· / 挂载 Skill（首个为本会话必用）· 拖入或点“附件”添加附件，默认本机解析送文本，原件不会自动上传</Typography.Text>
     </Space>
   </div>
 }

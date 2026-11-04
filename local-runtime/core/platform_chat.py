@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
 from .browser_login import _NoRedirect, platform_origin
+from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
 from .policy import PolicyDecision
 from .receipt_ledger import profile_binding
@@ -58,6 +59,27 @@ BACKGROUND_LEDGER_LIMIT = 100
 # Issue 78: one branch names one completed assistant turn; the turn's
 # assistant message ids stay a bounded list on the wire.
 MAX_BRANCH_TURN_MESSAGES = 64
+# Issue 93: 对话附件去向选择器的边界。每条附件的去向由用户显式选择：默认
+# "发送解析文本"只在设备上解析（原件不出电脑），"上传原件"走 Thread 工件的
+# 显式接缝（10 MiB：比任务结果的 64 KiB 宽，仍远小于解析引擎 50 MiB 的读取
+# 上限），"仅本机查看"回答一段有界的只读文本。消息本身的 16000 字符预算是
+# 平台的约束：附件文本块按剩余预算截断并如实标注。
+MAX_MESSAGE_ATTACHMENTS = 8
+MAX_ATTACHMENT_PATH = 4096
+MAX_ATTACHMENT_NAME = 256
+MAX_ATTACHMENT_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_ATTACHMENT_VIEW_CHARS = 100_000
+# Per-attachment message-budget reservations, checked BEFORE any file is
+# read, parsed or staged: an upload block is at most the name plus artifact
+# id and hash fragments (~512), a parsed block is at most its markers plus
+# the no-room fallback line around a full-length name (~600, the engine's
+# parser identity and the truncation marker included). With these reserved
+# the composed message fits by construction; the trailing guard only pins
+# that invariant.
+ATTACHMENT_UPLOAD_RESERVE = 512
+ATTACHMENT_PARSED_RESERVE = 600
+# Slack inside one parsed block: the '\n' pair and the truncation suffix.
+ATTACHMENT_BLOCK_SLACK = 24
 # Issue 80: once the platform answers again, a session left with an unknown
 # outcome reconciles itself at most this often. The cooldown bounds the
 # reconnect attempts the Desktop's own poll can spend — the Server load and
@@ -1560,6 +1582,7 @@ class DesktopChat:
         delegate_id = command.get('delegateAgentId')
         skill_ids = command.get('skillIds')
         collab = command.get('collab')
+        attachments = self._validate_attachments(command)
         # The bounds mirror the main process exactly: at most 8 mounted
         # Skills (shared MAX_MESSAGE_SKILLS) and ids within 128 characters.
         if command['action'] != 'send' and (delegate_id is not None or skill_ids is not None or collab is not None):
@@ -1605,8 +1628,19 @@ class DesktopChat:
                 raise ChatError('CHAT_HUMAN_INPUT_INVALID')
             text = f'For your clarification "{pending["question"]}", my answer is: {response["value"]}'
             additional_kwargs = {'hide_from_ui': True, 'human_input_response': response}
-        if not isinstance(text, str) or not text.strip() or len(text) > 16000:
+        # Issue 93: with attachments the extracted text blocks carry part of
+        # the message, so an empty user text is acceptable — the composed
+        # content below still must be non-empty and within the platform's own
+        # message bound. The reserve check runs before any file is read, any
+        # parse happens or any byte is staged: a send that cannot honestly fit
+        # fails without consuming the turn or touching the network.
+        if not isinstance(text, str) or (attachments is None and not text.strip()) or len(text) > 16000:
             raise ChatError('CHAT_MESSAGE_INVALID')
+        if attachments is not None:
+            reserve = 2 * len(attachments) + sum(ATTACHMENT_UPLOAD_RESERVE if row['destination'] == 'upload'
+                                                 else ATTACHMENT_PARSED_RESERVE for row in attachments)
+            if len(text) + reserve > 16000:
+                raise ChatError('CHAT_MESSAGE_INVALID')
         # Issue 75: the delegate Agent must be a published agent; the mention
         # text itself stays the lead Agent's cue and the platform delegates
         # through its own sub-agents inside THIS session (assistant_id stays
@@ -1635,7 +1669,15 @@ class DesktopChat:
         # consumed — an unavailable choice stops here with an explicit
         # category, so the user can switch and resend without reconnecting.
         model_pick = self._resolve_send_model(session, thread)
-        message = dict(id=turn_id, type='human', content=text)
+        composed, attachment_statuses, attachment_facts = text, None, []
+        if attachments is not None:
+            composed, attachment_statuses, attachment_facts = self._compose_attachments(
+                session, thread['id'], text, attachments)
+            # By construction the composition respects the bound; this guard
+            # keeps the platform contract absolute even if a marker grows.
+            if not composed.strip() or len(composed) > 16000:
+                raise ChatError('CHAT_MESSAGE_INVALID')
+        message = dict(id=turn_id, type='human', content=composed)
         if additional_kwargs:
             message['additional_kwargs'] = additional_kwargs
         self._turns.add(turn_id)
@@ -1669,6 +1711,11 @@ class DesktopChat:
             # The whole mount rides the run as the user's own choice; the
             # explicit seam above stays the platform's one-Skill-per-run cap.
             metadata['desktop_skill_ids'] = resolved_skills
+        if attachment_facts:
+            # Issue 93: the per-attachment destination facts ride the run as
+            # identity facts only — names, chosen destination and source hash,
+            # never content.
+            metadata['desktop_attachments'] = attachment_facts
         body = dict(assistant_id=agent_id, input={'messages': [message]},
                     context=context,
                     metadata=metadata, stream_mode=['messages-tuple', 'values', 'custom'],
@@ -1700,6 +1747,208 @@ class DesktopChat:
         self._state.update(run=self._run(run), lastEventId='', events=[], error='', stop=None, subagents=[])
         self._apply_send_model(model_pick)
         self._observe(session)
+        # Issue 93: the per-attachment outcomes ride only this send's reply,
+        # transient like a download — the composed message text itself stays
+        # the conversation's durable record of what happened.
+        return attachment_statuses
+
+    def _validate_attachments(self, command):
+        """Issue 93: the attachment list is a send-only, bounded structure.
+
+        The shapes mirror the main process exactly: at most
+        MAX_MESSAGE_ATTACHMENTS entries with unique bounded ids, an explicit
+        destination of ``parsed-text`` or ``upload`` (``local-view`` is its own
+        attachment-view command and never rides a send). A violation fails
+        before anything executes. ``None`` means no attachments were sent.
+        """
+        attachments = command.get('attachments')
+        if attachments is None:
+            return None
+        if command['action'] != 'send' or not isinstance(attachments, list) \
+                or not 1 <= len(attachments) <= MAX_MESSAGE_ATTACHMENTS:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        seen = set()
+        for row in attachments:
+            if not isinstance(row, dict) or set(row) != {'id', 'path', 'name', 'destination'}:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            attachment_id, path, name, destination = row['id'], row['path'], row['name'], row['destination']
+            if (not isinstance(attachment_id, str) or not attachment_id or len(attachment_id) > 128
+                    or attachment_id in seen):
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if not isinstance(path, str) or not path or len(path) > MAX_ATTACHMENT_PATH:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if not isinstance(name, str) or not name or len(name) > MAX_ATTACHMENT_NAME:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if destination not in {'parsed-text', 'upload'}:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            seen.add(attachment_id)
+        return attachments
+
+    @staticmethod
+    def _read_attachment_bytes(path):
+        """Read one user-picked attachment, bounded by the parse engine's own
+        per-file ceiling; an unreadable file answers ``None`` and the
+        attachment fails honestly instead of failing the message."""
+        try:
+            with open(path, 'rb') as handle:
+                return handle.read(MAX_PARSE_FILE_BYTES + 1)
+        except OSError:
+            return None
+
+    def _upload_attachment(self, session, thread_id, name, raw, settings, binding):
+        """Take one explicitly uploaded attachment original to the Thread's
+        own artifact seam. Mirrors the registered-result upload (#105) minus
+        the task registry: the user's explicit destination choice is the
+        authorization, identity and device binding are re-checked on the way,
+        and the Server must echo exactly what was stored."""
+        digest = hashlib.sha256(raw).hexdigest()
+        self._check_compatibility('local.artifacts.upload')
+        try:
+            handle = FileArtifactUploader(Path(self.config.parent) / 'artifact-staging',
+                                          max_bytes=MAX_ATTACHMENT_UPLOAD_BYTES).upload(name, raw)
+        except ArtifactUploadError:
+            raise ChatError('ATTACHMENT_STAGING_FAILED') from None
+        if handle != f'local://{digest}/{name}':
+            raise ChatError('ATTACHMENT_STAGING_FAILED')
+        grant_basis = {'thread_id': thread_id, 'name': name, 'sha256': digest,
+                       'device_id': settings.device_id, 'bytes': len(raw)}
+        issued = self._json(session, f'/api/threads/{thread_id}/artifacts/grant', grant_basis,
+                            self._device_headers(session, binding))
+        if (not isinstance(issued, dict) or not isinstance(issued.get('token'), str)
+                or not 16 <= len(issued['token']) <= 512
+                or any(issued.get(key) != value for key, value in
+                       {'thread_id': thread_id, 'name': name, 'device_id': settings.device_id}.items())):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        # A slow grant cannot authorize bytes under a retired account or
+        # device binding — re-read through the current identity before the
+        # content leaves the device.
+        headers = self._device_headers(session, binding)
+        self._check_compatibility('local.artifacts.upload')
+        if self._session().scope != session.scope:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        body = {'version': 1, 'kind': 'chat_attachment', 'name': name, 'sha256': digest,
+                'bytes': len(raw), 'content': base64.b64encode(raw).decode('ascii'), 'handle': handle,
+                'grant': {'thread_id': thread_id, 'name': name, 'token': issued['token']}}
+        created = self._json(session, f'/api/threads/{thread_id}/artifacts', body,
+                             {**headers, 'Idempotency-Key': handle})
+        artifact_id = created.get('artifact_id') if isinstance(created, dict) else None
+        if (not isinstance(artifact_id, str) or not 1 <= len(artifact_id) <= 128
+                or created.get('name') != name or created.get('sha256') != digest
+                or created.get('bytes') != len(raw) or created.get('thread_id') != thread_id):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        return artifact_id
+
+    def _compose_attachments(self, session, thread_id, text, attachments):
+        """Process each attachment per its explicit destination and compose
+        the outgoing message.
+
+        The default parsed-text destination keeps the original on the device
+        and bounds the extracted text by the message's remaining budget; the
+        upload destination hands the original to the Thread artifact seam
+        before the run is submitted so the message can name the real artifact.
+        Every per-attachment problem becomes an honest line in the message and
+        a status entry — it never fails the user's text and never pretends.
+        Returns (composed text, reply statuses, run metadata facts).
+        """
+        settings = load_settings(self.config)
+        binding = profile_binding(settings)
+        blocks: list = []
+        statuses: list = []
+        facts: list = []
+        used = len(text)
+        for row in attachments:
+            name = row['name']
+            status = dict(id=row['id'], name=name, destination=row['destination'])
+            raw = self._read_attachment_bytes(row['path'])
+            if raw is None:
+                status.update(status='failed', errorCode='ATTACHMENT_READ_FAILED')
+                blocks.append(f'[附件·{name}·处理失败：ATTACHMENT_READ_FAILED]')
+                statuses.append(status)
+                facts.append(dict(id=row['id'], name=name, destination=row['destination']))
+                continue
+            digest = hashlib.sha256(raw).hexdigest()
+            status['sha256'] = digest
+            fact = dict(id=row['id'], name=name, destination=row['destination'], sha256=digest)
+            if row['destination'] == 'upload':
+                if len(raw) > MAX_ATTACHMENT_UPLOAD_BYTES:
+                    status.update(status='failed', errorCode='ATTACHMENT_TOO_LARGE')
+                    blocks.append(f'[附件·{name}·处理失败：ATTACHMENT_TOO_LARGE]')
+                else:
+                    try:
+                        artifact_id = self._upload_attachment(session, thread_id, name, raw,
+                                                              settings, binding)
+                        status.update(status='uploaded', artifactId=artifact_id)
+                        fact['artifactId'] = artifact_id
+                        blocks.append(f'[附件·{name}·原件已上传为平台附件·附件 {artifact_id}'
+                                      f'·SHA-256 {digest[:16]}…]')
+                    except ChatError as exc:
+                        status.update(status='failed', errorCode=str(exc))
+                        blocks.append(f'[附件·{name}·处理失败：{exc}]')
+            else:
+                result = parse_document(raw, name)
+                if result['status'] == 'parsed':
+                    marker = f'[附件·{name}·本机解析·{result["parser"]}@{result["parser_version"]}]'
+                    closing = f'[/附件·{name}]'
+                    allowance = 16000 - used - len(marker) - len(closing) - ATTACHMENT_BLOCK_SLACK
+                    body_text = result['text']
+                    if allowance <= 0:
+                        content, over = '（超出本条消息长度预算，附件文本未并入）', True
+                    else:
+                        content, over = body_text[:allowance], len(body_text) > allowance
+                    truncated = over or bool(result.get('truncated'))
+                    if over:
+                        closing += '（已截断）'
+                    block = f'{marker}\n{content}\n{closing}'
+                    status.update(status='parsed', truncated=truncated)
+                else:
+                    block = f'[附件·{name}·解析失败：{result["reason"]}]'
+                    status.update(status=result['status'], errorCode=result['reason'])
+                blocks.append(block)
+                # The citation facts ride the run record too: the parser
+                # identity and version let any later device re-derive the
+                # extraction from the hash-verified bytes (#81). The layout
+                # anchors stay a bounded display fact and never ride the wire.
+                if result['status'] == 'parsed':
+                    fact['parser'] = result['parser']
+                    fact['parserVersion'] = result['parser_version']
+            used += len(blocks[-1]) + 2
+            statuses.append(status)
+            facts.append(fact)
+        parts = ([text] if text.strip() else []) + blocks
+        return '\n\n'.join(parts), statuses, facts
+
+    def _attachment_view(self, session, command):
+        """Issue 93: 仅本机查看。A pure device read that answers one bounded
+        read-only display record: no run is created, nothing is uploaded and
+        nothing enters the conversation. The display text is bounded by
+        MAX_ATTACHMENT_VIEW_CHARS; the parse summary carries the engine's
+        identity, page and table facts for the card."""
+        if set(command) != {'action', 'scope', 'threadId', 'id', 'path', 'name'}:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        attachment_id, path, name = command.get('id'), command.get('path'), command.get('name')
+        if (not isinstance(attachment_id, str) or not attachment_id or len(attachment_id) > 128
+                or not isinstance(path, str) or not path or len(path) > MAX_ATTACHMENT_PATH
+                or not isinstance(name, str) or not name or len(name) > MAX_ATTACHMENT_NAME):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if not self._state['thread'] or command.get('threadId') != self._state['thread']['id']:
+            raise ChatError('CHAT_THREAD_CHANGED')
+        view = dict(id=attachment_id, name=name, status='failed', text='', truncated=False, errorCode='')
+        raw = self._read_attachment_bytes(path)
+        if raw is None:
+            view['errorCode'] = 'ATTACHMENT_READ_FAILED'
+            return view
+        result = parse_document(raw, name)
+        summary = parse_summary(result)
+        view.update(status=result['status'],
+                    truncated=bool(result.get('truncated')),
+                    errorCode=result.get('reason', ''))
+        if result['status'] == 'parsed':
+            text = result['text']
+            if len(text) > MAX_ATTACHMENT_VIEW_CHARS:
+                text, view['truncated'] = text[:MAX_ATTACHMENT_VIEW_CHARS], True
+            view['text'] = text
+        view['summary'] = summary
+        return view
 
     def _session(self):
         settings = load_settings(self.config)
@@ -2696,6 +2945,8 @@ class DesktopChat:
         with self._lock:
             session = None
             download = None
+            attachment_statuses = None
+            view = None
             try:
                 session = self._session()
                 if session.scope != self._state['scope']:
@@ -2709,7 +2960,10 @@ class DesktopChat:
                 # available and fail honestly while the platform is away.
                 if action in {'create', 'send', 'answer', 'branch'} and self._platform_ok is False:
                     raise ChatError('CHAT_PLATFORM_UNREACHABLE')
-                can_run = self._authorize(session) if action not in {'state', 'consent', 'stop'} else False
+                # Issue 93: a local attachment view is a device read — it must
+                # keep working while the platform is away, like the other
+                # observation surfaces.
+                can_run = self._authorize(session) if action not in {'state', 'consent', 'stop', 'attachment-view'} else False
                 if action in {'create', 'send', 'answer'} and not can_run:
                     raise ChatError('CHAT_FORBIDDEN')
                 if action == 'refresh':
@@ -2736,7 +2990,7 @@ class DesktopChat:
                 elif action == 'open':
                     self._load_thread(session, self._id(command.get('threadId')))
                 elif action in {'send', 'answer'}:
-                    self._send(session, command)
+                    attachment_statuses = self._send(session, command)
                 elif action == 'set-model':
                     # Issue 73: the session's temporary model choice. It lives
                     # in chat state (never persisted, never synced), is bound
@@ -2841,6 +3095,9 @@ class DesktopChat:
                 elif action == 'download':
                     download = self._download(session, command)
                     self._state['error'] = ''
+                elif action == 'attachment-view':
+                    view = self._attachment_view(session, command)
+                    self._state['error'] = ''
                 elif action == 'compatibility':
                     if set(command) != {'action'} or self.compatibility_gate is None:
                         raise ChatError('CHAT_COMMAND_INVALID')
@@ -2890,4 +3147,12 @@ class DesktopChat:
                 # Only the requesting main-process call receives bytes; no
                 # polling snapshot or persisted history retains the payload.
                 result['download'] = download
+            if attachment_statuses and not result['error']:
+                # Issue 93: the destination outcomes ride only the send's own
+                # reply; the durable story stays in the message text itself.
+                result['attachmentStatuses'] = attachment_statuses
+            if view is not None and not result['error']:
+                # Issue 93: the read-only display rides only the view's own
+                # reply, transient like a download.
+                result['attachmentView'] = view
             return result
