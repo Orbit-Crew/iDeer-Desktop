@@ -81,7 +81,7 @@ async function main() {
     assert.match(initialText, /设备连接：/)
     assert.equal(await page.title(), 'iDeer Desktop')
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'getStatus',
+      'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
       'manage', 'models', 'notifications', 'onNotificationActivate', 'onNotifications',
       'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
