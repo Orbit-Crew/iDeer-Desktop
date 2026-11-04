@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
 import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
+import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
 import { exportChatTranscript } from './chat-export'
@@ -337,10 +338,15 @@ if (!app.requestSingleInstanceLock()) {
         const roleNames = { body: '正文', script: '脚本', reference: '引用', attachment: '附件' }
         const scope = preview.files.map(file => `${file.path}（${roleNames[file.role]}，${file.bytes} 字节）`).join('、')
         const excerpt = preview.bodyExcerpt.trim().slice(0, 600)
+        // Issue 82: the declared languages, permissions, and dependencies are
+        // part of the decision the user confirms — import success never
+        // implies executability, and undeclared capabilities are never
+        // silently granted.
+        const declaration = formatDeclarationSummary(preview.files, preview.environment, preview.permissions)
         const confirmation = await dialog.showMessageBox(mainWindow!, {
           type: 'question', title: '确认上传技能包',
           message: `将「${preview.name}」上传为你的私有平台技能草稿？`,
-          detail: `正文摘录：${excerpt || '（空）'}\n\n上传范围：${scope}\n\n包指纹 ${preview.packageHash.slice(0, 16)}… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。`,
+          detail: `正文摘录：${excerpt || '（空）'}\n\n上传范围：${scope}\n\n${declaration}\n\n包指纹 ${preview.packageHash.slice(0, 16)}… 与上传内容绑定，平台校验一致后才会创建草稿。上传后的技能归属当前账号，初始为私有（private）；发布版本需另行确认，沿用平台既有的草稿校验与发布流程。取消则不会上传任何内容。导入成功不等于脚本可执行：每次执行仍需脚本授权。`,
           buttons: ['取消，不上传', '确认上传'], defaultId: 0, cancelId: 0, noLink: true
         })
         if (confirmation.response !== 1) throw new Error('SKILL_IMPORT_CANCELED')

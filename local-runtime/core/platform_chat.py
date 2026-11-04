@@ -1969,6 +1969,7 @@ class DesktopChat:
             if not confirmed:
                 return dict(confirmed=False, origin=kind, name=package['name'],
                             description=package['description'], body=package['body'],
+                            environment=package['environment'], permissions=package['permissions'],
                             files=package['files'], fileCount=package['file_count'],
                             totalBytes=package['total_bytes'], packageHash=package['package_hash'],
                             destination=dict(resourceType='skill', visibility='private'))
