@@ -282,7 +282,11 @@ def test_a_send_that_cannot_fit_is_refused_before_anything_executes(tmp_path):
     with platform() as (origin, records):
         chat, settings, config = make_device_chat(tmp_path, origin)
         scope = open_thread(chat)
-        long_name = '很长的附件名称' + 'n' * 240 + '.txt'
+        # Linux NAME_MAX is 255 bytes: 21 (CJK prefix) + 220 + 4 stays inside
+        # it while keeping the display name the longest in the suite. The
+        # refusal itself comes from the fixed per-attachment reserve, not the
+        # name, so the fixture only has to exist on every CI filesystem.
+        long_name = '很长的附件名称' + 'n' * 220 + '.txt'
         notes = tmp_path / long_name
         notes.write_text('内容', encoding='utf-8')
         result = send_attachment(chat, scope, [dict(id='a1', path=str(notes), name=long_name,
