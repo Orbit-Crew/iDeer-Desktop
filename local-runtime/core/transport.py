@@ -22,6 +22,11 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
 
 from .audit import AuditEntry, AuditKind, LocalAuditLog
+from .calculator import (
+    CALCULATOR_OPERATIONS,
+    evaluate_aero_arguments,
+    evaluate_expression,
+)
 from .consent import (
     ConsentRequest,
     ConsentStore,
@@ -113,6 +118,10 @@ class LocalRuntimeClient:
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
+            # Issue 83: the fixed calculators are desktop built-ins - pure
+            # functions with no service and no external dependency - so they
+            # are announced unconditionally, like echo.
+            default_capabilities.extend(tuple(sorted(CALCULATOR_OPERATIONS)))
             if file_service is not None:
                 default_capabilities.extend(
                     ("local.files.list", "local.files.read", "local.files.write")
@@ -732,6 +741,17 @@ class LocalRuntimeClient:
                 if receipt.policy_decision != PolicyDecision.ALLOW.value:
                     await self._denial_response(operation, task_id, envelope.payload, PolicyDecision(receipt.policy_decision))
                     return
+            elif operation in CALCULATOR_OPERATIONS:
+                # Issue 83: the fixed calculators are pure built-ins - the
+                # local policy can still veto them, but they never reach the
+                # consent path or the session tier, and the original's error
+                # strings come back as completed results.
+                decision = self.policy.authorize(operation, dict(envelope.payload))
+                if decision is PolicyDecision.DENY:
+                    await self._denial_response(operation, task_id, envelope.payload, decision)
+                    return
+                result = self.handle_calculator_task(operation, dict(envelope.payload))
+                receipt = self._file_receipt(envelope, operation, result)
             elif operation in {"local.files.list", "local.files.read", "local.files.search"}:
                 if not self.server_public_key:
                     # No broker key is bound: pairing never completed and no
@@ -976,6 +996,14 @@ class LocalRuntimeClient:
             )
             return
         except (RuntimeError, ValueError, TypeError, KeyError) as exc:
+            await self._send_error(
+                task_id, str(exc), "INVALID_TASK", envelope.payload, operation
+            )
+            return
+        except ArithmeticError as exc:
+            # A pure computation that overflows or divides by zero still owes
+            # the broker an answer; an unhandled ArithmeticError here would
+            # leave the task silently dangling (ZeroDivisionError, overflow).
             await self._send_error(
                 task_id, str(exc), "INVALID_TASK", envelope.payload, operation
             )
@@ -1257,6 +1285,24 @@ class LocalRuntimeClient:
             payload_hash=content_hash(payload),
             result_hash=result_hash,
         )
+
+    def handle_calculator_task(self, operation: str, payload: dict[str, Any]) -> str:
+        """Evaluate one fixed-calculator task to its result string (#83).
+
+        Pure built-ins with no execution channel: the only inputs are the
+        payload's own arguments, and the original's error strings (除以零,
+        未识别的标识符, 未知公式, …) come back as completed results, exactly
+        as the original tools answered. Malformed payload shapes raise, so
+        the generic task handler reports INVALID_TASK.
+        """
+        arguments = payload.get("arguments")
+        if not isinstance(arguments, dict):
+            raise ValueError("calculator arguments object is required")
+        if operation == "local.calculator":
+            if "expression" not in arguments:
+                raise ValueError("calculator arguments require an expression")
+            return evaluate_expression(arguments["expression"])
+        return evaluate_aero_arguments(arguments)
 
     def handle_knowledge_search_task(
         self, payload: dict[str, Any], *, consent: bool = False

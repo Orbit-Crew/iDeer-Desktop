@@ -33,6 +33,14 @@ class LocalPolicy:
         del payload
         if capability in {"echo", "local.files.list", "local.files.read", "local.files.search"}:
             return RiskLevel.LEVEL_0
+        if capability in {
+            "local.calculator",
+            "local.aero_calculator",
+        }:
+            # Issue 83: the fixed calculators are desktop built-ins - pure
+            # functions with no side effects - so like echo they never ask
+            # and the session tier is never consulted for them.
+            return RiskLevel.LEVEL_0
         if capability == "local.knowledge.search":
             # Read-only over content the user explicitly imported and froze;
             # the manifest revalidation is what makes any result trustworthy.
