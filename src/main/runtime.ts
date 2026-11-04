@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from '
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -505,7 +505,7 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
-      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab', 'attachments'],
       // Issue 73: the session's temporary model choice; '' clears back to the
       // account default resolution chain. The model name is bounded at the
       // same 200 characters the platform preference accepts.
@@ -519,9 +519,16 @@ export class RuntimeProcess {
       tier: ['action', 'scope', 'threadId', 'tier', 'confirm'],
       // Issue 78: the branch names the target turn only; the Runtime resolves
       // it on the platform's own Thread branch endpoint.
-      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds']
+      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds'],
+      // Issue 93: 仅本机查看 names one composer-picked attachment; the Runtime
+      // parses it on the device and answers with a bounded display record.
+      'attachment-view': ['action', 'scope', 'threadId', 'id', 'path', 'name']
     }
     const allowed = keys[command.action]
+    // Issue 93: one attachment's identity facts are bounded strings — the
+    // shared check for the send list and the local-view command.
+    const boundedAttachmentFact = (value: unknown, max: number): value is string =>
+      typeof value === 'string' && value.length > 0 && value.length <= max
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
     // Issue 39: a script approval may carry rememberScript; nothing else may
     // add keys to the fixed consent shape.
@@ -547,7 +554,7 @@ export class RuntimeProcess {
     // message with no per-message input commands. Issue 76: `collab` is the
     // composer's collab mode switch, boolean whenever the composer sends.
     if (command.action === 'send') {
-      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown }
+      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown; attachments?: unknown }
       const resourceId = (value: unknown): value is string =>
         typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
       if (inputCommand.delegateAgentId !== undefined && !resourceId(inputCommand.delegateAgentId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -557,6 +564,27 @@ export class RuntimeProcess {
             new Set(skillIds).size !== skillIds.length || !skillIds.every(resourceId)) throw new Error('CHAT_COMMAND_INVALID')
       }
       if (inputCommand.collab !== undefined && typeof inputCommand.collab !== 'boolean') throw new Error('CHAT_COMMAND_INVALID')
+      // Issue 93: the per-attachment destinations are explicit user picks.
+      // At most MAX_MESSAGE_ATTACHMENTS entries with unique bounded ids; a
+      // bounded device-local path and display name; and only the two
+      // destinations that ride a send — 仅本机查看 is its own command. No
+      // content ever rides the command, so every field stays a bounded
+      // string.
+      if (inputCommand.attachments !== undefined) {
+        const attachments = inputCommand.attachments as unknown
+        if (!Array.isArray(attachments) || attachments.length === 0 ||
+            attachments.length > MAX_MESSAGE_ATTACHMENTS) throw new Error('CHAT_COMMAND_INVALID')
+        const seen = new Set<string>()
+        for (const row of attachments) {
+          const item = row as { id?: unknown; path?: unknown; name?: unknown; destination?: unknown }
+          if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('CHAT_COMMAND_INVALID')
+          if (Object.keys(item).length !== 4 || !boundedAttachmentFact(item.id, 128) || seen.has(item.id) ||
+              !boundedAttachmentFact(item.path, MAX_ATTACHMENT_PATH) ||
+              !boundedAttachmentFact(item.name, MAX_ATTACHMENT_NAME) ||
+              item.destination !== 'parsed-text' && item.destination !== 'upload') throw new Error('CHAT_COMMAND_INVALID')
+          seen.add(item.id)
+        }
+      }
     }
     // Issue 78: the branch target is one bounded platform message id plus,
     // optionally, the rest of that turn's assistant ids — unique, bounded in
@@ -573,6 +601,15 @@ export class RuntimeProcess {
             new Set(messageIds).size !== messageIds.length || !messageIds.every(messageId)) throw new Error('CHAT_COMMAND_INVALID')
       }
     }
+    // Issue 93: 仅本机查看 is an exact six-key command; the attachment facts
+    // keep the same bounded identity the send list carries. The path rides
+    // the generic loop's own path exception below (non-empty, within
+    // MAX_ATTACHMENT_PATH).
+    if (command.action === 'attachment-view') {
+      const viewCommand = command as unknown as { id?: unknown; path?: unknown; name?: unknown }
+      if (Object.keys(command).length !== 6 || !boundedAttachmentFact(viewCommand.id, 128) ||
+          !boundedAttachmentFact(viewCommand.name, MAX_ATTACHMENT_NAME)) throw new Error('CHAT_COMMAND_INVALID')
+    }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
@@ -588,6 +625,10 @@ export class RuntimeProcess {
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
       if (key === 'messageIds' && Array.isArray(value) && allowed.includes('messageIds')) return false
       if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
+      // The #93 attachment list and view command validate their longer
+      // device-local path facts as a whole above.
+      if (key === 'attachments' && Array.isArray(value) && allowed.includes('attachments')) return false
+      if (key === 'path' && allowed.includes('path') && typeof value === 'string') return value.length > MAX_ATTACHMENT_PATH || value.length === 0
       return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : key === 'modelName' ? 200 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')

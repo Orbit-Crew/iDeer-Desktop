@@ -313,6 +313,42 @@ toast or a center row — focuses the window and opens the event's session
 through the same handshake the sidebar uses. See
 [issue #77 acceptance](acceptance/issue-077/report.md).
 
+## Chat attachment destinations (issue #93)
+
+The composer takes chat attachments through the 附件 button or a drag-and-drop
+onto the composer area, capped at eight per message. Every chip carries an
+explicit destination the user picks; nothing executes silently. The default is
+发送解析文本: the Runtime reads the file on the device and parses it with the
+same pure engine as the knowledge import (#81), so only the extracted text
+rides the message and the original bytes never leave the machine. The
+destination selector also offers 上传原件 (the original becomes a platform
+Thread artifact, visible to every authorized device) and 仅本机查看 (a
+read-only display record that never enters the conversation).
+
+The parsed-text blocks are bounded by the platform's own 16,000-character
+message budget: each block carries a provenance header (parser identity and
+version), and a block that does not fit is truncated with an honest 已截断
+marker instead of dropping the attachment silently. The run metadata records
+identity facts per attachment — id, name, chosen destination and source
+SHA-256; no content rides metadata. Per-attachment outcomes (parsed, uploaded,
+failed with a fixed code, or skipped for an unsupported format) ride only the
+send's own reply snapshot, transient like the export outcome; the composed
+message text stays the conversation's durable record.
+
+The upload destination reuses the Thread artifact seam (#105) with a
+`chat_attachment` kind: bounded staging, a single-use server grant re-checked
+against the current identity, and a create response that must echo exactly
+what was stored. The device bound is 10 MiB per original — wider than the
+64 KiB task-result bound, far under the parse engine's 50 MiB read ceiling.
+The created artifact appears in the thread's own artifact list.
+
+仅本机查看 is its own `attachment-view` command the composer dispatches the
+moment the destination is picked. The Runtime parses on the device and answers
+one bounded read-only record (100,000 characters plus the parse summary with
+parser identity, page and table counts); no run is created, nothing is
+uploaded, and the record never reaches the conversation. The command keeps
+working while the platform is unreachable because it touches only the device.
+
 ## Platform reachability and the disconnect pause (issue #80)
 
 The Runtime records the last observed Server contact outcome at its one
