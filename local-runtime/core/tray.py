@@ -420,6 +420,19 @@ class TrayController:
             )
         else:
             self.skill_script_service = None
+        # Issue 104: the on-demand Skill dependency installer shares the
+        # script gate's consent store and reads its source from the same
+        # settings the tray edits; no source configured means no install
+        # channel, and the script gate just refuses with the detail.
+        from .skill_dependencies import SkillDependencyService, source_from_settings
+
+        self.skill_dependency_service = None
+        if self.desktop_mode and self.skill_script_service is not None:
+            self.skill_dependency_service = SkillDependencyService(
+                source=source_from_settings(self.settings.skill_dependency_source),
+                policy=self.settings.policy(),
+                consent=self.consent,
+            )
         self.client = LocalRuntimeClient(
             server_url=(
                 self.settings.websocket_url()
@@ -439,6 +452,7 @@ class TrayController:
             policy_hash=self.settings.policy_hash(),
             file_service=self._desktop_files() if self.desktop_mode else _build_file_service(self.settings, self.consent),
             skill_script_service=self.skill_script_service,
+            skill_dependency_service=self.skill_dependency_service,
             python_service=None if self.desktop_mode else _build_python_service(
                 self.settings, self.secrets, self.consent
             ),

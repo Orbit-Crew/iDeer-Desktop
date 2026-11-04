@@ -583,6 +583,31 @@ class DesktopChat:
                     version=str(payload.get('skill_version', '')),
                     scriptSha256=payload.get('script_sha256', ''),
                     requirementsSha256=requirements_fingerprint_of(payload.get('declaration')))
+            elif capability == 'local.skill.dependencies':
+                # Issue 104: the install ask names the locked entries and the
+                # source the wheels come from; no script bytes ride it.
+                entries = payload.get('entries')
+                source = payload.get('source')
+                if not isinstance(payload.get('skill_id'), str) or not isinstance(entries, list) \
+                        or not isinstance(source, dict):
+                    continue
+                plan = []
+                ok = bool(entries)
+                for entry in entries:
+                    if not isinstance(entry, dict) or not all(
+                            isinstance(entry.get(key), str) and entry[key]
+                            for key in ('entry', 'name', 'version')):
+                        ok = False
+                        break
+                    plan.append(dict(entry=entry['entry'], name=entry['name'], version=entry['version']))
+                if not ok or not all(isinstance(source.get(key), str) and source[key]
+                                     for key in ('kind', 'location')):
+                    continue
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='skill-dependencies',
+                    skill=payload['skill_id'], version=str(payload.get('skill_version', '')),
+                    entries=plan, source=dict(kind=source['kind'], location=source['location']),
+                    requirementsSha256=str(payload.get('requirements_sha256', '')))
             elif capability == 'local.knowledge.material':
                 args = payload.get('arguments', payload.get('args', payload))
                 if not isinstance(args, dict) or not isinstance(args.get('documents'), list):
@@ -1077,6 +1102,8 @@ class DesktopChat:
             return str(args.get('path', ''))[:200] if isinstance(args, dict) else ''
         if approval == 'skill-script':
             return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
+        if approval == 'skill-dependencies':
+            return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
         if approval == 'knowledge-material':
             return str(args.get('revision_id', ''))[:200] if isinstance(args, dict) else ''
         return ''
@@ -1189,6 +1216,7 @@ class DesktopChat:
             if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
                 continue
             approval = {'local.files.write': 'file-write', 'local.skill.script': 'skill-script',
+                        'local.skill.dependencies': 'skill-dependencies',
                         'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
             if not approval:
                 continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
