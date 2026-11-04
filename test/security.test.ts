@@ -60,8 +60,13 @@ describe('bootstrap capability boundary', () => {
     // writes) and the device-local fallback pick ride the Server's own
     // endpoints. The channel carries no provider, Base URL or key field —
     // the Desktop never holds a model credential.
+    // Issue 94 adds desktop:files for the human file-browsing seam: the
+    // renderer names workspace-logical paths only; listing and previews ride
+    // the Runtime's guarded read path with no consent step, and an external
+    // open/reveal resolves the physical path inside the trusted main
+    // process — the renderer never receives or supplies a physical path.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     // Issue 77 opens the bridge's only two push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Both are fixed main-owned names; the
@@ -84,13 +89,15 @@ describe('dock pane security seam (issue 71)', () => {
     for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
 
     // Issue 77 wires the notifications pane; like `runtime` it maps to its
-    // own component instead of the unwired placeholder.
+    // own component instead of the unwired placeholder. Issue 94 wires the
+    // native `files` pane the same way — it may use the trusted bridge for
+    // guarded reads, but it must never become an external-content surface.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications'].includes(p.id))
-    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['files', 'kb'])
+      !['runtime', 'notifications', 'files'].includes(p.id))
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

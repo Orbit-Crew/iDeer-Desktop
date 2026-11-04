@@ -71,6 +71,19 @@ chat 锚点直接承载平台聊天（无路由）、新增 Desktop 特有 `runt
 分歧清单与验收记账见 [docs/acceptance/issue-71/report.md](acceptance/issue-71/report.md)
 （三层验收第一层：入口恢复）。
 
+## 2026-11-03 文件树与只读预览恢复（iDeer-Desktop #94）
+
+二期·15 恢复 linz `[FilePanel]` + `[file-browser IPC]`（来源固定为
+[Neowyh/linz f88141b](https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13)的
+`src/renderer/src/components/RightPanel/FilePanel.tsx` 与 `src/main/ipc/file-browser.ipc.ts`，
+可在该提交查阅）的能力。本次为**全新实现而非受管复制**：未复制 linz 源码，无
+provenance 条目；实现走 Desktop 自己的缝——人工浏览经 Runtime 新增的 `files` 控制
+命令族复用工作区存储的守卫（链接/junction/保护路径纪律与 Agent 读路径一致），
+不经任何审批；`locate` 的物理路径只回给可信主进程用于外部打开/资源管理器定位，
+渲染层始终只见逻辑路径。与原版的既声明分歧：内置预览仅覆盖严格 UTF-8 文本
+（1 MiB 封顶）与常见位图（2 MiB 封顶），PDF/Word/Excel/二进制走外部打开；
+浏览要求已确认的工作区授权（授权本身绑定账号与设备）。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。

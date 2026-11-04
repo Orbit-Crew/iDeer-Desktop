@@ -20,6 +20,7 @@ import { getPanelMeta } from './panelMeta'
 import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
+import FilePane from './panels/filePane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 
@@ -30,7 +31,7 @@ export function ChatAnchorContent(): JSX.Element {
 
 /**
  * 面板注册表：加载到 dock 里的可组合组件。
- * chat/runtime 已接线；其余按原栏目位置注册为如实占位，能力在对应阶段接入。
+ * chat/runtime/files 已接线；其余按原栏目位置注册为如实占位，能力在对应阶段接入。
  * 安全缝（test/security.test.ts）：非 native 窗格必须映射 externalPanes 模块的占位组件。
  */
 export const PANEL_REGISTRY: PanelTypeDef[] = [
@@ -38,7 +39,7 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('runtime'), icon: <DesktopOutlined />, component: RuntimePane },
   { ...getPanelMeta('browser'), icon: <GlobalOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: UnwiredNativePane },
+  { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
   { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },

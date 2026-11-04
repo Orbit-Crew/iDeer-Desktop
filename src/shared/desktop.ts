@@ -589,6 +589,10 @@ export interface DesktopBridge {
   refreshCompatibility(): Promise<CompatibilityView | { error: string }>
   /** Issue 77: the notification center's one query/settle entry. */
   notifications(command: NotificationCommand): Promise<NotificationCenterView>
+  /** Issue 94: the human file-browsing seam. list/read return guarded views
+   * of the confirmed workspace; open/reveal resolve the physical path only in
+   * the trusted main process and return nothing to the renderer. */
+  files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
   /** Issue 77: the main process pushes the full bounded center list after
    * every change; the renderer replaces its view instead of merging. */
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
@@ -650,6 +654,33 @@ export type NotificationCommand =
   | { action: 'read'; id: string }
   | { action: 'read-all' }
   | { action: 'clear' }
+
+/**
+ * Issue 94: the human file-browsing seam over the confirmed workspace. The
+ * renderer names a workspace-logical path plus one action only: a guarded
+ * directory listing, a read-only preview, or an external open/reveal. The
+ * paths stay logical end to end — the physical mapping is the Runtime's own
+ * guarded resolution, `open`/`reveal` resolve in the trusted main process,
+ * and no consent or approval fact appears anywhere on this surface (a human
+ * looking at their own bound folder is free; the Agent's material-taking
+ * keeps its approval flow).
+ */
+export type FilesCommand =
+  | { action: 'list'; path: string }
+  | { action: 'read'; path: string }
+  | { action: 'open'; path: string }
+  | { action: 'reveal'; path: string }
+
+/** One guarded child entry of the workspace tree; `size` is bytes for files. */
+export interface FilesEntry { name: string; kind: 'dir' | 'file'; size: number }
+
+/** Bounded directory listing; `truncated` proves the cap instead of hiding it. */
+export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
+
+/** Read-only preview facts: strict UTF-8 text or one sanctioned image form. */
+export type FilesPreview =
+  | { kind: 'text'; content: string; truncated: boolean }
+  | { kind: 'image'; mime: string; data: string }
 
 /** Issue 74: the three session permission tiers; a loaded session always
  * starts at the lowest one and a tier choice never outlives the session. */
