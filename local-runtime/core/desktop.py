@@ -21,6 +21,7 @@ from .process_job import own_process_tree
 from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
+from .inline_code import InlineScriptStore
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
 from .skill_import import SkillImportError, SkillImportRegistry
@@ -37,6 +38,9 @@ def main() -> int:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument('--update-health', action='store_true')
     parser.add_argument('--desktop-version', default='0.1.0')
+    # Issue 105: the app's own executable, passed by the Desktop shell so
+    # inline Node code runs the pinned app runtime under ELECTRON_RUN_AS_NODE.
+    parser.add_argument('--node-executable', default=None)
     args = parser.parse_args()
     job = own_process_tree()
     stop = threading.Event()
@@ -273,6 +277,10 @@ def main() -> int:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
 
         workspace = WorkspaceSelection(args.config)
+        # Issue 105: one scratch store per runtime process. The chat layer
+        # sweeps sessions through it; the controller's python service
+        # materializes into it, so both always see the same workspace tree.
+        inline_scripts = InlineScriptStore(None)
         def stop_controller():
             nonlocal controller
             previous, controller = controller, None
@@ -335,7 +343,7 @@ def main() -> int:
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
-            session_tiers=session_tiers)
+            session_tiers=session_tiers, inline_scripts=inline_scripts)
 
         def chat_control():
             while not stop.is_set():
@@ -378,7 +386,8 @@ def main() -> int:
                 settings.save(args.config)
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
-                audit=audit_log)
+                audit=audit_log, node_executable=args.node_executable,
+                inline_scripts=inline_scripts)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))

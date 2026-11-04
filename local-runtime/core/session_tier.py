@@ -3,8 +3,10 @@
 A tier is a per-session standing answer to the device's own consent asks.
 ``ask_first`` (the default for every newly loaded session, never remembered
 across sessions) keeps today's per-action consent. ``autonomous`` runs
-authorized-folder writes without asking. ``full`` also opens the command line
-(the controlled terminal rides issue #111). The tier is folder-anchored:
+authorized-folder writes and the inline code execution (#105: the code is
+stored as a temp script inside the same folder before it runs) without
+asking. ``full`` never asks inside the folder either; the interactive
+command line itself rides issue #111. The tier is folder-anchored:
 outside the confirmed workspace and protected paths are refused in every
 tier, and the tier is only ever consulted after the local policy has already
 vetoed - a local DENY or a LEVEL_2 capability wins over any tier, so the
@@ -40,15 +42,20 @@ class GateDecision(StrEnum):
 
 DEFAULT_SESSION_TIER = SessionTier.ASK_FIRST
 
-# Folder-anchored capabilities a tier may auto-execute. The command line
-# (local.python) is a full-tier capability; autonomous covers the folder
-# writes. Everything else - skill scripts, material reads, MCP tools - stays
-# on the explicit consent path in every tier, which is the deliberate reading
-# of "夹内全放开": those capabilities are content- or platform-bound, not
+# Folder-anchored capabilities a tier may auto-execute: authorized-folder
+# writes, and - since #105 - the inline code execution, whose code the
+# runtime stores as a temp script inside the same folder before it runs
+# (询问档每条问、自主夹内不问、完全不问). Everything else - skill scripts,
+# material reads, MCP tools - stays on the explicit consent path in every
+# tier: those capabilities are content- or platform-bound, not
 # folder-anchored, so the session tier's folder scope cannot reach them and
 # the platform capability intersection (#70: 档位不越平台权限) keeps their
 # own authorization chains ahead.
-TIER_AUTONOMOUS_CAPABILITIES = frozenset({"local.files.write"})
+# The two sets are deliberately separate names even where they currently
+# hold the same members: the interactive command line (#111's controlled
+# terminal) is expected to ride FULL only, and each set must be able to
+# move without dragging the other.
+TIER_AUTONOMOUS_CAPABILITIES = frozenset({"local.files.write", "local.python"})
 TIER_FULL_CAPABILITIES = frozenset({"local.files.write", "local.python"})
 
 
@@ -86,8 +93,6 @@ def tier_gate_decision(
     if tier is SessionTier.ASK_FIRST:
         return GateDecision.ASK
     if capability not in TIER_FULL_CAPABILITIES:
-        return GateDecision.ASK
-    if capability == "local.python" and tier is not SessionTier.FULL:
         return GateDecision.ASK
     anchor = payload_anchor(payload, capability)
     if not anchor:

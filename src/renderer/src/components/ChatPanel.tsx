@@ -189,6 +189,28 @@ function MaterialConsentCard({ request, state, threadId, busy, blocked, onComman
   </Card>
 }
 
+/** Issue 105: one model-written inline code ask. The card shows the full
+ * code and the folder it would run in — the displayed bytes are the exact
+ * bytes approval executes, so nothing about the decision is summarized
+ * away. The code runs from a temp script inside the authorized folder and
+ * the session's scratch is swept when the session ends. */
+function InlineCodeConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  const language = request.language === 'node' ? 'Node' : 'Python'
+  return <Card size="small" title="本机内联代码审批">
+    <Typography.Paragraph>语言：{language} · 运行目录：{request.workingRoot}</Typography.Paragraph>
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+    <Typography.Paragraph>以下代码将按原始 UTF-8 字节保存为授权文件夹内的临时脚本并执行，运行目录限定在授权文件夹内；临时脚本在会话结束后随会话清理。一次允许仅批准本次请求。</Typography.Paragraph>
+    <Input.TextArea aria-label="审批内联代码" value={request.script} readOnly autoSize={{ minRows: 3, maxRows: 20 }} />
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.python')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>允许执行</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝执行</Button>
+    </Space>
+  </Card>
+}
+
 /** Issue 76: the collab mode's per-sub-agent progress. Every row is the
  * platform's own task_* event vocabulary rendered as-is — who is doing what,
  * how far it got, and what it finished with. No intermediate state is
@@ -379,6 +401,8 @@ function ChatContents({ state, busy, onCommand }: {
         if (request.kind === 'skill-dependencies') return <DependencyConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         if (request.kind === 'knowledge-material') return <MaterialConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        if (request.kind === 'inline-code') return <InlineCodeConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />

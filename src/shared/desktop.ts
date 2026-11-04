@@ -760,14 +760,17 @@ export interface ChatSubagent {
   errorTruncated: boolean
 }
 /** Issue 39: one pending device decision the Desktop chat can settle — a
- * file write (#102), a Skill script run (#122), or a knowledge material read
- * (#116). Identity and scope facts only; bytes never cross to the renderer. */
+ * file write (#102), a Skill script run (#122), a knowledge material read
+ * (#116), a Skill dependency install (#104), or an inline code run (#105).
+ * Skill-script cards carry identity and scope facts only; a file write and
+ * an inline code run show the exact bytes approval would put on disk or
+ * execute, because those bytes are the decision. */
 export interface LocalConsentView {
   taskId: string
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code'
   path?: string
   content?: string
   directory?: string
@@ -784,6 +787,11 @@ export interface LocalConsentView {
    * approval covers. */
   entries?: { entry: string; name: string; version: string }[]
   source?: { kind: string; location: string }
+  /** Issue 105: the inline task's pinned language and target root, plus the
+   * full code the user is asked to approve. */
+  language?: 'python' | 'node'
+  workingRoot?: string
+  script?: string
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback

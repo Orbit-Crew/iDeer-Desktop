@@ -269,6 +269,37 @@ approval, refusal, storage faults and disconnect/cancellation behavior. The
 [scenario report](acceptance/issue-102/report.md) records what was executed on
 the actual candidate and installation.
 
+## Run inline code under the session tier (issue #105)
+
+The original inline Python/Node execution returns: code the model writes in a
+conversation runs on the device, under the same rules as the command line.
+The Runtime materializes the payload's code as a temp script inside the
+authorized folder — `.ideer/inline/<thread>/run-<run>-<id>.py|\.js`, written
+through the workspace store's own boundary checks — and executes that file
+with a pinned interpreter: the bundled Runtime's own Python in isolated
+mode, or the app's own executable as Node (the Desktop shell passes
+`--node-executable` at spawn; it answers under `ELECTRON_RUN_AS_NODE` and is
+probed once before the first Node task). An unconfigured or failing Node
+runtime refuses the task with `NODE_RUNTIME_UNAVAILABLE` instead of picking
+another interpreter. The payload's `runtime` field selects the language;
+unknown values stay rejected, and execution never follows a payload-supplied
+binary.
+
+The working root stays whatever the task declared, resolved through the
+workspace store, so relative writes land inside the authorized folder and
+outside roots and protected names refuse as before. The permission tiers
+apply unchanged (#74): `ask_first` asks per run through the chat card, which
+shows the full code, its language and target root — the displayed bytes are
+the exact bytes approval executes; the `autonomous` and `full` tiers are the
+standing answer for runs the confirmed workspace proves inside the folder,
+recorded as `tier:<tier>` in the receipt and audit log. A refused or denied
+ask writes nothing.
+
+The temp scripts are the session's own record: switching away from a session
+sweeps its scratch, an identity reset or runtime shutdown sweeps everything,
+and a crashed process's leftovers are swept the next time the workspace
+attaches. Nothing about the user's own files in the folder is touched.
+
 ## Stop and recover local work
 
 Stop first saves a device-bound Run fence and attempts to cancel current local

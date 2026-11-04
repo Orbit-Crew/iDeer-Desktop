@@ -129,3 +129,36 @@ describe('Desktop chat settles dependency installs (#104)', () => {
     expect(screen.getByText(/D:\/wheels/)).toBeTruthy()
   })
 })
+
+describe('Desktop chat settles inline code asks (#105)', () => {
+  const inlinePython: LocalConsentView = {
+    taskId: 'task-105', runId: 'run-1', threadId: 'thread-A', requestHash: 'a'.repeat(64), kind: 'inline-code',
+    language: 'python', workingRoot: '/workspace/test/data', script: "print('inline')\n"
+  }
+
+  it('shows the full code and its target root, and settles with plain allow', async () => {
+    const onCommand = vi.fn().mockResolvedValue(undefined)
+    const html = render(<ChatView state={snapshotWith([inlinePython])} busy={false} onCommand={onCommand} />)
+    expect(screen.getByText('本机内联代码审批')).toBeTruthy()
+    expect(screen.getByText(/Python · 运行目录：\/workspace\/test\/data/)).toBeTruthy()
+    expect(screen.getByLabelText('审批内联代码')).toBeTruthy()
+    expect(html.container.textContent).toContain("print('inline')")
+    fireEvent.click(screen.getByText('允许执行'))
+    await vi.waitFor(() => expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-105', requestHash: 'a'.repeat(64), decision: 'allow'
+    })))
+    const command = onCommand.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(command.rememberScript).toBeUndefined()
+  })
+
+  it('names the Node language and refuses deny through the same command', async () => {
+    const onCommand = vi.fn().mockResolvedValue(undefined)
+    render(<ChatView state={snapshotWith([{ ...inlinePython, language: 'node', script: "console.log('x')\n" }])}
+      busy={false} onCommand={onCommand} />)
+    expect(screen.getByText(/Node · 运行目录：/)).toBeTruthy()
+    fireEvent.click(screen.getByText('拒绝执行'))
+    await vi.waitFor(() => expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-105', decision: 'deny'
+    })))
+  })
+})

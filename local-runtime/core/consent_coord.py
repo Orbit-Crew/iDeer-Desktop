@@ -872,7 +872,11 @@ class LocalConsentCoordinator:
                 value = wire._python_result_value(python_result)
                 receipt = python_result.receipt
                 if receipt is not None:
-                    receipt = replace(receipt, task_id=task_id)
+                    # Issue 105: the settle basis rides the receipt, so a
+                    # tier-resolved run is auditable as ``tier:<tier>`` the
+                    # same way folder writes are; a human decision records
+                    # the same "approved" value it always did.
+                    receipt = replace(receipt, task_id=task_id, consent_decision=consent_decision)
         elif self._skill_script(request.capability):
             # Issue 122: the consented Skill script run; the receipt binds
             # the skill version, content digest, and this authorization basis.
