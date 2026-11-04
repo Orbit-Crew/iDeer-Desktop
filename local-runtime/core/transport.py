@@ -22,6 +22,11 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
 
 from .audit import AuditEntry, AuditKind, LocalAuditLog
+from .calculator import (
+    CALCULATOR_OPERATIONS,
+    evaluate_aero_arguments,
+    evaluate_expression,
+)
 from .consent import (
     ConsentRequest,
     ConsentStore,
@@ -113,6 +118,10 @@ class LocalRuntimeClient:
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
+            # Issue 83: the fixed calculators are desktop built-ins - pure
+            # functions with no service and no external dependency - so they
+            # are announced unconditionally, like echo.
+            default_capabilities.extend(("local.calculator", "local.aero_calculator"))
             if file_service is not None:
                 default_capabilities.extend(
                     ("local.files.list", "local.files.read", "local.files.write")
@@ -732,6 +741,25 @@ class LocalRuntimeClient:
                 if receipt.policy_decision != PolicyDecision.ALLOW.value:
                     await self._denial_response(operation, task_id, envelope.payload, PolicyDecision(receipt.policy_decision))
                     return
+            elif operation in CALCULATOR_OPERATIONS:
+                # Issue 83: the fixed calculators are pure built-ins - the
+                # local policy can still veto them, but they never reach the
+                # consent path or the session tier, and the original's error
+                # strings come back as completed results.
+                decision = self.policy.authorize(operation, dict(envelope.payload))
+                if decision is PolicyDecision.DENY:
+                    await self._denial_response(operation, task_id, envelope.payload, decision)
+                    return
+                arguments = envelope.payload.get("arguments")
+                if not isinstance(arguments, dict):
+                    raise ValueError("calculator arguments object is required")
+                if operation == "local.calculator":
+                    if "expression" not in arguments:
+                        raise ValueError("calculator arguments require an expression")
+                    result = evaluate_expression(arguments["expression"])
+                else:
+                    result = evaluate_aero_arguments(arguments)
+                receipt = self._file_receipt(envelope, operation, result)
             elif operation in {"local.files.list", "local.files.read", "local.files.search"}:
                 if not self.server_public_key:
                     # No broker key is bound: pairing never completed and no

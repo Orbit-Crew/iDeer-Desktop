@@ -29,7 +29,9 @@ export interface CompatibilityEvaluation {
 }
 
 const MAX_BYTES = 512 * 1024
-const KNOWN_CAPABILITIES = ['echo', 'local.files.read', 'local.files.write', 'local.files.list', 'local.files.search', 'local.python', 'local.artifacts.upload']
+// Issue 83: the fixed calculators are desktop built-ins, so the Server can
+// disable them through a capability-level declaration like any other name.
+const KNOWN_CAPABILITIES = ['echo', 'local.calculator', 'local.aero_calculator', 'local.files.read', 'local.files.write', 'local.files.list', 'local.files.search', 'local.python', 'local.artifacts.upload']
 const validCapability = (cap: unknown): boolean => typeof cap === 'string' && cap.length <= 128 &&
   (KNOWN_CAPABILITIES.includes(cap) || /^local\.mcp\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(cap))
 
