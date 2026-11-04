@@ -91,7 +91,20 @@ def _js_pow(base: float, exponent: float) -> float:
 def _js_round(value: float) -> float:
     # JS Math.round rounds halves toward positive infinity, unlike Python's
     # round-to-even; floor(x + 0.5) is the original runtime's semantics.
+    # Non-finite inputs pass through, exactly as Math.round kept them.
+    if not math.isfinite(value):
+        return value
     return float(math.floor(value + 0.5))
+
+
+def _js_ratio(numerator: float, denominator: float) -> float:
+    # JS division: 0/0 is NaN and a zero denominator answers ±Infinity by
+    # the sign product, where Python would raise ZeroDivisionError.
+    if denominator == 0:
+        if numerator == 0:
+            return float("nan")
+        return math.inf * math.copysign(1.0, numerator) * math.copysign(1.0, denominator)
+    return numerator / denominator
 
 
 #: The original whitelist; anything else is rejected during tokenizing.
@@ -109,8 +122,8 @@ MATH_FUNCTIONS: dict[str, Callable[..., float]] = {
     "log10": _js_log10,
     "exp": math.exp,
     "pow": _js_pow,
-    "ceil": lambda value: float(math.ceil(value)),
-    "floor": lambda value: float(math.floor(value)),
+    "ceil": lambda value: value if not math.isfinite(value) else float(math.ceil(value)),
+    "floor": lambda value: value if not math.isfinite(value) else float(math.floor(value)),
     "round": _js_round,
 }
 
@@ -181,6 +194,13 @@ def _quantize_ties_up(scaled: Decimal) -> Decimal:
 
 def _js_to_fixed(value: float, digits: int) -> str:
     """Format like the original runtime's ``Number.toFixed``."""
+    if math.isnan(value):
+        return "NaN"
+    if math.isinf(value):
+        return "Infinity" if value > 0 else "-Infinity"
+    if abs(value) >= 1e21:
+        # toFixed switches to the exponential String form at 1e21.
+        return _js_number_to_string(value)
     scale = Decimal(10) ** digits
     quantized = _quantize_ties_up(Decimal(value) * scale)
     return f"{quantized / scale:.{digits}f}"
@@ -192,6 +212,10 @@ def _js_to_exponential(value: float, digits: int) -> str:
     Same tie rule as ``toFixed`` on the ``digits``-place mantissa, and the
     exponent carries a sign but no zero padding (``4.7926e+5``).
     """
+    if math.isnan(value):
+        return "NaN"
+    if math.isinf(value):
+        return "Infinity" if value > 0 else "-Infinity"
     exact = Decimal(value)
     if exact == 0:
         return f"0.{'0' * digits}e+0"
@@ -220,8 +244,14 @@ def _parse_float(text: str) -> float:
 
 _NAME_START = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
 _NAME_CHARS = _NAME_START | set("0123456789")
-_WHITESPACE = set(" \t\n\r\v\f")
 _NUMBER_RUN = set("0123456789.eE+-")
+
+
+def _is_whitespace(ch: str) -> bool:
+    # The original tokenizer skipped JS /\s/, which reaches Unicode
+    # whitespace (a full-width space U+3000 between tokens is skipped);
+    # Python's isspace covers those except the BOM, which /\s/ includes.
+    return ch.isspace() or ch == "﻿"
 
 
 class _ExpressionError(ValueError):
@@ -241,7 +271,7 @@ def _tokenize(expr: str) -> list[_Token]:
     i = 0
     while i < len(expr):
         ch = expr[i]
-        if ch in _WHITESPACE:
+        if _is_whitespace(ch):
             i += 1
             continue
         if ch in "0123456789.":
@@ -412,6 +442,9 @@ class _Parser:
             func = MATH_FUNCTIONS[func_name]
             try:
                 return float(func(*args))
+            except OverflowError:
+                # JS math overflow is Infinity (exp of a huge argument).
+                return math.inf
             except (TypeError, ValueError):
                 # JS math functions answer domain/arity problems with NaN.
                 return float("nan")
@@ -524,7 +557,7 @@ def _compute_aero(formula: Any, params: dict[str, Any]) -> str:
                 "缺少必要参数: 雷诺数计算需要 V(速度,m/s), L_char(特征长度,m)，"
                 "可选 rho(空气密度,默认1.225), mu(动力粘度,默认1.789e-5 Pa·s)"
             )
-        reynolds = rho * params["V"] * params["L_char"] / mu
+        reynolds = _js_ratio(rho * params["V"] * params["L_char"], mu)
         return (
             f"雷诺数 Re = {shown(rho)} × {shown(params['V'])} × "
             f"{shown(params['L_char'])} / {shown(mu)} = {_js_to_exponential(reynolds, 4)}"
@@ -534,7 +567,7 @@ def _compute_aero(formula: Any, params: dict[str, Any]) -> str:
         sound = params.get("a", _SOUND_SPEED)
         if "V" not in params:
             return "缺少必要参数: 马赫数计算需要 V(速度,m/s)，可选 a(音速,m/s，默认340.3)"
-        mach = params["V"] / sound
+        mach = _js_ratio(params["V"], sound)
         return f"马赫数 M = {shown(params['V'])} / {shown(sound)} = {_js_to_fixed(mach, 6)}"
     if formula == "dynamic_pressure":
         # q = 0.5 * rho * V^2
@@ -550,13 +583,13 @@ def _compute_aero(formula: Any, params: dict[str, Any]) -> str:
         # L/D = CL / CD
         if "CL" not in params or "CD" not in params or params["CD"] == 0:
             return "缺少必要参数: 升阻比计算需要 CL(升力系数)和 CD(阻力系数)，且 CD 不能为0"
-        ratio = params["CL"] / params["CD"]
+        ratio = _js_ratio(params["CL"], params["CD"])
         return f"升阻比 L/D = {shown(params['CL'])} / {shown(params['CD'])} = {_js_to_fixed(ratio, 4)}"
     if formula == "wing_loading":
         # W/S = W / S
         if "W" not in params or "S" not in params:
             return "缺少必要参数: 翼载荷计算需要 W(重量,N)和 S(参考面积,m²)"
-        loading = params["W"] / params["S"]
+        loading = _js_ratio(params["W"], params["S"])
         return f"翼载荷 W/S = {shown(params['W'])} / {shown(params['S'])} = {_js_to_fixed(loading, 4)} N/m²"
     return f"未知公式: {formula}。支持的公式: {', '.join(AERO_FORMULAS)}"
 

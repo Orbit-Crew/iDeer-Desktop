@@ -205,3 +205,23 @@ def test_pure_functions_match_the_wire_results() -> None:
         evaluate_aero_arguments({"formula": "mach", "params": {"V": 85}})
         == "马赫数 M = 85 / 340.3 = 0.249780"
     )
+
+
+def test_arithmetic_faults_still_answer_the_broker(monkeypatch) -> None:
+    # A calculator crash must never leave the broker without an answer:
+    # the generic task handler converts an unexpected arithmetic fault
+    # into an INVALID_TASK error instead of a silently dangling task.
+    import core.transport as transport_module
+
+    def explode(_expression: str) -> str:
+        raise OverflowError("unexpected arithmetic fault")
+
+    monkeypatch.setattr(transport_module, "evaluate_expression", explode)
+    client, key = _client()
+    result = _run_task(
+        client,
+        key,
+        {"operation": "local.calculator", "arguments": {"expression": "1 + 1"}},
+    )
+    assert result["type"] == "error"
+    assert result["payload"]["error_code"] == "INVALID_TASK"
