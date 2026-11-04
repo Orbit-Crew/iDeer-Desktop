@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
@@ -933,12 +933,41 @@ export class RuntimeProcess {
             const importer = this.skillImportRequests.get(value.id)
             if (importer) {
               const outcome = value.result
+              const languages: SkillPackageFileView['language'][] = ['python', 'js', 'shell', 'executable', '']
               const files = (rows: unknown): SkillImportPreview['files'] => Array.isArray(rows) ? rows.slice(0, 200).map((row: Record<string, unknown>) => ({
                 path: text(row?.path, 255),
                 role: ['body', 'script', 'reference', 'attachment'].includes(row?.role as string) ? row.role as SkillImportPreview['files'][number]['role'] : 'attachment',
                 bytes: Number.isSafeInteger(row?.bytes) && (row.bytes as number) >= 0 ? row.bytes as number : 0,
-                sha256: text(row?.sha256, 64)
+                sha256: text(row?.sha256, 64),
+                language: languages.includes(row?.language as SkillPackageFileView['language']) ? row.language as SkillPackageFileView['language'] : ''
               })).filter((row: SkillPackageFileView) => row.path !== '' && /^[0-9a-f]{64}$/.test(row.sha256)) : []
+              // Issue 82: the projected declaration must match the runtime's
+              // normalized shapes exactly — an unknown permission, an extra
+              // environment key, or a wrong entry type refuses the preview
+              // instead of displaying a partial declaration.
+              const entries = (rows: unknown): string[] | null => Array.isArray(rows) && rows.length <= 16 &&
+                rows.every((row) => typeof row === 'string' && row.length >= 1 && row.length <= 128) ? rows : null
+              const environment = (raw: unknown): SkillImportEnvironmentView | null => {
+                if (raw === null) return null
+                if (!raw || typeof raw !== 'object') return null
+                const record = raw as Record<string, unknown>
+                if (record.target !== 'server' && record.target !== 'user_device') return null
+                const os = entries(record.os)
+                const dependencies = entries(record.dependencies)
+                const software = entries(record.software)
+                const tools = entries(record.tools)
+                const data = entries(record.data)
+                return os && dependencies && software && tools && data
+                  ? { target: record.target, os, dependencies, software, tools, data } : null
+              }
+              const permissions = (raw: unknown): SkillImportPermissionsView | null => {
+                if (!raw || typeof raw !== 'object') return null
+                const record = raw as Record<string, unknown>
+                const keys = Object.keys(record)
+                return keys.length === 2 && keys.includes('network') && keys.includes('subprocess') &&
+                  typeof record.network === 'boolean' && typeof record.subprocess === 'boolean'
+                  ? { network: record.network, subprocess: record.subprocess } : null
+              }
               if (!outcome || typeof outcome.confirmed !== 'boolean' || typeof outcome.packageHash !== 'string' ||
                   !/^[0-9a-f]{64}$/.test(outcome.packageHash) || typeof outcome.name !== 'string' ||
                   !Number.isSafeInteger(outcome.fileCount) || !Number.isSafeInteger(outcome.totalBytes)) {
@@ -947,13 +976,17 @@ export class RuntimeProcess {
                 continue
               }
               if (outcome.confirmed === false) {
-                if (importer.phase !== 'preview' || !outcome.destination || outcome.destination.visibility !== 'private') {
+                const projectedEnvironment = environment(outcome.environment)
+                const projectedPermissions = permissions(outcome.permissions)
+                if (importer.phase !== 'preview' || !outcome.destination || outcome.destination.visibility !== 'private' ||
+                    projectedEnvironment === null || projectedPermissions === null) {
                   this.skillImportRequests.delete(value.id)
                   importer.reject(new Error('SKILL_IMPORT_FAILED'))
                   continue
                 }
                 importer.resolve({ confirmed: false, origin: outcome.origin === 'markdown' || outcome.origin === 'zip' || outcome.origin === 'directory' ? outcome.origin : 'zip',
-                  name: outcome.name, description: text(outcome.description, 1024), bodyExcerpt: text(outcome.body, 2000), files: files(outcome.files),
+                  name: outcome.name, description: text(outcome.description, 1024), bodyExcerpt: text(outcome.body, 2000),
+                  environment: projectedEnvironment, permissions: projectedPermissions, files: files(outcome.files),
                   fileCount: outcome.fileCount, totalBytes: outcome.totalBytes, packageHash: outcome.packageHash,
                   destination: { resourceType: 'skill', visibility: 'private' } })
                 continue

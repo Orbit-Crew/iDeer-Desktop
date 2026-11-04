@@ -147,6 +147,66 @@ def test_wire_shape_is_fixed() -> None:
     assert SKILL_SCRIPT_CAPABILITIES == ("local.skill.script",)
 
 
+# --- four-language declaration (#82) -----------------------------------------
+
+def test_script_language_classification() -> None:
+    """#82 AC1: the four declared languages are recognized from the script's
+    own suffix; anything else refuses as unsupported, never a guessed run."""
+    from core.skill_script import script_language
+
+    assert script_language("scripts/run.py") == "python"
+    assert script_language("scripts/render.js") == "js"
+    assert script_language("scripts/render.mjs") == "js"
+    assert script_language("scripts/setup.sh") == "shell"
+    assert script_language("scripts/setup.bat") == "shell"
+    assert script_language("scripts/setup.cmd") == "shell"
+    assert script_language("scripts/setup.ps1") == "shell"
+    assert script_language("scripts/install.exe") == "executable"
+    assert script_language("scripts/install.com") == "executable"
+    assert script_language("scripts/run.PY") == "python"
+    for path in ("scripts/run.pl", "scripts/run", "scripts/run.py2", "scripts/run.txt"):
+        with pytest.raises(SkillScriptError) as caught:
+            script_language(path)
+        assert str(caught.value) == "SKILL_SCRIPT_LANGUAGE_UNSUPPORTED"
+
+
+@pytest.mark.asyncio
+async def test_non_python_scripts_refuse_before_any_grant_or_run(tmp_path) -> None:
+    """#82 AC1: this device leg ships exactly one constrained executor, so a
+    declared js/shell/executable script is an explicit unavailability — the
+    refusal fires before the grant lookup, nothing runs, and no grant row is
+    ever created for it (import success is not executability)."""
+    executor = FakeExecutor()
+    gate = service(tmp_path, executor=executor)
+    for path, body in (
+        ("scripts/render.js", "console.log('x')\n"),
+        ("scripts/setup.sh", "echo hi\n"),
+        ("scripts/install.exe", "MZ"),
+    ):
+        payload = payload_of(script_path=path, script=body)
+        payload["script_sha256"] = digest_of(body)
+        with pytest.raises(SkillScriptError) as caught:
+            gate.evaluate(OWNER, payload)
+        assert str(caught.value) == "SKILL_SCRIPT_LANGUAGE_UNSUPPORTED"
+        with pytest.raises(SkillScriptError):
+            await gate.execute(payload, consent=True)
+    assert executor.calls == []
+    assert gate.registry.view(OWNER) == []
+
+
+@pytest.mark.asyncio
+async def test_grant_stays_bound_to_one_exact_script(tmp_path) -> None:
+    """#82 AC4: a remembered grant covers its exact path and bytes only — a
+    sibling script of the same skill asks for its own authorization."""
+    gate = service(tmp_path)
+    gate.remember_grant(OWNER, payload_of())
+    sibling = payload_of(script_path="scripts/other.py", script="print('other')\n")
+    sibling["script_sha256"] = digest_of(sibling["script"])
+    decision, _declaration = gate.evaluate(OWNER, sibling)
+    assert decision.decision is PolicyDecision.CONSENT_REQUIRED
+    assert decision.grant_state == APPROVAL_REQUIRED
+
+
 # --- default off, consent, and content-bound memory --------------------------
 
 @pytest.mark.asyncio

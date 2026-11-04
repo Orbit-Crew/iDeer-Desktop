@@ -571,6 +571,7 @@ class DesktopChat:
         projection dropped every non-write capability, so the request timed
         out into a denial with no surface to answer it.
         """
+        from .skill_dependencies import install_entry_shape
         rows = []
         thread, run = self._state.get('thread'), self._state.get('run')
         if not thread or not run:
@@ -605,6 +606,27 @@ class DesktopChat:
                     version=str(payload.get('skill_version', '')),
                     scriptSha256=payload.get('script_sha256', ''),
                     requirementsSha256=requirements_fingerprint_of(payload.get('declaration')))
+            elif capability == 'local.skill.dependencies':
+                # Issue 104: the install ask names the locked entries and the
+                # source the wheels come from; no script bytes ride it. The
+                # entry shape is the same validator the wire plan enforces.
+                entries = payload.get('entries')
+                source = payload.get('source')
+                if not isinstance(payload.get('skill_id'), str) or not isinstance(entries, list) \
+                        or not isinstance(source, dict):
+                    continue
+                if not entries or not all(install_entry_shape(entry) for entry in entries):
+                    continue
+                if not all(isinstance(source.get(key), str) and source[key]
+                           for key in ('kind', 'location')):
+                    continue
+                plan = [dict(entry=entry['entry'], name=entry['name'], version=entry['version'])
+                        for entry in entries]
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='skill-dependencies',
+                    skill=payload['skill_id'], version=str(payload.get('skill_version', '')),
+                    entries=plan, source=dict(kind=source['kind'], location=source['location']),
+                    requirementsSha256=str(payload.get('requirements_sha256', '')))
             elif capability == 'local.knowledge.material':
                 args = payload.get('arguments', payload.get('args', payload))
                 if not isinstance(args, dict) or not isinstance(args.get('documents'), list):
@@ -1097,7 +1119,8 @@ class DesktopChat:
         args = payload.get('arguments', payload.get('args', payload)) if isinstance(payload, dict) else {}
         if approval == 'file-write':
             return str(args.get('path', ''))[:200] if isinstance(args, dict) else ''
-        if approval == 'skill-script':
+        if approval in ('skill-script', 'skill-dependencies'):
+            # Issue 104 installs name the same identity fact as script runs.
             return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
         if approval == 'knowledge-material':
             return str(args.get('revision_id', ''))[:200] if isinstance(args, dict) else ''
@@ -1211,6 +1234,7 @@ class DesktopChat:
             if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
                 continue
             approval = {'local.files.write': 'file-write', 'local.skill.script': 'skill-script',
+                        'local.skill.dependencies': 'skill-dependencies',
                         'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
             if not approval:
                 continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
@@ -2218,6 +2242,7 @@ class DesktopChat:
             if not confirmed:
                 return dict(confirmed=False, origin=kind, name=package['name'],
                             description=package['description'], body=package['body'],
+                            environment=package['environment'], permissions=package['permissions'],
                             files=package['files'], fileCount=package['file_count'],
                             totalBytes=package['total_bytes'], packageHash=package['package_hash'],
                             destination=dict(resourceType='skill', visibility='private'))

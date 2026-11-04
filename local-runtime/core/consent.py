@@ -49,6 +49,9 @@ def render_consent_summary(
             "local.artifacts.upload": "send a local file to the server",
             # Issue 122: name the skill and the script, never the raw bytes.
             "local.skill.script": "run a Skill script on this device",
+            # Issue 104: name the skill and the locked wheels, never the
+            # whole lock contents.
+            "local.skill.dependencies": "install the Skill's locked dependencies on this device",
             # Issue 116/#39: name the frozen revision and document list, never
             # the bytes themselves.
             "local.knowledge.material": "read one frozen document from this device",
@@ -58,6 +61,20 @@ def render_consent_summary(
         summary["target"] = text(payload.get("skill_id", ""))
         summary["command"] = text(payload.get("script_path", ""))
         summary["version"] = text(payload.get("skill_version", ""))
+    elif capability == "local.skill.dependencies":
+        # Issue 104: the ask names the skill, the exact locks and the source
+        # the wheels will come from — that source is the only network
+        # destination the approval covers.
+        summary["target"] = text(payload.get("skill_id", ""))
+        summary["version"] = text(payload.get("skill_version", ""))
+        entries = payload.get("entries")
+        if isinstance(entries, list):
+            summary["entries"] = text(", ".join(
+                str(item.get("entry", "")) for item in entries if isinstance(item, dict)
+            ))
+        source = payload.get("source")
+        if isinstance(source, dict):
+            summary["source"] = text(f"{source.get('kind', '')}: {source.get('location', '')}")
     elif capability == "local.knowledge.material":
         arguments = payload.get("arguments", payload.get("args", payload))
         if not isinstance(arguments, dict):

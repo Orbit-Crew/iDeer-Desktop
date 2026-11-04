@@ -42,6 +42,15 @@ describe('compatibility gate (issue 110)', () => {
     const unknown = signed(declaration({ level: 'capability', disabledCapabilities: ['local.files.execute'] }))
     expect(evaluate(unknown.text, unknown.signature, publicKeyPem, { protocolVersion: 1 }).error).toBe('COMPAT_MANIFEST_CAPABILITY_INVALID')
   })
+  it('can disable the fixed calculators without rejecting the declaration (#83)', () => {
+    const { text, signature } = signed(declaration({ level: 'capability', disabledCapabilities: ['local.calculator', 'local.aero_calculator'] }))
+    const result = evaluate(text, signature, publicKeyPem, { protocolVersion: 1 })
+    expect(result.ok).toBe(true)
+    expect(result.declaration?.level).toBe('capability')
+    expect(blocksLocalTask(result.declaration, { action: 'send', capability: 'local.calculator' })).toBe(true)
+    expect(blocksLocalTask(result.declaration, { action: 'send', capability: 'local.aero_calculator' })).toBe(true)
+    expect(blocksLocalTask(result.declaration, { action: 'send', capability: 'local.python' })).toBe(false)
+  })
   it('stops only the declared work and never grants anything', () => {
     const capability = declaration({ level: 'capability', disabledCapabilities: ['local.python'] })
     const core = declaration({ level: 'core' })

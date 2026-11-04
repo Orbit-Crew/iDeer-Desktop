@@ -88,6 +88,13 @@ class RuntimeSettings:
     #: is set); an empty string means no fallback. It is never a provider,
     #: endpoint or key — those have no field on the Desktop by design.
     model_fallback_name: str = ""
+    #: Issue 104: the only source on-demand Skill dependency installs may
+    #: fetch locked wheels from: ``{"kind": "offline"|"intranet",
+    #: "location": ...}`` — a local wheelhouse directory or an intranet
+    #: wheelhouse URL with its ``skill-deps.lock.json``. Empty means the
+    #: device has no install path at all: the ask never appears and the
+    #: environment refusal simply names what is missing.
+    skill_dependency_source: dict[str, str] = field(default_factory=dict)
     #: Where these settings were loaded from; set by ``load_controller``.
     config_path: str = ""
 

@@ -1629,3 +1629,61 @@ def test_background_consent_facts_outside_the_wire_charset_are_skipped(tmp_path)
         chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
         assert chat.background_tick(force=True) == []
         assert chat.background_tick(force=True) == []
+
+
+def test_dependency_install_ask_projects_entries_and_source_only(tmp_path) -> None:
+    """#104: the install ask rides the same pending queue; the card names the
+    skill, the locked entries and the source, never the script bytes, and
+    ``rememberScript`` stays a script-only affordance."""
+    from core.consent import PendingConsent
+    install_pending = PendingConsent('task-104', 'local.skill.dependencies',
+        {'run_id': 'run-1', 'thread_id': 'thread-A', 'skill_id': 'report-skill',
+         'skill_version': 3, 'requirements_sha256': 'd' * 64,
+         'entries': [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}],
+         'source': {'kind': 'intranet', 'location': 'http://intranet.example/wheels'},
+         'script': 'print(secret bytes that must not leak)\n'},
+        'd' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [install_pending],
+            decide_consent=lambda *args, **kwargs: decisions.append((args, kwargs)))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Run the skill'})
+        rows = [row for row in state['localConsents'] if row['kind'] == 'skill-dependencies']
+        assert len(rows) == 1
+        row = rows[0]
+        assert row['skill'] == 'report-skill' and row['version'] == '3'
+        assert row['entries'] == [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}]
+        assert row['source'] == {'kind': 'intranet', 'location': 'http://intranet.example/wheels'}
+        assert row['requirementsSha256'] == 'd' * 64
+        assert 'script' not in row and 'declaration' not in row  # bytes never reach the display
+        # A plain allow settles the install; "remember" is refused for it.
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-104', 'requestHash': 'd' * 64, 'decision': 'allow'})
+        assert decisions and decisions[0][0][:3] == ('task-104', 'd' * 64, True)
+        rejected = chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-104', 'requestHash': 'd' * 64, 'decision': 'allow', 'rememberScript': True})
+        assert rejected['error'] == 'CHAT_COMMAND_INVALID'
+
+
+def test_background_notification_names_dependency_installs(tmp_path) -> None:
+    """#104: an install ask on an invisible session notifies like the other
+    device authorities, with a bounded identity summary."""
+    from core.consent import PendingConsent
+    install_pending = PendingConsent('task-bg-104', 'local.skill.dependencies',
+        {'run_id': 'run-9', 'thread_id': 'thread-BG', 'skill_id': 'report-skill',
+         'skill_version': 3, 'requirements_sha256': 'd' * 64,
+         'entries': [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}],
+         'source': {'kind': 'offline', 'location': 'D:/wheels'}},
+        'd' * 64, 'level_1', False, {}, time.monotonic())
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [install_pending])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        events = chat.background_tick()
+        approvals = [event for event in events if event.get('kind') == 'approval-required'
+                     and event.get('approval') == 'skill-dependencies']
+        assert approvals and approvals[0]['taskId'] == 'task-bg-104'
+        assert approvals[0]['summary'] == 'report-skill'
