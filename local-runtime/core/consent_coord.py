@@ -32,6 +32,12 @@ from .receipts import content_hash
 from .consent import request_hash
 from .files import FileAccessError
 from .session_tier import GateDecision, SessionTier, tier_gate_decision
+from .skill_dependencies import (
+    SKILL_DEPENDENCIES_INSTALL_FAILED,
+    SKILL_DEPENDENCY_CAPABILITIES,
+    SkillDependencyError,
+)
+from .skill_script import SkillEnvironmentUnavailable, SkillScriptError
 
 
 class ConsentDecisionError(RuntimeError):
@@ -96,6 +102,7 @@ class _ConsentWire:
     python_service: LocalPythonService | None
     mcp_service: LocalMCPService | None
     skill_script_service: Any | None
+    skill_dependency_service: Any | None
     consent_prompt: ConsentPrompt | None
     _running_tasks: dict[str, asyncio.Task[None]]
     _task_runs: dict[str, str]
@@ -109,6 +116,16 @@ class _ConsentWire:
     async def run_skill_script_task(
         self, payload: dict[str, Any], *, consent: bool, authorization_basis: str | None
     ) -> Any: ...
+
+    async def run_skill_dependency_install(self, payload: dict[str, Any]) -> Any: ...
+
+    async def _denial_response(
+        self,
+        capability: str,
+        task_id: str,
+        payload: dict[str, Any],
+        decision: PolicyDecision,
+    ) -> None: ...
 
     def _record_policy_denial(
         self, capability: str, task_id: str, payload: dict[str, Any]
@@ -159,6 +176,13 @@ class LocalConsentCoordinator:
         self._local_consents: dict[str, _LocalConsent] = {}
         self._relayed_consents: dict[str, _RelayedConsent] = {}
         self._answered_consents: set[str] = set()
+        # Issue 104: the original ``local.skill.script`` task behind each
+        # pending install ask, keyed by task id. The script bytes never ride
+        # the consent payload (identity facts only cross the wire), so the
+        # gate parks them here until the install branch consumes them; every
+        # end state of the ask (denial, abandonment, expiry, consumption)
+        # pops its entry.
+        self._pending_installs: dict[str, dict[str, Any]] = {}
 
     # --- state -------------------------------------------------------------
 
@@ -173,8 +197,11 @@ class LocalConsentCoordinator:
             request_hash=request.request_hash,
             risk_level=level.value,
             # Level 2 is displayed but never silenceable (§9: dangerous work
-            # has no "always allow" escape hatch).
-            silenceable=level is not RiskLevel.LEVEL_2 and not self._desktop_write(request.capability),
+            # has no "always allow" escape hatch). #104 installs are never
+            # silenceable either: every install settles one fresh approval.
+            silenceable=level is not RiskLevel.LEVEL_2
+            and not self._desktop_write(request.capability)
+            and not self._skill_dependencies(request.capability),
             summary=self._summary(request),
             requested_at=time.monotonic(),
         )
@@ -187,6 +214,13 @@ class LocalConsentCoordinator:
         """True for #122 Skill script requests this device gates and executes."""
         from .skill_script import SKILL_SCRIPT_CAPABILITIES
         return capability in SKILL_SCRIPT_CAPABILITIES and self._wire.skill_script_service is not None
+
+    def _skill_dependencies(self, capability):
+        """True for #104 dependency-install asks this device gates and runs."""
+        return (
+            capability in SKILL_DEPENDENCY_CAPABILITIES
+            and self._wire.skill_dependency_service is not None
+        )
 
     def _summary(self, request: ConsentRequest) -> dict[str, str]:
         summary = render_consent_summary(
@@ -257,6 +291,23 @@ class LocalConsentCoordinator:
             return tier, GateDecision.ASK
         capability = str(payload.get("operation", ""))
         return tier, tier_gate_decision(tier, capability, payload, classify)
+
+    async def _request_dependency_install(
+        self,
+        envelope: Any,
+        plan_payload: dict[str, Any],
+        script_payload: dict[str, Any],
+        store: ConsentStore,
+    ) -> None:
+        """Ask about one locked-dependency install (#104), then continue the
+        script run this ask belongs to on approval.
+
+        The script task itself never rides the consent payload — identity
+        facts cross, bytes stay device-side — so it is parked here keyed by
+        the task until the install branch consumes it.
+        """
+        self._pending_installs[envelope.task_id or ""] = script_payload
+        await self._request_consent(envelope, plan_payload, store)
 
     async def _request_consent(
         self,
@@ -448,6 +499,8 @@ class LocalConsentCoordinator:
         consent = self._local_consents.pop(task_id, None)
         if consent is None:
             return
+        # A dead ask can never become an install: drop the parked script task.
+        self._pending_installs.pop(task_id, None)
         consent.abandoned_reason = reason
         if not consent.future.done():
             consent.future.set_result(None)
@@ -528,6 +581,15 @@ class LocalConsentCoordinator:
         remember_script_grant = approved and bool(always) and self._skill_script(request.capability) and origin == 'tray'
         if self._skill_script(request.capability):
             always = False
+        # Issue 104: a dependency install has no standing approval either —
+        # the ask covers exactly one install, so the always-allow upgrade is
+        # dropped the same way (AC3: 无确认不安装). A refusal also drops the
+        # parked script task; an approval leaves it for the install branch
+        # to consume when the run continues.
+        if self._skill_dependencies(request.capability):
+            always = False
+            if not approved:
+                self._pending_installs.pop(task_id, None)
         # A session-tier resolution names its own basis (#74); a human
         # decision starts from the plain approval and may only upgrade it
         # into a content- or directory-bound grant below.
@@ -563,6 +625,8 @@ class LocalConsentCoordinator:
             detail={"origin": origin, "binds_to_payload": True, "basis": basis},
         )
         if not approved or not exchange.authorize(request, request.payload):
+            if self._skill_dependencies(request.capability):
+                self._pending_installs.pop(task_id, None)
             await wire._send_error(
                 task_id,
                 "local consent denied",
@@ -604,6 +668,7 @@ class LocalConsentCoordinator:
             relayed = self._relayed_consents.pop(task_id, None)
             if relayed is None:
                 continue
+            self._pending_installs.pop(task_id, None)
             self._audit(
                 AuditKind.CONSENT,
                 "expired",
@@ -770,6 +835,13 @@ class LocalConsentCoordinator:
         ):
             await wire._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
             return
+        if self._skill_dependencies(request.capability) and (
+            wire.skill_script_service is None or wire.skill_dependency_service is None
+        ):
+            # The install branch continues into the script gate; a runtime
+            # built without the script channel has no install channel either.
+            await wire._storage_error(task_id, 'RECEIPT_STORAGE_UNAVAILABLE')
+            return
         if request.capability.startswith("local.mcp."):
             assert wire.mcp_service is not None
             execution = await wire.mcp_service.execute(
@@ -813,6 +885,16 @@ class LocalConsentCoordinator:
             value = script_result.value
             if script_result.receipt is not None:
                 receipt = replace(script_result.receipt, task_id=task_id)
+        elif self._skill_dependencies(request.capability):
+            # Issue 104: the consented install, then the script run it was
+            # parked for — the TASK_RESULT is always the script's own receipt,
+            # so the ledger holds one execution fact per task.
+            value, receipt = await self._install_and_continue(
+                envelope, request, consent_decision=consent_decision
+            )
+            decision = PolicyDecision.ALLOW
+            if receipt is None:
+                return
         else:
             assert wire.file_service is not None
             file_task = wire.file_service.execute(
@@ -872,6 +954,102 @@ class LocalConsentCoordinator:
         )
         await wire.replay_receipts()
 
+    async def _install_and_continue(
+        self, envelope: Any, request: ConsentRequest, *, consent_decision: str
+    ) -> tuple[Any, Any]:
+        """The consented install half (#104): provision the locked wheels,
+        then re-derive the original script gate and continue its flow.
+
+        Returns ``(value, receipt)`` for the script execution so the generic
+        settle tail answers the wire with the script's own bound receipt, or
+        ``(None, None)`` when this method already answered with an error or
+        handed the flow to the next consent round.
+        """
+        wire = self._wire
+        task_id = envelope.task_id or ""
+        script_payload = self._pending_installs.pop(task_id, None)
+        if script_payload is None:
+            await wire._send_error(
+                task_id, "the install request lost its Skill task",
+                SKILL_DEPENDENCIES_INSTALL_FAILED, request.payload,
+                request.capability, policy_decision=PolicyDecision.DENY.value,
+                status="failed", consent_decision=consent_decision,
+            )
+            return None, None
+        try:
+            outcome = await wire.run_skill_dependency_install(request.payload)
+        except SkillDependencyError as exc:
+            await wire._send_error(
+                task_id, str(exc), exc.code, request.payload,
+                request.capability, policy_decision=PolicyDecision.ALLOW.value,
+                status="failed", consent_decision=consent_decision,
+                details={"reason": str(exc)[:500]},
+            )
+            return None, None
+        except OSError as exc:
+            # Disk or socket failures during the install owe the broker the
+            # same honest answer as a refused artifact: without this frame
+            # the task would strand silently on a background settle.
+            await wire._send_error(
+                task_id, f"dependency install failed: {type(exc).__name__}",
+                SKILL_DEPENDENCIES_INSTALL_FAILED, request.payload,
+                request.capability, policy_decision=PolicyDecision.ALLOW.value,
+                status="failed", consent_decision=consent_decision,
+                details={"reason": str(exc)[:500]},
+            )
+            return None, None
+        self._audit(
+            AuditKind.TASK,
+            "completed",
+            capability=request.capability,
+            task_id=task_id,
+            run_id=str(request.payload.get("run_id", "")),
+            detail={
+                "outcome": "skill-dependencies-installed",
+                "installed": outcome.get("installed", []),
+                "target_dir": outcome.get("target_dir", ""),
+            },
+        )
+        try:
+            script_task, _declaration = wire.handle_skill_script_task(dict(script_payload))
+        except SkillScriptError as exc:
+            await wire._send_error(
+                task_id, str(exc), str(exc), dict(script_payload),
+                "local.skill.script", policy_decision=PolicyDecision.DENY.value,
+                status="denied", consent_decision=consent_decision,
+                details=getattr(exc, "details", None),
+            )
+            return None, None
+        if script_task.decision is PolicyDecision.CONSENT_REQUIRED:
+            # The install ask is settled; the script itself still asks its own
+            # fresh question. The answered marker must not swallow the second
+            # round-trip's decision as a duplicate.
+            self._answered_consents.discard(task_id)
+            await self._request_consent(
+                envelope, dict(script_payload), wire.skill_script_service.consent
+            )
+            return None, None
+        if script_task.decision is not PolicyDecision.ALLOW:
+            await wire._denial_response(
+                "local.skill.script", task_id, dict(script_payload), script_task.decision
+            )
+            return None, None
+        if script_task.receipt is None:
+            # The grant (or policy) decided without running anything; the
+            # constrained execution happens now, mirroring the dispatch path.
+            script_task = await wire.run_skill_script_task(
+                dict(script_payload), consent=True,
+                authorization_basis=script_task.basis,
+            )
+            if script_task.decision is not PolicyDecision.ALLOW:
+                await wire._denial_response(
+                    "local.skill.script", task_id, dict(script_payload), script_task.decision
+                )
+                return None, None
+        if script_task.receipt is None:
+            raise RuntimeError("local Skill script execution did not produce a receipt")
+        return script_task.value, replace(script_task.receipt, task_id=task_id)
+
     async def _send_python_output(self, task_id: str, stream: str, output: str) -> None:
 
         wire = self._wire
@@ -901,6 +1079,7 @@ class LocalConsentCoordinator:
         policy_decision: str = "allow",
         status: str = "failed",
         consent_decision: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         wire = self._wire
         from .receipts import LocalExecutionReceipt
@@ -925,6 +1104,15 @@ class LocalConsentCoordinator:
                 pass
         if wire.connection is None:
             return
+        wire_payload: dict[str, Any] = {
+            "error_code": code,
+            "message": message,
+            "receipt": receipt.as_dict(),
+        }
+        if details is not None:
+            # Issue 104: structured per-entry facts behind a fixed category —
+            # the refusal names what is missing without prose in the code.
+            wire_payload["details"] = details
         await wire.connection.send(
             json.dumps(
                 sign_envelope(
@@ -933,11 +1121,7 @@ class LocalConsentCoordinator:
                     device_id=wire.device_id,
                     session_id=wire.session_id or "",
                     task_id=task_id,
-                    payload={
-                        "error_code": code,
-                        "message": message,
-                        "receipt": receipt.as_dict(),
-                    },
+                    payload=wire_payload,
                 ),
                 separators=(",", ":"),
             )

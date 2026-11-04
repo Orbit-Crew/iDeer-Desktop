@@ -144,6 +144,32 @@ function ScriptConsentCard({ request, state, threadId, busy, blocked, onCommand 
   </Card>
 }
 
+function DependencyConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  const source = request.source
+  return <Card size="small" title="本机技能依赖安装审批">
+    <Typography.Paragraph>技能：{request.skill} · 版本 V{request.version}</Typography.Paragraph>
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>环境范围 SHA-256：{request.requirementsSha256}</Typography.Paragraph>
+    <Typography.Paragraph>本机缺少以下依赖，将按技能声明锁定的版本安装：</Typography.Paragraph>
+    <ul aria-label="待安装锁定依赖">
+      {(request.entries ?? []).map((item) => <li key={item.entry}>{item.entry}</li>)}
+    </ul>
+    <Typography.Paragraph>
+      安装来源：{source?.kind === 'intranet' ? '内网源' : source?.kind === 'offline' ? '离线依赖包' : source?.kind}
+      {source?.location ? ` ${source.location}` : ''}
+    </Typography.Paragraph>
+    <Typography.Paragraph>
+      不确认不安装，也不会访问其他网络源；每次安装都单独确认。安装完成后，脚本执行仍按常规流程单独审批。
+    </Typography.Paragraph>
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.skill.dependencies')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>确认安装</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝安装</Button>
+    </Space>
+  </Card>
+}
+
 function MaterialConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
   return <Card size="small" title="本机知识取材审批">
     <Typography.Paragraph>读取已登记知识版本中的冻结文档，用于平台编排的图谱/Wiki 生成。</Typography.Paragraph>
@@ -349,6 +375,8 @@ function ChatContents({ state, busy, onCommand }: {
       {!!state.subagents.length && <SubagentProgress subagents={state.subagents} />}
       {state.localConsents?.filter((request) => !state.stop && request.threadId === threadId && request.runId === state.run?.id).map((request) => {
         if (request.kind === 'skill-script') return <ScriptConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        if (request.kind === 'skill-dependencies') return <DependencyConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         if (request.kind === 'knowledge-material') return <MaterialConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />

@@ -69,6 +69,12 @@ class LocalPolicy:
             # content-bound grants short-circuit the ask, local DENY never
             # does.
             "local.skill.script",
+            # Issue 104: installing a Skill's locked dependencies modifies
+            # this machine and reaches the configured wheelhouse source, so
+            # it is always an explicit ask. The tier machinery never auto-runs
+            # it (it is not folder-anchored), and the coordinator drops the
+            # always-allow upgrade: installs have no standing approval.
+            "local.skill.dependencies",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

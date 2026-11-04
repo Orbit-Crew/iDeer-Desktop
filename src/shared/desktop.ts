@@ -640,7 +640,8 @@ export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
   success: '成功', error: '出错', failed: '失败', interrupted: '已中断'
 }
 export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
-  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材'
+  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'skill-dependencies': '技能依赖安装',
+  'knowledge-material': '知识取材'
 }
 
 /** Issue 77: list or settle the device's own notification ledger. */
@@ -766,7 +767,7 @@ export interface LocalConsentView {
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'knowledge-material'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material'
   path?: string
   content?: string
   directory?: string
@@ -778,6 +779,11 @@ export interface LocalConsentView {
   revisionId?: string
   manifestHash?: string
   documents?: { filename: string; contentHash: string }[]
+  /** Issue 104: the locked dependency entries and the configured source the
+   * install ask names — the source is the only network destination the
+   * approval covers. */
+  entries?: { entry: string; name: string; version: string }[]
+  source?: { kind: string; location: string }
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback

@@ -173,11 +173,18 @@ _BARE_COMMAND = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
 
 def _parse_requirement(entry: str) -> tuple[str, str] | None:
-    """``name`` plus optional version constraints, or ``None`` when unsupported."""
-    match = _REQUIREMENT_SPEC.match(entry.strip())
+    """``name`` plus the full version-constraint tail, or ``None`` when unsupported.
+
+    The constraint tail is a repeated capture group, so ``group(2)`` alone
+    would hold only the last repetition (``a>=1,==1.5`` would look like a
+    bare ``==1.5``); the span after the name is the complete set the device
+    must enforce.
+    """
+    text = entry.strip()
+    match = _REQUIREMENT_SPEC.match(text)
     if match is None:
         return None
-    return match.group(1), match.group(2) or ""
+    return match.group(1), text[match.end(1):]
 
 
 def _constraints_satisfied(actual: tuple[int, ...], constraints: str) -> bool:
@@ -202,6 +209,158 @@ def _constraints_satisfied(actual: tuple[int, ...], constraints: str) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class EnvironmentEntry:
+    """One declared requirement and what this device found for it (#104).
+
+    ``state`` is the bounded fact vocabulary: ``ok`` (verified present),
+    ``missing`` (a dependency distribution is absent), ``unsatisfied``
+    (present but outside the declared constraints), ``interpreter`` (the
+    interpreter itself does not match — never installable), ``absent`` (a
+    tool or software command is not on ``PATH``), ``invalid`` (outside the
+    declaration grammar) and ``unprovisioned`` (a ``data`` condition, which
+    has no provisioning contract at all). ``pin`` is the exact ``==`` lock
+    the entry declares, or ``""`` when the entry is not exactly pinned.
+    """
+
+    field: str
+    entry: str
+    name: str
+    state: str
+    installed: str = ""
+    pin: str = ""
+
+
+def _exact_lock(constraints: str) -> str:
+    """The single ``==`` version an entry locks, when that lock is coherent.
+
+    One entry pins exactly one version and that version must satisfy every
+    other constraint on the same entry (``name>=1,<2,==1.5`` pins 1.5;
+    ``name>=2,==1.5`` contradicts itself and pins nothing). Range-only
+    entries lock nothing: the device never provisions an unpinned version.
+    """
+    matches = list(_CONSTRAINT.finditer(constraints))
+    pins = [match.group(2) for match in matches if match.group(1) == "=="]
+    if len(pins) != 1:
+        return ""
+    actual = tuple(int(part) for part in pins[0].split("."))
+    for match in matches:
+        if match.group(1) == "==":
+            continue
+        if not _constraints_satisfied(actual, match.group(1) + match.group(2)):
+            return ""
+    return pins[0]
+
+
+def environment_report(declaration: dict) -> list[EnvironmentEntry]:
+    """Per-entry facts behind :func:`verify_environment` (#104 AC1).
+
+    The same in-process checks the refusal has always used — interpreter and
+    distribution versions through ``importlib.metadata``, tools and software
+    through ``PATH`` — but each entry reports its own outcome, so an
+    unavailability can name the skill and what is missing instead of one
+    opaque category.
+    """
+    from importlib import metadata
+
+    report: list[EnvironmentEntry] = []
+    interpreter = tuple(sys.version_info[:3])
+    interpreter_version = ".".join(str(part) for part in interpreter)
+    for entry in declaration.get("dependencies", []):
+        parsed = _parse_requirement(str(entry))
+        if parsed is None:
+            report.append(EnvironmentEntry("dependencies", str(entry), "", "invalid"))
+            continue
+        name, constraints = parsed
+        pin = _exact_lock(constraints)
+        if _INTERPRETER_NAME.match(name):
+            satisfied = _constraints_satisfied(interpreter, constraints)
+            report.append(EnvironmentEntry(
+                "dependencies", str(entry), name,
+                "ok" if satisfied else "interpreter", interpreter_version, pin,
+            ))
+            continue
+        try:
+            installed = metadata.version(name)
+        except Exception:  # noqa: BLE001 - any resolver failure is absence
+            report.append(EnvironmentEntry("dependencies", str(entry), name, "missing", "", pin))
+            continue
+        try:
+            actual = tuple(int(part) for part in installed.split(".")[:3])
+        except ValueError:
+            report.append(EnvironmentEntry(
+                "dependencies", str(entry), name, "invalid", installed, pin,
+            ))
+            continue
+        satisfied = _constraints_satisfied(actual, constraints)
+        report.append(EnvironmentEntry(
+            "dependencies", str(entry), name,
+            "ok" if satisfied else "unsatisfied", installed, pin,
+        ))
+    for declared_field in ("software", "tools"):
+        for entry in declaration.get(declared_field, []):
+            name = str(entry).strip()
+            if not _BARE_COMMAND.match(name):
+                report.append(EnvironmentEntry(declared_field, str(entry), "", "invalid"))
+            elif shutil.which(name) is None:
+                report.append(EnvironmentEntry(declared_field, str(entry), name, "absent"))
+            else:
+                report.append(EnvironmentEntry(declared_field, str(entry), name, "ok"))
+    for entry in declaration.get("data", []):
+        report.append(EnvironmentEntry("data", str(entry), "", "unprovisioned"))
+    return report
+
+
+class SkillEnvironmentUnavailable(SkillScriptError):
+    """The environment refused with the per-entry report attached (#104).
+
+    ``str`` stays the fixed wire category (#170: fixed categories cross the
+    boundary verbatim); ``details`` carries what is missing so the device
+    can name it — in the install ask or in the error frame — instead of one
+    opaque refusal.
+    """
+
+    def __init__(self, report: list[EnvironmentEntry]) -> None:
+        super().__init__("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
+        self.report = report
+        self.unavailable = tuple(item for item in report if item.state != "ok")
+
+    @property
+    def details(self) -> dict:
+        return {
+            "entries": [
+                {
+                    "field": item.field, "entry": item.entry, "name": item.name,
+                    "state": item.state, "installed": item.installed,
+                }
+                for item in self.unavailable
+            ],
+        }
+
+
+def installable_pins(report: list[EnvironmentEntry]) -> list[dict[str, str]] | None:
+    """The locked-version install plan for a report, or ``None`` (#104 AC2).
+
+    Every unavailable condition must be a missing or unsatisfied dependency
+    entry with a coherent exact ``==`` lock for the gap to be curable here;
+    interpreter, tool, software, data and range-constrained conditions have
+    no device provisioning contract and stay explicit unavailability. An
+    all-``ok`` report plans nothing.
+    """
+    pins: list[dict[str, str]] = []
+    for item in report:
+        if item.state == "ok":
+            continue
+        if (
+            item.field != "dependencies"
+            or item.state not in {"missing", "unsatisfied"}
+            or not item.pin
+        ):
+            return None
+        pins.append({"entry": item.entry, "name": item.name, "version": item.pin})
+    return pins or None
+
+
 def verify_environment(declaration: dict) -> None:
     """Refuse every declared condition this runtime cannot confirm (AC1).
 
@@ -209,39 +368,12 @@ def verify_environment(declaration: dict) -> None:
     the facts are checked in-process: interpreter and distribution versions
     through ``importlib.metadata``, tools and software through ``PATH``. A
     declared ``data`` requirement has no provisioning contract yet and is an
-    explicit unavailability rather than an ignored claim (#170).
+    explicit unavailability rather than an ignored claim (#170). The refusal
+    carries the per-entry report (#104) behind the fixed category.
     """
-    from importlib import metadata
-
-    def unavailable() -> SkillScriptError:
-        return _refuse("SKILL_SCRIPT_ENVIRONMENT_UNAVAILABLE")
-
-    interpreter = tuple(sys.version_info[:3])
-    for entry in declaration.get("dependencies", []):
-        parsed = _parse_requirement(str(entry))
-        if parsed is None:
-            raise unavailable()
-        name, constraints = parsed
-        if _INTERPRETER_NAME.match(name):
-            actual = interpreter
-        else:
-            try:
-                installed = metadata.version(name)
-            except Exception:  # noqa: BLE001 - any resolver failure is absence
-                raise unavailable() from None
-            try:
-                actual = tuple(int(part) for part in installed.split(".")[:3])
-            except ValueError:
-                raise unavailable() from None
-        if not _constraints_satisfied(actual, constraints):
-            raise unavailable()
-    for field in ("software", "tools"):
-        for entry in declaration.get(field, []):
-            name = str(entry).strip()
-            if not _BARE_COMMAND.match(name) or shutil.which(name) is None:
-                raise unavailable()
-    if declaration.get("data"):
-        raise unavailable()
+    report = environment_report(declaration)
+    if any(item.state != "ok" for item in report):
+        raise SkillEnvironmentUnavailable(report)
 
 
 def normalize_script_path(raw: Any) -> str:

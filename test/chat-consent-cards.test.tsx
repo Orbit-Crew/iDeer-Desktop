@@ -85,3 +85,47 @@ describe('Desktop chat settles every device authority (#39)', () => {
     expect(html.container.textContent).toContain('AFTER')
   })
 })
+
+const dependencyConsent: LocalConsentView = {
+  taskId: 'task-104', runId: 'run-1', threadId: 'thread-A', requestHash: 'a'.repeat(64),
+  kind: 'skill-dependencies', skill: 'report-skill', version: '3',
+  requirementsSha256: 'b'.repeat(64),
+  entries: [{ entry: 'requests==2.31.0', name: 'requests', version: '2.31.0' }],
+  source: { kind: 'intranet', location: 'http://intranet.example/wheels' }
+}
+
+describe('Desktop chat settles dependency installs (#104)', () => {
+  it('renders the locked entries and the configured source, and allows one install', async () => {
+    const onCommand = vi.fn().mockResolvedValue(undefined)
+    render(<ChatView state={snapshotWith([dependencyConsent])} busy={false} onCommand={onCommand} />)
+    expect(screen.getByText('本机技能依赖安装审批')).toBeTruthy()
+    expect(screen.getByText(/report-skill/)).toBeTruthy()
+    expect(screen.getByLabelText('待安装锁定依赖').textContent).toContain('requests==2.31.0')
+    expect(screen.getByText(/内网源/)).toBeTruthy()
+    expect(screen.getByText(/intranet\.example\/wheels/)).toBeTruthy()
+    fireEvent.click(screen.getByText('确认安装'))
+    await vi.waitFor(() => expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-104', requestHash: 'a'.repeat(64), decision: 'allow'
+    })))
+    const command = onCommand.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(command.rememberScript).toBeUndefined()  // installs are never rememberable
+  })
+
+  it('denies the install plainly', async () => {
+    const onCommand = vi.fn().mockResolvedValue(undefined)
+    render(<ChatView state={snapshotWith([dependencyConsent])} busy={false} onCommand={onCommand} />)
+    fireEvent.click(screen.getByText('拒绝安装'))
+    await vi.waitFor(() => expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-104', decision: 'deny'
+    })))
+  })
+
+  it('names the offline source kind in Chinese', () => {
+    const offline: LocalConsentView = {
+      ...dependencyConsent, source: { kind: 'offline', location: 'D:/wheels' }
+    }
+    render(<ChatView state={snapshotWith([offline])} busy={false} onCommand={async () => {}} />)
+    expect(screen.getByText(/离线依赖包/)).toBeTruthy()
+    expect(screen.getByText(/D:\/wheels/)).toBeTruthy()
+  })
+})
