@@ -1584,6 +1584,10 @@ export class RuntimeProcess {
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      // Issue 109: a dead child ends the remote browser's pending lifecycle
+      // request and every in-flight input forward immediately.
+      this.browserStreamRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.browserInputRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }
