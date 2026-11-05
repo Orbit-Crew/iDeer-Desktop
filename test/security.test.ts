@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
+import BrowserPane from '../src/renderer/src/dock/panels/browserPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 
@@ -65,28 +66,44 @@ describe('bootstrap capability boundary', () => {
     // the Runtime's guarded read path with no consent step, and an external
     // open/reveal resolves the physical path inside the trusted main
     // process — the renderer never receives or supplies a physical path.
+    // Issue 107 adds desktop:browser for the browser pane's partition clear:
+    // the renderer names the action only, and the confirmation dialog plus the
+    // storage clearing stay in the trusted main process.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
-    // Issue 77 opens the bridge's only two push channels: the full bounded
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+    // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
-    // payload behind an OS-toast click. Both are fixed main-owned names; the
-    // preload never subscribes to anything else and never sends on its own.
+    // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
+    // for the browser pane's bounded facts (denied permission asks, download
+    // phases, blocked navigations, routed popups, cleared partitions). All are
+    // fixed main-owned names; the preload never subscribes to anything else
+    // and never sends on its own.
     expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:notification:activate', 'desktop:notifications'])
+      .toEqual(['desktop:browser:events', 'desktop:notification:activate', 'desktop:notifications'])
     expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })
 
-// Issue 71 restores the dock pane framework. Panes that will one day host
-// external content (webview/pty/webgl) must never reach the trusted bridge:
-// the registry maps them to the seam placeholder component, and that
-// component's module graph stays free of the bridge surface. The main window
-// guards stay closed so no pane can attach a webview around the seam.
+// Issue 71 restores the dock pane framework. Panes that host external content
+// must never reach the trusted bridge from inside a page: the registry maps
+// the still-unwired ones (webview/pty/webgl) to the seam placeholder
+// component, and that component's module graph stays free of the bridge
+// surface. Issue 107 restores the `browser` pane as the one deliberate
+// external-content surface: its chrome is a native component, while every
+// page lives in a webview pinned to the fixed browser partition, validated
+// again by the main process at attachment time (see issue 107's blocks below).
 describe('dock pane security seam (issue 71)', () => {
   it('maps every external-content panel type to the seam placeholder component', () => {
-    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native' && p.id !== 'browser')
+    expect(external.map((p) => p.id).sort()).toEqual(['field', 'synapse', 'terminal', 'viewer3d'])
     for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+
+    // Issue 107: the browser pane is the one non-native pane with its own
+    // component — never the placeholder, never the unwired native pane.
+    const browser = PANEL_REGISTRY.find((p) => p.id === 'browser')!
+    expect(browser.multiInstance).toBe(true)
+    expect(browser.runtime).toBe('webview')
+    expect(browser.component).toBe(BrowserPane)
 
     // Issue 77 wires the notifications pane; like `runtime` it maps to its
     // own component instead of the unwired placeholder. Issue 94 wires the
@@ -97,7 +114,7 @@ describe('dock pane security seam (issue 71)', () => {
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
@@ -120,13 +137,54 @@ describe('dock pane security seam (issue 71)', () => {
     expect(text).not.toMatch(/window\.ideer|desktop:|sendToHost|openExternal|webview/i)
   })
 
-  it('keeps the main window external-content guards closed', () => {
+  it('keeps the main window guards closed for the trusted frame itself', () => {
     const source = readFileSync('src/main/window.ts', 'utf8')
-    expect(source).toContain('webviewTag: false')
+    // Issue 107: webview attachment is possible, but only through the
+    // validated gate — the main frame's own navigation and window policies
+    // stay closed, and its session's permission gates stay denied.
+    expect(source).toContain('webviewTag: true')
     expect(source).toContain("setWindowOpenHandler(() => ({ action: 'deny' }))")
-    expect(source).toMatch(/will-attach-webview', \(event\) => event\.preventDefault\(\)/)
     expect(source).toMatch(/will-navigate', \(event\) => event\.preventDefault\(\)/)
     expect(source).toContain('setPermissionRequestHandler')
     expect(source).toContain('setPermissionCheckHandler')
+    // The attach gate: the fixed partition, no node integration, no preload,
+    // and a first document that is already a web document.
+    expect(source).toContain("params.partition !== BROWSER_PARTITION")
+    expect(source).toMatch(/webPreferences\.nodeIntegration \|\|\s*\n?\s*webPreferences\.preload \|\|/)
+    expect(source).toMatch(/!isWebUrl\(params\.src\)/)
+  })
+
+  it('pins the browser partition invariants on the guest seam (issue 107)', async () => {
+    const source = readFileSync('src/renderer/src/dock/panels/browserPane.tsx', 'utf8')
+    // Every guest mounts with exactly the fixed persistent partition.
+    expect(source).toContain('partition={BROWSER_PARTITION}')
+    // No node integration, sandboxed and isolated, in the attach attributes.
+    expect(source).toContain('webpreferences="contextIsolation=yes, nodeIntegration=no, sandbox=yes"')
+    // No popups and no preload can be smuggled through the pane's webviews.
+    expect(source).not.toMatch(/allowpopups/i)
+    expect(source).not.toMatch(/preload=/i)
+
+    // The main-side chokepoint: one persistent partition, session-level
+    // permission denial with visible records, the http(s) document gate,
+    // download confinement to the confirmed workspace, and per-guest popup
+    // routing — all wired for every webview the app ever creates.
+    const service = readFileSync('src/main/browserPane.ts', 'utf8')
+    expect(service).toContain('setPermissionRequestHandler')
+    expect(service).toContain('setPermissionCheckHandler')
+    expect(service).toMatch(/will-download/)
+    expect(service).toContain('resolveWorkspaceRoot')
+    expect(service).toMatch(/mainFrame'| "subFrame'|resourceType === 'mainFrame'/)
+    expect(service).toMatch(/resourceType === 'subFrame'/)
+    const wiring = readFileSync('src/main/index.ts', 'utf8')
+    expect(wiring).toMatch(/session\.fromPartition\(BROWSER_PARTITION\)/)
+    expect(wiring).toMatch(/getType\(\) === 'webview'/)
+    expect(wiring).toMatch(/desktop:browser'/)
+    expect(wiring).toMatch(/desktop:browser:events'/)
+    // The renderer frame only allows http(s) frames because the restored
+    // browser pane embeds validated webviews; everything else stays closed.
+    const csp = readFileSync('src/renderer/index.html', 'utf8')
+    expect(csp).toContain("frame-src http: https:")
+    expect(csp).toContain("connect-src 'none'")
+    expect(csp).toMatch(/default-src 'none'/)
   })
 })
