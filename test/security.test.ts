@@ -89,11 +89,32 @@ describe('bootstrap capability boundary', () => {
 // the registry maps them to the seam placeholder component, and that
 // component's module graph stays free of the bridge surface. The main window
 // guards stay closed so no pane can attach a webview around the seam.
+// Issue 109 carves out `browser` for the platform's REMOTE browser: its pane
+// embeds no webview and renders only pixel frames drawn by a surface module
+// that stays free of the trusted bridge; the remote page itself runs on the
+// platform server, so no external code executes anywhere near this renderer.
 describe('dock pane security seam (issue 71)', () => {
-  it('maps every external-content panel type to the seam placeholder component', () => {
+  /** Bundles one renderer module exactly like the placeholder check below. */
+  const buildModule = async (entryPoint: string) => {
+    const result = await build({
+      entryPoints: [entryPoint],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    return { metafile: result.metafile, text: result.outputFiles.map((file) => file.text).join('') }
+  }
+
+  it('maps every external-content panel type to the seam placeholder component except the remote browser pane', async () => {
+    const { default: RemoteBrowserPane } = await import('../src/renderer/src/dock/panels/remoteBrowserPane')
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
     expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
-    for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+    for (const def of external) {
+      expect(def.component).toBe(def.id === 'browser' ? RemoteBrowserPane : ExternalPanePlaceholder)
+    }
 
     // Issue 77 wires the notifications pane; like `runtime` it maps to its
     // own component instead of the unwired placeholder. Issue 94 wires the
@@ -109,6 +130,19 @@ describe('dock pane security seam (issue 71)', () => {
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
     }
+  })
+
+  it('keeps the remote browser screen surface and pane free of embedded content', async () => {
+    const surface = await buildModule('src/renderer/src/dock/panels/remoteBrowser/RemoteScreenSurface.tsx')
+    // The pixel surface's module graph carries no bridge surface at all.
+    expect(Object.keys(surface.metafile.inputs).some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    expect(surface.text).not.toMatch(/window\.ideer|desktop:|ipcRenderer|sendToHost|openExternal|webview/i)
+    const pane = readFileSync('src/renderer/src/dock/panels/remoteBrowserPane.tsx', 'utf8')
+    // The pane never embeds or attaches content: the remote page runs on the
+    // server; the renderer draws frames and forwards gestures, nothing else.
+    expect(pane).not.toMatch(/<webview|sendToHost|openExternal|executeJavaScript|insertCSS|allowpopups/i)
+    const registry = readFileSync('src/renderer/src/dock/panelRegistry.tsx', 'utf8')
+    expect(registry).toContain('RemoteBrowserPane')
   })
 
   it('keeps the external-content placeholder module free of the trusted bridge', async () => {

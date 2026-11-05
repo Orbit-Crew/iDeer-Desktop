@@ -598,6 +598,13 @@ export interface DesktopBridge {
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
   /** Issue 77: a notification (toast or center row) asked to open a session. */
   onNotificationActivate(listener: (payload: { id: string; threadId: string }) => void): () => void
+  /** Issue 109: the remote browser entry's fixed command set (stream
+   * open/close, input forwarding, explicit remote-file retrieval). The
+   * stream socket and its platform credential stay inside the Runtime. */
+  remoteBrowser(command: RemoteBrowserCommand): Promise<RemoteBrowserReply>
+  /** Issue 109: the remote browser's one push channel — bounded display
+   * facts only (pixel frames, url/tabs, honest errors); nothing is sent back. */
+  onRemoteBrowserEvents(listener: (event: RemoteBrowserEvent) => void): () => void
 }
 
 export interface InstallOutcome {
