@@ -80,11 +80,13 @@ async function main() {
     assert.match(initialText, /本机 Runtime/)
     assert.match(initialText, /设备连接：/)
     assert.equal(await page.title(), 'iDeer Desktop')
+    // Issue 109 adds the remote browser entry: one invoke command plus the
+    // stream's one push channel subscription.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'onNotificationActivate', 'onNotifications',
-      'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
+      'manage', 'models', 'notifications', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents',
+      'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser',
       'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')

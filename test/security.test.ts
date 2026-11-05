@@ -65,14 +65,21 @@ describe('bootstrap capability boundary', () => {
     // the Runtime's guarded read path with no consent step, and an external
     // open/reveal resolves the physical path inside the trusted main
     // process — the renderer never receives or supplies a physical path.
+    // Issue 109 adds desktop:remote-browser for the remote browser entry:
+    // the renderer names the fixed action set (open/close/input/retrieve);
+    // the stream socket, the platform access token and the paired origin
+    // stay inside the bundled Runtime, and a remote file is retrieved only
+    // through the artifact path with the main process's native save dialog.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     // Issue 77 opens the bridge's only two push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Both are fixed main-owned names; the
     // preload never subscribes to anything else and never sends on its own.
+    // Issue 109 adds the third: the remote browser's bounded display facts
+    // (frames, url/tabs, honest errors) on one main-owned channel.
     expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:notification:activate', 'desktop:notifications'])
+      .toEqual(['desktop:notification:activate', 'desktop:notifications', 'desktop:remote-browser:events'])
     expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })
