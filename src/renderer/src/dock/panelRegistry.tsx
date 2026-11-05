@@ -13,7 +13,8 @@ import {
   GlobalOutlined,
   LineChartOutlined,
   MessageOutlined,
-  SearchOutlined
+  SearchOutlined,
+  SnippetsOutlined
 } from '@ant-design/icons'
 import type { PanelTypeDef, PanelTypeId } from './types'
 import { getPanelMeta } from './panelMeta'
@@ -21,6 +22,7 @@ import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
+import TemplatesPane from './panels/templatesPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 
@@ -44,7 +46,8 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane }
+  { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane },
+  { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane }
 ]
 
 const registryMap = new Map(PANEL_REGISTRY.map((p) => [p.id, p]))
@@ -76,6 +79,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <ApartmentOutlined />
     case 'notifications':
       return <BellOutlined />
+    case 'templates':
+      return <SnippetsOutlined />
     default:
       return <FolderOpenOutlined />
   }

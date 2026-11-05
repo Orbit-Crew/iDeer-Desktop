@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -20,6 +20,10 @@ const bridge: DesktopBridge = Object.freeze({
   skillScripts: (command: SkillScriptCommand) => ipcRenderer.invoke('desktop:skill-scripts', command),
   models: (command: ModelCommand) => ipcRenderer.invoke('desktop:models', command),
   threads: (command: ThreadCommand) => ipcRenderer.invoke('desktop:threads', command),
+  // Issue 84: the prompt-template plaza. The renderer names CRUD/use actions
+  // only; the Server's own endpoints hold the rows, and a delete is
+  // confirmed in the trusted main process before it reaches the wire.
+  templates: (command: TemplateCommand) => ipcRenderer.invoke('desktop:templates', command),
   connectors: (command: ConnectorCommand) => ipcRenderer.invoke('desktop:connectors', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),

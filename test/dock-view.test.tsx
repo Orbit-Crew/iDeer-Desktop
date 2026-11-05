@@ -90,8 +90,10 @@ describe('layout arrangements', () => {
 describe('panel registry vocabulary', () => {
   it('keeps every original column except the never-delivered sql pane', () => {
     const registered = PANEL_REGISTRY.map((p) => p.id)
+    // Issue 84 adds the `templates` plaza as a new native column beyond the
+    // original vocabulary.
     expect(registered.sort()).toEqual([
-      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'terminal', 'viewer3d'
+      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
     ])
     expect(getRegisteredPanel('sql')).toBeUndefined()
     expect(PANEL_META.sql.title).toBe('数据')

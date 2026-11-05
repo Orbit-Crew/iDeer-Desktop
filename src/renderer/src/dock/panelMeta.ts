@@ -27,7 +27,10 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   // Issue 77: the reusable notification center — one native pane over the
   // main-process ledger; later tickets (tray badge, installs, updates) record
   // into the same surface instead of rebuilding it.
-  notifications: { id: 'notifications', title: '通知中心', multiInstance: false, closable: true, runtime: 'native' }
+  notifications: { id: 'notifications', title: '通知中心', multiInstance: false, closable: true, runtime: 'native' },
+  // Issue 84: the prompt-template plaza — account-scoped CRUD and the
+  // prefill-only click, over the Server's own template rows.
+  templates: { id: 'templates', title: '模板广场', multiInstance: false, closable: true, runtime: 'native' }
 }
 
 export function getPanelMeta(id: PanelTypeId): PanelMeta {

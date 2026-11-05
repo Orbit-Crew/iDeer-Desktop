@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
@@ -31,6 +31,7 @@ export class RuntimeProcess {
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
   private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
+  private templateRequests = new Map<string, { resolve: (view: TemplateView) => void; reject: (error: Error) => void; action: TemplateCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
@@ -452,6 +453,72 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.threadRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.threadRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 84: the prompt-template plaza. The wire command is a fixed
+   * per-action key set that only reaches the owned Runtime and on to the
+   * platform's own template endpoints. Every reply carries the Server's own
+   * post-action list; the renderer's prefill is a local draft edit and the
+   * `use` action only records the usage count — no text rides back to the
+   * platform as a send from this family.
+   */
+  async templates(command: TemplateCommand): Promise<TemplateView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('TEMPLATE_COMMAND_INVALID')
+    if (!['list', 'create', 'update', 'delete', 'use'].includes(command.action)) throw new Error('TEMPLATE_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'templates', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('TEMPLATE_COMMAND_INVALID')
+    } else if (command.action === 'create') {
+      const name = typeof command.name === 'string' ? command.name.trim() : ''
+      if (!name || name.length > 200 || typeof command.category !== 'string' || command.category.length > 64 ||
+          typeof command.content !== 'string' || !command.content.trim() || command.content.length > 16000 ||
+          Object.keys(command).length !== 4) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.name = name
+      wire.category = command.category
+      wire.content = command.content
+    } else if (command.action === 'update') {
+      if (typeof command.templateId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.templateId)) throw new Error('TEMPLATE_COMMAND_INVALID')
+      const fields: Record<string, string> = {}
+      let provided = 0
+      if (command.name !== undefined) {
+        const name = typeof command.name === 'string' ? command.name.trim() : ''
+        if (!name || name.length > 200) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.name = name
+        provided += 1
+      }
+      if (command.category !== undefined) {
+        if (typeof command.category !== 'string' || command.category.length > 64) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.category = command.category
+        provided += 1
+      }
+      if (command.content !== undefined) {
+        if (typeof command.content !== 'string' || !command.content.trim() || command.content.length > 16000) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.content = command.content
+        provided += 1
+      }
+      if (provided === 0 || Object.keys(command).length !== 2 + provided) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.templateId = command.templateId
+      Object.assign(wire, fields)
+    } else {
+      if (typeof command.templateId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.templateId) ||
+          Object.keys(command).length !== 2) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.templateId = command.templateId
+    }
+    if (this.templateRequests.size) throw new Error('TEMPLATE_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.templateRequests.delete(id); reject(new Error('TEMPLATE_TIMEOUT')) }, 30000)
+      this.templateRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.templateRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.templateRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -1145,6 +1212,41 @@ export class RuntimeProcess {
             pending.resolve(pending.action === 'rename' ? { threads, permissions, renamed: true }
               : pending.action === 'delete' ? { threads, permissions, deleted: true }
               : { threads, permissions })
+            continue
+          }
+          if (value.v === 1 && value.type === 'templates') {
+            // Issue 84: the Server's own post-action template list, bounded
+            // before it reaches the renderer. Rows carry prefill facts only;
+            // the click's send never happens here — `use` is a count record.
+            const pending = this.templateRequests.get(value.id)
+            if (!pending) continue
+            this.templateRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || !Array.isArray(result.templates)) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'create' && result.created !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'update' && result.updated !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'delete' && result.deleted !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'use' && result.used !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            const idPattern = /^[A-Za-z0-9_-]{1,128}$/
+            const templates: TemplateRowView[] = []
+            for (const row of result.templates.slice(0, 200)) {
+              if (!row || typeof row.id !== 'string' || !idPattern.test(row.id) ||
+                  typeof row.name !== 'string' || !row.name ||
+                  typeof row.category !== 'string' || typeof row.content !== 'string' ||
+                  !Number.isSafeInteger(row.usageCount) || row.usageCount < 0 ||
+                  typeof row.visibility !== 'string' || typeof row.updatedAt !== 'string') throw new Error('Invalid template row')
+              templates.push({ id: row.id, name: row.name.slice(0, 200), category: row.category.slice(0, 64),
+                content: row.content.slice(0, 16000),
+                usageCount: Math.min(row.usageCount, 1000000000),
+                visibility: row.visibility.slice(0, 32), updatedAt: row.updatedAt.slice(0, 64) })
+            }
+            const view: TemplateView = { templates }
+            if (pending.action === 'create') view.created = true
+            if (pending.action === 'update') view.updated = true
+            if (pending.action === 'delete') view.deleted = true
+            if (pending.action === 'use') view.used = true
+            pending.resolve(view)
             continue
           }
           if (value.v === 1 && value.type === 'connectors') {

@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Space, Switch, Tag, Typography } from 'antd'
 import type { TextAreaRef } from 'rc-textarea'
 import type { ChatAttachment, ChatAttachmentChoice, ChatCommand, ChatSnapshot } from '../../../shared/desktop'
-import { ATTACHMENT_DESTINATION_LABELS, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS } from '../../../shared/desktop'
+import { ATTACHMENT_DESTINATION_LABELS, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, extractTemplateVariables } from '../../../shared/desktop'
+import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
@@ -56,6 +57,10 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
   onCommand: CommandHandler
 }): JSX.Element {
   const [text, setText] = useState('')
+  // Issue 84: one template click asks for a draft prefill. Prefill only —
+  // the composer keeps it as an editable draft and never sends it; the
+  // signal clears the moment it lands so a stale click can't re-fill.
+  const prefill = useSessionStore((s) => s.pendingPrefill)
   const [delegate, setDelegate] = useState<ComposerPick | null>(null)
   const [skills, setSkills] = useState<ComposerPick[]>([])
   const [picker, setPicker] = useState<PickerState | null>(null)
@@ -68,6 +73,23 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
   const areaRef = useRef<TextAreaRef | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const threadId = state.thread?.id
+  // Issue 84: one consumed prefill nonce; a later click with a fresh nonce
+  // prefills again and replaces the draft, an already-consumed one never
+  // re-runs on re-renders.
+  const consumedPrefill = useRef(0)
+
+  useEffect(() => {
+    if (!prefill || prefill.nonce === consumedPrefill.current) return
+    consumedPrefill.current = prefill.nonce
+    setText(prefill.content)
+    useSessionStore.getState().clearPendingPrefill()
+    requestAnimationFrame(() => areaRef.current?.focus())
+  }, [prefill])
+
+  // Issue 84: the live placeholder highlight — the chips always reflect the
+  // draft's remaining `{{变量}}` placeholders, so a filled or edited-away
+  // variable leaves the row on its own.
+  const placeholders = useMemo(() => extractTemplateVariables(text), [text])
 
   const addFiles = (files: FileList | File[] | null | undefined): void => {
     if (!files || !('length' in files) || files.length === 0) return
@@ -249,6 +271,10 @@ export function ChatComposer({ state, pending, canSend, sendBlockedReason, onCom
         </li>)}
       </ul>}
     </div>
+    {placeholders.length > 0 && <Space size={4} wrap className="mt-2" role="status" aria-label="消息占位待补填">
+      <Typography.Text type="warning" className="text-xs">占位待补填：</Typography.Text>
+      {placeholders.map((name) => <Tag key={name} color="orange">{`{{${name}}}`}</Tag>)}
+    </Space>}
     <Space className="mt-2" wrap>
       <Button type="primary" aria-label="发送消息" disabled={disabled || (!text.trim() && attachments.length === 0)} onClick={send}>发送</Button>
       {!disabled && <input ref={fileRef} type="file" multiple aria-label="选择附件文件" className="hidden"
