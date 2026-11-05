@@ -461,10 +461,12 @@ export class RuntimeProcess {
   /**
    * Issue 84: the prompt-template plaza. The wire command is a fixed
    * per-action key set that only reaches the owned Runtime and on to the
-   * platform's own template endpoints. Every reply carries the Server's own
-   * post-action list; the renderer's prefill is a local draft edit and the
-   * `use` action only records the usage count — no text rides back to the
-   * platform as a send from this family.
+   * platform's own template endpoints, and always carries the chat session
+   * scope the Runtime itself last reported so Python can re-fence the
+   * identity. Every reply carries the Server's own post-action list; the
+   * renderer's prefill is a local draft edit and the `use` action only
+   * records the usage count — no text rides back to the platform as a send
+   * from this family.
    */
   async templates(command: TemplateCommand): Promise<TemplateView> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('TEMPLATE_COMMAND_INVALID')
@@ -512,7 +514,7 @@ export class RuntimeProcess {
     if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
     const id = randomUUID()
     wire.id = id
-    wire.scope = this.selectionScope
+    wire.scope = this.chatScope
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.templateRequests.delete(id); reject(new Error('TEMPLATE_TIMEOUT')) }, 30000)
       this.templateRequests.set(id, {

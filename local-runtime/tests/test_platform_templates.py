@@ -109,9 +109,11 @@ def make_chat(tmp_path, origin, *, state='authenticated'):
 def request_header(row, name):
     return next((value for key, value in row[2].items() if key.lower() == name.lower()), None)
 
-def wire(action, **fields):
-    """The full wire command the desktop loop relays, as desktop.py emits it."""
-    return {'type': 'templates', 'id': 'req-1', 'action': action, 'scope': 'test-scope', **fields}
+def wire(chat, action, **fields):
+    """The full wire command the desktop loop relays: it always carries the
+    chat session scope the Runtime last reported, which Python re-fences."""
+    return {'type': 'templates', 'id': 'req-1', 'action': action,
+            'scope': chat._session().scope, **fields}
 
 
 
@@ -120,7 +122,7 @@ def wire(action, **fields):
 def test_list_projects_bounded_rows_with_prefill_facts(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('list'))
+        view = chat.templates_manage(wire(chat, 'list'))
         assert [row['id'] for row in view['templates']] == [TEMPLATE_A['id'], TEMPLATE_B['id']]
         assert set(view['templates'][0]) == {'id', 'name', 'category', 'content',
                                              'usageCount', 'visibility', 'updatedAt'}
@@ -134,7 +136,7 @@ def test_list_drops_malformed_rows_instead_of_repairing_them(tmp_path):
                   visibility='private', updated_at='')
     with platform(templates=[broken, TEMPLATE_A]) as (origin, _):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('list'))
+        view = chat.templates_manage(wire(chat, 'list'))
         assert [row['id'] for row in view['templates']] == [TEMPLATE_A['id']]
 
 
@@ -142,7 +144,7 @@ def test_list_protocol_error_surfaces_when_templates_missing(tmp_path):
     with platform(list_status=404) as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('list'))
+            chat.templates_manage(wire(chat, 'list'))
         assert 'CHAT_NOT_FOUND' in str(exc.value)
 
 
@@ -151,7 +153,7 @@ def test_list_protocol_error_surfaces_when_templates_missing(tmp_path):
 def test_create_posts_content_only_and_replies_with_the_post_action_list(tmp_path):
     with platform() as (origin, records):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('create', name=' 新模板 ', category='办公',
+        view = chat.templates_manage(wire(chat, 'create', name=' 新模板 ', category='办公',
                                       content='总结 {{主题}}'))
         posts = [row for row in records if row[0] == '/api/templates' and row[3] == 'POST']
         assert len(posts) == 1
@@ -166,7 +168,7 @@ def test_create_posts_content_only_and_replies_with_the_post_action_list(tmp_pat
 def test_update_sends_only_the_provided_fields(tmp_path):
     with platform() as (origin, records):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('update', templateId=TEMPLATE_B['id'], name='评审助手'))
+        view = chat.templates_manage(wire(chat, 'update', templateId=TEMPLATE_B['id'], name='评审助手'))
         patches = [row for row in records if row[0] == f"/api/templates/{TEMPLATE_B['id']}"
                    and row[3] == 'PATCH']
         assert len(patches) == 1
@@ -179,14 +181,14 @@ def test_update_without_any_field_is_refused(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('update', templateId=TEMPLATE_B['id']))
+            chat.templates_manage(wire(chat, 'update', templateId=TEMPLATE_B['id']))
         assert 'CHAT_COMMAND_INVALID' in str(exc.value)
 
 
 def test_delete_uses_the_server_endpoint_and_replies_with_the_list(tmp_path):
     with platform() as (origin, records):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('delete', templateId=TEMPLATE_B['id']))
+        view = chat.templates_manage(wire(chat, 'delete', templateId=TEMPLATE_B['id']))
         deletes = [row for row in records if row[3] == 'DELETE']
         assert [row[0] for row in deletes] == [f"/api/templates/{TEMPLATE_B['id']}"]
         assert view['deleted'] is True
@@ -196,7 +198,7 @@ def test_delete_of_a_missing_template_surfaces_the_server_refusal(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('delete', templateId='missing'))
+            chat.templates_manage(wire(chat, 'delete', templateId='missing'))
         assert 'CHAT_NOT_FOUND' in str(exc.value)
 
 
@@ -205,7 +207,7 @@ def test_delete_of_a_missing_template_surfaces_the_server_refusal(tmp_path):
 def test_use_records_one_prefill_and_never_sends_text(tmp_path):
     with platform() as (origin, records):
         chat = make_chat(tmp_path, origin)
-        view = chat.templates_manage(wire('use', templateId=TEMPLATE_B['id']))
+        view = chat.templates_manage(wire(chat, 'use', templateId=TEMPLATE_B['id']))
         uses = [row for row in records if row[0] == f"/api/templates/{TEMPLATE_B['id']}/use"]
         assert len(uses) == 1
         assert uses[0][3] == 'POST'
@@ -218,17 +220,27 @@ def test_use_of_a_missing_template_surfaces_the_server_refusal(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('use', templateId='missing'))
+            chat.templates_manage(wire(chat, 'use', templateId='missing'))
         assert 'CHAT_NOT_FOUND' in str(exc.value)
 
 
 # --- command validation and identity ------------------------------------------
 
+def test_stale_session_scope_is_rejected(tmp_path):
+    with platform() as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        stale = wire(chat, 'list')
+        stale['scope'] = 'a-scope-from-an-earlier-login'
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(stale)
+        assert 'CHAT_IDENTITY_CHANGED' in str(exc.value)
+
+
 def test_unknown_action_is_refused(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('publish', templateId=TEMPLATE_B['id']))
+            chat.templates_manage(wire(chat, 'publish', templateId=TEMPLATE_B['id']))
         assert 'CHAT_COMMAND_INVALID' in str(exc.value)
 
 
@@ -236,7 +248,7 @@ def test_create_with_blank_content_is_refused(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('create', name='x', category='', content='   '))
+            chat.templates_manage(wire(chat, 'create', name='x', category='', content='   '))
         assert 'CHAT_COMMAND_INVALID' in str(exc.value)
 
 
@@ -244,7 +256,7 @@ def test_create_with_an_oversized_name_is_refused(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('create', name='x' * 201, category='', content='body'))
+            chat.templates_manage(wire(chat, 'create', name='x' * 201, category='', content='body'))
         assert 'CHAT_COMMAND_INVALID' in str(exc.value)
 
 
@@ -252,7 +264,7 @@ def test_commands_carrying_unexpected_keys_are_refused(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin)
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('list', extra=1))
+            chat.templates_manage(wire(chat, 'list', extra=1))
         assert 'CHAT_COMMAND_INVALID' in str(exc.value)
 
 
@@ -260,5 +272,5 @@ def test_commands_require_an_authenticated_session(tmp_path):
     with platform() as (origin, _):
         chat = make_chat(tmp_path, origin, state='unauthenticated')
         with pytest.raises(Exception) as exc:
-            chat.templates_manage(wire('list'))
+            chat.templates_manage(wire(chat, 'list'))
         assert 'CHAT_UNAUTHENTICATED' in str(exc.value)

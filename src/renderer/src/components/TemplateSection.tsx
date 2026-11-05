@@ -24,6 +24,22 @@ const EMPTY_CREATE: CreateDraft = { name: '', category: '', content: '' }
 
 const uncategorized = '未分类'
 
+/** Issue 84: the `{{变量}}` chip row — the live placeholder facts a prefill
+ * asks the user to fill, deduplicated in first-appearance order. */
+function VariableChips({ content, label }: { content: string; label: string }): JSX.Element | null {
+  const names = extractTemplateVariables(content)
+  if (names.length === 0) return null
+  return <Space size={4} wrap aria-label={label}>
+    <Typography.Text type="secondary" className="text-xs">变量占位：</Typography.Text>
+    {names.map((name) => <Tag key={name} color="blue">{`{{${name}}}`}</Tag>)}
+  </Space>
+}
+
+const VISIBILITY_LABELS: Record<string, string> = {
+  private: '私有',
+  public: '公开'
+}
+
 /**
  * Issue 84 模板广场：账号级提示词模板的建/编辑/删除、自定义分类、
  * `{{变量}}` 占位提取与使用次数，全部走平台自身端点。点击「使用」只把
@@ -86,7 +102,9 @@ export function TemplatesSection({ onCommand }: TemplatesSectionProps): JSX.Elem
     if (!edit) return
     const command: TemplateCommand = { action: 'update', templateId: edit.id }
     if (edit.name.trim()) command.name = edit.name
-    if (edit.category !== '') command.category = edit.category
+    // The category always rides: clearing the field moves the template back
+    // to 未分类 instead of leaving the old value stuck.
+    command.category = edit.category
     if (edit.content.trim()) command.content = edit.content
     if (await run(command)) setEdit(null)
   }
@@ -123,10 +141,7 @@ export function TemplatesSection({ onCommand }: TemplatesSectionProps): JSX.Elem
             autoSize={{ minRows: 3, maxRows: 10 }} disabled={working}
             placeholder="提示词内容，可用 {{变量}} 占位，使用时提示补填"
             onChange={(event) => setCreate({ ...create, content: event.target.value })} />
-          {extractTemplateVariables(create.content).length > 0 && <Space size={4} wrap aria-label="新建模板变量占位">
-            <Typography.Text type="secondary" className="text-xs">变量占位：</Typography.Text>
-            {extractTemplateVariables(create.content).map((name) => <Tag key={name} color="blue">{`{{${name}}}`}</Tag>)}
-          </Space>}
+          <VariableChips content={create.content} label="新建模板变量占位" />
           <Button type="primary" aria-label="创建模板" loading={working}
             disabled={!create.name.trim() || !create.content.trim()} onClick={() => void send()}>创建</Button>
         </Space>
@@ -152,16 +167,14 @@ export function TemplatesSection({ onCommand }: TemplatesSectionProps): JSX.Elem
         <Space direction="vertical" size={4} className="w-full">
           <Space size={8} wrap>
             <Tag>{row.category || uncategorized}</Tag>
+            <Tag>{VISIBILITY_LABELS[row.visibility] ?? row.visibility}</Tag>
             <Typography.Text type="secondary" className="text-xs">{`使用 ${row.usageCount} 次`}</Typography.Text>
             <Typography.Text type="secondary" className="text-xs">{row.updatedAt.slice(0, 19).replace('T', ' ')}</Typography.Text>
           </Space>
           <Typography.Paragraph className="mb-0" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
             {row.content}
           </Typography.Paragraph>
-          {extractTemplateVariables(row.content).length > 0 && <Space size={4} wrap aria-label={`${row.name} 变量占位`}>
-            <Typography.Text type="secondary" className="text-xs">变量占位：</Typography.Text>
-            {extractTemplateVariables(row.content).map((name) => <Tag key={name} color="blue">{`{{${name}}}`}</Tag>)}
-          </Space>}
+          <VariableChips content={row.content} label={`${row.name} 变量占位`} />
         </Space>
       </Card>)}
       {edit && <Card size="small" type="inner" title="编辑模板">
@@ -177,10 +190,7 @@ export function TemplatesSection({ onCommand }: TemplatesSectionProps): JSX.Elem
           <Input.TextArea aria-label="编辑模板内容" value={edit.content} maxLength={16000}
             autoSize={{ minRows: 3, maxRows: 10 }} disabled={working}
             onChange={(event) => setEdit({ ...edit, content: event.target.value })} />
-          {extractTemplateVariables(edit.content).length > 0 && <Space size={4} wrap aria-label="编辑模板变量占位">
-            <Typography.Text type="secondary" className="text-xs">变量占位：</Typography.Text>
-            {extractTemplateVariables(edit.content).map((name) => <Tag key={name} color="blue">{`{{${name}}}`}</Tag>)}
-          </Space>}
+          <VariableChips content={edit.content} label="编辑模板变量占位" />
           <Space>
             <Button type="primary" aria-label="保存模板" loading={working}
               disabled={!edit.name.trim() || !edit.content.trim()} onClick={() => void save()}>保存</Button>
@@ -201,7 +211,7 @@ function describe(error: unknown): string {
     TEMPLATE_TIMEOUT: '平台响应超时，请稍后重试',
     TEMPLATE_FAILED: '模板操作失败',
     TEMPLATE_CANCELED: '已取消',
-    CHAT_NOT_FOUND: '平台上找不到这条模板',
+    CHAT_NOT_FOUND: '平台暂未提供模板服务，或这条模板已不存在',
     CHAT_FORBIDDEN: '没有这条模板的操作权限',
     CHAT_IDENTITY_CHANGED: '登录身份已变化，请重新登录后再试'
   }

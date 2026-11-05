@@ -2588,13 +2588,18 @@ class DesktopChat:
         Templates are the account's own prompt assets (decision ticket #56):
         the rows, their categories, usage counts and visibility live
         Server-side, and a creation is always private — this relay carries no
-        visibility field at all, so the Desktop cannot widen one. Every reply
-        re-reads the Server's own post-action list in the same round; `use`
-        only records one prefill (+1) — the prefill itself is the renderer's
-        local draft edit and never a send.
+        visibility field at all, so the Desktop cannot widen one. The wire
+        always carries the chat session scope the Runtime last reported and
+        this relay re-fences it against a freshly computed session, so a
+        stale identity is rejected. Every reply re-reads the Server's own
+        post-action list in the same round; `use` only records one prefill
+        (+1) — the prefill itself is the renderer's local draft edit and
+        never a send.
         """
         with self._lock:
             session = self._session()
+            if not isinstance(command, dict) or command.get('scope') != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
             action = command.get('action')
             if action == 'list':
                 expected = {'type', 'id', 'action', 'scope'}
@@ -2613,10 +2618,12 @@ class DesktopChat:
                     value = command.get(key)
                     if value is None:
                         continue
+                    # Category rides raw (empty clears back to 未分类); name
+                    # and content must be non-blank and are measured stripped.
                     if not isinstance(value, str) or (key != 'category' and not value.strip()) \
                             or len(value.strip()) > limit:
                         raise ChatError('CHAT_COMMAND_INVALID')
-                    fields[key] = value
+                    fields[key] = value.strip() if key == 'name' else value
                     expected = expected | {key}
                 if not fields:
                     raise ChatError('CHAT_COMMAND_INVALID')
@@ -2632,9 +2639,6 @@ class DesktopChat:
                            {'name': command['name'].strip(), 'category': command['category'],
                             'content': command['content']})
             elif action == 'update':
-                fields = {key: command[key] for key in ('name', 'category', 'content') if key in command}
-                if 'name' in fields:
-                    fields['name'] = fields['name'].strip()
                 self._json(session, f"/api/templates/{self._id(command['templateId'])}", fields, method='PATCH')
             elif action == 'delete':
                 self._json(session, f"/api/templates/{self._id(command['templateId'])}", None, method='DELETE')

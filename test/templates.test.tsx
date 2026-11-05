@@ -84,6 +84,7 @@ describe('template plaza section (#84)', () => {
     expect(screen.getByText('评审以下 {{语言}} 代码：').textContent).toBeTruthy()
     // The account's private rows say so — the plaza never implies shared.
     expect(screen.getByText(/默认私有/).textContent).toBeTruthy()
+    expect(screen.getAllByText('私有').length).toBe(2)
   })
 
   it('clicking 使用 prefills the composer via the store and records one use (+1)', async () => {
