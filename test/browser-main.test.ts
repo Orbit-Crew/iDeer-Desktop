@@ -15,6 +15,7 @@ import type { BrowserPaneEvent } from '../src/shared/desktop'
 import { BROWSER_PARTITION, isWebUrl, sanitizeAddress } from '../src/shared/desktop'
 
 type RequestCallback = (details: { resourceType: string; url: string }, respond: (answer: { cancel?: boolean }) => void) => void
+type NavigateHandler = (event: { preventDefault(): void }, url: string) => void
 
 interface FakeSession {
   permissionRequests: Array<(contents: { getURL(): string }, permission: string,
@@ -74,6 +75,7 @@ function fakeItem(filename: string): FakeItem & { like: never } {
 function makeService(overrides: {
   resolveWorkspaceRoot?: () => Promise<string | null>
   confirmClear?: () => Promise<boolean>
+  destroyPartitionGuests?: () => void
   clearStorage?: () => Promise<void>
 } = {}): { service: BrowserPaneService; events: BrowserPaneEvent[]; session: FakeSession } {
   const events: BrowserPaneEvent[] = []
@@ -82,6 +84,7 @@ function makeService(overrides: {
     push: (event) => events.push(event),
     resolveWorkspaceRoot: overrides.resolveWorkspaceRoot ?? (async () => null),
     confirmClear: overrides.confirmClear ?? (async () => true),
+    destroyPartitionGuests: overrides.destroyPartitionGuests ?? (() => {}),
     clearStorage: overrides.clearStorage ?? (async () => {})
   })
   return { service: instance, events, session }
@@ -173,6 +176,11 @@ describe('partition gate (issue 107)', () => {
     expect(decide('mainFrame', 'file:///C:/Windows')).toBe(true)
     expect(decide('subFrame', 'file:///C:/Windows/page.html')).toBe(true)
     expect(decide('subFrame', 'ftp://example.com/doc.txt')).toBe(true)
+    // The embedding page's own machinery: about:blank/blob:/data: frames ride
+    // the page, not the web outside it.
+    expect(decide('subFrame', 'about:blank')).toBe(false)
+    expect(decide('subFrame', 'blob:https://example.com/8f2e')).toBe(false)
+    expect(decide('subFrame', 'data:text/html,<b>x</b>')).toBe(false)
     expect(decide('image', 'file:///C:/leak.png')).toBe(false)
     expect(decide('xhr', 'data:text/plain,hi')).toBe(false)
     expect(decide('other', 'https://example.com/api')).toBe(false)
@@ -227,13 +235,18 @@ describe('guest hardening (issue 107)', () => {
   it('denies popups and hands the URL to the owning pane as a new-tab fact', () => {
     const { service, events } = makeService()
     const decisions: Array<unknown> = []
-    const contents = {
+    const contents: {
+      id: number
+      setWindowOpenHandler(handler: (details: { url: string }) => unknown): void
+      on(name: string, handler: NavigateHandler): void
+      navigateHandler: NavigateHandler | null
+    } = {
       id: 42,
-      setWindowOpenHandler: (handler: (details: { url: string }) => unknown) => { decisions.push(handler) },
-      on: (name: string, handler: (event: { preventDefault(): void }, url: string) => void) => {
+      setWindowOpenHandler: (handler) => { decisions.push(handler) },
+      on: (name, handler) => {
         if (name === 'will-navigate') contents.navigateHandler = handler
       },
-      navigateHandler: null as FakeSession['downloads'][number] | null
+      navigateHandler: null
     }
     service.hardenGuest(contents as never)
     expect(decisions).toHaveLength(1)
@@ -242,7 +255,6 @@ describe('guest hardening (issue 107)', () => {
     expect(events.at(-1)).toEqual({ kind: 'window-open', contentsId: 42, url: 'https://example.com/next' })
     expect(handler({ url: 'file:///C:/Windows' })).toEqual({ action: 'deny' })
     expect(events.at(-1)).toEqual({ kind: 'window-open', contentsId: 42, url: '' })
-    void contents.navigateHandler
   })
 
   it('stops non-http(s) same-page navigations and records the block', () => {
@@ -250,10 +262,10 @@ describe('guest hardening (issue 107)', () => {
     const prevented: boolean[] = []
     const contents = {
       setWindowOpenHandler: () => {},
-      on: (name: string, handler: (event: { preventDefault(): void }, url: string) => void) => {
+      on: (name: string, handler: NavigateHandler) => {
         if (name === 'will-navigate') contents.navigateHandler = handler
       },
-      navigateHandler: null as ((event: { preventDefault(): void }, url: string) => void) | null
+      navigateHandler: null as NavigateHandler | null
     }
     service.hardenGuest(contents as never)
     contents.navigateHandler!({ preventDefault: () => prevented.push(true) }, 'https://example.com/next')
@@ -279,5 +291,16 @@ describe('partition clear (issue 107)', () => {
     await service.clear()
     expect(clearStorage).not.toHaveBeenCalled()
     expect(events).toEqual([])
+  })
+
+  it('stops the partition guests before wiping storage', async () => {
+    const order: string[] = []
+    const { service, events } = makeService({
+      destroyPartitionGuests: () => { order.push('destroy') },
+      clearStorage: async () => { order.push('clear') }
+    })
+    await service.clear()
+    expect(order).toEqual(['destroy', 'clear'])
+    expect(events.at(-1)).toEqual({ kind: 'cleared' })
   })
 })

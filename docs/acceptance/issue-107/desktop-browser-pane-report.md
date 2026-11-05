@@ -45,9 +45,12 @@ linz browser code (no provenance entries; see
   (`BROWSER_PARTITION` in `src/shared/desktop.ts`) — never the app's default
   session (which carries the device surfaces) and never the system browser.
 - 清空分区 rides the one bridge entry `desktop:browser` → the trusted main
-  process shows the confirmation dialog (the renderer can never sign it) and
-  clears cookies, site storage and caches of that partition only; every tab
-  returns to the start page with an honest notice.
+  process shows the confirmation dialog (the renderer can never sign it),
+  stops every live guest of the partition first (a crashed guest renderer
+  runs no JavaScript, so nothing can re-persist between the wipe and the
+  renderer's tab reset), then clears cookies, site storage and caches of
+  that partition only; every tab returns to the start page with an honest
+  notice.
 - Pins: `test/security.test.ts` partition invariants,
   `test/browser-main.test.ts` clear gating, `test/browser-pane.test.tsx`
   clear flow.

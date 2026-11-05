@@ -30,6 +30,11 @@ export interface BrowserPaneDeps {
   /** The clear confirmation lives in the trusted main process (a native
    * dialog); the renderer can never sign this itself. */
   confirmClear: () => Promise<boolean>
+  /** Stops every live guest of the partition (crashes its renderer, so no
+   * JavaScript can run). Runs before the storage clear: a page that stays
+   * alive across the wipe could re-persist cookies between the clear
+   * resolving and the renderer unmounting its webviews. */
+  destroyPartitionGuests: () => void
   clearStorage: () => Promise<void>
 }
 
@@ -81,6 +86,12 @@ function originOf(value: string): string {
   }
 }
 
+/** Subframe loads that belong to the embedding page itself, not to the web
+ * outside it. Kept as a scheme test so a crafted `about:blank?…` or a
+ * `data:` URL cannot smuggle a path past the boundary while the ordinary
+ * page machinery keeps working. */
+const INTRINSIC_FRAME_SCHEMES = /^(about:blank|blob:|data:)/i
+
 export class BrowserPaneService {
   private readonly session: Session
   private readonly deps: BrowserPaneDeps
@@ -112,8 +123,11 @@ export class BrowserPaneService {
     session.webRequest.onBeforeRequest((details, callback) => {
       // The document boundary: frames are web documents, everything else
       // (subresources, XHR, websocket frames) rides the page's own origin.
+      // A subframe the page creates from its own machinery (about:blank
+      // inherits the parent origin, blob:/data: are origin-scoped or opaque)
+      // is not an external document; a file:/ftp:/custom-scheme frame is.
       if (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') {
-        callback({ cancel: !isWebUrl(details.url) })
+        callback({ cancel: !isWebUrl(details.url) && !INTRINSIC_FRAME_SCHEMES.test(details.url) })
         return
       }
       callback({})
@@ -139,6 +153,10 @@ export class BrowserPaneService {
   /** The partition clear; the confirmation gate belongs to main, not UI. */
   async clear(): Promise<void> {
     if (!(await this.deps.confirmClear())) return
+    // Guests first (which also tears down their in-flight downloads), then
+    // the storage: the renderer's tab reset on the `cleared` fact is the
+    // second half of the story, never the wipe's guarantee.
+    this.deps.destroyPartitionGuests()
     await this.deps.clearStorage()
     this.deps.push({ kind: 'cleared' })
   }

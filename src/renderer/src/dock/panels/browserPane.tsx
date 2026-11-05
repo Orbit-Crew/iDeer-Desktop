@@ -39,6 +39,7 @@ interface Notice { key: number; at: string; event: BrowserPaneEvent }
 
 let tabSeq = 0
 let noticeSeq = 0
+const MAX_NOTICES = 30
 const newTab = (): BrowserTab => {
   tabSeq += 1
   return { id: `btab-${tabSeq}`, requested: null, current: null, title: '起始页', error: null }
@@ -139,23 +140,19 @@ export default function BrowserPane({ instanceId, panelType }: {
 }): JSX.Element {
   void instanceId
   void panelType
-  const [tabs, setTabs] = useState<BrowserTab[]>(() => {
-    const first = newTab()
-    return [first]
-  })
-  const [activeId, setActiveId] = useState<string>(() => '')
+  const [tabs, setTabs] = useState<BrowserTab[]>(() => [newTab()])
+  const [activeId, setActiveId] = useState('')
   const [address, setAddress] = useState('')
   const [addressError, setAddressError] = useState<string | null>(null)
   const [notices, setNotices] = useState<Notice[]>([])
   const elements = useRef(new Map<string, WebviewElement | null>())
   const tabsRef = useRef(tabs)
-  const activeIdRef = useRef('')
+  const activeIdRef = useRef(activeId)
 
-  // 每个窗格至少一个页签；首个页签即为活动页签。
-  if (!activeId && tabs.length > 0) {
-    activeIdRef.current = tabs[0].id
-    setActiveId(tabs[0].id)
-  }
+  // 每个窗格至少一个页签；首个页签即为活动页签（effect 内补齐，不在渲染期写状态）。
+  useEffect(() => {
+    if (!activeId && tabs.length > 0) setActiveId(tabs[0].id)
+  }, [activeId, tabs])
   tabsRef.current = tabs
   activeIdRef.current = activeId
 
@@ -201,7 +198,7 @@ export default function BrowserPane({ instanceId, panelType }: {
       const line = noticeLine(event)
       if (!line) return
       noticeSeq += 1
-      setNotices((prev) => [{ key: noticeSeq, at: nowLabel(), event }, ...prev].slice(0, 30))
+      setNotices((prev) => [{ key: noticeSeq, at: nowLabel(), event }, ...prev].slice(0, MAX_NOTICES))
     })
   }, [])
 

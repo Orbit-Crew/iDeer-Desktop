@@ -29,14 +29,21 @@ export function createMainWindow(): BrowserWindow {
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   mainWindow.webContents.on('will-navigate', (event) => event.preventDefault())
   // Issue 107: a webview may attach only with the fixed browser partition,
-  // no node integration and no preload of any kind — a page inside the pane
-  // cannot reach the trusted bridge through a smuggled preload, and no other
-  // partition (the app's own default session included) can be embedded. The
-  // first document must already be a web document; the session-level gates in
-  // browserPane.ts keep enforcing this after attachment.
+  // no node integration, no preload of any kind, no popups, and the
+  // sandbox/isolation pair intact — a page inside the pane cannot reach the
+  // trusted bridge through a smuggled preload or a relaxed guest, and no
+  // other partition (the app's own default session included) can be
+  // embedded. The first document must already be a web document; the
+  // session-level gates in browserPane.ts keep enforcing this after
+  // attachment.
   mainWindow.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    // `allowpopups` rides the runtime preferences but predates the typings.
+    const attachPreferences = webPreferences as typeof webPreferences & { allowpopups?: boolean }
     if (webPreferences.nodeIntegration ||
         webPreferences.preload ||
+        attachPreferences.allowpopups === true ||
+        webPreferences.contextIsolation === false ||
+        webPreferences.sandbox === false ||
         params.partition !== BROWSER_PARTITION ||
         (typeof params.src === 'string' && params.src !== '' && !isWebUrl(params.src))) {
       event.preventDefault()

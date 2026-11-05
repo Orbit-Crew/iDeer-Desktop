@@ -1,5 +1,5 @@
 // Node 16 compatibility runs in the build banner before any imports.
-import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell, webContents } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
@@ -104,6 +104,14 @@ if (!app.requestSingleInstanceLock()) {
           buttons: ['取消', '确认清空'], defaultId: 0, cancelId: 0, noLink: true
         })
         return confirmation.response === 1
+      },
+      destroyPartitionGuests: () => {
+        // A crashed renderer runs no JavaScript, so nothing can re-persist
+        // after the wipe. Guests are out-of-process frames; this never takes
+        // down the app's own renderer.
+        for (const contents of webContents.getAllWebContents()) {
+          if (contents.session === browserSession && !contents.isDestroyed()) contents.forcefullyCrashRenderer()
+        }
       },
       clearStorage: async () => {
         await browserSession.clearStorageData({ storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'serviceworkers', 'cachestorage', 'websql', 'shadercache'] })

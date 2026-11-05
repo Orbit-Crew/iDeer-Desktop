@@ -148,9 +148,14 @@ describe('dock pane security seam (issue 71)', () => {
     expect(source).toContain('setPermissionRequestHandler')
     expect(source).toContain('setPermissionCheckHandler')
     // The attach gate: the fixed partition, no node integration, no preload,
-    // and a first document that is already a web document.
+    // no popups, the sandbox/isolation pair intact, and a first document
+    // that is already a web document.
     expect(source).toContain("params.partition !== BROWSER_PARTITION")
-    expect(source).toMatch(/webPreferences\.nodeIntegration \|\|\s*\n?\s*webPreferences\.preload \|\|/)
+    expect(source).toContain('webPreferences.nodeIntegration ||')
+    expect(source).toContain('webPreferences.preload ||')
+    expect(source).toContain('attachPreferences.allowpopups === true ||')
+    expect(source).toContain('webPreferences.contextIsolation === false ||')
+    expect(source).toContain('webPreferences.sandbox === false ||')
     expect(source).toMatch(/!isWebUrl\(params\.src\)/)
   })
 
@@ -173,13 +178,16 @@ describe('dock pane security seam (issue 71)', () => {
     expect(service).toContain('setPermissionCheckHandler')
     expect(service).toMatch(/will-download/)
     expect(service).toContain('resolveWorkspaceRoot')
-    expect(service).toMatch(/mainFrame'| "subFrame'|resourceType === 'mainFrame'/)
-    expect(service).toMatch(/resourceType === 'subFrame'/)
+    expect(service).toContain("resourceType === 'mainFrame'")
+    expect(service).toContain("resourceType === 'subFrame'")
+    expect(service).toContain('destroyPartitionGuests')
     const wiring = readFileSync('src/main/index.ts', 'utf8')
     expect(wiring).toMatch(/session\.fromPartition\(BROWSER_PARTITION\)/)
     expect(wiring).toMatch(/getType\(\) === 'webview'/)
     expect(wiring).toMatch(/desktop:browser'/)
     expect(wiring).toMatch(/desktop:browser:events'/)
+    expect(wiring).toMatch(/webContents\.getAllWebContents\(\)/)
+    expect(wiring).toMatch(/forcefullyCrashRenderer\(\)/)
     // The renderer frame only allows http(s) frames because the restored
     // browser pane embeds validated webviews; everything else stays closed.
     const csp = readFileSync('src/renderer/index.html', 'utf8')
