@@ -70,6 +70,14 @@ describe('remote browser runtime wire gate (issue 109)', () => {
     await expect(runtime.remoteBrowser({ kind: 'input', streamId: 'st1', event: validInput }))
       .rejects.toThrow('RUNTIME_UNAVAILABLE')
   })
+
+  it('keeps signed wheel deltas (scroll up) inside the gate', async () => {
+    const runtime = unavailableRuntime()
+    await expect(runtime.remoteBrowser({ kind: 'input', streamId: 'st1', event: { type: 'wheel', dx: 0, dy: -120 } }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.remoteBrowser({ kind: 'input', streamId: 'st1', event: { type: 'wheel', dx: 0, dy: -1e9 } }))
+      .rejects.toThrow('REMOTE_BROWSER_COMMAND_INVALID')
+  })
 })
 
 describe('remote browser wire event projection (issue 109)', () => {

@@ -27,6 +27,14 @@ export function validateRemoteBrowserInput(event: unknown): RemoteBrowserInputEv
     if (typeof value !== 'string' || value.length < 1 || value.length > max) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
     return value
   }
+  // Wheel deltas are signed: scrolling up is a negative dy, matching the
+  // server's own accumulated wheel event.
+  const signedDelta = (value: unknown): number => {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < -100000 || value > 100000) {
+      throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+    }
+    return value
+  }
   const button = (value: unknown): 'left' | 'right' | 'middle' | undefined => {
     if (value === undefined) return undefined
     if (value === 'left' || value === 'right' || value === 'middle') return value
@@ -48,7 +56,7 @@ export function validateRemoteBrowserInput(event: unknown): RemoteBrowserInputEv
     }
     case 'wheel':
       if (Object.keys(candidate).length !== 3) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
-      return { type: 'wheel', dx: coordinate(candidate.dx), dy: coordinate(candidate.dy) }
+      return { type: 'wheel', dx: signedDelta(candidate.dx), dy: signedDelta(candidate.dy) }
     case 'key':
       if (Object.keys(candidate).length !== 2) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
       return { type: 'key', key: boundedText(candidate.key, 64) }

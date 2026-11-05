@@ -211,6 +211,9 @@ export class RuntimeProcess {
       if (typeof command.streamId !== 'string' || command.streamId.length < 1 || command.streamId.length > 64) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
       validateRemoteBrowserInput(command.event)
       if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+      // The bounded in-flight set mirrors the Runtime's own input queue; a
+      // flood overflows into an explicit error instead of unbounded memory.
+      if (this.browserInputRequests.size >= 256) throw new Error('REMOTE_BROWSER_BUSY')
       const id = randomUUID()
       return new Promise<RemoteBrowserStreamAck>((resolve, reject) => {
         const timer = setTimeout(() => { this.browserInputRequests.delete(id); reject(new Error('REMOTE_BROWSER_TIMEOUT')) }, 15000)
