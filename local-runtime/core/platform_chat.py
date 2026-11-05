@@ -26,8 +26,18 @@ from .receipt_ledger import profile_binding
 from .secrets import SecretStore, SecretStoreError
 from .session_tier import DEFAULT_SESSION_TIER, SessionTier, SessionTierRegistry
 from .settings import load_settings
+from .inline_code import display_language, language_of
 
 MAX_RESPONSE = 2 * 1024 * 1024
+# The one capability -> card-kind naming, shared by the chat projection and
+# the background notification path so a new device authority registers once.
+CONSENT_KIND_BY_CAPABILITY = {
+    'local.files.write': 'file-write',
+    'local.skill.script': 'skill-script',
+    'local.skill.dependencies': 'skill-dependencies',
+    'local.knowledge.material': 'knowledge-material',
+    'local.python': 'inline-code',
+}
 # The workspace write boundary already caps a single result at MAX_TEXT_BYTES;
 # the explicit upload path enforces the same bound before staging anything.
 MAX_RESULT_BYTES = 65536
@@ -497,7 +507,8 @@ class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
-                 skill_imports=None, session_tiers: SessionTierRegistry | None = None):
+                 skill_imports=None, session_tiers: SessionTierRegistry | None = None,
+                 inline_scripts=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -521,6 +532,11 @@ class DesktopChat:
         # starts at the lowest tier and a tier choice never outlives the
         # thread load that made it.
         self.session_tiers = session_tiers
+        # Issue 105: the inline-code scratch store. The chat layer owns the
+        # lifecycle trigger - leaving a session sweeps its temp scripts, an
+        # identity reset sweeps everything - while the store itself follows
+        # the confirmed workspace.
+        self.inline_scripts = inline_scripts
         self._tasks_checked = 0.0
         self._tasks_loading = None
         # Issue 73: per-session temporary model choices, the cached authorized
@@ -584,10 +600,10 @@ class DesktopChat:
             raise ChatError('CONSENT_UNAVAILABLE') from None
         for pending in pending_rows:
             payload = pending.payload
-            capability = pending.capability
-            if payload.get('thread_id') != thread['id'] or payload.get('run_id') != run['id']:
+            kind = CONSENT_KIND_BY_CAPABILITY.get(pending.capability, '')
+            if not kind or payload.get('thread_id') != thread['id'] or payload.get('run_id') != run['id']:
                 continue
-            if capability == 'local.files.write':
+            if kind == 'file-write':
                 args = payload.get('arguments', payload.get('args', payload))
                 if not isinstance(args, dict) or not isinstance(args.get('path'), str) or not isinstance(args.get('content'), str):
                     continue
@@ -595,7 +611,7 @@ class DesktopChat:
                     requestHash=pending.request_hash, kind='file-write',
                     path=args['path'], content=args['content'])
                 row['directory'] = pending.summary.get('directory', '')
-            elif capability == 'local.skill.script':
+            elif kind == 'skill-script':
                 # Identity and scope facts only: the script bytes stay in the
                 # gate, the card names what the user is approving (#122).
                 if not isinstance(payload.get('skill_id'), str) or not isinstance(payload.get('script_path'), str):
@@ -606,7 +622,7 @@ class DesktopChat:
                     version=str(payload.get('skill_version', '')),
                     scriptSha256=payload.get('script_sha256', ''),
                     requirementsSha256=requirements_fingerprint_of(payload.get('declaration')))
-            elif capability == 'local.skill.dependencies':
+            elif kind == 'skill-dependencies':
                 # Issue 104: the install ask names the locked entries and the
                 # source the wheels come from; no script bytes ride it. The
                 # entry shape is the same validator the wire plan enforces.
@@ -627,7 +643,7 @@ class DesktopChat:
                     skill=payload['skill_id'], version=str(payload.get('skill_version', '')),
                     entries=plan, source=dict(kind=source['kind'], location=source['location']),
                     requirementsSha256=str(payload.get('requirements_sha256', '')))
-            elif capability == 'local.knowledge.material':
+            elif kind == 'knowledge-material':
                 args = payload.get('arguments', payload.get('args', payload))
                 if not isinstance(args, dict) or not isinstance(args.get('documents'), list):
                     continue
@@ -644,6 +660,17 @@ class DesktopChat:
                     requestHash=pending.request_hash, kind='knowledge-material',
                     revisionId=str(args.get('revision_id', '')), manifestHash=str(args.get('manifest_hash', '')),
                     documents=documents)
+            elif kind == 'inline-code':
+                # Issue 105: an inline-code ask names the code and the target
+                # root in full - unlike a Skill script there is no stored
+                # identity behind it, so the displayed bytes are the only
+                # honest description of what approval would run.
+                if not isinstance(payload.get('script'), str) or not isinstance(payload.get('working_root'), str):
+                    continue
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='inline-code',
+                    language=language_of(payload),
+                    workingRoot=payload['working_root'], script=payload['script'])
             else:
                 continue
             # The credential scrubber must remain active, but a scrubbed card
@@ -674,6 +701,10 @@ class DesktopChat:
         # The Server keeps the runs; reopening their sessions shows the truth.
         self._background.clear()
         self._notified_consents.clear()
+        # Issue 105: every session the identity leaves behind has its temp
+        # scripts swept; nothing scratch-shaped outlives the login.
+        if self.inline_scripts is not None:
+            self.inline_scripts.cleanup_all()
 
     @staticmethod
     def _id(value):
@@ -897,6 +928,13 @@ class DesktopChat:
             # even a reopened thread re-declares its intent.
             if self.session_tiers is not None:
                 self.session_tiers.reset()
+            # Issue 105: leaving a session sweeps its temp scripts. Reopening
+            # the same session is not leaving it — the scratch survives and
+            # keeps executing runs inspectable until the session is left for
+            # another one or the identity changes.
+            if (previous_thread and previous_thread['id'] != thread_id
+                    and self.inline_scripts is not None):
+                self.inline_scripts.cleanup_thread(str(previous_thread['id']))
             self._state['localTier'] = DEFAULT_SESSION_TIER.value
             # Issue 73: a thread change resets the switch story; the session's own
             # model choice survives (it is bound to this thread id).
@@ -1124,6 +1162,11 @@ class DesktopChat:
             return str(payload.get('skill_id', ''))[:200] if isinstance(payload, dict) else ''
         if approval == 'knowledge-material':
             return str(args.get('revision_id', ''))[:200] if isinstance(args, dict) else ''
+        if approval == 'inline-code':
+            # Issue 105: the pinned language and the folder it would run in;
+            # the code itself never fits a notification line.
+            return f"{display_language(language_of(payload))} · {str(payload.get('working_root', ''))[:180]}" \
+                if isinstance(payload, dict) else ''
         return ''
 
     def background_tick(self, force=False):
@@ -1233,9 +1276,7 @@ class DesktopChat:
             thread_id = payload.get('thread_id') if isinstance(payload, dict) else None
             if not isinstance(thread_id, str) or not thread_id or thread_id == foreground:
                 continue
-            approval = {'local.files.write': 'file-write', 'local.skill.script': 'skill-script',
-                        'local.skill.dependencies': 'skill-dependencies',
-                        'local.knowledge.material': 'knowledge-material'}.get(str(getattr(row, 'capability', '')), '')
+            approval = CONSENT_KIND_BY_CAPABILITY.get(str(getattr(row, 'capability', '')), '')
             if not approval:
                 continue  # 未识别的审批类别不进通知（前台卡片也不支持它）
             # 每个事实都必须能原样过线：身份字段不符合线格式的问题跳过，

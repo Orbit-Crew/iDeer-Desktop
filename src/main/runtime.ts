@@ -688,7 +688,13 @@ export class RuntimeProcess {
       if (process.env[key]) env[key] = process.env[key]
     }
     // Both ends of the owned JSON pipe use UTF-8 regardless of the Windows code page.
+    // Issue 105: `process.execPath` hands the runtime the app's own binary as the
+    // pinned Node interpreter for inline code — under ELECTRON_RUN_AS_NODE the
+    // packaged Electron exe behaves as plain Node, and the dev server's Node does
+    // the same job. The runtime uses it only for user-approved inline tasks; a
+    // renderer can never change it (it never supplies paths or commands).
     const child = spawn(executable, ['-I', '-u', '-X', 'utf8', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json'), '--desktop-version', this.desktopVersion,
+      '--node-executable', process.execPath,
       ...(this.maintenance ? ['--update-health'] : [])], {
       cwd: this.directory, env, windowsHide: true, stdio: 'pipe', shell: false
     })

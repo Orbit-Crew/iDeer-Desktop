@@ -86,18 +86,30 @@ def test_autonomous_tier_refuses_outside_and_protected_writes_without_asking(cla
     ) == "deny"
 
 
-@pytest.mark.parametrize("classify", [_classify_inside, _classify_outside, _classify_protected])
-def test_command_line_stays_on_the_ask_path_until_the_full_tier(classify) -> None:
-    """自主 does not include the command line; 完全 does (夹内含命令行)."""
+def test_ask_first_tier_asks_for_every_inline_code_run() -> None:
+    """#105 询问档每条问: the lowest tier keeps per-run consent for inline code."""
     payload = _python_payload()
-    assert tier_gate_decision(SessionTier.AUTONOMOUS, "local.python", payload, classify) == "ask"
-    assert tier_gate_decision(SessionTier.FULL, "local.python", payload, _classify_inside) == "allow"
+    assert tier_gate_decision(SessionTier.ASK_FIRST, "local.python", payload, _classify_inside) == "ask"
 
 
+def test_autonomous_tier_runs_folder_inside_inline_code_without_asking() -> None:
+    """#105 自主夹内不问: inline code anchored inside the authorized folder
+    is a folder-anchored capability like the writes, so the autonomous tier
+    is its standing answer."""
+    assert tier_gate_decision(
+        SessionTier.AUTONOMOUS, "local.python", _python_payload(), _classify_inside
+    ) == "allow"
+    assert tier_gate_decision(
+        SessionTier.FULL, "local.python", _python_payload(), _classify_inside
+    ) == "allow"
+
+
+@pytest.mark.parametrize("tier", [SessionTier.AUTONOMOUS, SessionTier.FULL])
 @pytest.mark.parametrize("classify", [_classify_outside, _classify_protected])
-def test_full_tier_refuses_outside_and_protected_command_lines(classify) -> None:
-    payload = _python_payload()
-    assert tier_gate_decision(SessionTier.FULL, "local.python", payload, classify) == "deny"
+def test_upgraded_tiers_refuse_outside_and_protected_inline_code(tier, classify) -> None:
+    """#105 夹外与保护路径不碰: in the upgraded tiers an unprovable inline-code
+    target is refused without asking, never widened to a prompt."""
+    assert tier_gate_decision(tier, "local.python", _python_payload(), classify) == "deny"
 
 
 def test_unanchored_requests_cannot_be_auto_run_in_upgraded_tiers() -> None:
@@ -384,9 +396,11 @@ def test_local_deny_still_beats_the_autonomous_tier(
         controller.stop()
 
 
-def test_command_line_still_asks_in_the_autonomous_tier(
+def test_autonomous_tier_runs_folder_inside_inline_code_without_a_prompt(
     broker: FakeBroker, tmp_path: Path
 ) -> None:
+    """#105 自主夹内不问: the tier is the standing answer for inline code
+    anchored inside the folder, and the code lands as a temp script there."""
     controller = _controller(broker, tmp_path)
     controller.start()
     try:
@@ -398,9 +412,45 @@ def test_command_line_still_asks_in_the_autonomous_tier(
         payload = {**_python_payload("/projects"), "thread_id": "thread-A", "run_id": "run-1"}
         broker.send(MessageType.TASK, payload, task_id="task-4")
 
-        wait_for(lambda: controller.pending_consents(), what="a pending consent")
-        request = controller.pending_consents()[0]
-        assert request.task_id == "task-4"
+        result = broker.expect(MessageType.TASK_RESULT)
+        assert result["task_id"] == "task-4"
+        assert result["payload"]["receipt"]["consent_decision"] == "tier:autonomous"
+        scripts = list(
+            (tmp_path / "work" / ".ideer" / "inline").glob("thread-A-*/*.py")
+        )
+        assert len(scripts) == 1
+        assert scripts[0].read_text(encoding="utf-8") == "pass"
+        # No ask was ever raised: the tier itself is the standing answer.
+        assert controller.pending_consents() == ()
+        consent = controller.audit_recent(kind=AuditKind.CONSENT)
+        assert consent[0].action == "approved"
+        assert consent[0].actor_id == "session-tier"
+        assert consent[0].detail["basis"] == "tier:autonomous"
+        assert consent[0].detail["origin"] == "session-tier"
+    finally:
+        controller.stop()
+
+
+def test_autonomous_tier_refuses_outside_inline_code_without_a_prompt(
+    broker: FakeBroker, tmp_path: Path
+) -> None:
+    """#105 夹外不碰: an unprovable inline-code anchor is refused outright."""
+    controller = _controller(broker, tmp_path)
+    controller.start()
+    try:
+        broker.await_device()
+        registry = SessionTierRegistry()
+        controller.client.session_tiers = registry
+        registry.set("thread-A", SessionTier.AUTONOMOUS)
+        controller.client.file_service.classify = lambda path: "outside"
+        payload = {**_python_payload("/projects"), "thread_id": "thread-A", "run_id": "run-1"}
+        broker.send(MessageType.TASK, payload, task_id="task-4b")
+
+        error = broker.expect(MessageType.ERROR)
+        assert error["task_id"] == "task-4b"
+        assert error["payload"]["error_code"] == "DENIED"
+        assert controller.pending_consents() == ()
+        assert not (tmp_path / "work" / ".ideer").exists()
     finally:
         controller.stop()
 
