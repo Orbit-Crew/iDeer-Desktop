@@ -203,6 +203,9 @@ describe('session sidebar project grouping (#91)', () => {
     expect(move.hasAttribute('disabled')).toBe(true)
   })
 
+  // 15 s: three sequential antd-modal round-trips (mount → manage modal →
+  // archive confirm) legitimately outrun the 5 s default on slow CI runners;
+  // the same per-test extension as chat-attachments/recovery applies.
   it('falls back to the full view when the selected project is archived or deleted elsewhere', async () => {
     // Mount load and the manage modal's load both see the active project; the
     // archive round's post-action list no longer carries it as active.
@@ -225,5 +228,5 @@ describe('session sidebar project grouping (#91)', () => {
     // The post-action list no longer offers the project as active; the
     // selection must not keep pointing new chats at a refused project.
     await waitFor(() => expect(useSessionStore.getState().projectSelection).toEqual({ kind: 'all' }))
-  })
+  }, 15000)
 })
