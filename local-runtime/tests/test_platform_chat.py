@@ -1627,3 +1627,27 @@ def test_background_consent_facts_outside_the_wire_charset_are_skipped(tmp_path)
         chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
         assert chat.background_tick(force=True) == []
         assert chat.background_tick(force=True) == []
+
+
+def test_create_assigns_the_new_thread_to_the_selected_project(tmp_path):
+    """#91: 选中项目后新建会话 rides the Server's own project assignment on
+    the Thread create body. Without a selection the body stays exactly as
+    before (a loose session), and a malformed project id is refused before
+    any Server call — the Server itself fails closed on a missing, foreign
+    or archived project."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT, 'projectId': 'proj-select-1'})
+        creates = [body for path, body, _ in records if path == '/api/threads' and body]
+        assert creates and creates[0]['project_id'] == 'proj-select-1'
+        assert creates[0]['metadata'] == {'agent_name': AGENT, 'skill_resource_id': ''}
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        creates = [body for path, body, _ in records if path == '/api/threads' and body]
+        assert 'project_id' not in creates[-1]
+        # A malformed project id surfaces as the chat state's named error
+        # category (handle() records ChatError on the state) and no Server
+        # call leaves the device.
+        outcome = chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT, 'projectId': '项目 非法'})
+        assert outcome['error'] == 'CHAT_COMMAND_INVALID'
+        assert len([body for path, body, _ in records if path == '/api/threads' and body]) == 2

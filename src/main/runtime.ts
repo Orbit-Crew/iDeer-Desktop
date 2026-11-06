@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
@@ -31,6 +31,7 @@ export class RuntimeProcess {
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
   private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
+  private projectRequests = new Map<string, { resolve: (view: ProjectOperationView) => void; reject: (error: Error) => void; action: ProjectCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
@@ -387,16 +388,25 @@ export class RuntimeProcess {
    * platform. Every reply carries the Server's own post-action list and the
    * account's Thread permissions; deletion happens only after a confirmed
    * main-process dialog and never touches the local receipt ledger.
+   * Issue 91: `move` names the target project and rides the Server's own
+   * move endpoint — the Server fails closed on a missing, foreign or
+   * archived project.
    */
   async threads(command: ThreadCommand): Promise<ThreadView> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('THREADS_COMMAND_INVALID')
-    if (!['list', 'search', 'rename', 'delete'].includes(command.action)) throw new Error('THREADS_COMMAND_INVALID')
+    if (!['list', 'search', 'rename', 'delete', 'move'].includes(command.action)) throw new Error('THREADS_COMMAND_INVALID')
     const wire: Record<string, unknown> = { type: 'threads', id: '', action: command.action }
     if (command.action === 'list') {
       if (Object.keys(command).length !== 1) throw new Error('THREADS_COMMAND_INVALID')
     } else if (command.action === 'search') {
       if (typeof command.query !== 'string' || command.query.length > 128 || Object.keys(command).length !== 2) throw new Error('THREADS_COMMAND_INVALID')
       wire.query = command.query
+    } else if (command.action === 'move') {
+      if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId) ||
+          typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId) ||
+          Object.keys(command).length !== 3) throw new Error('THREADS_COMMAND_INVALID')
+      wire.threadId = command.threadId
+      wire.projectId = command.projectId
     } else {
       if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId)) throw new Error('THREADS_COMMAND_INVALID')
       if (command.action === 'rename') {
@@ -420,6 +430,51 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.threadRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.threadRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 91: platform project management. The wire command is a fixed
+   * per-action key set and always carries the chat session scope the Runtime
+   * itself last reported; every reply re-reads the Server's own project list
+   * and the account's project permissions. Deletion happens only after a
+   * confirmed main-process dialog, and no operation here touches local files
+   * or directory grants — the desktop keeps no second project roster.
+   */
+  async projects(command: ProjectCommand): Promise<ProjectOperationView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('PROJECTS_COMMAND_INVALID')
+    if (!['list', 'create', 'rename', 'archive', 'restore', 'delete'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'projects', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('PROJECTS_COMMAND_INVALID')
+    } else if (command.action === 'create') {
+      const name = typeof command.name === 'string' ? command.name.trim() : ''
+      if (!name || name.length > 128 || Object.keys(command).length !== 2) throw new Error('PROJECTS_COMMAND_INVALID')
+      wire.name = name
+    } else if (command.action === 'rename') {
+      const name = typeof command.name === 'string' ? command.name.trim() : ''
+      if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId) ||
+          !name || name.length > 128 || Object.keys(command).length !== 3) throw new Error('PROJECTS_COMMAND_INVALID')
+      wire.projectId = command.projectId
+      wire.name = name
+    } else {
+      if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId) ||
+          Object.keys(command).length !== 2) throw new Error('PROJECTS_COMMAND_INVALID')
+      wire.projectId = command.projectId
+    }
+    if (this.projectRequests.size) throw new Error('PROJECTS_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.chatScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.projectRequests.delete(id); reject(new Error('PROJECTS_TIMEOUT')) }, 30000)
+      this.projectRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.projectRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.projectRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -470,7 +525,7 @@ export class RuntimeProcess {
   async chat(command: ChatCommand): Promise<ChatSnapshot> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('CHAT_COMMAND_INVALID')
     const keys: Record<string, string[]> = {
-      state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId'],
+      state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId', 'projectId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
       send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
@@ -1020,19 +1075,64 @@ export class RuntimeProcess {
             }
             if (pending.action === 'rename' && result.renamed !== true) { pending.reject(new Error('THREADS_FAILED')); continue }
             if (pending.action === 'delete' && result.deleted !== true) { pending.reject(new Error('THREADS_FAILED')); continue }
+            if (pending.action === 'move' && result.moved !== true) { pending.reject(new Error('THREADS_FAILED')); continue }
             const idPattern = /^[A-Za-z0-9_-]{1,128}$/
             const threads: ThreadRowView[] = []
             for (const row of result.threads.slice(0, 200)) {
               if (!row || typeof row.id !== 'string' || !idPattern.test(row.id) ||
                   typeof row.title !== 'string' || !row.title || typeof row.status !== 'string' ||
                   typeof row.updatedAt !== 'string') throw new Error('Invalid thread row')
+              // Issue 91: the Server's own membership stamp; empty = loose
+              // session. An unknown shape is a protocol failure, never a
+              // guessed grouping.
+              if (typeof row.projectId !== 'string' || (row.projectId && !idPattern.test(row.projectId))) throw new Error('Invalid thread row')
               threads.push({ id: row.id, title: row.title.slice(0, 256), status: row.status.slice(0, 32),
-                updatedAt: row.updatedAt.slice(0, 64) })
+                updatedAt: row.updatedAt.slice(0, 64), projectId: row.projectId })
             }
             const permissions: ThreadPermissionsView = { canRename: result.permissions.canRename, canDelete: result.permissions.canDelete }
             pending.resolve(pending.action === 'rename' ? { threads, permissions, renamed: true }
               : pending.action === 'delete' ? { threads, permissions, deleted: true }
+              : pending.action === 'move' ? { threads, permissions, moved: true }
               : { threads, permissions })
+            continue
+          }
+          if (value.v === 1 && value.type === 'projects') {
+            // Issue 91: the Server's own post-action project list plus the
+            // account's project permissions, bounded before it reaches the
+            // renderer. Names and statuses are display facts only; nothing
+            // here can create, own or authorize a project, and no local
+            // state is ever bound to one.
+            const pending = this.projectRequests.get(value.id)
+            if (!pending) continue
+            this.projectRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || !Array.isArray(result.projects) || !result.permissions ||
+                typeof result.permissions.canWrite !== 'boolean' || typeof result.permissions.canDelete !== 'boolean') {
+              pending.reject(new Error('PROJECTS_FAILED')); continue
+            }
+            const outcomeFlags: Partial<Record<ProjectCommand['action'], unknown>> = {
+              create: result.created, rename: result.renamed, archive: result.archived,
+              restore: result.restored, delete: result.deleted
+            }
+            if (pending.action !== 'list' && outcomeFlags[pending.action] !== true) { pending.reject(new Error('PROJECTS_FAILED')); continue }
+            const idPattern = /^[A-Za-z0-9_-]{1,128}$/
+            const projects: ProjectView[] = []
+            for (const row of result.projects.slice(0, 200)) {
+              if (!row || typeof row.id !== 'string' || !idPattern.test(row.id) ||
+                  typeof row.name !== 'string' || !row.name ||
+                  (row.status !== 'active' && row.status !== 'archived') ||
+                  typeof row.createdAt !== 'string' || typeof row.updatedAt !== 'string') throw new Error('Invalid project row')
+              projects.push({ id: row.id, name: row.name.slice(0, 128), status: row.status,
+                createdAt: row.createdAt.slice(0, 64), updatedAt: row.updatedAt.slice(0, 64) })
+            }
+            const permissions: ProjectPermissionsView = { canWrite: result.permissions.canWrite, canDelete: result.permissions.canDelete }
+            pending.resolve(pending.action === 'create' ? { projects, permissions, created: true }
+              : pending.action === 'rename' ? { projects, permissions, renamed: true }
+              : pending.action === 'archive' ? { projects, permissions, archived: true }
+              : pending.action === 'restore' ? { projects, permissions, restored: true }
+              : pending.action === 'delete' ? { projects, permissions, deleted: true }
+              : { projects, permissions })
             continue
           }
           if (value.v === 1 && value.type === 'connectors') {

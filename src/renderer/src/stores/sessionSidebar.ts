@@ -83,4 +83,13 @@ export class SessionSidebarController {
     if (!this.view.permissions.canDelete) return
     await this.run({ action: 'delete', threadId })
   }
+
+  /** Issue 91: 散会话移入项目。The command names the target project; the
+   * Server's own move endpoint is the only membership writer and the reply
+   * re-reads the platform's list, so the grouping regroups in the same
+   * round. Moving back out to loose is not a desktop action in this ticket. */
+  async move(threadId: string, projectId: string): Promise<void> {
+    if (!projectId || projectId.length > 128 || !this.view.permissions.canRename) return
+    await this.run({ action: 'move', threadId, projectId })
+  }
 }
