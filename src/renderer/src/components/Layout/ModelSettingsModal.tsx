@@ -5,6 +5,7 @@
 // section do not exist here — their absence is stated in place, not hidden.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Modal, Select, Space, Typography } from 'antd'
+import ClosePreference from './ClosePreference'
 import type { ModelCommand, ModelSettingsView } from '../../../../shared/desktop'
 
 export const MODEL_ABSENCE_NOTES = [
@@ -92,7 +93,12 @@ export default function ModelSettingsModal({ open, onClose }: { open: boolean; o
   }
 
   return <Modal title="设置" open={open} onCancel={onClose} footer={null} width={640}>
-    <Typography.Title level={5}>模型</Typography.Title>
+    {/* Issue 86: the shell-level window lifecycle preference lives beside the
+    model section — the device-local 关窗即退出 toggle over the resident
+    tray default. */}
+    <Typography.Title level={5}>通用</Typography.Title>
+    <ClosePreference />
+    <Typography.Title level={5} className="mt-5">模型</Typography.Title>
     <ModelSettingsSection view={view} busy={busy} error={error} onCommand={onCommand} />
   </Modal>
 }
