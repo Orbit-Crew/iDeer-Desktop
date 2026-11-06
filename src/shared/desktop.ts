@@ -544,6 +544,34 @@ export interface RecoveryView {
   runtimePython: string
 }
 
+/**
+ * Issue 110: the human terminal bridge (decision #59: a desktop-local process
+ * in the Electron main, real PTY semantics, no Runtime). This is a separate
+ * minimal seam next to — never inside — the trusted desktop:* bridge: the
+ * surface is exactly spawn/write/resize/kill plus the data/exit push events,
+ * with no filesystem or shell-wrapper capability. Terminal output is content,
+ * not trusted UI, and never rides `window.ideer`.
+ */
+export interface TerminalSpawnView { sessionId: string }
+export interface TerminalDataEvent { sessionId: string; data: string }
+export interface TerminalExitEvent { sessionId: string; exitCode: number }
+export interface TerminalBridge {
+  /** Spawns one desktop-local PTY; the start dir is resolved in the trusted
+   * main process (project-bound folder, user home as fallback) — the renderer
+   * supplies no path, no command and receives no path back. */
+  spawn(): Promise<TerminalSpawnView>
+  write(sessionId: string, data: string): Promise<void>
+  resize(sessionId: string, cols: number, rows: number): Promise<void>
+  kill(sessionId: string): Promise<void>
+  /** One push channel for all sessions; payloads name their session. */
+  onData(listener: (event: TerminalDataEvent) => void): () => void
+  onExit(listener: (event: TerminalExitEvent) => void): () => void
+}
+/** Bounded number of concurrent human terminal sessions. */
+export const MAX_TERMINAL_SESSIONS = 12
+/** Bounded bytes for one write (keystrokes or a paste), enforced in main. */
+export const MAX_TERMINAL_WRITE = 1024 * 1024
+
 export interface DesktopBridge {
   manage(action: 'logout' | 'switch-account' | 'revoke', grantId?: string): Promise<void>
   chooseWorkspace(): Promise<void>

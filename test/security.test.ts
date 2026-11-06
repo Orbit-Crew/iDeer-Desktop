@@ -17,7 +17,18 @@ describe('bootstrap capability boundary', () => {
       metafile: true
     })
     const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((item) => item.path))
-    expect(imports.filter((path) => /node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    // Issue 110 adds node-pty as the human terminal's desktop-local PTY host
+    // (decision #59: the terminal is the Desktop's own process, not the
+    // Runtime's). The prohibited model/MCP/terminal-wrapper dependencies stay
+    // out of every entry, and node-pty itself is pinned below to the trusted
+    // main entry alone — it must never appear in the preload or renderer graph.
+    expect(imports.filter((path) => /langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    const ptyImporters = Object.entries(result.metafile.inputs)
+      .filter(([, input]) => input.imports.some((item) => item.path === 'node-pty')).map(([path]) => path)
+    expect(ptyImporters).toEqual(['src/main/terminal.ts'])
+    const ptyOutputs = Object.keys(result.metafile.outputs)
+      .filter((path) => result.metafile.outputs[path].imports.some((item) => item.path === 'node-pty'))
+    expect(ptyOutputs.map((path) => path.replace(/\\/g, '/'))).toEqual(['out/security-check/main/index.js'])
     const launchers = Object.entries(result.metafile.inputs).filter(([, input]) => input.imports.some((item) => /child_process/.test(item.path))).map(([path]) => path)
     // Runtime owns the bundled interpreter. Maintenance launches only its
     // independent fixed helper, whose native installer/app launches consume a
@@ -26,8 +37,10 @@ describe('bootstrap capability boundary', () => {
     // the same model/MCP/terminal dependency prohibition.
     expect(launchers.sort()).toEqual(['src/main/maintenance.ts', 'src/main/runtime.ts', 'src/main/update-helper.ts'])
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
+    // Issue 110: node-pty hosts the desktop-local PTY in main; @xterm/xterm
+    // and @xterm/addon-fit render the terminal content in the renderer.
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
-      '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
+      '@ant-design/icons', '@xterm/addon-fit', '@xterm/xterm', 'antd', 'node-pty', 'react', 'react-dom', 'zustand'
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     // Issue 112 adds desktop:knowledge:import; issue 115 adds desktop:knowledge:publish.
@@ -60,19 +73,23 @@ describe('bootstrap capability boundary', () => {
     // writes) and the device-local fallback pick ride the Server's own
     // endpoints. The channel carries no provider, Base URL or key field —
     // the Desktop never holds a model credential.
+    // Issue 110 adds the terminal: family for the human terminal: spawn,
+    // write, resize and kill on desktop-local PTY sessions plus the data/exit
+    // push channels. It is a separate minimal bridge — terminal output is
+    // content, not trusted UI, and never rides the desktop:* trusted bridge.
     // Issue 94 adds desktop:files for the human file-browsing seam: the
     // renderer names workspace-logical paths only; listing and previews ride
     // the Runtime's guarded read path with no consent step, and an external
     // open/reveal resolves the physical path inside the trusted main
     // process — the renderer never receives or supplies a physical path.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's only two push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Both are fixed main-owned names; the
     // preload never subscribes to anything else and never sends on its own.
     expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:notification:activate', 'desktop:notifications'])
+      .toEqual(['desktop:notification:activate', 'desktop:notifications', 'terminal:data', 'terminal:exit'])
     expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })

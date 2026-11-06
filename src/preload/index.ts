@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -44,4 +44,27 @@ const bridge: DesktopBridge = Object.freeze({
   }
 })
 
+// Issue 110: the human terminal's separate minimal bridge (decision #59.6).
+// Terminal output is content, not trusted UI: it never rides the trusted
+// desktop:* bridge above, and this seam exposes exactly spawn/write/resize/
+// kill plus the two fixed main-owned push channels — no filesystem, no shell
+// wrapper, nothing else.
+const terminalBridge: TerminalBridge = Object.freeze({
+  spawn: () => ipcRenderer.invoke('terminal:spawn'),
+  write: (sessionId: string, data: string) => ipcRenderer.invoke('terminal:write', sessionId, data),
+  resize: (sessionId: string, cols: number, rows: number) => ipcRenderer.invoke('terminal:resize', sessionId, cols, rows),
+  kill: (sessionId: string) => ipcRenderer.invoke('terminal:kill', sessionId),
+  onData: (listener: (event: TerminalDataEvent) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, payload: TerminalDataEvent): void => listener(payload)
+    ipcRenderer.on('terminal:data', wrapped)
+    return () => { ipcRenderer.removeListener('terminal:data', wrapped) }
+  },
+  onExit: (listener: (event: TerminalExitEvent) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, payload: TerminalExitEvent): void => listener(payload)
+    ipcRenderer.on('terminal:exit', wrapped)
+    return () => { ipcRenderer.removeListener('terminal:exit', wrapped) }
+  }
+})
+
 contextBridge.exposeInMainWorld('ideer', bridge)
+contextBridge.exposeInMainWorld('ideerTerminal', terminalBridge)
