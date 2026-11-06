@@ -16,6 +16,7 @@ export type PanelTypeId =
   | 'sql'
   | 'synapse'
   | 'notifications'
+  | 'templates'
 
 export type PanelRuntime = 'native' | 'webview' | 'pty' | 'webgl'
 

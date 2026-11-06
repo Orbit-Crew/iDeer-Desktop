@@ -573,6 +573,54 @@ export type SchedulesOutcome =
   | { action: 'runs'; runs: ScheduleRunView[] }
   | { action: 'set-skip'; taskId: string; skipOnMissed: boolean }
   | { action: 'preview'; cron: string; timezone: string; occurrences: SchedulePreviewView['occurrences'] }
+/** Issue 84: one prompt template row as the plaza shows it — the Server's
+ * own account-scoped asset, projected with display and prefill facts only.
+ * The content rides the row because a plaza click prefills the composer from
+ * it; nothing here executes or sends. */
+export interface TemplateRowView {
+  id: string
+  name: string
+  category: string
+  content: string
+  usageCount: number
+  visibility: string
+  updatedAt: string
+}
+/**
+ * Issue 84: the plaza's one wire shape. Every reply carries the Server's own
+ * post-action list, so the panel re-reads authoritative state in the same
+ * round; a mutation also carries its outcome flag. New templates land
+ * private on the Server (visibility stays the Server's decision); the
+ * Desktop never widens it and never sends a prefilled draft by itself.
+ */
+export interface TemplateView {
+  templates: TemplateRowView[]
+  created?: boolean
+  updated?: boolean
+  deleted?: boolean
+  used?: boolean
+}
+/** Issue 84: the plaza actions. `use` records one prefill (usage +1); the
+ * prefill itself is a renderer-local draft edit and never auto-sends. */
+export type TemplateCommand =
+  | { action: 'list' }
+  | { action: 'create'; name: string; category: string; content: string }
+  | { action: 'update'; templateId: string; name?: string; category?: string; content?: string }
+  | { action: 'delete'; templateId: string }
+  | { action: 'use'; templateId: string }
+
+/** Issue 84: the `{{变量}}` placeholders a template prefill asks the user to
+ * fill, in first-appearance order, deduplicated. Pure display extraction —
+ * the composer keeps the raw text; filling stays a manual user edit. */
+export function extractTemplateVariables(content: string): string[] {
+  const names: string[] = []
+  for (const match of content.matchAll(/\{\{\s*([^{}\s][^{}]*?)\s*\}\}/g)) {
+    const name = match[1]
+    if (!names.includes(name)) names.push(name)
+    if (names.length >= 32) break
+  }
+  return names
+}
 
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
@@ -670,6 +718,11 @@ export interface DesktopBridge {
    * main process. 补跑/跳过 facts are device-local display truth keyed by the
    * planned point. */
   schedules(command: ScheduleCommand): Promise<SchedulesOutcome>
+  /** Issue 84: the prompt-template plaza — account-scoped CRUD, categories,
+   * usage counts and the `use` prefill record, all on the Server's own
+   * endpoints. A click prefills the composer and never sends; new templates
+   * are the Server's private rows, visible only to their creator. */
+  templates(command: TemplateCommand): Promise<TemplateView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand
@@ -688,11 +741,18 @@ export interface DesktopBridge {
    * of the confirmed workspace; open/reveal resolve the physical path only in
    * the trusted main process and return nothing to the renderer. */
   files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
+  /** Issue 107: the browser pane's partition clear; the confirmation dialog
+   * stays in the trusted main process, so an accidental click never wipes
+   * login state on its own. */
+  browser(command: BrowserCommand): Promise<void>
   /** Issue 77: the main process pushes the full bounded center list after
    * every change; the renderer replaces its view instead of merging. */
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
   /** Issue 77: a notification (toast or center row) asked to open a session. */
   onNotificationActivate(listener: (payload: { id: string; threadId: string }) => void): () => void
+  /** Issue 107: the main process pushes the bounded browser-pane facts; the
+   * renderer renders them as-is and never synthesizes an event of its own. */
+  onBrowserEvents(listener: (event: BrowserPaneEvent) => void): () => void
 }
 
 export interface InstallOutcome {
@@ -776,6 +836,76 @@ export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
 export type FilesPreview =
   | { kind: 'text'; content: string; truncated: boolean }
   | { kind: 'image'; mime: string; data: string }
+
+/**
+ * Issue 107: the local browser pane's one fixed session partition. Login
+ * state, cookies and site data live here — never in the app's default session
+ * (which carries the device's own surfaces) and never in the system browser.
+ * The renderer may only attach webviews with exactly this partition, and the
+ * trusted main process validates that at attachment time.
+ */
+export const BROWSER_PARTITION = 'persist:browser-pane'
+
+/** Issue 107: the browser pane's one invoke entry — clearing the partition.
+ * The confirmation dialog stays in the trusted main process. */
+export type BrowserCommand = { action: 'clear' }
+
+/**
+ * Issue 107: the bounded facts the main process pushes while the browser pane
+ * is in use. Every entry is one observable device-side fact (a denied
+ * permission ask, one download's phase, a blocked navigation, a new-window
+ * request routed to the owning pane, a finished partition clear); nothing
+ * here carries page content, and the pane renders exactly what happened.
+ */
+export type BrowserPaneEvent =
+  | { kind: 'permission'; permission: string; origin: string }
+  | { kind: 'download'; phase: 'started' | 'completed' | 'canceled' | 'interrupted' | 'rejected'; filename: string; reason?: string }
+  | { kind: 'navigation-blocked'; url: string }
+  | { kind: 'window-open'; contentsId: number; url: string }
+  | { kind: 'cleared' }
+
+/** Issue 107: the one Chinese permission wording the pane reads; unmatched
+ * values fall back to the raw wire fact, exactly like the notification labels. */
+export const BROWSER_PERMISSION_LABELS: Record<string, string> = {
+  media: '摄像头/麦克风', geolocation: '地理位置', notifications: '通知',
+  openExternal: '打开外部应用', pointerLock: '鼠标指针锁定', fullScreen: '全屏',
+  'clipboard-read': '读取剪贴板', 'clipboard-sanitized-write': '写入剪贴板',
+  'display-capture': '屏幕捕捉', midiSysex: 'MIDI 设备', mediaKeySystem: '受保护内容(DRM)'
+}
+
+/**
+ * Issue 107: the external-content scheme boundary, shared by the renderer's
+ * address bar and the main process's navigation chokepoint. Only http(s)
+ * documents load in the browser pane; `file:` and every other scheme are not
+ * a browser-pane navigation, because a document outside the web would turn
+ * the pane into a local-file viewer.
+ */
+export function isWebUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Issue 107: the address-bar grammar. A full http(s) URL goes as-is; a bare
+ * host (dotted name, `localhost`, IPv4, optional port/path) becomes an
+ * https:// URL. Anything else — search text, `file:` paths, `javascript:` —
+ * is rejected with no search-engine fallback: the pane navigates where the
+ * user actually names, and inventing a search provider would fabricate a
+ * destination the user never chose.
+ */
+export function sanitizeAddress(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  if (/^https?:\/\//i.test(trimmed)) return isWebUrl(trimmed) ? trimmed : null
+  if (/\s|\\/.test(trimmed)) return null
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*(:\d+)?([/?#].*)?$/i.test(trimmed)) return null
+  const candidate = `https://${trimmed}`
+  return isWebUrl(candidate) ? candidate : null
+}
 
 /** Issue 74: the three session permission tiers; a loaded session always
  * starts at the lowest one and a tier choice never outlives the session. */
