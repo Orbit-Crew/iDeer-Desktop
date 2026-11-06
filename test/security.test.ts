@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
-import BrowserPane from '../src/renderer/src/dock/panels/browserPane'
+import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 
@@ -69,6 +69,11 @@ describe('bootstrap capability boundary', () => {
     // Issue 107 adds desktop:browser for the browser pane's partition clear:
     // the renderer names the action only, and the confirmation dialog plus the
     // storage clearing stay in the trusted main process.
+    // Issue 109 adds desktop:remote-browser for the remote browser entry:
+    // the renderer names the fixed action set (open/close/input/retrieve);
+    // the stream socket, the platform access token and the paired origin
+    // stay inside the bundled Runtime, and a remote file is retrieved only
+    // through the artifact path with the main process's native save dialog.
     // Issue 84 adds desktop:templates for the prompt-template plaza: the
     // rows, their categories, usage counts and visibility live on the
     // Server's own endpoints; creation carries no visibility field (always
@@ -81,40 +86,62 @@ describe('bootstrap capability boundary', () => {
     // Runtime's pinned contract client, a delete is confirmed in the trusted
     // main process, and 补跑/跳过 facts are device-local display truth.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
     // for the browser pane's bounded facts (denied permission asks, download
-    // phases, blocked navigations, routed popups, cleared partitions). All are
+    // phases, blocked navigations, routed popups, cleared partitions).
+    // Issue 109 adds the remote browser's bounded display facts (frames,
+    // url/tabs, honest errors) on their own main-owned channel. All are
     // fixed main-owned names; the preload never subscribes to anything else
     // and never sends on its own.
     expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser:events', 'desktop:notification:activate', 'desktop:notifications'])
+      .toEqual(['desktop:browser:events', 'desktop:notification:activate', 'desktop:notifications', 'desktop:remote-browser:events'])
     expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })
 
-// Issue 71 restores the dock pane framework. Panes that host external content
-// must never reach the trusted bridge from inside a page: the registry maps
-// the still-unwired ones (webview/pty/webgl) to the seam placeholder
-// component, and that component's module graph stays free of the bridge
-// surface. Issue 107 restores the `browser` pane as the one deliberate
-// external-content surface: its chrome is a native component, while every
-// page lives in a webview pinned to the fixed browser partition, validated
-// again by the main process at attachment time (see issue 107's blocks below).
+// Issue 71 restores the dock pane framework. Panes that will one day host
+// external content (webview/pty/webgl) must never reach the trusted bridge:
+// the registry maps them to the seam placeholder component, and that
+// component's module graph stays free of the bridge surface. The main window
+// guards stay closed so no pane can attach a webview around the seam.
+// Issue 107 restores the 本机 browser: every page lives in a webview pinned
+// to the fixed browser partition, validated again by the main process at
+// attachment time (see issue 107's blocks below). Issue 109 adds the 远端
+// browser: its pane embeds no webview and renders only pixel frames drawn by
+// a surface module that stays free of the trusted bridge. Since #136/#139
+// the browser slot hosts BOTH behind one explicit 本机/远端 choice
+// (browserSlotPane) — never a silent switch, never a placeholder.
 describe('dock pane security seam (issue 71)', () => {
-  it('maps every external-content panel type to the seam placeholder component', () => {
-    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native' && p.id !== 'browser')
-    expect(external.map((p) => p.id).sort()).toEqual(['field', 'synapse', 'terminal', 'viewer3d'])
-    for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+  /** Bundles one renderer module exactly like the placeholder check below. */
+  const buildModule = async (entryPoint: string) => {
+    const result = await build({
+      entryPoints: [entryPoint],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    return { metafile: result.metafile, text: result.outputFiles.map((file) => file.text).join('') }
+  }
+
+  it('maps every external-content panel type to the seam placeholder component except the browser slot', async () => {
+    const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    for (const def of external) {
+      expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
+    }
 
     // Issue 107: the browser pane is the one non-native pane with its own
     // component — never the placeholder, never the unwired native pane.
     const browser = PANEL_REGISTRY.find((p) => p.id === 'browser')!
     expect(browser.multiInstance).toBe(true)
     expect(browser.runtime).toBe('webview')
-    expect(browser.component).toBe(BrowserPane)
+    expect(browser.component).toBe(BrowserSlotPane)
 
     // Issue 77 wires the notifications pane; like `runtime` it maps to its
     // own component instead of the unwired placeholder. Issue 94 wires the
@@ -132,6 +159,19 @@ describe('dock pane security seam (issue 71)', () => {
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
     }
+  })
+
+  it('keeps the remote browser screen surface and pane free of embedded content', async () => {
+    const surface = await buildModule('src/renderer/src/dock/panels/remoteBrowser/RemoteScreenSurface.tsx')
+    // The pixel surface's module graph carries no bridge surface at all.
+    expect(Object.keys(surface.metafile.inputs).some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    expect(surface.text).not.toMatch(/window\.ideer|desktop:|ipcRenderer|sendToHost|openExternal|webview/i)
+    const pane = readFileSync('src/renderer/src/dock/panels/remoteBrowserPane.tsx', 'utf8')
+    // The pane never embeds or attaches content: the remote page runs on the
+    // server; the renderer draws frames and forwards gestures, nothing else.
+    expect(pane).not.toMatch(/<webview|sendToHost|openExternal|executeJavaScript|insertCSS|allowpopups/i)
+    const registry = readFileSync('src/renderer/src/dock/panelRegistry.tsx', 'utf8')
+    expect(registry).toContain('BrowserSlotPane')
   })
 
   it('keeps the external-content placeholder module free of the trusted bridge', async () => {

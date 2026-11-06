@@ -2904,6 +2904,7 @@ class DesktopChat:
                 result['deleted'] = True
             return result
 
+<<<<<<< HEAD
     # --- Scheduled-task management (issue 85) -------------------------------
 
     def schedules_manage(self, command):
@@ -2925,6 +2926,21 @@ class DesktopChat:
         if not isinstance(command, dict) or command.get('scope') != session.scope:
             raise SchedulesError('SCHEDULES_IDENTITY_CHANGED')
         return self.scheduled_tasks.manage(command, session)
+=======
+    def browser_stream_session(self, scope):
+        """Issue 109: the live browser stream's identity fence.
+
+        The platform's browser WebSocket belongs to an owned Thread, so the
+        stream may only carry this session's identity. Returns the paired
+        origin and the access token for the Runtime's own proxy thread; the
+        token never leaves this process and is never written anywhere.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(scope, str) or scope != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            return {'origin': session.origin, 'token': session.token}
+>>>>>>> origin/develop
 
     # --- Canonical connector identities (issue 123) -------------------------
 
