@@ -19,7 +19,7 @@ PROJECT_B = 'proj-archived-1'
 
 @contextmanager
 def platform(permissions=('projects:read', 'projects:write', 'projects:delete'),
-             delete_status=204, rename_status=200):
+             delete_status=204, rename_status=200, archive_status=200):
     """A minimal Project-API fixture: one active and one archived project."""
     lock = threading.Lock()
     projects = {
@@ -84,6 +84,8 @@ def platform(permissions=('projects:read', 'projects:write', 'projects:delete'),
                     project_id = self.path.split('/')[3]
                     if project_id not in projects:
                         status, data = 404, {}
+                    elif archive_status != 200:
+                        status, data = archive_status, {}
                     else:
                         status = 200
                         row = projects[project_id]
@@ -210,6 +212,55 @@ def test_delete_removes_platform_project_only(tmp_path):
         # writes — the only local artifacts are the settings the chat session
         # itself already owns, byte-identical before and after.
         assert sorted(path.name for path in config.parent.iterdir()) == before
+
+
+def test_delete_and_archive_leave_workspace_files_and_grants_untouched(tmp_path):
+    """#95 negative path: the platform deleting or archiving a project never
+    reaches this device — workspace files keep their exact bytes, the active
+    directory grant survives untouched, and the chat session stays usable on
+    the same identity afterwards."""
+    from core.file_service import WorkspaceSelection
+    with platform() as (origin, records):
+        chat, _, config = make_chat(tmp_path, origin)
+        work = tmp_path / 'workspace'
+        work.mkdir()
+        (work / 'result.txt').write_text('本地结果\n', encoding='utf-8')
+        (work / 'sub').mkdir()
+        (work / 'sub' / 'nested.bin').write_bytes(b'\x00\x01binary-bytes')
+        selection = WorkspaceSelection(config)
+        selection.select(str(work), confirmed=True)
+        grant = selection.allow_write()
+        grants_before = selection.grants()
+        assert [row['id'] for row in grants_before] == [grant['id']]
+        files_before = sorted((str(path.relative_to(work)), path.read_bytes())
+                              for path in work.rglob('*') if path.is_file())
+        scope = chat.handle({'action': 'state'})['scope']
+        assert chat.projects_manage(wire('delete', scope, projectId=PROJECT_B))['deleted'] is True
+        assert chat.projects_manage(wire('archive', scope, projectId=PROJECT_A))['archived'] is True
+        # Files byte-identical, grant row identical (binding, directory, no revoke stamp).
+        assert sorted((str(path.relative_to(work)), path.read_bytes())
+                      for path in work.rglob('*') if path.is_file()) == files_before
+        assert (work / 'result.txt').read_text(encoding='utf-8') == '本地结果\n'
+        assert selection.grants() == grants_before
+        # The session keeps its identity and stays fully usable.
+        assert chat.handle({'action': 'state'})['scope'] == scope
+        # Exactly the two platform round-trips happened; no local cleanup exists.
+        assert [(method, path) for method, path, _, _ in records
+                if method in ('DELETE', 'POST') and path.startswith('/api/projects/')] == [
+            ('DELETE', f'/api/projects/{PROJECT_B}'), ('POST', f'/api/projects/{PROJECT_A}/archive')]
+
+
+def test_archive_conflict_maps_to_chat_conflict(tmp_path):
+    """#95: the busy-session guard stays intact for project archive too — the
+    platform's own 409 surfaces as the shared CHAT_CONFLICT category."""
+    with platform(archive_status=409) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        with pytest.raises(Exception) as excinfo:
+            chat.projects_manage(wire('archive', scope, projectId=PROJECT_A))
+        assert 'CHAT_CONFLICT' in str(excinfo.value)
+        assert [(method, path) for method, path, _, _ in records
+                if path == f'/api/projects/{PROJECT_A}/archive'] == [('POST', f'/api/projects/{PROJECT_A}/archive')]
 
 
 def test_writes_refused_before_any_call_without_permission(tmp_path):
