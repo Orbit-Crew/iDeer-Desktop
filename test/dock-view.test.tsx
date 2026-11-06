@@ -51,12 +51,20 @@ describe('restored dock on startup', () => {
   })
 })
 
-describe('unwired pane placeholders', () => {
-  it('keeps the browser column position with an honest status', () => {
-    const html = renderToStaticMarkup(<ExternalPanePlaceholder instanceId="inst-x" panelType="browser" />)
-    expect(html).toContain('浏览器窗格未接入')
-    expect(html).toContain('浏览、终端与调度')
-    expect(html).toContain('保留原版入口位置')
+describe('wired pane columns', () => {
+  it('keeps the terminal column position hosting the wired human terminal pane', () => {
+    // Issue 110 接线 terminal 后，占位清单不再包含它：栏位保留，页签条承载
+    // 真实人工终端实例（同一缝的如实状态从占位文案移到已接线窗格）。
+    const pane: Pane = {
+      id: 'pane-t',
+      kind: 'pane',
+      tabs: [{ id: 'tab-1', panelType: 'terminal', title: '终端 1', instanceId: 'inst-1' }],
+      activeTabId: 'tab-1'
+    }
+    const html = renderToStaticMarkup(<PaneFrame pane={pane} />)
+    expect(html).toContain('终端 1')
+    expect(html).toContain('关闭页签')
+    expect(html).not.toContain('终端窗格未接入')
   })
 
   it('renders one tab per instance in the pane tab strip', () => {

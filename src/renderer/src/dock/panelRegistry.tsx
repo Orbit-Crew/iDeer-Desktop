@@ -21,6 +21,7 @@ import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
+import BrowserPane from './panels/browserPane'
 import TerminalPane from './panels/terminalPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
@@ -32,13 +33,15 @@ export function ChatAnchorContent(): JSX.Element {
 
 /**
  * 面板注册表：加载到 dock 里的可组合组件。
- * chat/runtime/files 已接线；其余按原栏目位置注册为如实占位，能力在对应阶段接入。
- * 安全缝（test/security.test.ts）：非 native 窗格必须映射 externalPanes 模块的占位组件。
+ * chat/runtime/files/browser/terminal 已接线；其余按原栏目位置注册为如实占位，能力在对应阶段接入。
+ * 安全缝（test/security.test.ts）：非 native 窗格中只有 browser 映射到自己的 webview
+ * 组件（issue 107，主进程附加守卫+分区钉死）；terminal 由主进程承载的 PTY 窗格（issue 110，
+ * 自带最小桥，不经可信 desktop:* 通道）；其余必须映射 externalPanes 模块的占位组件。
  */
 export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('chat'), icon: <MessageOutlined />, component: ChatAnchorContent },
   { ...getPanelMeta('runtime'), icon: <DesktopOutlined />, component: RuntimePane },
-  { ...getPanelMeta('browser'), icon: <GlobalOutlined />, component: ExternalPanePlaceholder },
+  { ...getPanelMeta('browser'), icon: <GlobalOutlined />, component: BrowserPane },
   // Issue 110: the human terminal — desktop-local PTY in main, xterm.js
   // rendering, its own minimal bridge (never the trusted desktop:* one).
   { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: TerminalPane },
