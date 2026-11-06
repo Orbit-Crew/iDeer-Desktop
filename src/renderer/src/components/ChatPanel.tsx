@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd'
 import type { ChatAttachmentStatus, ChatCommand, ChatSnapshot, ChatSubagent, ChatAttachmentView, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
-import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
+import { messageRoleLabel, SESSION_TIERS, SUBAGENT_STATUS_VIEWS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
 import { WelcomeSection } from './WelcomeSection'
 import { useSessionStore } from '../stores/sessionStore'
@@ -13,12 +13,10 @@ const taskStates: Record<string, string> = { unknown: '结果待核实', result_
   cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
 
 // Issue 76: the labels mirror the platform's own task_* event vocabulary one
-// to one — a state the platform never pushed has no label to borrow.
-const subagentStates: Record<ChatSubagent['status'], { label: string; color: string }> = {
-  running: { label: '执行中', color: 'processing' }, completed: { label: '已完成', color: 'success' },
-  failed: { label: '失败', color: 'error' }, cancelled: { label: '已取消', color: 'warning' },
-  timed_out: { label: '已超时', color: 'warning' }
-}
+// to one — a state the platform never pushed has no view to borrow. Since
+// issue 112 the whole view map (labels + tag colors) lives in
+// shared/desktop.ts (SUBAGENT_STATUS_VIEWS) so the office pane renders the
+// same vocabulary with no room for drift.
 
 // Issue 74: the three session tiers, always shown in the chat area. A loaded
 // session starts at the lowest tier; switching to the full tier is confirmed
@@ -259,8 +257,8 @@ function SubagentProgress({ subagents }: { subagents: ChatSubagent[] }): JSX.Ele
     {ordered.map((row) => <Card size="small" key={row.taskId} type="inner"
       title={<span style={{ overflowWrap: 'anywhere' }}>{row.description || '（平台未提供描述）'}</span>}>
       <Space wrap>
-        <Tag aria-label={`子代理状态 ${subagentStates[row.status].label}`} color={subagentStates[row.status].color}>
-          {subagentStates[row.status].label}</Tag>
+        <Tag aria-label={`子代理状态 ${SUBAGENT_STATUS_VIEWS[row.status].label}`} color={SUBAGENT_STATUS_VIEWS[row.status].color}>
+          {SUBAGENT_STATUS_VIEWS[row.status].label}</Tag>
         {row.agent && <Typography.Text>类型：{row.agent}</Typography.Text>}
         {row.model && <Typography.Text>模型：{row.model}</Typography.Text>}
         {row.step != null && row.totalSteps != null && <Typography.Text>步骤：{row.step}/{row.totalSteps}</Typography.Text>}

@@ -14,7 +14,8 @@ import {
   LineChartOutlined,
   MessageOutlined,
   SearchOutlined,
-  SnippetsOutlined
+  SnippetsOutlined,
+  TeamOutlined
 } from '@ant-design/icons'
 import type { PanelTypeDef, PanelTypeId } from './types'
 import { getPanelMeta } from './panelMeta'
@@ -27,6 +28,7 @@ import TemplatesPane from './panels/templatesPane'
 import TerminalPane from './panels/terminalPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
+import OfficePane from './panels/officePane'
 
 /** chat 锚点内容：桌面平台聊天（无路由，锚点窗格直接承载） */
 export function ChatAnchorContent(): JSX.Element {
@@ -62,7 +64,10 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane },
-  { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane }
+  { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane },
+  // Issue 112: the office pane — a read-only observer of the platform's
+  // Run/subagent events on the trusted chat bridge (zero own IPC surface).
+  { ...getPanelMeta('office'), icon: <TeamOutlined />, component: OfficePane }
 ]
 
 const registryMap = new Map(PANEL_REGISTRY.map((p) => [p.id, p]))
@@ -96,6 +101,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <BellOutlined />
     case 'templates':
       return <SnippetsOutlined />
+    case 'office':
+      return <TeamOutlined />
     default:
       return <FolderOpenOutlined />
   }
