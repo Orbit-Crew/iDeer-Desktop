@@ -10,7 +10,7 @@
 // and nothing in this module touches receipts, approvals or notifications:
 // a human driving their own terminal is free (no per-step audit).
 import { randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { spawn as ptySpawn, type IPty } from 'node-pty'
 import { MAX_TERMINAL_SESSIONS, MAX_TERMINAL_WRITE, type ProjectBindingView, type TerminalDataEvent, type TerminalExitEvent } from '../shared/desktop'
@@ -19,20 +19,26 @@ export type { TerminalDataEvent, TerminalExitEvent }
 
 export interface TerminalSpawnView { sessionId: string }
 
+/** A bound folder counts only while it is really a directory: a vanished
+ * entry, a file that replaced it, or an unreadable path all fall through. */
+function isDirectoryAt(path: string): boolean {
+  try { return statSync(path).isDirectory() } catch { return false }
+}
+
 /**
  * Issue 92: the terminal's start-dir chain (decision #59.2, now wired). The
  * selected project's bound folder comes first — the binding is the 起始输入
  * the issue names — then the confirmed workspace locate, and the caller's
  * user-home fallback last. The path resolves here in the trusted process
  * from the Runtime's own binding snapshot: the renderer supplies an id
- * selector only, a vanished folder falls through, and no path is ever handed
- * back to the renderer.
+ * selector only, a vanished or non-directory folder falls through, and no
+ * path is ever handed back to the renderer.
  */
 export async function startDirForProject(projectId: string,
     bindings: ProjectBindingView[] | undefined, workspace: () => Promise<string>,
-    exists: (path: string) => boolean = existsSync): Promise<string> {
+    isDirectory: (path: string) => boolean = isDirectoryAt): Promise<string> {
   const row = projectId ? bindings?.find((binding) => binding.projectId === projectId) : undefined
-  if (row && row.path && exists(row.path)) return row.path
+  if (row && row.path && isDirectory(row.path)) return row.path
   return workspace()
 }
 

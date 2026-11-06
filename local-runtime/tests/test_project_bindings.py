@@ -70,6 +70,21 @@ def test_rebind_replaces_the_path_and_unbind_clears_it(tmp_path):
     assert registry.clear(BINDING_A, 'proj-1') is False
 
 
+def test_set_refuses_an_oversized_path_instead_of_truncating(tmp_path):
+    from core.project_binding import ProjectBindingError
+    registry = make_registry(tmp_path)
+    # The wire gates cap the path at 1024, so direct registry misuse is the
+    # only way to get here: refuse the row outright rather than silently
+    # storing a truncated folder that never matches the confirmed dialog path.
+    with pytest.raises(ProjectBindingError) as excinfo:
+        registry.set(BINDING_A, 'proj-1', 'C:\\' + 'x' * 1024, '本机设备')
+    assert 'PROJECT_BINDING_OVERFLOW' in str(excinfo.value)
+    assert registry.view(BINDING_A) == []
+    with pytest.raises(ProjectBindingError):
+        registry.set(BINDING_A, 'proj-1', str(tmp_path), 'x' * 1025)
+    assert registry.view(BINDING_A) == []
+
+
 def test_other_device_never_sees_the_binding(tmp_path):
     registry = make_registry(tmp_path)
     registry.set(BINDING_A, 'proj-1', str(tmp_path / 'folder'), '设备一')

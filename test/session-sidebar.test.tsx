@@ -243,10 +243,10 @@ describe('project folder bindings (#92)', () => {
   it('shows the bound path with device attribution next to the project', async () => {
     stubIdeer(() => Promise.resolve(threadView()), {
       ...projectDirectory(),
-      bindings: [{ projectId: 'proj-1', path: 'C:\work\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
+      bindings: [{ projectId: 'proj-1', path: 'C:\\work\\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
     })
     await openManage()
-    expect(await screen.findByText(/已绑定：C:\work\proj/)).toBeTruthy()
+    expect(await screen.findByText(/已绑定：C:\\work\\proj/)).toBeTruthy()
     expect(screen.getByText(/本设备：本机设备/)).toBeTruthy()
     // A bound row is exactly this device's own record; the cross-device note
     // only explains the unbound state.
@@ -272,7 +272,7 @@ describe('project folder bindings (#92)', () => {
   it('unbinds through the same family round', async () => {
     const { projectCalls } = stubIdeer(() => Promise.resolve(threadView()), {
       ...projectDirectory(),
-      bindings: [{ projectId: 'proj-1', path: 'C:\work\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
+      bindings: [{ projectId: 'proj-1', path: 'C:\\work\\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
     })
     await openManage()
     fireEvent.click(await screen.findByRole('button', { name: '解除项目文件夹绑定 工程项目' }))

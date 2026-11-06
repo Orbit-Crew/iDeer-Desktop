@@ -641,7 +641,11 @@ if (!app.requestSingleInstanceLock()) {
             detail: '文件工具（列举/读取/写入）以确认的工作目录为边界。可以稍后在文件面板中另行选择或更换。',
             buttons: ['暂不', '设为工作目录'], defaultId: 0, cancelId: 0, noLink: true
           })
-          if (offer.response === 1) {
+          // Re-read after the modal: a workspace may have become ready while
+          // it was open (another chooser round, a reconnect) — an accepted
+          // offer must never overwrite it. Failures stay swallowed: the bind
+          // is already committed and the chooser remains authoritative.
+          if (offer.response === 1 && runtime.status().workspace?.state !== 'ready') {
             try { await runtime.selectWorkspace(chosen.filePaths[0], runtime.workspaceScope()) } catch { /* optional offer; the chooser stays authoritative */ }
           }
         }
