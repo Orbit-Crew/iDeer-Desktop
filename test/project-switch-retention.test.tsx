@@ -64,7 +64,10 @@ describe('project switch keeps the original session and its approval reachable (
       action: 'consent', scope: 'identity', threadId: 'thread-A', runId: 'run-1',
       taskId: 'task-9', decision: 'allow', requestHash: 'a'.repeat(64)
     })
-  })
+    // 15 s: the poll loop at 500 ms cadence plus the antd card render
+    // legitimately outrun the 5 s default when a live-bridge test shares the
+    // runner (same per-test extension as session-sidebar).
+  }, 15000)
 
   it('opens the approval-holding session through the sidebar handshake while another project is selected', async () => {
     let open = ''
@@ -87,7 +90,7 @@ describe('project switch keeps the original session and its approval reachable (
       .toEqual({ action: 'open', scope: 'identity', threadId: 'thread-A' })
     expect(screen.getByText('本机文件写入审批')).toBeTruthy()
     expect(screen.getByRole('button', { name: '仅允许这一次' })).toBeTruthy()
-  })
+  }, 15000)
 })
 
 describe('notification jump-back reaches the original session under any project view (#95)', () => {
