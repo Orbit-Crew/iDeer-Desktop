@@ -2553,6 +2553,110 @@ class DesktopChat:
                     accountDefault=self._account_default(session, 0.0),
                     fallback=stored if isinstance(stored, str) and len(stored) <= 200 else '')
 
+    # --- Prompt-template plaza (issue 84) ------------------------------------
+
+    def _template_rows(self, session):
+        """The Server's own account template rows, bounded for display (#84).
+
+        Content rides the row because a plaza click prefills the composer
+        from it; visibility stays the Server's own fact. A malformed row is
+        dropped, never repaired — the display never impersonates a template
+        the Server did not state.
+        """
+        listing = self._json(session, '/api/templates')
+        raw = listing.get('templates') if isinstance(listing, dict) else None
+        if not isinstance(raw, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        rows = []
+        for row in raw[:200]:
+            if not isinstance(row, dict) or not isinstance(row.get('id'), str) or not row['id'] \
+                    or len(row['id']) > 128 or not isinstance(row.get('name'), str) or not row['name'] \
+                    or not isinstance(row.get('category'), str) or not isinstance(row.get('content'), str) \
+                    or type(row.get('usage_count')) is not int or row['usage_count'] < 0 \
+                    or not isinstance(row.get('visibility'), str) \
+                    or not isinstance(row.get('updated_at'), str):
+                continue
+            rows.append(dict(id=row['id'], name=row['name'][:200], category=row['category'][:64],
+                             content=row['content'][:16000],
+                             usageCount=min(row['usage_count'], 1000000000),
+                             visibility=row['visibility'][:32], updatedAt=row['updated_at'][:64]))
+        return rows
+
+    def templates_manage(self, command):
+        """Relay one prompt-template plaza command to the Server's own endpoints (#84).
+
+        Templates are the account's own prompt assets (decision ticket #56):
+        the rows, their categories, usage counts and visibility live
+        Server-side, and a creation is always private — this relay carries no
+        visibility field at all, so the Desktop cannot widen one. The wire
+        always carries the chat session scope the Runtime last reported and
+        this relay re-fences it against a freshly computed session, so a
+        stale identity is rejected. Every reply re-reads the Server's own
+        post-action list in the same round; `use` only records one prefill
+        (+1) — the prefill itself is the renderer's local draft edit and
+        never a send.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(command, dict) or command.get('scope') != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            action = command.get('action')
+            if action == 'list':
+                expected = {'type', 'id', 'action', 'scope'}
+            elif action == 'create':
+                name, category, content = command.get('name'), command.get('category'), command.get('content')
+                if not isinstance(name, str) or not 1 <= len(name.strip()) <= 200 \
+                        or not isinstance(category, str) or len(category) > 64 \
+                        or not isinstance(content, str) or not content.strip() or len(content) > 16000:
+                    raise ChatError('CHAT_COMMAND_INVALID')
+                expected = {'type', 'id', 'action', 'name', 'category', 'content', 'scope'}
+            elif action == 'update':
+                self._id(command.get('templateId'))
+                expected = {'type', 'id', 'action', 'templateId', 'scope'}
+                fields = {}
+                for key, limit in (('name', 200), ('category', 64), ('content', 16000)):
+                    value = command.get(key)
+                    if value is None:
+                        continue
+                    # Category rides raw (empty clears back to 未分类); name
+                    # and content must be non-blank and are measured stripped.
+                    if not isinstance(value, str) or (key != 'category' and not value.strip()) \
+                            or len(value.strip()) > limit:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    fields[key] = value.strip() if key == 'name' else value
+                    expected = expected | {key}
+                if not fields:
+                    raise ChatError('CHAT_COMMAND_INVALID')
+            elif action in {'delete', 'use'}:
+                self._id(command.get('templateId'))
+                expected = {'type', 'id', 'action', 'templateId', 'scope'}
+            else:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if set(command) != expected:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            if action == 'create':
+                self._json(session, '/api/templates',
+                           {'name': command['name'].strip(), 'category': command['category'],
+                            'content': command['content']})
+            elif action == 'update':
+                self._json(session, f"/api/templates/{self._id(command['templateId'])}", fields, method='PATCH')
+            elif action == 'delete':
+                self._json(session, f"/api/templates/{self._id(command['templateId'])}", None, method='DELETE')
+            elif action == 'use':
+                outcome = self._json(session, f"/api/templates/{self._id(command['templateId'])}/use", {})
+                if not isinstance(outcome, dict) or outcome.get('used') is not True:
+                    raise ChatError('CHAT_PROTOCOL_ERROR')
+            result = dict(templates=self._template_rows(session))
+            if action == 'create':
+                result['created'] = True
+            elif action == 'update':
+                result['updated'] = True
+            elif action == 'delete':
+                result['deleted'] = True
+            elif action == 'use':
+                result['used'] = True
+            return result
+
     def models_manage(self, command):
         """Relay one model-settings command to the platform's own endpoints (#73).
 
@@ -2790,6 +2894,20 @@ class DesktopChat:
             elif action == 'delete':
                 result['deleted'] = True
             return result
+
+    def browser_stream_session(self, scope):
+        """Issue 109: the live browser stream's identity fence.
+
+        The platform's browser WebSocket belongs to an owned Thread, so the
+        stream may only carry this session's identity. Returns the paired
+        origin and the access token for the Runtime's own proxy thread; the
+        token never leaves this process and is never written anywhere.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(scope, str) or scope != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            return {'origin': session.origin, 'token': session.token}
 
     # --- Canonical connector identities (issue 123) -------------------------
 

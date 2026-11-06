@@ -80,12 +80,15 @@ async function main() {
     assert.match(initialText, /本机 Runtime/)
     assert.match(initialText, /设备连接：/)
     assert.equal(await page.title(), 'iDeer Desktop')
+    // Issue 107 adds the browser pane entry (browser + onBrowserEvents);
+    // issue 109 adds the remote browser entry (remoteBrowser +
+    // onRemoteBrowserEvents) — the two push channels never merge.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications',
-      'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility',
-      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
+      'manage', 'models', 'notifications', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents',
+      'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser',
+      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

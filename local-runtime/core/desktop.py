@@ -6,12 +6,15 @@ import base64
 import json
 import platform
 import queue
+import re
 import sys
 import threading
+import uuid
 from pathlib import Path
 
 from .audit import LocalAuditLog
 from .browser_login import BrowserLogin
+from .browser_remote import BrowserStreamProxy, normalize_input_event
 from .compatibility import CompatibilityGate
 from .connector_install import ConnectorInstallError
 from .local_results import LocalResultRegistry
@@ -82,9 +85,16 @@ def main() -> int:
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
     model_commands: queue.Queue = queue.Queue(maxsize=1)
+    template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 109: the remote browser's stream lifecycle rides one slot like the
+    # other session families; input forwarding is high-rate by design and
+    # gets its own bounded queue instead.
+    browser_stream_commands: queue.Queue = queue.Queue(maxsize=1)
+    browser_input_commands: queue.Queue = queue.Queue(maxsize=256)
+    browser_streams: dict = {}
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -255,6 +265,39 @@ def main() -> int:
                              and len(command['modelName']) <= 200)):
                     model_commands.put_nowait(command)
                     continue
+                # Issue 84: the prompt-template plaza. A fixed per-action key
+                # set only; the rows and their visibility live Server-side.
+                if (isinstance(command, dict) and command.get('type') == 'templates'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'create', 'update', 'delete', 'use'}
+                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                             or command['action'] == 'create'
+                             and set(command) == {'type', 'id', 'action', 'name', 'category', 'content', 'scope'}
+                             and isinstance(command.get('name'), str)
+                             and 0 < len(command['name'].strip()) <= 200
+                             and isinstance(command.get('category'), str)
+                             and len(command['category']) <= 64
+                             and isinstance(command.get('content'), str)
+                             and 0 < len(command['content'].strip()) <= 16000
+                             or command['action'] in {'delete', 'use'}
+                             and set(command) == {'type', 'id', 'action', 'templateId', 'scope'}
+                             and isinstance(command.get('templateId'), str)
+                             and 0 < len(command['templateId']) <= 128
+                             or command['action'] == 'update'
+                             and isinstance(command.get('templateId'), str)
+                             and 0 < len(command['templateId']) <= 128
+                             and {'type', 'id', 'action', 'templateId', 'scope'} <= set(command)
+                             and set(command) <= {'type', 'id', 'action', 'templateId', 'name',
+                                                  'category', 'content', 'scope'}
+                             and len(set(command)) >= 6
+                             and all(isinstance(command.get(key), str) for key in
+                                     ('name', 'category', 'content') if key in command)
+                             and all(0 < len(command[key].strip()) <= 200 for key in ('name',) if key in command)
+                             and all(len(command[key]) <= 64 for key in ('category',) if key in command)
+                             and all(0 < len(command[key].strip()) <= 16000 for key in ('content',) if key in command))):
+                    template_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'scope'},
                         {'type', 'id', 'action', 'path', 'confirmed', 'scope'},
@@ -285,6 +328,29 @@ def main() -> int:
                         and isinstance(command['path'], str) and 0 < len(command['path']) <= 4096
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     files_commands.put_nowait(command)
+                    continue
+                # Issue 109: the remote browser stream. Open names the owned
+                # Thread plus the chat session scope (the fence re-checks it);
+                # close needs nothing else. Input events are shape-checked in
+                # the handler, where the bounded event vocabulary lives.
+                if (isinstance(command, dict)
+                        and command.get('type') == 'browser-stream'
+                        and command.get('action') in {'open', 'close'}
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and (command['action'] == 'close' and set(command) == {'type', 'id', 'action'}
+                             or command['action'] == 'open'
+                             and set(command) == {'type', 'id', 'action', 'threadId', 'scope'}
+                             and isinstance(command['threadId'], str)
+                             and re.fullmatch(r'[A-Za-z0-9_-]{1,128}', command['threadId'])
+                             and isinstance(command['scope'], str) and 0 < len(command['scope']) <= 128)):
+                    browser_stream_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'streamId', 'event'}
+                        and command['type'] == 'browser-input'
+                        and isinstance(command['id'], str) and len(command['id']) <= 64
+                        and isinstance(command['streamId'], str) and 0 < len(command['streamId']) <= 64
+                        and isinstance(command['event'], dict)):
+                    browser_input_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
@@ -683,6 +749,22 @@ def main() -> int:
                 emit({'v': 1, 'type': 'models', 'id': model_command['id'],
                       'result': result, 'error': error})
             try:
+                template_command = template_commands.get_nowait()
+            except queue.Empty:
+                template_command = None
+            if template_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.templates_manage(template_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; a
+                    # server detail never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith('CHAT_') else 'TEMPLATE_FAILED'
+                emit({'v': 1, 'type': 'templates', 'id': template_command['id'],
+                      'result': result, 'error': error})
+            try:
                 connector_command = connector_commands.get_nowait()
             except queue.Empty:
                 connector_command = None
@@ -738,6 +820,59 @@ def main() -> int:
                 except Exception:
                     error = 'FILES_FAILED'
                 emit({'v': 1, 'type': 'files', 'id': browse['id'], 'result': result, 'error': error})
+            # Issue 109: the remote browser's stream lifecycle. The origin and
+            # the access token come from the chat session's own secure store
+            # through the identity fence; the proxy thread is the only client
+            # of the platform socket. A replacement close is silent here — the
+            # Desktop hub announces it — while identity loss is announced by
+            # the status tick below.
+            try:
+                stream_command = browser_stream_commands.get_nowait()
+            except queue.Empty:
+                stream_command = None
+            if stream_command:
+                error = ''
+                result = None
+                try:
+                    if stream_command['action'] == 'close':
+                        for old in list(browser_streams.values()):
+                            old.close()
+                        browser_streams.clear()
+                        result = {}
+                    else:
+                        if login.status()['state'] != 'authenticated':
+                            raise ValueError('REMOTE_BROWSER_UNAUTHENTICATED')
+                        session = chat.browser_stream_session(stream_command['scope'])
+                        for old in list(browser_streams.values()):
+                            old.close()
+                        browser_streams.clear()
+                        stream_id = uuid.uuid4().hex
+                        proxy = BrowserStreamProxy(
+                            session['origin'], session['token'], stream_command['threadId'],
+                            lambda event, _id=stream_id: emit(
+                                {'v': 1, 'type': 'browser-stream-event', 'streamId': _id, 'event': event}))
+                        proxy.start()
+                        browser_streams[stream_id] = proxy
+                        result = {'streamId': stream_id}
+                except Exception as exc:
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'REMOTE_BROWSER_')) else 'REMOTE_BROWSER_FAILED'
+                emit({'v': 1, 'type': 'browser-stream', 'id': stream_command['id'], 'result': result, 'error': error})
+            try:
+                input_command = browser_input_commands.get_nowait()
+            except queue.Empty:
+                input_command = None
+            if input_command:
+                error = ''
+                try:
+                    proxy = browser_streams.get(input_command['streamId'])
+                    if proxy is None or not proxy.send_input(input_command['event']):
+                        raise ValueError('REMOTE_BROWSER_STREAM_NOT_OPEN')
+                except ValueError as exc:
+                    error = str(exc)
+                except Exception:
+                    error = 'REMOTE_BROWSER_INPUT_FAILED'
+                emit({'v': 1, 'type': 'browser-input', 'id': input_command['id'], 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
@@ -770,6 +905,14 @@ def main() -> int:
                 login.fail(str(exc) if str(exc) in allowed else "LOGIN_FAILED")
             if controller is not None and login.status()["state"] != "authenticated":
                 stop_controller()
+            # Issue 109: identity loss ends every live browser stream with
+            # one honest announcement; nothing else closes a stream loudly.
+            if browser_streams and login.status()["state"] != "authenticated":
+                for old_id, old in list(browser_streams.items()):
+                    old.close()
+                    del browser_streams[old_id]
+                    emit({'v': 1, 'type': 'browser-stream-event', 'streamId': old_id,
+                          'event': {'kind': 'state', 'state': 'closed', 'code': 1000, 'category': 'IDENTITY_CHANGED'}})
             current_receipt_owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
             try:
                 knowledge_rows = knowledge_imports.view(current_receipt_owner) if current_receipt_owner else []

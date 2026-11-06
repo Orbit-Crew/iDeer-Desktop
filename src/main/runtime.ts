@@ -2,9 +2,10 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
+import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -31,6 +32,7 @@ export class RuntimeProcess {
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
   private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
+  private templateRequests = new Map<string, { resolve: (view: TemplateView) => void; reject: (error: Error) => void; action: TemplateCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
@@ -41,6 +43,13 @@ export class RuntimeProcess {
   private filesRequests = new Map<string, { resolve: (view: FilesListView | FilesPreview | { physical: string }) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
+  /** Issue 109: the remote browser stream's open/close rides one slot like
+   * the other session families; input forwarding is high-rate by design and
+   * stays a bounded map instead. */
+  private browserStreamRequest: { id: string; action: 'open' | 'close'; resolve: (ack: RemoteBrowserStreamAck) => void; reject: (error: Error) => void } | null = null
+  private browserInputRequests = new Map<string, { resolve: () => void; reject: (error: Error) => void }>()
+  private remoteBrowserHandler: ((message: { streamId: string; event: RemoteBrowserStreamMessage['event'] }) => void) | null = null
+  onRemoteBrowserEvent(handler: (message: RemoteBrowserStreamMessage) => void): void { this.remoteBrowserHandler = handler }
   /** Issue 77: background-session facts the Runtime reports between polls. */
   private notifyHandler: ((event: RuntimeNotifyEvent) => void) | null = null
   onNotify(handler: (event: RuntimeNotifyEvent) => void): void { this.notifyHandler = handler }
@@ -165,6 +174,58 @@ export class RuntimeProcess {
       })
       this.child!.stdin.write(JSON.stringify({ type: 'files', id, action, path, scope: this.selectionScope }) + '\n')
     })
+  }
+
+  /**
+   * Issue 109: the remote browser stream's control path. The socket, the
+   * access-token cookie and the paired origin all live inside the bundled
+   * Runtime; main only names the fixed action set. Open/close ride one slot
+   * (like the other session families) and shape-check before anything else;
+   * input forwarding is high-rate by design and skips the single-slot gate.
+   */
+  async remoteBrowser(command: RemoteBrowserWireCommand): Promise<RemoteBrowserStreamAck> {
+    if (!command || typeof command !== 'object') throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+    if (command.kind === 'stream') {
+      if (command.action !== 'open' && command.action !== 'close') throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+      if (command.action === 'open') {
+        if (typeof command.threadId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.threadId)) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+        if (typeof command.scope !== 'string' || command.scope.length < 1 || command.scope.length > 128) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+      }
+      if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+      if (this.snapshot.login?.state !== 'authenticated') throw new Error('REMOTE_BROWSER_UNAUTHENTICATED')
+      if (this.browserStreamRequest) throw new Error('REMOTE_BROWSER_BUSY')
+      const id = randomUUID()
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { this.browserStreamRequest = null; reject(new Error('REMOTE_BROWSER_TIMEOUT')) }, 15000)
+        this.browserStreamRequest = {
+          id,
+          action: command.action,
+          resolve: (ack) => { clearTimeout(timer); this.browserStreamRequest = null; resolve(ack) },
+          reject: (error) => { clearTimeout(timer); this.browserStreamRequest = null; reject(error) }
+        }
+        const wire: Record<string, unknown> = { type: 'browser-stream', id, action: command.action }
+        if (command.action === 'open') { wire.threadId = command.threadId; wire.scope = command.scope }
+        this.child!.stdin.write(JSON.stringify(wire) + '\n')
+      })
+    }
+    if (command.kind === 'input') {
+      if (typeof command.streamId !== 'string' || command.streamId.length < 1 || command.streamId.length > 64) throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+      validateRemoteBrowserInput(command.event)
+      if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+      // The bounded in-flight set mirrors the Runtime's own input queue; a
+      // flood overflows into an explicit error instead of unbounded memory.
+      if (this.browserInputRequests.size >= 256) throw new Error('REMOTE_BROWSER_BUSY')
+      const id = randomUUID()
+      return new Promise<RemoteBrowserStreamAck>((resolve, reject) => {
+        const timer = setTimeout(() => { this.browserInputRequests.delete(id); reject(new Error('REMOTE_BROWSER_TIMEOUT')) }, 15000)
+        this.browserInputRequests.set(id, {
+          resolve: () => { clearTimeout(timer); this.browserInputRequests.delete(id); resolve({ acknowledged: true }) },
+          reject: (error) => { clearTimeout(timer); this.browserInputRequests.delete(id); reject(error) }
+        })
+        this.child!.stdin.write(JSON.stringify({ type: 'browser-input', id, streamId: command.streamId, event: command.event }) + '\n')
+      })
+    }
+    throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
   }
 
   /** Issue 112: one explicit local import; identity manifest only, never content. */
@@ -452,6 +513,74 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.threadRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.threadRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 84: the prompt-template plaza. The wire command is a fixed
+   * per-action key set that only reaches the owned Runtime and on to the
+   * platform's own template endpoints, and always carries the chat session
+   * scope the Runtime itself last reported so Python can re-fence the
+   * identity. Every reply carries the Server's own post-action list; the
+   * renderer's prefill is a local draft edit and the `use` action only
+   * records the usage count — no text rides back to the platform as a send
+   * from this family.
+   */
+  async templates(command: TemplateCommand): Promise<TemplateView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('TEMPLATE_COMMAND_INVALID')
+    if (!['list', 'create', 'update', 'delete', 'use'].includes(command.action)) throw new Error('TEMPLATE_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'templates', id: '', action: command.action }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('TEMPLATE_COMMAND_INVALID')
+    } else if (command.action === 'create') {
+      const name = typeof command.name === 'string' ? command.name.trim() : ''
+      if (!name || name.length > 200 || typeof command.category !== 'string' || command.category.length > 64 ||
+          typeof command.content !== 'string' || !command.content.trim() || command.content.length > 16000 ||
+          Object.keys(command).length !== 4) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.name = name
+      wire.category = command.category
+      wire.content = command.content
+    } else if (command.action === 'update') {
+      if (typeof command.templateId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.templateId)) throw new Error('TEMPLATE_COMMAND_INVALID')
+      const fields: Record<string, string> = {}
+      let provided = 0
+      if (command.name !== undefined) {
+        const name = typeof command.name === 'string' ? command.name.trim() : ''
+        if (!name || name.length > 200) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.name = name
+        provided += 1
+      }
+      if (command.category !== undefined) {
+        if (typeof command.category !== 'string' || command.category.length > 64) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.category = command.category
+        provided += 1
+      }
+      if (command.content !== undefined) {
+        if (typeof command.content !== 'string' || !command.content.trim() || command.content.length > 16000) throw new Error('TEMPLATE_COMMAND_INVALID')
+        fields.content = command.content
+        provided += 1
+      }
+      if (provided === 0 || Object.keys(command).length !== 2 + provided) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.templateId = command.templateId
+      Object.assign(wire, fields)
+    } else {
+      if (typeof command.templateId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.templateId) ||
+          Object.keys(command).length !== 2) throw new Error('TEMPLATE_COMMAND_INVALID')
+      wire.templateId = command.templateId
+    }
+    if (this.templateRequests.size) throw new Error('TEMPLATE_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.chatScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.templateRequests.delete(id); reject(new Error('TEMPLATE_TIMEOUT')) }, 30000)
+      this.templateRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.templateRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.templateRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -1147,6 +1276,41 @@ export class RuntimeProcess {
               : { threads, permissions })
             continue
           }
+          if (value.v === 1 && value.type === 'templates') {
+            // Issue 84: the Server's own post-action template list, bounded
+            // before it reaches the renderer. Rows carry prefill facts only;
+            // the click's send never happens here — `use` is a count record.
+            const pending = this.templateRequests.get(value.id)
+            if (!pending) continue
+            this.templateRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || !Array.isArray(result.templates)) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'create' && result.created !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'update' && result.updated !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'delete' && result.deleted !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            if (pending.action === 'use' && result.used !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+            const idPattern = /^[A-Za-z0-9_-]{1,128}$/
+            const templates: TemplateRowView[] = []
+            for (const row of result.templates.slice(0, 200)) {
+              if (!row || typeof row.id !== 'string' || !idPattern.test(row.id) ||
+                  typeof row.name !== 'string' || !row.name ||
+                  typeof row.category !== 'string' || typeof row.content !== 'string' ||
+                  !Number.isSafeInteger(row.usageCount) || row.usageCount < 0 ||
+                  typeof row.visibility !== 'string' || typeof row.updatedAt !== 'string') throw new Error('Invalid template row')
+              templates.push({ id: row.id, name: row.name.slice(0, 200), category: row.category.slice(0, 64),
+                content: row.content.slice(0, 16000),
+                usageCount: Math.min(row.usageCount, 1000000000),
+                visibility: row.visibility.slice(0, 32), updatedAt: row.updatedAt.slice(0, 64) })
+            }
+            const view: TemplateView = { templates }
+            if (pending.action === 'create') view.created = true
+            if (pending.action === 'update') view.updated = true
+            if (pending.action === 'delete') view.deleted = true
+            if (pending.action === 'use') view.used = true
+            pending.resolve(view)
+            continue
+          }
           if (value.v === 1 && value.type === 'connectors') {
             // Issue 123: the connector installer's fixed categories and
             // identity-only projections. Paths, package bytes and the
@@ -1301,6 +1465,35 @@ export class RuntimeProcess {
             // identity the chat session itself last reported.
             this.chatScope = result.scope
             this.chatRequests.get(value.id)?.resolve(result)
+            continue
+          }
+          if (value.v === 1 && value.type === 'browser-stream') {
+            const pending = this.browserStreamRequest
+            if (!pending || value.id !== pending.id) continue
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            if (pending.action === 'open') {
+              const streamId = value.result?.streamId
+              if (typeof streamId !== 'string' || streamId.length < 1 || streamId.length > 64) throw new Error('Invalid browser stream reply')
+              pending.resolve({ streamId })
+              continue
+            }
+            pending.resolve({ acknowledged: true })
+            continue
+          }
+          if (value.v === 1 && value.type === 'browser-input') {
+            const pending = this.browserInputRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.browserInputRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            pending.resolve()
+            continue
+          }
+          if (value.v === 1 && value.type === 'browser-stream-event') {
+            // Issue 109: every push is projected through the bounded parser;
+            // anything malformed means the wire protocol itself failed and
+            // kills the child, exactly like every other family.
+            const message = parseRemoteBrowserStreamWire(value)
+            if (!message) throw new Error('Invalid browser stream event')
+            this.remoteBrowserHandler?.(message)
             continue
           }
           if (value.v === 1 && value.type === 'notify') {
@@ -1495,6 +1688,10 @@ export class RuntimeProcess {
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      // Issue 109: a dead child ends the remote browser's pending lifecycle
+      // request and every in-flight input forward immediately.
+      this.browserStreamRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.browserInputRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       clearInterval(watch)
       this.child = null
       this.snapshot = { process: this.stopping ? 'stopped' : 'crashed', connection: 'offline', tasks: [] }

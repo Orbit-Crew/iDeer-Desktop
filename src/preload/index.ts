@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, RemoteBrowserCommand, RemoteBrowserEvent, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -20,6 +20,10 @@ const bridge: DesktopBridge = Object.freeze({
   skillScripts: (command: SkillScriptCommand) => ipcRenderer.invoke('desktop:skill-scripts', command),
   models: (command: ModelCommand) => ipcRenderer.invoke('desktop:models', command),
   threads: (command: ThreadCommand) => ipcRenderer.invoke('desktop:threads', command),
+  // Issue 84: the prompt-template plaza. The renderer names CRUD/use actions
+  // only; the Server's own endpoints hold the rows, and a delete is
+  // confirmed in the trusted main process before it reaches the wire.
+  templates: (command: TemplateCommand) => ipcRenderer.invoke('desktop:templates', command),
   connectors: (command: ConnectorCommand) => ipcRenderer.invoke('desktop:connectors', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
@@ -32,6 +36,10 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 94: the human file-browsing seam — logical workspace paths only;
   // open/reveal resolve to physical paths inside the trusted main process.
   files: (command: FilesCommand) => ipcRenderer.invoke('desktop:files', command),
+  // Issue 109: the remote browser entry — stream lifecycle, input forwarding
+  // and the explicit remote-file retrieval; the screen itself arrives on the
+  // one push channel below as pixels and can never send anything back.
+  remoteBrowser: (command: RemoteBrowserCommand) => ipcRenderer.invoke('desktop:remote-browser', command),
   // Issue 107: the browser pane's clear entry; the confirmation stays in the
   // trusted main process.
   browser: (command: BrowserCommand) => ipcRenderer.invoke('desktop:browser', command),
@@ -44,6 +52,13 @@ const bridge: DesktopBridge = Object.freeze({
     const wrapped = (_event: Electron.IpcRendererEvent, payload: { id: string; threadId: string }): void => listener(payload)
     ipcRenderer.on('desktop:notification:activate', wrapped)
     return () => { ipcRenderer.removeListener('desktop:notification:activate', wrapped) }
+  },
+  // Issue 109: the remote browser's one push channel — bounded main-owned
+  // display facts (frames, url/tabs, honest errors); no renderer reply exists.
+  onRemoteBrowserEvents: (listener: (event: RemoteBrowserEvent) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, event: RemoteBrowserEvent): void => listener(event)
+    ipcRenderer.on('desktop:remote-browser:events', wrapped)
+    return () => { ipcRenderer.removeListener('desktop:remote-browser:events', wrapped) }
   },
   // Issue 107: the one push channel for the browser pane's bounded facts.
   onBrowserEvents: (listener: (event: BrowserPaneEvent) => void) => {
