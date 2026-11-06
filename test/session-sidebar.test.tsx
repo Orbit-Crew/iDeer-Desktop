@@ -102,12 +102,19 @@ describe('session sidebar management (#72)', () => {
   it('deletes after the inline confirm and re-reads the platform list', async () => {
     const { calls } = stubIdeer(() => Promise.resolve(threadView()))
     render(<Sidebar />)
-    fireEvent.click(await screen.findByRole('button', { name: '删除会话 Beta 会话' }))
-    fireEvent.click(await screen.findByRole('button', { name: /^删\s*除$/ }))
-    await waitFor(() => expect(calls.some((command) => (command as { action: string }).action === 'delete')).toBe(true))
+    // Every async wait is deadline-bounded (the same hardening as #95's
+    // retention tests): the list load renders the delete button
+    // asynchronously, the inline confirm mounts after the click, and the
+    // delete command rides the store's own round-trip — fast machines finish
+    // on the first retry, a slow CI runner gets the full 15 s budget before
+    // any wait trips. The semantics stay exact: delete → inline confirm →
+    // the platform re-read the delete reply triggers.
+    fireEvent.click(await screen.findByRole('button', { name: '删除会话 Beta 会话' }, { timeout: 15000 }))
+    fireEvent.click(await screen.findByRole('button', { name: /^删\s*除$/ }, { timeout: 15000 }))
+    await waitFor(() => expect(calls.some((command) => (command as { action: string }).action === 'delete')).toBe(true), { timeout: 15000 })
     expect(calls.find((command) => (command as { action: string }).action === 'delete'))
       .toEqual({ action: 'delete', threadId: 'thread-B' })
-  })
+  }, 15000)
 
   it('grays out and explains every operation the account cannot perform', async () => {
     stubIdeer(() => Promise.resolve(threadView({ permissions: { canRename: false, canDelete: false } })))
