@@ -13,11 +13,9 @@ interface PaneStatus {
 
 // 未接入能力的如实状态：保留原版栏目位置，说明支持状态与不可用原因；
 // 接入阶段对应 iDeer-Desktop #70（linz 全量能力等价总规格）的分期。
+// issue 107 之后 browser 不再是占位：它映射到自己的 webview 窗格组件，
+// 由主进程附加守卫与本文件之外的隔离不变量约束。
 const EXTERNAL_PANE_STATUS: Partial<Record<PanelTypeId, PaneStatus>> = {
-  browser: {
-    headline: '浏览器窗格未接入',
-    detail: '本机浏览器窗格与平台远程浏览器按总规格在"浏览、终端与调度"阶段接入；本窗格目前只保留原版入口位置，不提供任何网页内容。'
-  },
   terminal: {
     headline: '终端窗格未接入',
     detail: '人工终端与 Agent 受控终端需先完成 Runtime 执行边界改造（"浏览、终端与调度"阶段）；任意 shell 不在恢复范围。'
