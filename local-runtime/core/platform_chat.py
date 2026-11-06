@@ -2080,15 +2080,45 @@ class DesktopChat:
 
     # --- Explicit local knowledge imports (issue 112) -----------------------
 
-    def register_local_import(self, kb_id, paths):
+    def _register_frozen_entries(self, session, kb_id, entries, binding, *, device_id, source=None):
+        """One platform registration plus its honest registry row.
+
+        The POST carries identity fields only; the platform's revision
+        identity is validated before any row is written. The registration
+        response may carry the platform project identity (the import record
+        stays associated with the platform project and the library identity);
+        it is kept as a display fact when present.
+        """
+        from .knowledge_import import registration_payload
+        created = self._json(session, f'/api/resources/{kb_id}/knowledge-revisions/local-imports',
+                             registration_payload(entries, device_id))
+        if not isinstance(created, dict) or not isinstance(created.get('id'), str) \
+                or type(created.get('revision_no')) is not int \
+                or not isinstance(created.get('manifest_hash'), str) or len(created['manifest_hash']) != 64 \
+                or created.get('document_count') != len(entries):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        project_id = created.get('project_id')
+        if not isinstance(project_id, str) or len(project_id) > 128:
+            project_id = ''
+        outcome = dict(kbId=kb_id, revisionId=created['id'], revisionNo=created['revision_no'],
+                       manifestHash=created['manifest_hash'], documentCount=created['document_count'])
+        self.knowledge_imports.record(binding, dict(kb_id=kb_id, status='registered',
+            revision_id=created['id'], revision_no=created['revision_no'],
+            manifest_hash=created['manifest_hash'], document_count=created['document_count'],
+            project_id=project_id, source=source, documents=entries))
+        return outcome
+
+    def register_local_import(self, kb_id, paths, *, source=None):
         """Freeze one explicit local import as a platform Revision manifest.
 
         The platform call carries identity fields only; original bytes and the
         device index never leave this device. A failed attempt is recorded as
         failed with its real category and never impersonates a registration.
+        ``source`` optionally records where the paths came from (the retry of
+        a failed folder record reuses its stored source, #96).
         """
         from .knowledge_import import (MAX_IMPORT_DOCUMENTS, KnowledgeImportError, build_manifest,
-                                       category_for, logical_paths_for, registration_payload)
+                                       category_for, logical_paths_for)
         from .files import FileAccessError
         from .receipt_ledger import profile_binding
         from .settings import load_settings
@@ -2106,13 +2136,8 @@ class DesktopChat:
         binding = profile_binding(load_settings(self.config))
         try:
             entries = build_manifest(files, logical_paths_for(grant, list(paths)))
-            created = self._json(session, f'/api/resources/{kb_id}/knowledge-revisions/local-imports',
-                                 registration_payload(entries, settings.device_id))
-            if not isinstance(created, dict) or not isinstance(created.get('id'), str) \
-                    or type(created.get('revision_no')) is not int \
-                    or not isinstance(created.get('manifest_hash'), str) or len(created['manifest_hash']) != 64 \
-                    or created.get('document_count') != len(entries):
-                raise ChatError('CHAT_PROTOCOL_ERROR')
+            return self._register_frozen_entries(session, kb_id, entries, binding,
+                                                 device_id=settings.device_id, source=source)
         except (KnowledgeImportError, ChatError) as exc:
             # The failure is recorded with its real fixed category so the
             # display never impersonates a registered revision.
@@ -2123,13 +2148,83 @@ class DesktopChat:
             except KnowledgeImportError:
                 pass
             raise KnowledgeImportError(category) from exc
-        outcome = dict(kbId=kb_id, revisionId=created['id'], revisionNo=created['revision_no'],
-                       manifestHash=created['manifest_hash'], documentCount=created['document_count'])
-        self.knowledge_imports.record(binding, dict(kb_id=kb_id, status='registered',
-            revision_id=created['id'], revision_no=created['revision_no'],
-            manifest_hash=created['manifest_hash'], document_count=created['document_count'],
-            documents=entries))
-        return outcome
+
+    def register_import_entries(self, kb_id, entries, *, source=None):
+        """Register already-frozen manifest entries for one folder batch (#96).
+
+        The folder job computed the manifest device-side from the confirmed
+        workspace, with per-file failures and fingerprint duplicates removed;
+        this seam performs the platform registration through the same frozen
+        endpoint. A refused batch keeps its intended documents and source
+        paths on the failed row so 重试 can re-run exactly those files through
+        the ordinary import seam; the wire stays identity-only either way.
+        """
+        from .knowledge_import import MAX_IMPORT_DOCUMENTS, KnowledgeImportError
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        if self.knowledge_imports is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if not isinstance(entries, list) or not 1 <= len(entries) <= MAX_IMPORT_DOCUMENTS \
+                or any(not isinstance(entry, dict)
+                       or not isinstance(entry.get('filename'), str) or not entry['filename']
+                       or not isinstance(entry.get('sha256'), str) or len(entry['sha256']) != 64
+                       or type(entry.get('bytes')) is not int or entry['bytes'] < 0
+                       or not isinstance(entry.get('mime'), str)
+                       or (entry.get('parse') is not None and not isinstance(entry.get('parse'), dict))
+                       for entry in entries):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        session = self._session()
+        kb_id = self._uuid(kb_id)
+        settings = load_settings(self.config)
+        binding = profile_binding(settings)
+        try:
+            return self._register_frozen_entries(session, kb_id, entries, binding,
+                                                 device_id=settings.device_id, source=source)
+        except (KnowledgeImportError, ChatError) as exc:
+            category = str(exc)
+            try:
+                self.knowledge_imports.record(binding, dict(kb_id=kb_id, status='failed',
+                    error_code=category, documents=entries, source=source))
+            except KnowledgeImportError:
+                pass
+            raise KnowledgeImportError(category) from exc
+
+    def retry_import_record(self, record_id):
+        """Re-run one failed import record's stored source files (#96).
+
+        The record must be a failed attempt carrying workspace-logical source
+        paths; the device maps them back onto the current confirmed workspace
+        and re-runs the ordinary explicit import seam, so every workspace,
+        link and protected-path check is re-verified against the grant of
+        this moment. The failed record stays on the books; the retry becomes
+        its own honest row.
+        """
+        from .knowledge_import import KnowledgeImportError, category_for, physical_paths_for
+        from .files import FileAccessError
+        from .receipt_ledger import profile_binding
+        from .settings import load_settings
+        if self.knowledge_imports is None or self.knowledge_files is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if not isinstance(record_id, str) or len(record_id) != 64:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        binding = profile_binding(load_settings(self.config))
+        rows = self.knowledge_imports.fetch(binding, [record_id])
+        if not rows:
+            raise KnowledgeImportError('KNOWLEDGE_IMPORT_RECORD_NOT_FOUND')
+        row = rows[0]
+        if row['status'] != 'failed':
+            raise KnowledgeImportError('KNOWLEDGE_IMPORT_RETRY_NOT_FAILED')
+        paths = (row.get('source') or {}).get('paths') if isinstance(row.get('source'), dict) else None
+        if not paths:
+            raise KnowledgeImportError('KNOWLEDGE_IMPORT_NO_SOURCE')
+        try:
+            settings, grant, files = self.knowledge_files()
+        except (FileAccessError, KnowledgeImportError) as exc:
+            raise KnowledgeImportError(category_for(exc)) from exc
+        stored = row.get('source') or {}
+        source = dict(kind=str(stored.get('kind', 'folder')), folder=str(stored.get('folder', '')),
+                      paths=paths)
+        return self.register_local_import(row['kbId'], physical_paths_for(grant, paths), source=source)
 
     # --- Controlled knowledge-graph entry (issue 116) -----------------------
 

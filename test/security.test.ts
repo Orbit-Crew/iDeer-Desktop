@@ -3,6 +3,7 @@ import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
 import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
+import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
@@ -115,8 +116,18 @@ describe('bootstrap capability boundary', () => {
     // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
     // resize and kill on desktop-local PTY sessions — a separate minimal
     // bridge that never rides the trusted desktop:* channel.
+    // Issue 96 adds desktop:knowledge:folder + desktop:knowledge:folder-cancel
+    // for the doc library's recursive folder import: the renderer names the
+    // platform KB identity only, the directory picking and confirmation stay
+    // in the trusted main process, and the Runtime runs the walk/dedup/
+    // registration job in background with cancel. It also adds
+    // desktop:knowledge:delete + desktop:knowledge:retry for the batch
+    // management of the import records: deletes and retries are confirmed in
+    // the trusted main process, a delete only removes device-local display
+    // rows, and the retry's stored workspace-logical sources are re-verified
+    // by the Runtime against the grant of this moment.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:delete', 'desktop:knowledge:folder', 'desktop:knowledge:folder-cancel', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:retry', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -191,12 +202,16 @@ describe('dock pane security seam (issue 71)', () => {
     // Issue 112 wires the native `office` pane the same way — a read-only
     // observer on the existing chat state read, with zero own IPC surface
     // (pinned in test/office-bridge.test.ts).
+    // Issue 96 wires the native `kb` pane the same way — the doc library uses
+    // the trusted desktop:knowledge:* family only (folder import with cancel,
+    // batch delete/retry), pinned in its own pane test.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office'].includes(p.id))
-    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'kb'].includes(p.id))
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'kb']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

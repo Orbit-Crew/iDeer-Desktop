@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
@@ -24,6 +24,12 @@ export class RuntimeProcess {
   private receiptScope = ''
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
+  // Issue 96: the doc library's folder import (one background job) and the
+  // batch management of the import records (delete, retry).
+  private knowledgeFolderRequests = new Map<string, { resolve: (job: KnowledgeFolderJobView) => void; reject: (error: Error) => void }>()
+  private knowledgeFolderCancelRequests = new Map<string, { resolve: (result: { canceled: boolean }) => void; reject: (error: Error) => void }>()
+  private knowledgeDeleteRequests = new Map<string, { resolve: (result: { deleted: number }) => void; reject: (error: Error) => void }>()
+  private knowledgeRetryRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
@@ -248,6 +254,98 @@ export class RuntimeProcess {
       })
       this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import', id, kbId, paths, scope: this.selectionScope }) + '\n')
     })
+  }
+
+  /** Issue 96: start the doc library's background folder import. The reply is
+   * the job's running view; progress and the honest outcome ride the status
+   * snapshot, so the bridge never holds the job's lifetime open. */
+  async importKnowledgeFolder(kbId: string, folder: string): Promise<KnowledgeFolderJobView> {
+    if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_IMPORT_KB_INVALID')
+    if (typeof folder !== 'string' || !folder || folder.length > 32768) throw new Error('KNOWLEDGE_IMPORT_PATHS_INVALID')
+    if (this.knowledgeFolderRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeFolderRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 60000)
+      this.knowledgeFolderRequests.set(id, {
+        resolve: (job) => { clearTimeout(timer); this.knowledgeFolderRequests.delete(id); resolve(job) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeFolderRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-folder-import', id, kbId, path: folder, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 96: cancel the running folder import at the next file or batch. */
+  async cancelKnowledgeFolder(): Promise<{ canceled: boolean }> {
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeFolderCancelRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 15000)
+      this.knowledgeFolderCancelRequests.set(id, {
+        resolve: (result) => { clearTimeout(timer); this.knowledgeFolderCancelRequests.delete(id); resolve(result) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeFolderCancelRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-folder-import-cancel', id }) + '\n')
+    })
+  }
+
+  /** Issue 96: batch-delete selected import records (device-local rows only). */
+  async deleteKnowledgeImports(ids: string[]): Promise<{ deleted: number }> {
+    if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 ||
+        ids.some((id) => typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id))) throw new Error('KNOWLEDGE_IMPORT_IDS_INVALID')
+    if (this.knowledgeDeleteRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeDeleteRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 30000)
+      this.knowledgeDeleteRequests.set(id, {
+        resolve: (result) => { clearTimeout(timer); this.knowledgeDeleteRequests.delete(id); resolve(result) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeDeleteRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-imports-delete', id, ids, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 96: re-import one failed record's stored files (one per command;
+   * the renderer retries a multi-selection sequentially). */
+  async retryKnowledgeImport(recordId: string): Promise<KnowledgeImportOutcome> {
+    if (typeof recordId !== 'string' || !/^[0-9a-f]{64}$/.test(recordId)) throw new Error('KNOWLEDGE_IMPORT_ID_INVALID')
+    if (this.knowledgeRetryRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeRetryRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 60000)
+      this.knowledgeRetryRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.knowledgeRetryRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeRetryRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import-retry', id, recordId, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 96: the bounded display view of the one background folder job;
+   * anything malformed reads as absent instead of impersonating a state. */
+  private parseKnowledgeFolderJob(raw: unknown): KnowledgeFolderJobView | null {
+    if (!raw || typeof raw !== 'object') return null
+    const job = raw as Record<string, unknown>
+    if (!['running', 'completed', 'canceled', 'failed'].includes(job.state as string)) return null
+    const count = (field: unknown): number => Number.isSafeInteger(field) && (field as number) >= 0 ? field as number : 0
+    return {
+      state: job.state as KnowledgeFolderJobView['state'],
+      kbId: typeof job.kbId === 'string' ? job.kbId : '',
+      folder: typeof job.folder === 'string' ? job.folder : '',
+      totalFiles: count(job.totalFiles), processedFiles: count(job.processedFiles),
+      registeredBatches: count(job.registeredBatches), registeredDocuments: count(job.registeredDocuments),
+      failedBatches: count(job.failedBatches),
+      skippedDuplicates: count(job.skippedDuplicates), skippedUnsupported: count(job.skippedUnsupported),
+      skippedLinks: count(job.skippedLinks),
+      truncated: job.truncated === true,
+      error: typeof job.error === 'string' ? job.error : '',
+      failures: Array.isArray(job.failures) ? job.failures.slice(0, 50).map((failure: { filename?: unknown; errorCode?: unknown }) => ({
+        filename: typeof failure?.filename === 'string' ? failure.filename : '',
+        errorCode: typeof failure?.errorCode === 'string' ? failure.errorCode : ''
+      })) : []
+    }
   }
 
   /** Issue 115: one explicit server publication step (preview or confirmed upload). */
@@ -1074,6 +1172,53 @@ export class RuntimeProcess {
                 !Number.isSafeInteger(outcome.revisionNo) || typeof outcome.manifestHash !== 'string' ||
                 !/^[0-9a-f]{64}$/.test(outcome.manifestHash) || !Number.isSafeInteger(outcome.documentCount)) {
               this.knowledgeRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
+              continue
+            }
+            pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+              manifestHash: outcome.manifestHash, documentCount: outcome.documentCount })
+            continue
+          }
+          // Issue 96: the doc library's folder job and record management. A
+          // refused start returns the fixed category; the job's own progress
+          // and outcome ride the status snapshot.
+          if (value.v === 1 && value.type === 'knowledge-folder-import') {
+            const pending = this.knowledgeFolderRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeFolderRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const job = this.parseKnowledgeFolderJob(value.result)
+            if (!job) { this.knowledgeFolderRequests.delete(value.id); pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED')); continue }
+            pending.resolve(job)
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-folder-import-cancel') {
+            const pending = this.knowledgeFolderCancelRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeFolderCancelRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            pending.resolve({ canceled: value.result?.canceled === true })
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-imports-delete') {
+            const pending = this.knowledgeDeleteRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeDeleteRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            if (!value.result || !Number.isSafeInteger(value.result.deleted) || value.result.deleted < 0) {
+              this.knowledgeDeleteRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
+              continue
+            }
+            pending.resolve({ deleted: value.result.deleted })
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-import-retry') {
+            const pending = this.knowledgeRetryRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeRetryRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                !Number.isSafeInteger(outcome.revisionNo) || typeof outcome.manifestHash !== 'string' ||
+                !/^[0-9a-f]{64}$/.test(outcome.manifestHash) || !Number.isSafeInteger(outcome.documentCount)) {
+              this.knowledgeRetryRequests.delete(value.id)
               pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
               continue
             }
@@ -1908,6 +2053,12 @@ export class RuntimeProcess {
                 manifestHash: typeof row.manifestHash === 'string' ? row.manifestHash : '',
                 documentCount: row.documentCount, status: row.status === 'registered' ? 'registered' : 'failed',
                 errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt,
+                projectId: typeof row.projectId === 'string' ? row.projectId : '',
+                source: row.source && typeof row.source === 'object' && typeof (row.source as { folder?: unknown }).folder === 'string'
+                  ? { kind: typeof (row.source as { kind?: unknown }).kind === 'string' ? String((row.source as { kind?: unknown }).kind) : '',
+                      folder: String((row.source as { folder?: unknown }).folder),
+                      pathCount: Number.isSafeInteger((row.source as { pathCount?: unknown }).pathCount) ? Number((row.source as { pathCount?: unknown }).pathCount) : 0 }
+                  : null,
                 documents: Array.isArray(row.documents) ? row.documents.slice(0, 200).map((document: { filename?: unknown; sha256?: unknown; bytes?: unknown; mime?: unknown }) => ({
                   filename: typeof document?.filename === 'string' ? document.filename : '',
                   sha256: typeof document?.sha256 === 'string' ? document.sha256 : '',
@@ -2008,6 +2159,7 @@ export class RuntimeProcess {
             backgroundRuns,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
+            knowledgeFolderImport: this.parseKnowledgeFolderJob(value.knowledgeFolderImport),
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',
             skillImports, skillImportStorageError: value.skillImportStorageError === 'SKILL_IMPORT_STORAGE_UNAVAILABLE' ? value.skillImportStorageError : '',
             skillScriptAuthorizations: scriptAuthorizations,

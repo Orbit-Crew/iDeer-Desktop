@@ -422,6 +422,63 @@ if (!app.requestSingleInstanceLock()) {
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
       return runtime.importKnowledge(kbId, chosen.filePaths)
     })
+    // Issue 96: the doc library's recursive folder import. The renderer only
+    // names the platform KB identity; the directory picking and the content
+    // boundary confirmation stay in the trusted main process, and the Runtime
+    // runs the walk/dedup/registration job in background with cancel.
+    ipcMain.handle('desktop:knowledge:folder', async (event, kbId: string): Promise<unknown> => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_IMPORT_KB_INVALID')
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '选择要导入的文件夹', properties: ['openDirectory'] })
+      if (chosen.canceled || !chosen.filePaths.length) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认整文件夹导入',
+        message: '递归导入所选文件夹及其子文件夹到平台知识库？',
+        detail: '设备侧将递归读取文件夹内支持的文档（PDF/DOCX/XLSX/CSV 与文本），按内容指纹自动去重：与已导入内容相同的文件会被跳过并在进度中提示。导入在后台进行，可随时取消；每批最多 200 个文件，每个批次生成一个新的不可变版本。平台仅登记文件名、大小、类型与 SHA-256 指纹清单，原文件不会上传。文件夹必须位于已确认的工作目录内。',
+        buttons: ['取消', '开始后台导入'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.importKnowledgeFolder(kbId, chosen.filePaths[0])
+    })
+    // Issue 96: the folder import cancel command; a cancel without a running
+    // job is an honest no-op.
+    ipcMain.handle('desktop:knowledge:folder-cancel', (event) => runtime.cancelKnowledgeFolder())
+    // Issue 96: batch delete of import records. The confirmation stays in the
+    // trusted main process; a delete only removes device-local display rows.
+    ipcMain.handle('desktop:knowledge:delete', async (event, ids: string[]): Promise<{ deleted: number }> => {
+      requireMainFrame(event)
+      if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 ||
+          ids.some((id) => typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id))) throw new Error('KNOWLEDGE_IMPORT_IDS_INVALID')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '删除导入记录',
+        message: `删除所选 ${ids.length} 条导入记录？`,
+        detail: '仅删除本机的导入记录（显示事实），不影响平台知识库与已登记的版本。',
+        buttons: ['取消', '删除所选记录'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.deleteKnowledgeImports(ids)
+    })
+    // Issue 96: retry one failed import record from its stored workspace
+    // source; the confirmation stays in the trusted main process.
+    ipcMain.handle('desktop:knowledge:retry', async (event, recordId: string): Promise<KnowledgeImportOutcome> => {
+      requireMainFrame(event)
+      if (typeof recordId !== 'string' || !/^[0-9a-f]{64}$/.test(recordId)) throw new Error('KNOWLEDGE_IMPORT_ID_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '重新导入失败的记录',
+        message: '重新导入该失败记录的原始文件？',
+        detail: '设备侧会按记录中保存的工作目录来源重新读取这些文件，并重新执行全部目录校验与解析；重试生成新的导入记录，原失败记录保留。',
+        buttons: ['取消', '重新导入'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.retryKnowledgeImport(recordId)
+    })
     // Issue 115: the explicit server publication flow. The preview step is
     // read-only; content leaves the device only after the owner has seen the
     // destination and confirmed in the trusted main process.

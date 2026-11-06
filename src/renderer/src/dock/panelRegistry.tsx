@@ -23,6 +23,7 @@ import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
+import DocLibraryPane from './panels/docLibraryPane'
 import BrowserSlotPane from './panels/browserSlotPane'
 import TemplatesPane from './panels/templatesPane'
 import TerminalPane from './panels/terminalPane'
@@ -59,7 +60,10 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // rendering, its own minimal bridge (never the trusted desktop:* one).
   { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: TerminalPane },
   { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
-  { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
+  // Issue 96: the doc library — the `kb` pane is wired as the 项目文档库管理页
+  // (recursive folder import, fingerprint dedup, batch management, background
+  // import with cancel). It rides the trusted desktop:knowledge:* family only.
+  { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: DocLibraryPane },
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
