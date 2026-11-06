@@ -428,7 +428,10 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
           <Typography.Paragraph>{task.capability} · {task.logical_target}</Typography.Paragraph>
           <Typography.Paragraph>Server 任务：{taskStates[task.status] || task.status}{task.stop_requested ? ' · 已请求停止' : ''}</Typography.Paragraph>
           {task.receipt && <Typography.Paragraph>Server 回执：{taskStates[task.receipt.status || 'unknown'] || task.receipt.status}</Typography.Paragraph>}
-          <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执'}</Typography.Paragraph>
+          {/* Issue 95: a Server task row with no local artifact on this
+              device keeps the cross-device history honest — whatever local
+              result exists lives only on the device that generated it. */}
+          <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执 · 本地结果仅原设备可用'}</Typography.Paragraph>
           {task.localResult && <Card type="inner" size="small" title="本地生成结果（仅原设备可用）">
             <Typography.Paragraph>文件：{task.localResult.name} · {task.localResult.bytes} 字节</Typography.Paragraph>
             <Typography.Paragraph copyable style={{ overflowWrap: 'anywhere' }}>SHA-256：{task.localResult.sha256}</Typography.Paragraph>

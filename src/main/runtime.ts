@@ -1874,7 +1874,13 @@ export class RuntimeProcess {
           if (value.login) {
             if (!['unauthenticated', 'awaiting-confirmation', 'authenticated', 'expired', 'error'].includes(value.login.state) ||
                 ['account', 'device', 'error'].some((key) => typeof value.login[key] !== 'string' || value.login[key].length > 256)) throw new Error('Invalid login status')
+            // Issue 95: the optional bound device id; present-but-malformed is
+            // a protocol failure exactly like every other wire family.
+            const deviceId = typeof value.login.deviceId === 'string' &&
+              /^[A-Za-z0-9_-]{1,128}$/.test(value.login.deviceId) ? value.login.deviceId : ''
+            if (value.login.deviceId !== undefined && !deviceId) throw new Error('Invalid login status')
             login = { state: value.login.state, account: value.login.account, device: value.login.device, error: value.login.error }
+            if (deviceId) login.deviceId = deviceId
             if (typeof value.login.verification === 'string' && /^[0-9a-f]{12}$/.test(value.login.verification)) login.verification = value.login.verification
             if (login.state === 'error') this.loginRequest?.reject(new Error(login.error || 'LOGIN_FAILED'))
           }
