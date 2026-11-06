@@ -67,7 +67,9 @@ describe('browser slot location choice (issues 107 + 109)', () => {
     // The remote pane's permanent badge must not appear while 本机 is chosen.
     expect(screen.queryByText('远端', { selector: '.ant-tag' })).toBeNull()
     void BrowserPane
-  })
+    // 10 s: the registry import now carries the terminal pane's xterm graph,
+    // and this mount round-trip outruns the 5 s default under parallel load.
+  }, 10000)
 
   it('switches location only through the explicit choice, both ways', async () => {
     harness()
@@ -84,5 +86,5 @@ describe('browser slot location choice (issues 107 + 109)', () => {
     fireEvent.click(screen.getByRole('button', { name: '本机' }))
     expect(screen.queryByText('远端', { selector: '.ant-tag' })).toBeNull()
     expect(screen.getByPlaceholderText('输入网址')).toBeTruthy()
-  })
+  }, 10000)
 })

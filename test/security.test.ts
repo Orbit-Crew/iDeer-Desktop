@@ -5,6 +5,7 @@ import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
 import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
+import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -18,7 +19,23 @@ describe('bootstrap capability boundary', () => {
       metafile: true
     })
     const imports = Object.values(result.metafile.outputs).flatMap((output) => output.imports.map((item) => item.path))
-    expect(imports.filter((path) => /node-pty|langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    // Issue 110 adds node-pty as the human terminal's desktop-local PTY host
+    // (decision #59: the terminal is the Desktop's own process, not the
+    // Runtime's). The prohibited model/MCP/terminal-wrapper dependencies stay
+    // out of every entry, and node-pty itself is pinned below to the trusted
+    // main entry alone — it must never appear in the preload or renderer graph.
+    expect(imports.filter((path) => /langchain|pi-coding-agent|modelcontextprotocol|ollama/.test(path))).toEqual([])
+    const ptyImporters = Object.entries(result.metafile.inputs)
+      .filter(([, input]) => input.imports.some((item) => item.path === 'node-pty')).map(([path]) => path)
+    expect(ptyImporters).toEqual(['src/main/terminal.ts'])
+    const ptyOutputs = Object.keys(result.metafile.outputs)
+      .filter((path) => result.metafile.outputs[path].imports.some((item) => item.path === 'node-pty'))
+    expect(ptyOutputs.map((path) => path.replace(/\\/g, '/'))).toEqual(['out/security-check/main/index.js'])
+    // The renderer terminal pane renders with xterm.js only (content, not
+    // trusted UI); no other entry touches it.
+    const xtermOutputs = Object.keys(result.metafile.outputs)
+      .filter((path) => result.metafile.outputs[path].imports.some((item) => item.path.includes('@xterm/')))
+    expect(xtermOutputs.map((path) => path.replace(/\\/g, '/'))).toEqual(['out/security-check/renderer/src/main.js'])
     const launchers = Object.entries(result.metafile.inputs).filter(([, input]) => input.imports.some((item) => /child_process/.test(item.path))).map(([path]) => path)
     // Runtime owns the bundled interpreter. Maintenance launches only its
     // independent fixed helper, whose native installer/app launches consume a
@@ -27,8 +44,10 @@ describe('bootstrap capability boundary', () => {
     // the same model/MCP/terminal dependency prohibition.
     expect(launchers.sort()).toEqual(['src/main/maintenance.ts', 'src/main/runtime.ts', 'src/main/update-helper.ts'])
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
+    // Issue 110: node-pty hosts the desktop-local PTY in main; @xterm/xterm
+    // and @xterm/addon-fit render the terminal content in the renderer.
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
-      '@ant-design/icons', 'antd', 'react', 'react-dom', 'zustand'
+      '@ant-design/icons', '@xterm/addon-fit', '@xterm/xterm', 'antd', 'node-pty', 'react', 'react-dom', 'zustand'
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     // Issue 112 adds desktop:knowledge:import; issue 115 adds desktop:knowledge:publish.
@@ -61,6 +80,10 @@ describe('bootstrap capability boundary', () => {
     // writes) and the device-local fallback pick ride the Server's own
     // endpoints. The channel carries no provider, Base URL or key field —
     // the Desktop never holds a model credential.
+    // Issue 110 adds the terminal: family for the human terminal: spawn,
+    // write, resize and kill on desktop-local PTY sessions plus the data/exit
+    // push channels. It is a separate minimal bridge — terminal output is
+    // content, not trusted UI, and never rides the desktop:* trusted bridge.
     // Issue 94 adds desktop:files for the human file-browsing seam: the
     // renderer names workspace-logical paths only; listing and previews ride
     // the Runtime's guarded read path with no consent step, and an external
@@ -81,7 +104,7 @@ describe('bootstrap capability boundary', () => {
     // main process, and a click's prefill stays a renderer-local draft that
     // never rides this channel as a send.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -92,7 +115,7 @@ describe('bootstrap capability boundary', () => {
     // fixed main-owned names; the preload never subscribes to anything else
     // and never sends on its own.
     expect([...preload.matchAll(/\.on\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser:events', 'desktop:notification:activate', 'desktop:notifications', 'desktop:remote-browser:events'])
+      .toEqual(['desktop:browser:events', 'desktop:notification:activate', 'desktop:notifications', 'desktop:remote-browser:events', 'terminal:data', 'terminal:exit'])
     expect(preload).not.toMatch(/\.send\(|openExternal|aeromind/)
   })
 })
@@ -125,11 +148,18 @@ describe('dock pane security seam (issue 71)', () => {
   }
 
   it('maps every external-content panel type to the seam placeholder component except the browser slot', async () => {
+    // Issue 110 moves the `terminal` slot to the native runtime: the human
+    // terminal is a desktop-local native-hosted pane (xterm.js over its own
+    // minimal terminal bridge, decision #59) — it leaves the external-content
+    // seam and is pinned to its own component plus a trusted-bridge-free
+    // module graph below. The remaining webview/webgl slots keep the
+    // placeholder; the browser slot hosts the explicit 本机/远端 choice.
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'viewer3d'])
     for (const def of external) {
       expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
     }
+    expect(PANEL_REGISTRY.find((p) => p.id === 'terminal')!.component).toBe(TerminalPane)
 
     // Issue 107: the browser pane is the one non-native pane with its own
     // component — never the placeholder, never the unwired native pane.
@@ -142,14 +172,16 @@ describe('dock pane security seam (issue 71)', () => {
     // own component instead of the unwired placeholder. Issue 94 wires the
     // native `files` pane the same way — it may use the trusted bridge for
     // guarded reads, but it must never become an external-content surface.
+    // Issue 110 wires the native `terminal` pane the same way; it uses only
+    // the separate minimal terminal bridge (pinned in its own graph test).
     // Issue 84 wires the native `templates` pane the same way — the plaza
     // uses the trusted bridge for the Server's own template rows only.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'templates'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
@@ -183,6 +215,25 @@ describe('dock pane security seam (issue 71)', () => {
     expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
     const text = result.outputFiles.map((file) => file.text).join('')
     expect(text).not.toMatch(/window\.ideer|desktop:|sendToHost|openExternal|webview/i)
+  })
+
+  it('keeps the human terminal pane free of the trusted bridge and executable seams', async () => {
+    const result = await build({
+      entryPoints: ['src/renderer/src/dock/panels/terminalPane.tsx'],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    const inputs = Object.keys(result.metafile.inputs)
+    expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    const text = result.outputFiles.map((file) => file.text).join('')
+    // Terminal data is content, not trusted UI (decision #59.6): the pane
+    // touches only the minimal terminal bridge (window.ideerTerminal) — never
+    // the trusted desktop:* bridge, never a webview or an executable host.
+    expect(text).not.toMatch(/window\.ideer\b|desktop:|sendToHost|openExternal|webview|node-pty/i)
   })
 
   it('keeps the main window guards closed for the trusted frame itself', () => {
