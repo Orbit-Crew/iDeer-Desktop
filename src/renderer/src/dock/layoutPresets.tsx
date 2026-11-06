@@ -109,7 +109,8 @@ const PANEL_COLOR: Record<PanelTypeId, string> = {
   field: '#389E0D',
   sql: '#CF1322',
   synapse: '#531dAB',
-  notifications: '#D46B08'
+  notifications: '#D46B08',
+  templates: '#C41D7F'
 }
 
 // —— 布局构建 ——

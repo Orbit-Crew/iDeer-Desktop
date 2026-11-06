@@ -485,6 +485,55 @@ export type ModelCommand =
   | { action: 'set-default'; modelName: string }
   | { action: 'set-fallback'; modelName: string }
 
+/** Issue 84: one prompt template row as the plaza shows it — the Server's
+ * own account-scoped asset, projected with display and prefill facts only.
+ * The content rides the row because a plaza click prefills the composer from
+ * it; nothing here executes or sends. */
+export interface TemplateRowView {
+  id: string
+  name: string
+  category: string
+  content: string
+  usageCount: number
+  visibility: string
+  updatedAt: string
+}
+/**
+ * Issue 84: the plaza's one wire shape. Every reply carries the Server's own
+ * post-action list, so the panel re-reads authoritative state in the same
+ * round; a mutation also carries its outcome flag. New templates land
+ * private on the Server (visibility stays the Server's decision); the
+ * Desktop never widens it and never sends a prefilled draft by itself.
+ */
+export interface TemplateView {
+  templates: TemplateRowView[]
+  created?: boolean
+  updated?: boolean
+  deleted?: boolean
+  used?: boolean
+}
+/** Issue 84: the plaza actions. `use` records one prefill (usage +1); the
+ * prefill itself is a renderer-local draft edit and never auto-sends. */
+export type TemplateCommand =
+  | { action: 'list' }
+  | { action: 'create'; name: string; category: string; content: string }
+  | { action: 'update'; templateId: string; name?: string; category?: string; content?: string }
+  | { action: 'delete'; templateId: string }
+  | { action: 'use'; templateId: string }
+
+/** Issue 84: the `{{变量}}` placeholders a template prefill asks the user to
+ * fill, in first-appearance order, deduplicated. Pure display extraction —
+ * the composer keeps the raw text; filling stays a manual user edit. */
+export function extractTemplateVariables(content: string): string[] {
+  const names: string[] = []
+  for (const match of content.matchAll(/\{\{\s*([^{}\s][^{}]*?)\s*\}\}/g)) {
+    const name = match[1]
+    if (!names.includes(name)) names.push(name)
+    if (names.length >= 32) break
+  }
+  return names
+}
+
 export interface RuntimeStatus {
   process: 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed' | 'missing' | 'unresponsive'
   connection: DesktopStatus['server']
@@ -575,6 +624,11 @@ export interface DesktopBridge {
   /** Issue 72: search, rename and delete platform threads, always re-reading
    * the Server's own list; deleting never clears local unconfirmed receipts. */
   threads(command: ThreadCommand): Promise<ThreadView>
+  /** Issue 84: the prompt-template plaza — account-scoped CRUD, categories,
+   * usage counts and the `use` prefill record, all on the Server's own
+   * endpoints. A click prefills the composer and never sends; new templates
+   * are the Server's private rows, visible only to their creator. */
+  templates(command: TemplateCommand): Promise<TemplateView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand

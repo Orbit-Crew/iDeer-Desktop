@@ -13,7 +13,8 @@ import {
   GlobalOutlined,
   LineChartOutlined,
   MessageOutlined,
-  SearchOutlined
+  SearchOutlined,
+  SnippetsOutlined
 } from '@ant-design/icons'
 import type { PanelTypeDef, PanelTypeId } from './types'
 import { getPanelMeta } from './panelMeta'
@@ -22,6 +23,7 @@ import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
 import BrowserSlotPane from './panels/browserSlotPane'
+import TemplatesPane from './panels/templatesPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 
@@ -32,8 +34,8 @@ export function ChatAnchorContent(): JSX.Element {
 
 /**
  * 面板注册表：加载到 dock 里的可组合组件。
- * chat/runtime/files 已接线；browser 槽位自 #107/#109 起在同一个显式 本机/远端 选择后
- * 承载两种浏览器：本机为固定分区 webview（主进程附加守卫），远端为平台像素流（无
+ * chat/runtime/files/templates 已接线；browser 槽位自 #107/#109 起在同一个显式 本机/远端
+ * 选择后承载两种浏览器：本机为固定分区 webview（主进程附加守卫），远端为平台像素流（无
  * webview、屏面组件不进可信桥），二者绝不静默互切；其余按原栏目位置注册为如实占位，
  * 能力在对应阶段接入。
  * 安全缝（test/security.test.ts）：externalPanes 占位与 remoteBrowser 屏面模块的
@@ -55,7 +57,8 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane }
+  { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane },
+  { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane }
 ]
 
 const registryMap = new Map(PANEL_REGISTRY.map((p) => [p.id, p]))
@@ -87,6 +90,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <ApartmentOutlined />
     case 'notifications':
       return <BellOutlined />
+    case 'templates':
+      return <SnippetsOutlined />
     default:
       return <FolderOpenOutlined />
   }

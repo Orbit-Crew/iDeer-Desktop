@@ -88,7 +88,7 @@ async function main() {
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
       'manage', 'models', 'notifications', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents',
       'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser',
-      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
+      'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

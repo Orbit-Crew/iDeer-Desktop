@@ -74,8 +74,14 @@ describe('bootstrap capability boundary', () => {
     // the stream socket, the platform access token and the paired origin
     // stay inside the bundled Runtime, and a remote file is retrieved only
     // through the artifact path with the main process's native save dialog.
+    // Issue 84 adds desktop:templates for the prompt-template plaza: the
+    // rows, their categories, usage counts and visibility live on the
+    // Server's own endpoints; creation carries no visibility field (always
+    // the Server's private default), a delete is confirmed in the trusted
+    // main process, and a click's prefill stays a renderer-local draft that
+    // never rides this channel as a send.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -136,12 +142,14 @@ describe('dock pane security seam (issue 71)', () => {
     // own component instead of the unwired placeholder. Issue 94 wires the
     // native `files` pane the same way — it may use the trusted bridge for
     // guarded reads, but it must never become an external-content surface.
+    // Issue 84 wires the native `templates` pane the same way — the plaza
+    // uses the trusted bridge for the Server's own template rows only.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'templates'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

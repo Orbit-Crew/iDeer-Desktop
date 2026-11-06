@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
@@ -532,6 +532,31 @@ if (!app.requestSingleInstanceLock()) {
         if (confirmation.response !== 1) throw new Error('THREADS_CANCELED')
       }
       return runtime.threads(command)
+    })
+    // Issue 84: the prompt-template plaza. The renderer names the CRUD/use
+    // actions only; the rows, their visibility and their usage counts live on
+    // the Server's own endpoints. A template click never rides this channel
+    // as a send — `use` only records the prefill (+1 usage) after the
+    // renderer has placed the text in the composer as a draft. A delete is
+    // confirmed here in the trusted main process and never silently drops a
+    // shared row: the Server's own ownership check stays authoritative.
+    ipcMain.handle('desktop:templates', async (event, command: TemplateCommand): Promise<TemplateView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' ||
+          !['list', 'create', 'update', 'delete', 'use'].includes(command.action)) throw new Error('TEMPLATE_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('TEMPLATE_UNAUTHENTICATED')
+      if (command.action === 'delete') {
+        if (typeof command.templateId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.templateId)) throw new Error('TEMPLATE_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认删除提示词模板',
+          message: '删除这条提示词模板？',
+          detail: '删除后模板与它的使用计数一并消失，操作不可恢复；他人共享给你的模板不受本次操作影响。',
+          buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('TEMPLATE_CANCELED')
+      }
+      return runtime.templates(command)
     })
     // Issue 123: the optional local connector install. The renderer only
     // names the action; the candidate directory is located and both the
