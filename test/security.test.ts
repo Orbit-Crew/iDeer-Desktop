@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
+import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -29,6 +30,11 @@ describe('bootstrap capability boundary', () => {
     const ptyOutputs = Object.keys(result.metafile.outputs)
       .filter((path) => result.metafile.outputs[path].imports.some((item) => item.path === 'node-pty'))
     expect(ptyOutputs.map((path) => path.replace(/\\/g, '/'))).toEqual(['out/security-check/main/index.js'])
+    // The renderer terminal pane renders with xterm.js only (content, not
+    // trusted UI); no other entry touches it.
+    const xtermOutputs = Object.keys(result.metafile.outputs)
+      .filter((path) => result.metafile.outputs[path].imports.some((item) => item.path.includes('@xterm/')))
+    expect(xtermOutputs.map((path) => path.replace(/\\/g, '/'))).toEqual(['out/security-check/renderer/src/main.js'])
     const launchers = Object.entries(result.metafile.inputs).filter(([, input]) => input.imports.some((item) => /child_process/.test(item.path))).map(([path]) => path)
     // Runtime owns the bundled interpreter. Maintenance launches only its
     // independent fixed helper, whose native installer/app launches consume a
@@ -102,19 +108,27 @@ describe('bootstrap capability boundary', () => {
 describe('dock pane security seam (issue 71)', () => {
   it('maps every external-content panel type to the seam placeholder component', () => {
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'terminal', 'viewer3d'])
+    // Issue 110 wires the `terminal` slot: the human terminal is a
+    // desktop-local native-hosted pane (xterm.js over its own minimal
+    // terminal bridge, decision #59) — it leaves the external-content seam
+    // and is pinned to its own component plus a trusted-bridge-free module
+    // graph below. The remaining webview/webgl slots keep the placeholder.
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'viewer3d'])
     for (const def of external) expect(def.component).toBe(ExternalPanePlaceholder)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'terminal')!.component).toBe(TerminalPane)
 
     // Issue 77 wires the notifications pane; like `runtime` it maps to its
     // own component instead of the unwired placeholder. Issue 94 wires the
     // native `files` pane the same way — it may use the trusted bridge for
     // guarded reads, but it must never become an external-content surface.
+    // Issue 110 wires the native `terminal` pane the same way; it uses only
+    // the separate minimal terminal bridge (pinned in its own graph test).
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'terminal']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
@@ -135,6 +149,25 @@ describe('dock pane security seam (issue 71)', () => {
     expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
     const text = result.outputFiles.map((file) => file.text).join('')
     expect(text).not.toMatch(/window\.ideer|desktop:|sendToHost|openExternal|webview/i)
+  })
+
+  it('keeps the human terminal pane free of the trusted bridge and executable seams', async () => {
+    const result = await build({
+      entryPoints: ['src/renderer/src/dock/panels/terminalPane.tsx'],
+      bundle: true,
+      packages: 'external',
+      platform: 'node',
+      outdir: 'out/security-check',
+      write: false,
+      metafile: true
+    })
+    const inputs = Object.keys(result.metafile.inputs)
+    expect(inputs.some((path) => /preload|shared\/desktop|components\//.test(path))).toBe(false)
+    const text = result.outputFiles.map((file) => file.text).join('')
+    // Terminal data is content, not trusted UI (decision #59.6): the pane
+    // touches only the minimal terminal bridge (window.ideerTerminal) — never
+    // the trusted desktop:* bridge, never a webview or an executable host.
+    expect(text).not.toMatch(/window\.ideer\b|desktop:|sendToHost|openExternal|webview|node-pty/i)
   })
 
   it('keeps the main window external-content guards closed', () => {

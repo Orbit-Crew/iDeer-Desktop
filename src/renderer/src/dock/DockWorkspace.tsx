@@ -6,6 +6,7 @@ import { Fragment, memo, useEffect, useRef } from 'react'
 import PaneFrame from './PaneFrame'
 import InstanceHostOverlay from './InstanceHostOverlay'
 import LayoutPresetDropdown from './LayoutPresetDropdown'
+import TerminalCloseConfirm from './TerminalCloseConfirm'
 import { ChatAnchorContent } from './panelRegistry'
 import { useDockStore, isSplit } from './dockStore'
 import { useUIStore } from '../stores/uiStore'
@@ -152,6 +153,8 @@ export default function DockWorkspace(): JSX.Element {
       <NodeRenderer node={root} />
       <InstanceHostOverlay />
       <LayoutPresetDropdown />
+      {/* issue 110: the shared terminal close-ask card (pane/tab/preset paths) */}
+      <TerminalCloseConfirm />
     </div>
   )
 }

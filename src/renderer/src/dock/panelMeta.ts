@@ -17,7 +17,12 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   chat: { id: 'chat', title: '对话', multiInstance: false, closable: false, anchorOnly: true, runtime: 'native' },
   runtime: { id: 'runtime', title: '本机 Runtime', multiInstance: false, closable: true, runtime: 'native' },
   browser: { id: 'browser', title: '浏览器', multiInstance: true, closable: true, runtime: 'webview' },
-  terminal: { id: 'terminal', title: '终端', multiInstance: true, closable: true, runtime: 'pty' },
+  // Issue 110: the human terminal is native-hosted — a desktop-local PTY in
+  // main with xterm.js rendering and its own minimal bridge; its output is
+  // content, not embedded external content (decision #59), so it leaves the
+  // external-content seam. The 'pty' runtime value stays reserved for the
+  // Agent-controlled terminal (#111).
+  terminal: { id: 'terminal', title: '终端', multiInstance: true, closable: true, runtime: 'native' },
   files: { id: 'files', title: '文件', multiInstance: false, closable: true, runtime: 'native' },
   kb: { id: 'kb', title: '知识库', multiInstance: false, closable: true, runtime: 'native' },
   viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'webgl' },

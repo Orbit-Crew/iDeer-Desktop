@@ -21,6 +21,7 @@ import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
+import TerminalPane from './panels/terminalPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 
@@ -38,7 +39,9 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('chat'), icon: <MessageOutlined />, component: ChatAnchorContent },
   { ...getPanelMeta('runtime'), icon: <DesktopOutlined />, component: RuntimePane },
   { ...getPanelMeta('browser'), icon: <GlobalOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: ExternalPanePlaceholder },
+  // Issue 110: the human terminal — desktop-local PTY in main, xterm.js
+  // rendering, its own minimal bridge (never the trusted desktop:* one).
+  { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: TerminalPane },
   { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
   { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },

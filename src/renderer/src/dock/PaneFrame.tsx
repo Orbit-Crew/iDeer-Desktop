@@ -7,6 +7,7 @@ import { Button, Tooltip } from 'antd'
 import { useDockStore, TAB_DND, PANE_DND, FROM_PANE_DND, sideFromPoint } from './dockStore'
 import { panelIcon, ChatAnchorContent } from './panelRegistry'
 import { getPanelMeta } from './panelMeta'
+import { requestPaneClose, requestTabClose } from './closeGuard'
 import AddPanelPicker from './AddPanelPicker'
 import type { Pane, Tab } from './types'
 
@@ -16,8 +17,6 @@ interface PaneFrameProps {
 
 function PaneFrame({ pane }: PaneFrameProps): JSX.Element {
   const setActiveTab = useDockStore((s) => s.setActiveTab)
-  const closeTab = useDockStore((s) => s.closeTab)
-  const closePane = useDockStore((s) => s.closePane)
   const moveTab = useDockStore((s) => s.moveTab)
   const movePaneBeside = useDockStore((s) => s.movePaneBeside)
   const splitBeside = useDockStore((s) => s.splitBeside)
@@ -128,12 +127,14 @@ function PaneFrame({ pane }: PaneFrameProps): JSX.Element {
         <HolderOutlined className="text-gray-300 text-xs mr-1" />
         <span className="text-xs font-medium text-gray-700 truncate flex-1">{paneTitle}</span>
         <AddPanelPicker paneId={pane.id} title="添加面板" />
+        {/* 关闭经由 closeGuard（issue 110）：含运行中人工终端的窗格会先询问是否结束程序 */}
         <Tooltip title="关闭窗格">
           <Button
             size="small"
             type="text"
+            aria-label="关闭窗格"
             icon={<CloseOutlined style={{ fontSize: 11 }} />}
-            onClick={() => closePane(pane.id)}
+            onClick={() => requestPaneClose(pane.id)}
           />
         </Tooltip>
       </div>
@@ -161,7 +162,7 @@ function PaneFrame({ pane }: PaneFrameProps): JSX.Element {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    closeTab(pane.id, tab.id)
+                    requestTabClose(pane.id, tab.id)
                   }}
                   className="opacity-50 group-hover:opacity-100 hover:text-red-500 transition-opacity p-0.5"
                   title="关闭页签"
