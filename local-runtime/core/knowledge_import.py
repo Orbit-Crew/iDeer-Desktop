@@ -601,7 +601,15 @@ class KnowledgeFolderImport:
                 raise KnowledgeImportError("KNOWLEDGE_IMPORT_BUSY")
             self._cancel = threading.Event()
             self._job = self._empty_job(kb_id)
-        threading.Thread(target=self._run, args=(kb_id, physical_folder), daemon=True).start()
+        worker = threading.Thread(target=self._run, args=(kb_id, physical_folder), daemon=True)
+        try:
+            worker.start()
+        except BaseException:
+            # A worker that cannot start must never leave a running phantom:
+            # the slot frees and nothing shows as an uncancelable import.
+            with self._lock:
+                self._job = None
+            raise
         return self.status()
 
     def _update(self, **fields) -> None:

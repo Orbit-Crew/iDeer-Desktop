@@ -964,6 +964,27 @@ def test_folder_job_reports_a_walk_refusal_as_a_failed_job(tmp_path):
         assert registry.view(binding) == []
 
 
+def test_folder_job_start_failure_never_leaves_a_phantom_job(tmp_path, monkeypatch):
+    """T96-03: a worker thread that cannot start leaves no running phantom —
+    the slot frees, nothing shows as an uncancelable import, and the very next
+    start is accepted instead of refused with BUSY."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        (space / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+
+        def refuse_thread_start(self):
+            raise RuntimeError('cannot start a new thread')
+
+        monkeypatch.setattr(threading.Thread, 'start', refuse_thread_start)
+        with pytest.raises(RuntimeError):
+            job.start(KB, str(space))
+        monkeypatch.undo()
+        assert job.status() is None
+        # The same coordinator accepts a fresh start immediately.
+        job.start(KB, str(space))
+        assert wait_terminal(job)['state'] == 'completed'
+
+
 def test_retry_reimports_a_failed_record_through_the_ordinary_seam(tmp_path):
     """T96-05: one failed folder record re-imports exactly its stored files;
     the failed record stays and the retry becomes its own honest row."""

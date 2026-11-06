@@ -176,7 +176,7 @@ def main() -> int:
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'recordId', 'scope'}
                         and command['type'] == 'knowledge-import-retry' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['recordId'], str)
-                        and len(command['recordId']) == 64
+                        and re.fullmatch(r'[0-9a-f]{64}', command['recordId'])
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_manage_commands.put_nowait(command)
                     continue

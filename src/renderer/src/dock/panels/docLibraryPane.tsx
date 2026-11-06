@@ -114,10 +114,10 @@ export default function DocLibraryPane({ instanceId, panelType }: {
         <Button aria-label="重试所选失败记录" loading={view.busy}
           disabled={!selectedFailed.length || view.busy}
           onClick={() => {
-            const failedIds = selectedFailed.map(record => record.id)
             // One retry per command (each is one ordinary import round-trip);
-            // the renderer runs a multi-selection sequentially.
-            run(async () => { for (const id of failedIds) await controller.current!.retryRecord(id) })
+            // the renderer runs a multi-selection sequentially and every
+            // failure is aggregated, none erased by the next attempt.
+            void controller.current!.retryRecords(selectedFailed.map(record => record.id))
           }}>重试所选失败记录</Button>
       </Space>
       {!records.length && <Empty description={view.failed ? '无法读取 Runtime 状态' : '当前账号与设备尚无导入记录'} />}

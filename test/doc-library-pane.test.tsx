@@ -180,4 +180,26 @@ describe('doc library pane (issue 96)', () => {
     fireEvent.click(screen.getByRole('button', { name: '重试所选失败记录' }))
     expect(await screen.findByText('该记录没有保存来源文件，无法重试')).toBeTruthy()
   })
+
+  it('aggregates every retry failure across a multi-selection', async () => {
+    // Two selected failed records, two distinct refusals: both explanations
+    // stay visible, none erased by the next attempt.
+    const refusals = ['KNOWLEDGE_IMPORT_NO_SOURCE', 'KNOWLEDGE_IMPORT_RECORD_NOT_FOUND']
+    const retries = vi.fn(() => Promise.reject(new Error(refusals.shift() ?? 'X')))
+    ;(window as { ideer?: unknown }).ideer = {
+      getStatus: vi.fn(() => Promise.resolve(desktopStatus(statusFixture))),
+      knowledgeFolderImport: vi.fn(() => Promise.resolve(job())),
+      knowledgeFolderCancel: vi.fn(() => Promise.resolve({ canceled: true })),
+      deleteKnowledgeImports: vi.fn(() => Promise.resolve({ deleted: 0 })),
+      retryKnowledgeImport: retries
+    }
+    statusFixture = runtimeStatus({ knowledgeImports: [failedRow(), failedRow({ id: 'f'.repeat(64) })] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const boxes = await screen.findAllByRole('checkbox')
+    fireEvent.click(boxes[0])
+    fireEvent.click(boxes[1])
+    fireEvent.click(screen.getByRole('button', { name: '重试所选失败记录' }))
+    expect(await screen.findByText('该记录没有保存来源文件，无法重试；该记录已不存在，列表已刷新')).toBeTruthy()
+    expect(retries).toHaveBeenCalledTimes(2)
+  })
 })

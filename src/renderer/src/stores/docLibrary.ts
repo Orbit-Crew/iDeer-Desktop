@@ -33,8 +33,14 @@ const errorExplanations: Record<string, string> = {
   RUNTIME_UNAVAILABLE: '本机 Runtime 未运行，请先连接设备'
 }
 
-export const explainDocLibraryError = (message: string): string =>
-  errorExplanations[message] ?? `文档库操作未完成：${message}`
+/** One category reads through the fixed explanations; a '；'-joined aggregate
+ * (batch retry, below) explains every part so no failure is erased. */
+export const explainDocLibraryError = (message: string): string => {
+  if (message.includes('；')) {
+    return message.split('；').map((part) => explainDocLibraryError(part)).filter(Boolean).join('；')
+  }
+  return errorExplanations[message] ?? `文档库操作未完成：${message}`
+}
 
 export class DocLibraryController {
   private generation = 0
@@ -87,7 +93,28 @@ export class DocLibraryController {
     return this.run(() => this.api.deleteKnowledgeImports(ids))
   }
 
-  retryRecord(recordId: string): Promise<void> {
-    return this.run(() => this.api.retryKnowledgeImport(recordId))
+  /** Sequential batch retry: one command per record (each is one ordinary
+   * import round-trip). Every failure is kept — distinct categories joined
+   * with '；' — so a multi-selection reports all of its failures instead of
+   * only the last one. The snapshot refreshes after each record so the page
+   * shows the retries that landed. */
+  async retryRecords(recordIds: string[]): Promise<void> {
+    const failures: string[] = []
+    for (const recordId of recordIds) {
+      this.update({ busy: true, error: '' })
+      try {
+        await this.api.retryKnowledgeImport(recordId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message !== 'KNOWLEDGE_IMPORT_CANCELED' && !failures.includes(message)) failures.push(message)
+      }
+      try {
+        const status = await this.api.getStatus()
+        this.update({ runtime: status.runtime, failed: false })
+      } catch {
+        this.update({ failed: true })
+      }
+    }
+    this.update({ busy: false, error: failures.join('；') })
   }
 }
