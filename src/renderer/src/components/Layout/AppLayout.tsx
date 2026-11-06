@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { DoubleRightOutlined } from '@ant-design/icons'
 import { useUIStore } from '../../stores/uiStore'
 import { NotificationCenterController, useNotificationCenter } from '../../stores/notificationCenter'
+import { ScheduledTasksController, useScheduledTasks } from '../../stores/scheduledTasks'
 import Sidebar from './Sidebar'
 import DockWorkspace from '../../dock/DockWorkspace'
 
@@ -22,6 +23,13 @@ export default function AppLayout(): JSX.Element {
       controller.stop()
       useNotificationCenter.getState().attach(null)
     }
+  }, [])
+  // Issue 85: the scheduled-tasks controller lives for the whole app too —
+  // the Runtime pane's card acts through it from anywhere in the dock.
+  useEffect(() => {
+    const controller = new ScheduledTasksController(window.ideer)
+    useScheduledTasks.getState().attach(controller)
+    return () => { useScheduledTasks.getState().attach(null) }
   }, [])
   return (
     <div data-desktop-ready="true" className="flex h-screen w-screen overflow-hidden">
