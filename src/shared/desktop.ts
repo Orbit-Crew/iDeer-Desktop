@@ -485,6 +485,94 @@ export type ModelCommand =
   | { action: 'set-default'; modelName: string }
   | { action: 'set-fallback'; modelName: string }
 
+/** Issue 85: one device-local 补跑/跳过 marking for a planned point. The
+ * platform contract has no missed-run semantics, so the catch-up marking is
+ * device-local display truth keyed by the planned point itself. */
+export interface ScheduleMarkView {
+  plannedAt: string
+  status: string
+  reason: string
+  error: string
+  markedAt: string
+}
+/** Issue 85: one platform scheduled task as the management card shows it —
+ * the platform's own post-action row plus the device's skip policy and 补跑
+ * marks. nextRunAt is the platform-computed exact instant. */
+export interface ScheduleTaskView {
+  id: string
+  title: string
+  prompt: string
+  status: string
+  scheduleType: string
+  scheduleSpec: { cron?: string; everySeconds?: number; runAt?: string }
+  timezone: string
+  assistantId: string
+  contextMode: string
+  threadId: string
+  nextRunAt: string
+  createdAt: string
+  updatedAt: string
+  skipOnMissed: boolean
+  missedMarks: ScheduleMarkView[]
+}
+/** Issue 85: one platform execution record. plannedFor is the planned point
+ * when the run row names one; catchUp carries the device's 补跑 mark when the
+ * record covers a point this device caught up. */
+export interface ScheduleRunView {
+  id: string
+  status: string
+  plannedFor: string
+  trigger: string
+  /** 会话关联: the session the execution belongs to, as the platform names it. */
+  threadId: string
+  createdAt: string
+  error: string
+  catchUp: ScheduleMarkView | null
+}
+/** Issue 85: the platform's own cron preview — instants and wall clocks as
+ * the Server computed them ("same semantics as scheduling"); the device only
+ * supplies the local timezone and renders them, never recomputes. */
+export interface SchedulePreviewView {
+  cron: string
+  timezone: string
+  occurrences: { runAt: string; localTime: string }[]
+}
+/** Issue 85: the create draft. contextMode 'reuse_thread' requires threadId;
+ * assistantId '' means the platform default (lead_agent). */
+export interface ScheduleDraftCommand {
+  title: string
+  prompt: string
+  scheduleType: 'cron' | 'interval' | 'once'
+  scheduleSpec: { cron: string } | { everySeconds: number } | { runAt: string }
+  timezone: string
+  assistantId: string
+  contextMode: 'fresh_thread_per_run' | 'reuse_thread'
+  threadId: string
+}
+/** Issue 85: an update patch; scheduleType rides only for spec validation and
+ * is never sent (the pinned endpoint keeps the type immutable). */
+export type SchedulePatchCommand = Partial<ScheduleDraftCommand> & { scheduleType?: 'cron' | 'interval' | 'once' }
+export type ScheduleCommand =
+  | { action: 'list' }
+  | { action: 'get'; taskId: string }
+  | { action: 'create'; task: ScheduleDraftCommand }
+  | { action: 'update'; taskId: string; task: SchedulePatchCommand }
+  | { action: 'pause'; taskId: string }
+  | { action: 'resume'; taskId: string }
+  | { action: 'trigger'; taskId: string }
+  | { action: 'delete'; taskId: string }
+  | { action: 'runs'; taskId: string; limit: number; offset: number }
+  | { action: 'set-skip'; taskId: string; skipOnMissed: boolean }
+  | { action: 'preview'; cron: string; timezone: string; count: number }
+/** Issue 85: one reply per action, discriminated by the caller's action. */
+export type SchedulesOutcome =
+  | { action: 'list'; tasks: ScheduleTaskView[] }
+  | { action: 'get' | 'create' | 'update' | 'pause' | 'resume'; task: ScheduleTaskView }
+  | { action: 'trigger'; taskId: string; triggered: true }
+  | { action: 'delete'; taskId: string; deleted: true }
+  | { action: 'runs'; runs: ScheduleRunView[] }
+  | { action: 'set-skip'; taskId: string; skipOnMissed: boolean }
+  | { action: 'preview'; cron: string; timezone: string; occurrences: SchedulePreviewView['occurrences'] }
 /** Issue 84: one prompt template row as the plaza shows it — the Server's
  * own account-scoped asset, projected with display and prefill facts only.
  * The content rides the row because a plaza click prefills the composer from
@@ -652,6 +740,12 @@ export interface DesktopBridge {
   /** Issue 72: search, rename and delete platform threads, always re-reading
    * the Server's own list; deleting never clears local unconfirmed receipts. */
   threads(command: ThreadCommand): Promise<ThreadView>
+  /** Issue 85: the platform scheduled-tasks management surface. The renderer
+   * names the action and the task fields only; the platform owns timing,
+   * previews and execution records, and a delete is confirmed in the trusted
+   * main process. 补跑/跳过 facts are device-local display truth keyed by the
+   * planned point. */
+  schedules(command: ScheduleCommand): Promise<SchedulesOutcome>
   /** Issue 84: the prompt-template plaza — account-scoped CRUD, categories,
    * usage counts and the `use` prefill record, all on the Server's own
    * endpoints. A click prefills the composer and never sends; new templates

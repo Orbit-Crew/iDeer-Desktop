@@ -33,6 +33,7 @@ from .secrets import SecretStoreError, create_default_secret_store
 from .task_guard import TaskGuard
 from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
 from .receipts import content_hash
+from .scheduled_tasks import SchedulesError
 from .tray import load_controller
 
 
@@ -87,6 +88,7 @@ def main() -> int:
     model_commands: queue.Queue = queue.Queue(maxsize=1)
     template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
+    schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
     # Issue 109: the remote browser's stream lifecycle rides one slot like the
@@ -265,6 +267,16 @@ def main() -> int:
                              and len(command['modelName']) <= 200)):
                     model_commands.put_nowait(command)
                     continue
+                if (isinstance(command, dict) and command.get('type') == 'schedules'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'get', 'create', 'update', 'pause',
+                                                      'resume', 'trigger', 'delete', 'runs',
+                                                      'set-skip', 'preview'}):
+                    # Issue 85: the per-action key sets are the client's own
+                    # contract (same split as the chat family) — this gate
+                    # only fixes the envelope before it reaches the queue.
+                    schedule_commands.put_nowait(command)
                 # Issue 84: the prompt-template plaza. A fixed per-action key
                 # set only; the rows and their visibility live Server-side.
                 if (isinstance(command, dict) and command.get('type') == 'templates'
@@ -749,6 +761,25 @@ def main() -> int:
                 emit({'v': 1, 'type': 'models', 'id': model_command['id'],
                       'result': result, 'error': error})
             try:
+                schedule_command = schedule_commands.get_nowait()
+            except queue.Empty:
+                schedule_command = None
+            if schedule_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 85: one scheduled-tasks management round-trip on
+                    # the pinned platform contract. The session gate and the
+                    # chat-session scope fence live in the facade; only fixed
+                    # SCHEDULES_* categories cross to the Desktop.
+                    result = chat.schedules_manage(schedule_command)
+                except SchedulesError as exc:
+                    error = exc.code
+                except Exception:
+                    error = 'SCHEDULES_FAILED'
+                emit({'v': 1, 'type': 'schedules', 'id': schedule_command['id'],
+                      'result': result, 'error': error})
+            try:
                 template_command = template_commands.get_nowait()
             except queue.Empty:
                 template_command = None
@@ -955,6 +986,16 @@ def main() -> int:
             # chat panel is polling.
             try:
                 chat.reconcile()
+            except Exception:
+                pass
+            # Issue 85: the catch-up sweep gate rides the same loop — one pass
+            # per offline→online transition plus a bounded periodic re-scan.
+            # The pass itself runs on its own thread so a slow Server answer
+            # never stalls the status cadence.
+            try:
+                if chat.scheduled_tasks.catch_up_tick(login.status()['state'] == 'authenticated'):
+                    threading.Thread(target=chat.scheduled_tasks.catch_up_after_offline,
+                                     daemon=True).start()
             except Exception:
                 pass
             for event in notify_events:

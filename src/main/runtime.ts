@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
@@ -32,6 +32,9 @@ export class RuntimeProcess {
   private skillScriptRequests = new Map<string, { resolve: (view: SkillScriptView) => void; reject: (error: Error) => void; action: SkillScriptCommand['action'] }>()
   private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
+  /** Issue 85: bounded in-flight management round-trips; the card drives
+   * list + runs + preview concurrently, so it caps instead of serializing. */
+  private schedulesRequests = new Map<string, { resolve: (view: SchedulesOutcome) => void; reject: (error: Error) => void; action: ScheduleCommand['action'] }>()
   private templateRequests = new Map<string, { resolve: (view: TemplateView) => void; reject: (error: Error) => void; action: TemplateCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
@@ -513,6 +516,120 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.threadRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.threadRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 85: the platform scheduled-tasks management surface. The wire
+   * command is a fixed per-action key set that only reaches the owned Runtime
+   * and on to the platform's own scheduled-tasks endpoints — the platform
+   * owns timing, cron previews and execution records, so nothing here
+   * computes or estimates a run time. The scope rides the same chat session
+   * identity the threads family uses; the Runtime's facade is the fence.
+   */
+  async schedules(command: ScheduleCommand): Promise<SchedulesOutcome> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('SCHEDULES_COMMAND_INVALID')
+    if (!['list', 'get', 'create', 'update', 'pause', 'resume', 'trigger', 'delete', 'runs', 'set-skip', 'preview'].includes(command.action)) throw new Error('SCHEDULES_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'schedules', id: '', action: command.action }
+    const taskId = (value: unknown): string => {
+      if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      return value
+    }
+    const draft = (value: unknown, required: readonly string[]): Record<string, unknown> => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      const allowed = ['title', 'prompt', 'scheduleType', 'scheduleSpec', 'timezone', 'assistantId', 'contextMode', 'threadId']
+      const keys = Object.keys(value)
+      if (!keys.every((key) => allowed.includes(key)) || !required.every((key) => keys.includes(key))) throw new Error('SCHEDULES_COMMAND_INVALID')
+      const row = value as Record<string, unknown>
+      if ('title' in row && (typeof row.title !== 'string' || !row.title.trim() || row.title.trim().length > 200)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      if ('prompt' in row && (typeof row.prompt !== 'string' || row.prompt.length < 1 || row.prompt.length > 16000)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      if ('assistantId' in row) {
+        if (typeof row.assistantId !== 'string' || row.assistantId.length > 128) throw new Error('SCHEDULES_COMMAND_INVALID')
+        // Mirror the Runtime's normalization (trim, lowercase, _→-) and its
+        // charset rule; '' means the platform default agent.
+        const assistant = row.assistantId.trim().toLowerCase().replace(/_/g, '-')
+        if (assistant && !/^[a-z0-9-]{1,128}$/.test(assistant)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      }
+      if ('contextMode' in row && row.contextMode !== 'fresh_thread_per_run' && row.contextMode !== 'reuse_thread') throw new Error('SCHEDULES_COMMAND_INVALID')
+      if ('threadId' in row) {
+        if (typeof row.threadId !== 'string') throw new Error('SCHEDULES_COMMAND_INVALID')
+        const threadOk = /^[A-Za-z0-9_-]{1,128}$/.test(row.threadId)
+        if (row.contextMode === 'reuse_thread' ? !threadOk
+          : row.contextMode === 'fresh_thread_per_run' ? row.threadId !== ''
+          // Without the mode in the same patch the device cannot see the
+          // task's context mode: mirror the platform's own ThreadId rule and
+          // let the Server own mode consistency (empty is never useful — the
+          // pinned update drops None).
+          : !threadOk) throw new Error('SCHEDULES_COMMAND_INVALID')
+      }
+      if ('timezone' in row && (typeof row.timezone !== 'string' || !/^[A-Za-z0-9_+\-/]{1,128}$/.test(row.timezone))) throw new Error('SCHEDULES_COMMAND_INVALID')
+      if ('scheduleType' in row && row.scheduleType !== 'cron' && row.scheduleType !== 'interval' && row.scheduleType !== 'once') throw new Error('SCHEDULES_COMMAND_INVALID')
+      if ('scheduleSpec' in row) {
+        // A patch must name the type it edits against; the type itself never
+        // reaches the platform (the pinned endpoint keeps it immutable).
+        if (!('scheduleType' in row)) throw new Error('SCHEDULES_COMMAND_INVALID')
+        if (!row.scheduleSpec || typeof row.scheduleSpec !== 'object' || Array.isArray(row.scheduleSpec)) throw new Error('SCHEDULES_COMMAND_INVALID')
+        const spec = row.scheduleSpec as Record<string, unknown>
+        const shape = Object.keys(spec).length === 1 &&
+          ((row.scheduleType === 'cron' && typeof spec.cron === 'string' && spec.cron.length >= 1 && spec.cron.length <= 256) ||
+            (row.scheduleType === 'interval' && Number.isSafeInteger(spec.everySeconds) && (spec.everySeconds as number) >= 60 && (spec.everySeconds as number) <= 2592000) ||
+            // The pinned endpoint requires an aware datetime; the deep parse
+            // stays on the Runtime side, this only mirrors its tz rule.
+            (row.scheduleType === 'once' && typeof spec.runAt === 'string' && spec.runAt.length >= 1 && spec.runAt.length <= 64 &&
+              !Number.isNaN(Date.parse(spec.runAt)) && /(Z|[+-]\d{2}:?\d{2})$/.test(spec.runAt)))
+        if (!shape) throw new Error('SCHEDULES_COMMAND_INVALID')
+      }
+      return row
+    }
+    if (command.action === 'list') {
+      if (Object.keys(command).length !== 1) throw new Error('SCHEDULES_COMMAND_INVALID')
+    } else if (command.action === 'get' || command.action === 'pause' || command.action === 'resume' || command.action === 'trigger' || command.action === 'delete') {
+      wire.taskId = taskId(command.taskId)
+      if (Object.keys(command).length !== 2) throw new Error('SCHEDULES_COMMAND_INVALID')
+    } else if (command.action === 'create') {
+      wire.task = draft(command.task, ['title', 'prompt', 'scheduleType', 'scheduleSpec', 'timezone', 'assistantId', 'contextMode', 'threadId'])
+      if (Object.keys(command).length !== 2) throw new Error('SCHEDULES_COMMAND_INVALID')
+    } else if (command.action === 'update') {
+      wire.taskId = taskId(command.taskId)
+      wire.task = draft(command.task, [])
+      // scheduleType only validates the spec shape; a patch must carry at
+      // least one field the pinned endpoint can actually update.
+      const mappable = ['title', 'prompt', 'scheduleSpec', 'timezone', 'assistantId', 'contextMode', 'threadId']
+      if (Object.keys(command).length !== 3 ||
+          !Object.keys(wire.task as Record<string, unknown>).some((key) => mappable.includes(key))) throw new Error('SCHEDULES_COMMAND_INVALID')
+    } else if (command.action === 'runs') {
+      wire.taskId = taskId(command.taskId)
+      if (!Number.isSafeInteger(command.limit) || (command.limit as number) < 1 || (command.limit as number) > 200 ||
+          !Number.isSafeInteger(command.offset) || (command.offset as number) < 0 || (command.offset as number) > 1000000 ||
+          Object.keys(command).length !== 4) throw new Error('SCHEDULES_COMMAND_INVALID')
+      wire.limit = command.limit
+      wire.offset = command.offset
+    } else if (command.action === 'set-skip') {
+      wire.taskId = taskId(command.taskId)
+      if (typeof command.skipOnMissed !== 'boolean' || Object.keys(command).length !== 3) throw new Error('SCHEDULES_COMMAND_INVALID')
+      wire.skipOnMissed = command.skipOnMissed
+    } else {
+      if (typeof command.cron !== 'string' || command.cron.length < 1 || command.cron.length > 256 ||
+          typeof command.timezone !== 'string' || !/^[A-Za-z0-9_+\-/]{1,128}$/.test(command.timezone) ||
+          !Number.isSafeInteger(command.count) || (command.count as number) < 1 || (command.count as number) > 10 ||
+          Object.keys(command).length !== 4) throw new Error('SCHEDULES_COMMAND_INVALID')
+      wire.cron = command.cron
+      wire.timezone = command.timezone
+      wire.count = command.count
+    }
+    if (this.schedulesRequests.size >= 4) throw new Error('SCHEDULES_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.chatScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.schedulesRequests.delete(id); reject(new Error('SCHEDULES_TIMEOUT')) }, 60000)
+      this.schedulesRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.schedulesRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.schedulesRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -1276,6 +1393,105 @@ export class RuntimeProcess {
               : { threads, permissions })
             continue
           }
+          if (value.v === 1 && value.type === 'schedules') {
+            // Issue 85: the platform's own post-action rows plus the device's
+            // 补跑 marks, bounded before they reach the renderer. A shape
+            // violation kills the child rather than showing invented state,
+            // exactly like the threads family.
+            const pending = this.schedulesRequests.get(value.id)
+            if (!pending) continue
+            this.schedulesRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const bad = (): void => { pending.reject(new Error('SCHEDULES_FAILED')) }
+            if (!result || typeof result !== 'object') { bad(); continue }
+            const text = (input: unknown, limit: number): string => typeof input === 'string' ? input.slice(0, limit) : ''
+            const idPattern = /^[A-Za-z0-9_-]{1,128}$/
+            const mark = (input: unknown): ScheduleMarkView | null => {
+              if (!input || typeof input !== 'object') return null
+              const row = input as Record<string, unknown>
+              if (typeof row.plannedAt !== 'string' || !row.plannedAt || typeof row.status !== 'string' || !row.status) return null
+              return { plannedAt: row.plannedAt.slice(0, 64), status: row.status.slice(0, 32),
+                reason: text(row.reason, 256), error: text(row.error, 256), markedAt: text(row.markedAt, 64) }
+            }
+            const taskView = (input: unknown): ScheduleTaskView => {
+              if (!input || typeof input !== 'object') throw new Error('Invalid schedules row')
+              const row = input as Record<string, unknown>
+              if (typeof row.id !== 'string' || !idPattern.test(row.id) || typeof row.title !== 'string' ||
+                  typeof row.status !== 'string' || typeof row.scheduleType !== 'string') throw new Error('Invalid schedules row')
+              const spec = row.scheduleSpec && typeof row.scheduleSpec === 'object' && !Array.isArray(row.scheduleSpec)
+                ? row.scheduleSpec as Record<string, unknown> : {}
+              const marks = Array.isArray(row.missedMarks)
+                ? row.missedMarks.slice(0, 20).map(mark).filter((entry): entry is ScheduleMarkView => entry !== null) : []
+              return {
+                id: row.id, title: row.title.slice(0, 200), prompt: text(row.prompt, 16000),
+                status: row.status.slice(0, 32), scheduleType: row.scheduleType.slice(0, 16),
+                scheduleSpec: {
+                  ...(typeof spec.cron === 'string' ? { cron: spec.cron.slice(0, 256) } : {}),
+                  ...(Number.isSafeInteger(spec.everySeconds) ? { everySeconds: spec.everySeconds as number } : {}),
+                  ...(typeof spec.runAt === 'string' ? { runAt: spec.runAt.slice(0, 64) } : {})
+                },
+                timezone: text(row.timezone, 128), assistantId: text(row.assistantId, 128),
+                contextMode: text(row.contextMode, 32), threadId: text(row.threadId, 128),
+                nextRunAt: text(row.nextRunAt, 64), createdAt: text(row.createdAt, 64),
+                updatedAt: text(row.updatedAt, 64), skipOnMissed: row.skipOnMissed === true, missedMarks: marks
+              }
+            }
+            const runView = (input: unknown): ScheduleRunView => {
+              if (!input || typeof input !== 'object') throw new Error('Invalid schedules row')
+              const row = input as Record<string, unknown>
+              if (typeof row.id !== 'string' || !row.id || typeof row.status !== 'string') throw new Error('Invalid schedules row')
+              return {
+                id: row.id.slice(0, 128), status: row.status.slice(0, 32) || 'unknown',
+                plannedFor: text(row.plannedFor, 64), trigger: text(row.trigger, 16),
+                threadId: text(row.threadId, 128),
+                createdAt: text(row.createdAt, 64), error: text(row.error, 512),
+                catchUp: mark(row.catchUp)
+              }
+            }
+            try {
+              if (pending.action === 'list') {
+                if (!Array.isArray(result.tasks)) { bad(); continue }
+                pending.resolve({ action: 'list', tasks: result.tasks.slice(0, 200).map(taskView) })
+                continue
+              }
+              if (pending.action === 'runs') {
+                if (!Array.isArray(result.runs)) { bad(); continue }
+                pending.resolve({ action: 'runs', runs: result.runs.slice(0, 200).map(runView) })
+                continue
+              }
+              if (pending.action === 'trigger') {
+                if (result.triggered !== true || typeof result.taskId !== 'string' || !idPattern.test(result.taskId)) { bad(); continue }
+                pending.resolve({ action: 'trigger', taskId: result.taskId, triggered: true })
+                continue
+              }
+              if (pending.action === 'delete') {
+                if (result.deleted !== true || typeof result.taskId !== 'string' || !idPattern.test(result.taskId)) { bad(); continue }
+                pending.resolve({ action: 'delete', taskId: result.taskId, deleted: true })
+                continue
+              }
+              if (pending.action === 'set-skip') {
+                if (typeof result.skipOnMissed !== 'boolean' || typeof result.taskId !== 'string' || !idPattern.test(result.taskId)) { bad(); continue }
+                pending.resolve({ action: 'set-skip', taskId: result.taskId, skipOnMissed: result.skipOnMissed })
+                continue
+              }
+              if (pending.action === 'preview') {
+                if (!Array.isArray(result.occurrences) || typeof result.cron !== 'string' || typeof result.timezone !== 'string') { bad(); continue }
+                const occurrences = result.occurrences.slice(0, 10).map((entry: Record<string, unknown>) => {
+                  if (!entry || typeof entry.runAt !== 'string' || !entry.runAt || typeof entry.localTime !== 'string' || !entry.localTime) throw new Error('Invalid schedules row')
+                  return { runAt: entry.runAt.slice(0, 64), localTime: entry.localTime.slice(0, 64) }
+                })
+                pending.resolve({ action: 'preview', cron: result.cron.slice(0, 256), timezone: result.timezone.slice(0, 128), occurrences })
+                continue
+              }
+              // get / create / update / pause / resume share the task row shape.
+              const view = taskView(result.task)
+              pending.resolve({ action: pending.action, task: view } as SchedulesOutcome)
+            } catch {
+              bad()
+            }
+            continue
+          }
           if (value.v === 1 && value.type === 'templates') {
             // Issue 84: the Server's own post-action template list, bounded
             // before it reaches the renderer. Rows carry prefill facts only;
@@ -1688,6 +1904,7 @@ export class RuntimeProcess {
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.schedulesRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       // Issue 109: a dead child ends the remote browser's pending lifecycle
       // request and every in-flight input forward immediately.
       this.browserStreamRequest?.reject(new Error('RUNTIME_UNAVAILABLE'))

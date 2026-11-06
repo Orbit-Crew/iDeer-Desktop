@@ -9,7 +9,12 @@ ideer-local-runtime = "core.cli:main"
 ideer-desktop-runtime = "core.desktop:main"
 
 [project.optional-dependencies]
-test = ["pytest==8.3.5", "pytest-asyncio==0.24.0", "pytest-timeout==2.3.1", "pydantic==2.10.6", "ruff==0.11.13"]
+# tzdata: plain Windows CPython ships no IANA database, so without it the
+# scheduled-tasks timezone validation degrades to the shape-only path the
+# bundled runtime documents — and the strict-path test would assert the
+# degraded behavior instead. Test environments always validate strictly;
+# the shipped runtime dependencies stay unchanged.
+test = ["pytest==8.3.5", "pytest-asyncio==0.24.0", "pytest-timeout==2.3.1", "pydantic==2.10.6", "ruff==0.11.13", "tzdata==2026.6"]
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
