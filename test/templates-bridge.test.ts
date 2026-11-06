@@ -34,6 +34,19 @@ describe('restricted templates bridge (#84)', () => {
       .rejects.toThrow('TEMPLATE_COMMAND_INVALID')
     expect(runtime.status().process).toBe('stopped')
   })
+  it('accepts only the exact official-list shape (#106)', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-106/unused')
+    // The welcome page's one read carries no ids, no fields, no flags.
+    await expect(runtime.officialTemplates({ action: 'official-list' }))
+      .rejects.toThrow('RUNTIME_UNAVAILABLE')
+    for (const command of [
+      { action: 'official-list', extra: 1 },
+      { action: 'official-list', templateId: 'x' }
+    ]) {
+      await expect(runtime.officialTemplates(JSON.parse(JSON.stringify(command)))).rejects.toThrow('TEMPLATE_COMMAND_INVALID')
+    }
+    expect(runtime.status().process).toBe('stopped')
+  })
   it.skipIf(process.platform !== 'win32')('returns an unauthenticated refusal through the actual bundled Runtime', async () => {
     const profile = mkdtempSync(join(tmpdir(), 'ideer-templates-bridge-'))
     const runtime = new RuntimeProcess(resolve('.runtime'), profile)

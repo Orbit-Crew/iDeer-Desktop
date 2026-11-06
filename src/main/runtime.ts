@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
@@ -36,7 +36,7 @@ export class RuntimeProcess {
   /** Issue 85: bounded in-flight management round-trips; the card drives
    * list + runs + preview concurrently, so it caps instead of serializing. */
   private schedulesRequests = new Map<string, { resolve: (view: SchedulesOutcome) => void; reject: (error: Error) => void; action: ScheduleCommand['action'] }>()
-  private templateRequests = new Map<string, { resolve: (view: TemplateView) => void; reject: (error: Error) => void; action: TemplateCommand['action'] }>()
+  private templateRequests = new Map<string, { resolve: (view: TemplateView | OfficialTemplatesView) => void; reject: (error: Error) => void; action: TemplateCommand['action'] | OfficialTemplateCommand['action'] }>()
   /** Issue 72: the chat session identity the owned Runtime last reported; the
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
@@ -742,6 +742,30 @@ export class RuntimeProcess {
           Object.keys(command).length !== 2) throw new Error('TEMPLATE_COMMAND_INVALID')
       wire.templateId = command.templateId
     }
+    return this.sendTemplateWire(command.action, wire) as Promise<TemplateView>
+  }
+
+  /**
+   * Issue 106: the welcome page's one official-template read. It rides the
+   * same single-slot template family — same scope fencing, same bounds —
+   * against the platform's own official endpoint, and the reply carries the
+   * official rows only. The read stays live on every mount, so the display
+   * follows platform updates; copying a row into the account's own
+   * templates is the plain create on `templates`, never this family.
+   */
+  async officialTemplates(command: OfficialTemplateCommand): Promise<OfficialTemplatesView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command) ||
+        command.action !== 'official-list' || Object.keys(command).length !== 1) throw new Error('TEMPLATE_COMMAND_INVALID')
+    return this.sendTemplateWire(command.action, { type: 'templates', id: '', action: command.action }) as Promise<OfficialTemplatesView>
+  }
+
+  /** Issue 84/106: the template family's one single-slot round trip — the
+   * busy gate, the live-child check, the 30s timeout and the scoped wire
+   * write are shared by every action in the family; only the parse branch
+   * distinguishes the replies. The union return narrows at the two call
+   * sites because each action's reply is produced by its own branch below. */
+  private sendTemplateWire(action: TemplateCommand['action'] | OfficialTemplateCommand['action'],
+                           wire: Record<string, unknown>): Promise<TemplateView | OfficialTemplatesView> {
     if (this.templateRequests.size) throw new Error('TEMPLATE_BUSY')
     if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
     const id = randomUUID()
@@ -750,7 +774,7 @@ export class RuntimeProcess {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.templateRequests.delete(id); reject(new Error('TEMPLATE_TIMEOUT')) }, 30000)
       this.templateRequests.set(id, {
-        action: command.action,
+        action,
         resolve: (view) => { clearTimeout(timer); this.templateRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.templateRequests.delete(id); reject(error) }
       })
@@ -1593,11 +1617,33 @@ export class RuntimeProcess {
             // Issue 84: the Server's own post-action template list, bounded
             // before it reaches the renderer. Rows carry prefill facts only;
             // the click's send never happens here — `use` is a count record.
+            // Issue 106: the official-list read resolves with the official
+            // selection only — no account list, no mutation flag.
             const pending = this.templateRequests.get(value.id)
             if (!pending) continue
             this.templateRequests.delete(value.id)
             if (value.error) { pending.reject(new Error(value.error)); continue }
             const result = value.result
+            if (pending.action === 'official-list') {
+              if (!result || !Array.isArray(result.official)) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
+              // The same drop-never-repair discipline as the Python
+              // projection: a row the Server did not state cleanly is
+              // skipped, never thrown past this loop — a malformed row must
+              // not take the Runtime down. No id grammar beyond the bounds:
+              // the read-only facade never puts an official id on a URL.
+              const official: OfficialTemplateRowView[] = []
+              for (const row of result.official.slice(0, 200)) {
+                if (!row || typeof row.id !== 'string' || !row.id || row.id.length > 128 ||
+                    typeof row.name !== 'string' || !row.name ||
+                    typeof row.category !== 'string' ||
+                    typeof row.content !== 'string' || !row.content ||
+                    typeof row.updatedAt !== 'string') continue
+                official.push({ id: row.id, name: row.name.slice(0, 200), category: row.category.slice(0, 64),
+                  content: row.content.slice(0, 16000), updatedAt: row.updatedAt.slice(0, 64) })
+              }
+              pending.resolve({ official })
+              continue
+            }
             if (!result || !Array.isArray(result.templates)) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
             if (pending.action === 'create' && result.created !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }
             if (pending.action === 'update' && result.updated !== true) { pending.reject(new Error('TEMPLATE_FAILED')); continue }

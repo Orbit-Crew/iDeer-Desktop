@@ -304,11 +304,15 @@ def main() -> int:
                     schedule_commands.put_nowait(command)
                 # Issue 84: the prompt-template plaza. A fixed per-action key
                 # set only; the rows and their visibility live Server-side.
+                # Issue 106: `official-list` joins as the welcome page's one
+                # read over the same family.
                 if (isinstance(command, dict) and command.get('type') == 'templates'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
                         and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
-                        and command.get('action') in {'list', 'create', 'update', 'delete', 'use'}
-                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                        and command.get('action') in {'list', 'official-list', 'create', 'update',
+                                                      'delete', 'use'}
+                        and (command['action'] in {'list', 'official-list'}
+                             and set(command) == {'type', 'id', 'action', 'scope'}
                              or command['action'] == 'create'
                              and set(command) == {'type', 'id', 'action', 'name', 'category', 'content', 'scope'}
                              and isinstance(command.get('name'), str)

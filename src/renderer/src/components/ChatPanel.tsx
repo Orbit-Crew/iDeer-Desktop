@@ -3,6 +3,7 @@ import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Moda
 import type { ChatAttachmentStatus, ChatCommand, ChatSnapshot, ChatSubagent, ChatAttachmentView, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
 import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
+import { WelcomeSection } from './WelcomeSection'
 import { useSessionStore } from '../stores/sessionStore'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
@@ -488,6 +489,11 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
       </div>
       {/* Issue 75: the composer owns the @-delegation and /Skill input
           commands; the thread key keeps its mounted facts session-scoped. */}
+      {/* Issue 106: the welcome page — the platform's official template
+          selection, read-only until the user copies a row into their own
+          templates. It shows only before the first message arrives, the
+          original welcome-page-to-message-page handover. */}
+      {state.messages.length === 0 && <WelcomeSection />}
       <ChatComposer key={threadId} state={state} pending={!!pending} canSend={canSend}
         sendBlockedReason={unreachable ? '平台不可达，已暂停发送；恢复后自动重连并补传执行记录' : undefined}
         onCommand={onCommand} />

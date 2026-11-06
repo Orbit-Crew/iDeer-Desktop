@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+
+// Issue 106: the official selection rides the templates family's one pinned
+// channel, so the channel inventory stays one entry per channel.
+const invokeTemplates = (command: TemplateCommand | OfficialTemplateCommand): Promise<unknown> =>
+  ipcRenderer.invoke('desktop:templates', command)
+const invokeTemplatesAs = <T,>(command: TemplateCommand | OfficialTemplateCommand): Promise<T> =>
+  invokeTemplates(command) as Promise<T>
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -29,7 +36,10 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 84: the prompt-template plaza. The renderer names CRUD/use actions
   // only; the Server's own endpoints hold the rows, and a delete is
   // confirmed in the trusted main process before it reaches the wire.
-  templates: (command: TemplateCommand) => ipcRenderer.invoke('desktop:templates', command),
+  templates: (command: TemplateCommand) => invokeTemplatesAs<TemplateView>(command),
+  // Issue 106: the welcome page's read-only official selection; it rides the
+  // same channel family with its own typed door and never mutates anything.
+  officialTemplates: (command: OfficialTemplateCommand) => invokeTemplatesAs<OfficialTemplatesView>(command),
   connectors: (command: ConnectorCommand) => ipcRenderer.invoke('desktop:connectors', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
