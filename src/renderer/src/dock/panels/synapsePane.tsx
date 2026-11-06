@@ -59,10 +59,17 @@ const layoutForest = (rows: ThreadRowView[]): { nodes: GraphNode[]; edges: Graph
   }
   for (const row of rows) depth(row, new Set())
   const slotOf = new Map<string, number>()
+  const walking = new Set<string>()
   let slot = 0
   const walkX = (row: ThreadRowView): number => {
     const known = slotOf.get(row.id)
     if (known !== undefined) return known
+    // The same defensive cycle bail the depth walk has: a malformed edge
+    // cycle owns no root, and re-entering a node mid-walk terminates here
+    // instead of looping — layout-only, the platform's own parent facts can
+    // never form one.
+    if (walking.has(row.id)) return 0
+    walking.add(row.id)
     const kids = children.get(row.id) ?? []
     let value: number
     if (!kids.length) {
@@ -71,6 +78,7 @@ const layoutForest = (rows: ThreadRowView[]): { nodes: GraphNode[]; edges: Graph
       const kidSlots = kids.map(walkX)
       value = (kidSlots[0] + kidSlots[kidSlots.length - 1]) / 2
     }
+    walking.delete(row.id)
     slotOf.set(row.id, value)
     return value
   }
@@ -154,10 +162,9 @@ export function SynapseView({ failed, view, snapshot, activeThreadId, onOpen, on
 }): JSX.Element {
   const rows = view?.threads ?? []
   // Issue 78/113: the map offers the same gate the conversation renders —
-  // the conversation re-checks on its own serialized path either way.
-  const branchable = !!view?.permissions.canRename && branchGate(snapshot ?? {
-    thread: null, stream: 'idle', run: null, platform: undefined, messages: []
-  })
+  // the conversation re-checks on its own serialized path either way. No
+  // observed snapshot means no gate to read, so no affordance.
+  const branchable = !!view?.permissions.canRename && !!snapshot && branchGate(snapshot)
   return <div className="h-full w-full overflow-auto p-4" style={{ background: 'var(--pane-bg, #F4F6FA)' }}>
     <div className="mb-1 flex items-center gap-2">
       <span className="text-sm font-medium text-gray-800">会话地图</span>

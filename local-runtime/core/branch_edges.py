@@ -15,7 +15,6 @@ an unconnected session — an honest absence, never a guessed relation.
 from __future__ import annotations
 
 import sqlite3
-import threading
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -25,14 +24,13 @@ class BranchEdgeLedger:
 
     Recording never fails a branch — the branch is already platform truth
     when the record runs — and reading never fails a list: a storage error
-    surfaces as ``error`` plus an empty edge set, which the map renders as
-    unconnected sessions instead of inventing relations.
+    surfaces as an empty edge set, which the map renders as unconnected
+    sessions instead of inventing relations. Every call opens its own
+    connection and SQLite serializes the file, so no lock of our own.
     """
 
     def __init__(self, path: str | Path) -> None:
         self.path = str(path)
-        self._error = ''
-        self._lock = threading.Lock()
         try:
             with self._db() as db:
                 db.execute("""CREATE TABLE IF NOT EXISTS branch_edges (
@@ -41,11 +39,7 @@ class BranchEdgeLedger:
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (scope, child_id))""")
         except (sqlite3.Error, OSError):
-            self._error = 'BRANCH_EDGE_STORAGE_UNAVAILABLE'
-
-    @property
-    def error(self) -> str:
-        return self._error
+            pass
 
     @contextmanager
     def _db(self):
@@ -62,12 +56,11 @@ class BranchEdgeLedger:
         if not scope or not child_id or not parent_id:
             return False
         try:
-            with self._lock, self._db() as db:
+            with self._db() as db:
                 db.execute('INSERT OR REPLACE INTO branch_edges (scope, child_id, parent_id, message_id) VALUES (?,?,?,?)',
                            (scope, child_id, parent_id, message_id))
             return True
         except (sqlite3.Error, OSError):
-            self._error = 'BRANCH_EDGE_STORAGE_UNAVAILABLE'
             return False
 
     def edges_for_scope(self, scope: str) -> dict:
@@ -80,7 +73,6 @@ class BranchEdgeLedger:
                     'SELECT child_id, parent_id, message_id FROM branch_edges WHERE scope=? '
                     'ORDER BY created_at DESC, child_id LIMIT 1000', (scope,)).fetchall()
         except (sqlite3.Error, OSError):
-            self._error = 'BRANCH_EDGE_STORAGE_UNAVAILABLE'
             return {}
         return {row['child_id']: {'parent_id': row['parent_id'], 'message_id': row['message_id']}
                 for row in rows}

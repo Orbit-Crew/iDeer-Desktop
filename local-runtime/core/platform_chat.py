@@ -999,7 +999,10 @@ class DesktopChat:
         # Issue 113: the Server's own parent facts are the only edge source
         # for the session map. The record is best-effort — the branch is
         # already platform truth — and a reply without parent facts records
-        # nothing; the map renders both cases as unconnected sessions.
+        # nothing; the map renders both cases as unconnected sessions. The
+        # parent half is always the Server's; the turn half prefers the
+        # Server's echo and falls back to the command's own message id —
+        # a device fact — when the echo is missing or malformed.
         parent_id = created.get('parent_thread_id')
         if isinstance(parent_id, str) and self._is_id(parent_id):
             branched_from = created.get('branched_from_message_id')
