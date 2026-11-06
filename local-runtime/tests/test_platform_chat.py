@@ -136,7 +136,9 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     status = 403
                 token = f'server-issued-grant-{len(records)}'
                 grants.add(token)
-                data = dict(token=token, run_id=body['run_id'], task_id=body['task_id'],
+                # Issue 93: a chat-attachment grant carries no run or task, so
+                # the echo mirrors only the fields the request actually had.
+                data = dict(token=token, run_id=body.get('run_id'), task_id=body.get('task_id'),
                             thread_id='thread-A', name=body['name'], device_id=body['device_id'],
                             expires_at='2099-01-01T00:00:00+00:00') if status == 200 else {}
                 if on_grant:
@@ -174,7 +176,7 @@ def platform(human_request=None, disconnect=False, can_run=True, agent_binding=A
                     else:
                         data = dict(artifact_id=f"art-{len(artifacts) + 1}", thread_id='thread-A',
                                     name=body['name'], sha256=body['sha256'], bytes=body['bytes'],
-                                    task_id=body['task_id'], run_id=body['run_id'], content=body['content'],
+                                    task_id=body.get('task_id'), run_id=body.get('run_id'), content=body['content'],
                                     handle=body['handle'], duplicate=False)
                         artifacts[body['handle']] = data
             elif self.path == '/api/threads/thread-A/runs/run-1/stream':
@@ -532,6 +534,111 @@ def test_chat_projects_script_and_material_asks_and_settles_them(tmp_path):
             (('task-122', 'b' * 64, True), {'always': True}),
             (('task-116', 'c' * 64, True), {'always': False}),
         ]
+
+
+def test_chat_projects_inline_code_asks_and_settles_them(tmp_path):
+    """#105: an inline-code ask is device authority the Desktop chat can
+    settle. The card shows the code and its target root in full — the bytes
+    the user approves are the bytes on display — and plain allow/deny
+    settles it; rememberScript stays a script-grant concept."""
+    from core.consent import PendingConsent
+    node_pending = PendingConsent('task-105', 'local.python',
+        {'run_id': 'run-1', 'thread_id': 'thread-A', 'operation': 'local.python',
+         'runtime': 'node', 'working_root': '/workspace/102/data',
+         'script': "console.log('inline');\n"},
+        'a' * 64, 'level_1', False, {}, time.monotonic())
+    python_pending = PendingConsent('task-106', 'local.python',
+        {'run_id': 'run-1', 'thread_id': 'thread-A', 'operation': 'local.python',
+         'working_root': '/workspace/102', 'script': 'print(1)\n'},
+        'd' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin,
+            local_consents=lambda: [node_pending, python_pending],
+            decide_consent=lambda *args, **kwargs: decisions.append((args, kwargs)))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Run the inline code'})
+        assert sorted(row['kind'] for row in state['localConsents']) == ['inline-code', 'inline-code']
+        node_row = next(row for row in state['localConsents'] if row['language'] == 'node')
+        assert node_row['taskId'] == 'task-105' and node_row['requestHash'] == 'a' * 64
+        assert node_row['workingRoot'] == '/workspace/102/data'
+        assert node_row['script'] == "console.log('inline');\n"
+        python_row = next(row for row in state['localConsents'] if row['language'] == 'python')
+        assert python_row['taskId'] == 'task-106' and python_row['script'] == 'print(1)\n'
+        # rememberScript is the skill-script content grant; inline code
+        # refuses it in every shape.
+        refused = chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-105', 'requestHash': 'a' * 64, 'decision': 'allow', 'rememberScript': True})
+        assert refused['error'] == 'CHAT_COMMAND_INVALID'
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-105', 'requestHash': 'a' * 64, 'decision': 'allow'})
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-106', 'requestHash': 'd' * 64, 'decision': 'deny'})
+        assert decisions == [
+            (('task-105', 'a' * 64, True), {'always': False}),
+            (('task-106', 'd' * 64, False), {'always': False}),
+        ]
+
+
+def test_chat_never_approves_inline_code_hidden_by_credential_redaction(tmp_path):
+    from core.consent import PendingConsent
+    pending = PendingConsent('task-107', 'local.python',
+        {'run_id': 'run-1', 'thread_id': 'thread-A', 'operation': 'local.python',
+         'working_root': '/workspace/102', 'script': "print('business-A')\n"},
+        'e' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, _):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [pending],
+            decide_consent=lambda *args: decisions.append(args))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Run the inline code'})
+        assert state['localConsents'] == []
+        assert state['error'] == 'CONSENT_CONTENT_REDACTED'
+        assert 'business-A' not in json.dumps(state)
+        forced = chat.handle(dict(action='consent', scope=scope, threadId='thread-A', runId='run-1',
+            taskId='task-107', requestHash='e' * 64, decision='allow'))
+        assert forced['error'] == 'CONSENT_CONTENT_REDACTED'
+        assert decisions == []
+
+
+class _RecordingScripts:
+    """The scratch-store seam the chat layer sweeps sessions through."""
+
+    def __init__(self) -> None:
+        self.threads: list[str] = []
+        self.wiped = 0
+
+    def cleanup_thread(self, thread_id: str) -> None:
+        self.threads.append(thread_id)
+
+    def cleanup_all(self) -> None:
+        self.wiped += 1
+
+
+def test_chat_sweeps_session_scripts_when_the_session_ends(tmp_path):
+    """#105 临时脚本按会话清理: switching away from a session sweeps its
+    scratch; an identity reset sweeps everything."""
+    scripts = _RecordingScripts()
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, inline_scripts=scripts)
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'First'})
+        assert scripts.threads == []
+        # Opening another session sweeps the one being left behind...
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert scripts.threads == ['thread-A']
+        # ...and reopening the same session does not (the session continues).
+        chat.handle({'action': 'open', 'scope': scope, 'threadId': 'thread-B'})
+        assert scripts.threads == ['thread-A']
+        wipes_before = scripts.wiped
+        chat._reset()
+        assert scripts.wiped == wipes_before + 1
 
 
 def test_chat_remember_script_flag_is_bound_to_script_allows_only(tmp_path):
@@ -1651,3 +1758,61 @@ def test_create_assigns_the_new_thread_to_the_selected_project(tmp_path):
         outcome = chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT, 'projectId': '项目 非法'})
         assert outcome['error'] == 'CHAT_COMMAND_INVALID'
         assert len([body for path, body, _ in records if path == '/api/threads' and body]) == 2
+
+
+def test_dependency_install_ask_projects_entries_and_source_only(tmp_path) -> None:
+    """#104: the install ask rides the same pending queue; the card names the
+    skill, the locked entries and the source, never the script bytes, and
+    ``rememberScript`` stays a script-only affordance."""
+    from core.consent import PendingConsent
+    install_pending = PendingConsent('task-104', 'local.skill.dependencies',
+        {'run_id': 'run-1', 'thread_id': 'thread-A', 'skill_id': 'report-skill',
+         'skill_version': 3, 'requirements_sha256': 'd' * 64,
+         'entries': [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}],
+         'source': {'kind': 'intranet', 'location': 'http://intranet.example/wheels'},
+         'script': 'print(secret bytes that must not leak)\n'},
+        'd' * 64, 'level_1', False, {}, time.monotonic())
+    decisions = []
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [install_pending],
+            decide_consent=lambda *args, **kwargs: decisions.append((args, kwargs)))
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        state = chat.handle({'action': 'send', 'scope': scope, 'threadId': 'thread-A',
+            'turnId': '33333333-3333-4333-8333-333333333333', 'text': 'Run the skill'})
+        rows = [row for row in state['localConsents'] if row['kind'] == 'skill-dependencies']
+        assert len(rows) == 1
+        row = rows[0]
+        assert row['skill'] == 'report-skill' and row['version'] == '3'
+        assert row['entries'] == [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}]
+        assert row['source'] == {'kind': 'intranet', 'location': 'http://intranet.example/wheels'}
+        assert row['requirementsSha256'] == 'd' * 64
+        assert 'script' not in row and 'declaration' not in row  # bytes never reach the display
+        # A plain allow settles the install; "remember" is refused for it.
+        chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-104', 'requestHash': 'd' * 64, 'decision': 'allow'})
+        assert decisions and decisions[0][0][:3] == ('task-104', 'd' * 64, True)
+        rejected = chat.handle({'action': 'consent', 'scope': scope, 'threadId': 'thread-A', 'runId': 'run-1',
+            'taskId': 'task-104', 'requestHash': 'd' * 64, 'decision': 'allow', 'rememberScript': True})
+        assert rejected['error'] == 'CHAT_COMMAND_INVALID'
+
+
+def test_background_notification_names_dependency_installs(tmp_path) -> None:
+    """#104: an install ask on an invisible session notifies like the other
+    device authorities, with a bounded identity summary."""
+    from core.consent import PendingConsent
+    install_pending = PendingConsent('task-bg-104', 'local.skill.dependencies',
+        {'run_id': 'run-9', 'thread_id': 'thread-BG', 'skill_id': 'report-skill',
+         'skill_version': 3, 'requirements_sha256': 'd' * 64,
+         'entries': [{'entry': 'requests==2.31.0', 'name': 'requests', 'version': '2.31.0'}],
+         'source': {'kind': 'offline', 'location': 'D:/wheels'}},
+        'd' * 64, 'level_1', False, {}, time.monotonic())
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin, local_consents=lambda: [install_pending])
+        scope = chat.handle({'action': 'refresh'})['scope']
+        chat.handle({'action': 'create', 'scope': scope, 'agentId': AGENT})
+        events = chat.background_tick()
+        approvals = [event for event in events if event.get('kind') == 'approval-required'
+                     and event.get('approval') == 'skill-dependencies']
+        assert approvals and approvals[0]['taskId'] == 'task-bg-104'
+        assert approvals[0]['summary'] == 'report-skill'

@@ -375,3 +375,145 @@ def test_registry_rows_never_cross_identities(tmp_path):
         other = hashlib.sha256(b'another-profile-binding').hexdigest()
         assert imports.view(other) == []
         assert imports.view(binding)
+
+
+# --- declared language, permissions, and dependencies at import (#82) --------
+
+DECLARED_MD = (
+    '---\n'
+    'name: declared-skill\n'
+    'description: Declares environment and permissions\n'
+    'requires-internet: true\n'
+    'permissions:\n'
+    '  - network\n'
+    '  - subprocess\n'
+    'execution-environment:\n'
+    '  target: user_device\n'
+    '  os:\n'
+    '    - windows\n'
+    '  dependencies:\n'
+    '    - python3>=3.10\n'
+    '    - pandas\n'
+    '  software: []\n'
+    '  tools:\n'
+    '    - pandoc\n'
+    '  data: []\n'
+    '---\n'
+    '\n# Declared skill\n'
+)
+JS_SCRIPT = "console.log('render')\n"
+
+
+def declared_zip(path: Path, body: str = DECLARED_MD) -> list[tuple[str, bytes]]:
+    members = [('SKILL.md', body.encode()), ('scripts/analyze.py', SCRIPT.encode()),
+               ('scripts/render.js', JS_SCRIPT.encode()), ('references/notes.md', REFERENCE.encode())]
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, 'w') as bundle:
+        for name, data in members:
+            bundle.writestr(name, data)
+    path.write_bytes(archive.getvalue())
+    return members
+
+
+@pytest.mark.parametrize('kind', ['markdown', 'zip'])
+def test_preview_projects_declaration_permissions_and_languages(tmp_path, kind):
+    """#82 AC1/AC2/AC5: the declared languages, permissions, and dependencies
+    are visible at import, projected from the package's own front-matter; the
+    projection changes no bytes, so the package hash still names the upload."""
+    with platform() as (origin, records, _state):
+        chat, imports, config, binding = prepare(tmp_path, origin)
+        markdown = tmp_path / 'declared-skill.md'
+        markdown.write_text(DECLARED_MD, encoding='utf-8')
+        members = declared_zip(tmp_path / 'declared-skill.zip')
+        del records[:]
+
+        preview = chat.import_skill_package(kind, [str(markdown if kind == 'markdown'
+                                                        else tmp_path / 'declared-skill.zip')], confirmed=False)
+
+        assert preview['environment'] == {
+            'target': 'user_device', 'os': ['windows'],
+            'dependencies': ['python3>=3.10', 'pandas'], 'software': [],
+            'tools': ['pandoc'], 'data': []}
+        assert preview['permissions'] == {'network': True, 'subprocess': True}
+        languages = {row['path']: row['language'] for row in preview['files']}
+        if kind == 'zip':
+            assert languages == {'SKILL.md': '', 'references/notes.md': '',
+                                 'scripts/analyze.py': 'python', 'scripts/render.js': 'js'}
+        else:
+            assert languages == {'SKILL.md': ''}
+        expected_hash = canonical_hash([('SKILL.md', DECLARED_MD.encode())]) if kind == 'markdown' \
+            else canonical_hash(members)
+        assert preview['packageHash'] == expected_hash
+        assert records == []
+
+
+def test_preview_without_declaration_reports_absence(tmp_path):
+    """#82: a package that declares nothing imports with no projected facts —
+    absence is honest, never inferred from names or file types."""
+    with platform() as (origin, records, _state):
+        chat, imports, config, binding = prepare(tmp_path, origin)
+        make_fixtures(tmp_path)
+        preview = chat.import_skill_package('zip', [str(tmp_path / 'report-skill.zip')], confirmed=False)
+        assert preview['environment'] is None
+        assert preview['permissions'] == {'network': False, 'subprocess': False}
+        assert [row['language'] for row in preview['files'] if row['role'] == 'script'] == ['python']
+
+
+@pytest.mark.parametrize('body', [
+    # An unknown key inside the frozen execution-environment block.
+    DECLARED_MD.replace('  tools:\n', '  permissions:\n    - network\n  tools:\n'),
+    # An unknown target.
+    DECLARED_MD.replace('target: user_device', 'target: phone'),
+    # An unknown permission token outside the declared vocabulary.
+    DECLARED_MD.replace('  - subprocess', '  - gpu'),
+    # requires-internet must be a boolean.
+    DECLARED_MD.replace('requires-internet: true', 'requires-internet: maybe'),
+    # Anchors inside a declared block are outside the bounded reader: refuse,
+    # never guess what the author meant.
+    DECLARED_MD.replace('  target: user_device', '  target: &t user_device'),
+], ids=['unknown-environment-key', 'bad-target', 'unknown-permission', 'bad-bool', 'yaml-anchor'])
+def test_invalid_declaration_refuses_the_preview(tmp_path, body):
+    """#82 AC2: a declaration the device cannot confidently read refuses the
+    preview with a fixed category — the platform refuses it authoritatively
+    too, and a permission the user cannot see is never uploaded silently."""
+    with platform() as (origin, records, _state):
+        chat, imports, config, binding = prepare(tmp_path, origin)
+        declared_zip(tmp_path / 'declared-skill.zip', body=body)
+        with pytest.raises(SkillImportError) as caught:
+            chat.import_skill_package('zip', [str(tmp_path / 'declared-skill.zip')], confirmed=False)
+        assert str(caught.value) == 'SKILL_IMPORT_INVALID_DECLARATION'
+        assert records == []
+        rows = imports.view(binding)
+        assert rows and rows[0]['status'] == 'failed'
+        assert rows[0]['errorCode'] == 'SKILL_IMPORT_INVALID_DECLARATION'
+
+
+def test_canonical_declaration_spellings_still_project(tmp_path):
+    """#82: flow lists, quoted scalars, comments, and unrelated enterprise
+    front-matter keys (with nested blocks) all project — the bounded reader
+    covers the spellings real skill front-matter uses, and skips the rest."""
+    body = (
+        '---\n'
+        'name: declared-skill\n'
+        'description: Declares environment and permissions\n'
+        'category: productivity  # an enterprise key the device skips\n'
+        'metadata:\n'
+        '  nested:\n'
+        '    deeply: true\n'
+        'permissions: [network]\n'
+        'requires-internet: false\n'
+        'execution-environment:\n'
+        '  target: user_device\n'
+        '  os: [windows]  # inline comment\n'
+        '  dependencies: ["python3>=3.10", \'pandas\']\n'
+        '---\n'
+        '\n# Declared skill\n'
+    )
+    with platform() as (origin, records, _state):
+        chat, imports, config, binding = prepare(tmp_path, origin)
+        declared_zip(tmp_path / 'declared-skill.zip', body=body)
+        preview = chat.import_skill_package('zip', [str(tmp_path / 'declared-skill.zip')], confirmed=False)
+        assert preview['environment'] == {'target': 'user_device', 'os': ['windows'],
+                                          'dependencies': ['python3>=3.10', 'pandas'],
+                                          'software': [], 'tools': [], 'data': []}
+        assert preview['permissions'] == {'network': True, 'subprocess': False}

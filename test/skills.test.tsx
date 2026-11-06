@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
+import { formatDeclarationSummary } from '../src/main/skillDeclaration'
 import { SkillSection } from '../src/renderer/src/components/SkillSection'
 import type { RuntimeStatus, SkillImportView, SkillPreferencesView, SkillTriggerPreferenceView } from '../src/shared/desktop'
 
@@ -224,4 +225,102 @@ describe('device skill script authorization surface (#122)', () => {
     )
     expect(storageError).toContain('脚本授权记录存储不可用')
   })
+})
+
+describe('skill package declaration import bridge (#82)', () => {
+  const DECLARED_MD = [
+    '---',
+    'name: declared-skill',
+    'description: Declares environment and permissions',
+    'requires-internet: true',
+    'permissions:',
+    '  - network',
+    '  - subprocess',
+    'execution-environment:',
+    '  target: user_device',
+    '  os:',
+    '    - windows',
+    '  dependencies:',
+    '    - python3>=3.10',
+    '  software: []',
+    '  tools: []',
+    '  data: []',
+    '---',
+    '',
+    '# Declared skill',
+    ''
+  ].join('\n')
+
+  it('formats the confirmation dialog declaration summary', () => {
+    const summary = formatDeclarationSummary(
+      [
+        { path: 'SKILL.md', role: 'body', bytes: 10, sha256: 'a'.repeat(64), language: '' },
+        { path: 'scripts/analyze.py', role: 'script', bytes: 20, sha256: 'b'.repeat(64), language: 'python' },
+        { path: 'scripts/render.js', role: 'script', bytes: 30, sha256: 'c'.repeat(64), language: 'js' }
+      ],
+      { target: 'user_device', os: ['windows'], dependencies: ['python3>=3.10'], software: [], tools: ['pandoc'], data: [] },
+      { network: true, subprocess: false })
+    expect(summary).toContain('声明语言：scripts/analyze.py（Python）、scripts/render.js（JS）')
+    expect(summary).toContain('权限声明：联网（未声明的能力不会被自动授予）')
+    expect(summary).toContain('依赖与环境：执行目标 本机设备；系统 windows；依赖 python3>=3.10；工具 pandoc')
+    // A package that declares nothing says so instead of omitting the block.
+    const undeclared = formatDeclarationSummary(
+      [{ path: 'SKILL.md', role: 'body', bytes: 10, sha256: 'a'.repeat(64), language: '' }],
+      null, { network: false, subprocess: false })
+    expect(undeclared).toContain('声明语言：（包内无脚本成员）')
+    expect(undeclared).toContain('权限声明：未声明联网/子进程权限')
+    expect(undeclared).toContain('依赖与环境：包未声明执行环境')
+  })
+
+  it.skipIf(process.platform !== 'win32')('projects the declared environment, permissions, and script languages through the owned Runtime', async () => {
+    const profile = mkdtempSync(join(tmpdir(), 'ideer-skill-declared-'))
+    // The packages live outside the protected profile area as real picked
+    // directories; the device-side preview stays local and needs no session.
+    const packages = mkdtempSync(join(tmpdir(), 'ideer-skill-declared-pkg-'))
+    const declaredDir = join(packages, 'declared-skill')
+    for (const [relative, content] of [
+      ['SKILL.md', DECLARED_MD],
+      ['scripts/analyze.py', "print('analyze')\n"],
+      ['scripts/render.js', "console.log('render')\n"],
+      ['references/notes.md', '# Frozen reference notes\n']
+    ] as const) {
+      const target = join(declaredDir, relative)
+      mkdirSync(dirname(target), { recursive: true })
+      writeFileSync(target, content, 'utf8')
+    }
+    const invalidDir = join(packages, 'invalid-skill')
+    mkdirSync(join(invalidDir, 'scripts'), { recursive: true })
+    writeFileSync(join(invalidDir, 'SKILL.md'), DECLARED_MD.replace('target: user_device', 'target: phone'), 'utf8')
+    writeFileSync(join(invalidDir, 'scripts', 'analyze.py'), "print('analyze')\n", 'utf8')
+    const runtime = new RuntimeProcess(resolve('.runtime'), profile)
+    try {
+      await runtime.start()
+      const deadline = Date.now() + 15000
+      while (runtime.status().process !== 'running' && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50))
+      const preview = await runtime.importSkill('directory', [declaredDir], false)
+      if (preview.confirmed !== false) throw new Error('expected a preview')
+      // #82 AC2/AC5: the declaration the user confirms is the normalized
+      // frozen-grammar projection plus the declared permission facts.
+      expect(preview.environment).toEqual({
+        target: 'user_device', os: ['windows'], dependencies: ['python3>=3.10'],
+        software: [], tools: [], data: []
+      })
+      expect(preview.permissions).toEqual({ network: true, subprocess: true })
+      // #82 AC1: the four-language recognition rides the script members.
+      const languages = Object.fromEntries(preview.files.map((file) => [file.path, file.language]))
+      expect(languages['SKILL.md']).toBe('')
+      expect(languages['references/notes.md']).toBe('')
+      expect(languages['scripts/analyze.py']).toBe('python')
+      expect(languages['scripts/render.js']).toBe('js')
+      // A declaration the device cannot read refuses with its fixed category;
+      // nothing uploads and no import fact is left behind.
+      await expect(runtime.importSkill('directory', [invalidDir], false))
+        .rejects.toThrow('SKILL_IMPORT_INVALID_DECLARATION')
+      expect(runtime.status().skillImports).toEqual([])
+    } finally {
+      await runtime.stop()
+      rmSync(profile, { recursive: true, force: true })
+      rmSync(packages, { recursive: true, force: true })
+    }
+  }, 30000)
 })

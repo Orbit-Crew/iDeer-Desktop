@@ -19,7 +19,8 @@ from pathlib import Path
 from .artifacts import ArtifactUploadError, ArtifactUploader
 from .compat import UTC, StrEnum
 from .consent import ConsentStore, request_hash
-from .files import LocalFileStore
+from .files import FileAccessError, LocalFileStore
+from .inline_code import InlineScriptStore, language_of, node_unavailable, probe_node_version
 from .policy import LocalPolicy, PolicyDecision
 from .receipts import LocalExecutionReceipt, content_hash
 from .secrets import (
@@ -259,7 +260,13 @@ class _StreamingRedactor:
 
 
 class LocalPythonService:
-    """Policy and root-gated facade around :class:`PythonExecutor`."""
+    """Policy and root-gated facade around :class:`PythonExecutor`.
+
+    Since #105 the service also owns the inline-code scratch: an allowed
+    ask's code is materialized as a session temp script inside the
+    authorized folder before execution, and node tasks run the app's own
+    pinned Node runtime when the Desktop configured one at spawn.
+    """
 
     def __init__(
         self,
@@ -271,6 +278,8 @@ class LocalPythonService:
         executor: PythonExecutor | None = None,
         environment: Mapping[str, str] | None = None,
         secrets: SecretResolver | None = None,
+        node_executable: str | None = None,
+        scripts: InlineScriptStore | None = None,
     ) -> None:
         self.files = files
         self.policy = policy or LocalPolicy()
@@ -279,6 +288,10 @@ class LocalPythonService:
         self.executor = executor or PythonExecutor()
         self.environment = dict(environment or {})
         self.secrets = secrets
+        self.node_executable = node_executable
+        self.scripts = scripts
+        self._node_version: str | None = None
+        self._node_unavailable: bool = False
 
     async def execute(
         self,
@@ -315,6 +328,24 @@ class LocalPythonService:
         }
         if resolved_secrets is not None:
             environment = {**environment, **resolved_secrets.environment}
+        # #105: an allowed ask runs from a file inside the authorized folder,
+        # so the executed bytes are visible (and sweepable) in the user's own
+        # workspace. Every refusal above happens before anything is written.
+        language = language_of(payload)
+        interpreter: list[str] | None = None
+        child_env: dict[str, str] | None = None
+        runtime_version: str | None = None
+        if language == "node":
+            interpreter, runtime_version = self._node_runtime()
+            # The app's own executable only behaves as Node under this
+            # marker; a plain ``node`` binary ignores it harmlessly.
+            child_env = {"ELECTRON_RUN_AS_NODE": "1"}
+        _logical_script, script_path = self._ensure_scripts().materialize(
+            thread_id=str(payload.get("thread_id", "")),
+            run_id=str(payload.get("run_id", "")),
+            language=language,
+            script=str(payload["script"]),
+        )
         result = await self.executor.run(
             str(payload["script"]),
             working_root=working_root,
@@ -327,6 +358,10 @@ class LocalPythonService:
                 else ()
             ),
             on_output=on_output,
+            script_path=script_path,
+            interpreter=interpreter,
+            child_env=child_env,
+            runtime_version=runtime_version,
         )
         artifact_error: str | None = None
         if result.status is PythonTaskStatus.COMPLETED and payload.get(
@@ -387,6 +422,44 @@ class LocalPythonService:
         )
         return replace(result, receipt=receipt, artifact_error=artifact_error)
 
+    def _ensure_scripts(self) -> InlineScriptStore:
+        """The scratch store for this service's current workspace.
+
+        Wiring may inject a shared store (the Desktop keeps one instance so
+        the chat layer can sweep sessions without reaching the service);
+        absent that, a store is built lazily over the current file store.
+        """
+        if self.scripts is None:
+            self.scripts = InlineScriptStore(self.files)
+        return self.scripts
+
+    def _node_runtime(self) -> tuple[list[str], str]:
+        """The pinned Node interpreter and its version, validated once.
+
+        The Desktop passes the app's own executable at spawn; it answers
+        ``--version`` under ``ELECTRON_RUN_AS_NODE``. A runtime that was
+        never configured - or that failed its probe once - refuses every
+        task with an operable error instead of launching blind or probing
+        a broken binary again and again.
+        """
+        if not self.node_executable:
+            raise node_unavailable("no Node runtime is configured on this device")
+        if self._node_unavailable:
+            raise node_unavailable(
+                "the configured Node runtime failed its availability probe"
+            )
+        if self._node_version is None:
+            try:
+                self._node_version = self._probe_node_version(self.node_executable)
+            except FileAccessError:
+                self._node_unavailable = True
+                raise
+        return [self.node_executable], self._node_version
+
+    def _probe_node_version(self, executable: str) -> str:
+        """The overridable probe seam; tests pin a version without spawning."""
+        return probe_node_version(executable)
+
     def _resolve_payload_secrets(
         self, payload: dict[str, object]
     ) -> ResolvedSecrets | None:
@@ -411,12 +484,13 @@ class LocalPythonService:
             raise TypeError("working_root is required")
         if not isinstance(payload.get("script"), str):
             raise TypeError("script is required")
-        # The payload's "runtime" field is a compatibility filter, not a
-        # selector: execution is always pinned to this runtime's own
-        # interpreter (sys.executable), so an unknown value is rejected
-        # early, and any accepted value runs the same binary (05-L7).
-        if payload.get("runtime", "python") not in {"python", "python3"}:
-            raise ValueError("unsupported Python runtime")
+        # The payload's "runtime" field names the pinned interpreter the
+        # runtime will use: its own Python by default, or the app's own Node
+        # runtime for "node" (#105). Execution is always pinned - an unknown
+        # value is rejected early, and an accepted value never selects an
+        # arbitrary binary (05-L7).
+        if payload.get("runtime", "python") not in {"python", "python3", "node"}:
+            raise ValueError("unsupported runtime")
         # 05-M3: the broker-chosen timeout is bounded and must be a positive
         # number; a stale or hostile payload cannot pin an execution slot.
         timeout = payload.get("timeout", 30)
@@ -474,6 +548,10 @@ class PythonExecutor:
         environment: Mapping[str, str] | None = None,
         secret_values: tuple[str, ...] = (),
         on_output: Callable[[str, str], Awaitable[None]] | None = None,
+        script_path: Path | None = None,
+        interpreter: list[str] | None = None,
+        child_env: Mapping[str, str] | None = None,
+        runtime_version: str | None = None,
     ) -> PythonResult:
         if not working_root.is_dir():
             raise ValueError("working_root must be a directory")
@@ -485,6 +563,8 @@ class PythonExecutor:
         for name, value in (environment or {}).items():
             if not name or "=" in name or "\x00" in name or "\x00" in value:
                 raise ValueError("environment references must be valid names")
+            env[name] = value
+        for name, value in (child_env or {}).items():
             env[name] = value
         process_options = {
             "cwd": working_root,
@@ -531,8 +611,21 @@ class PythonExecutor:
             log_temp_names.append(stderr_file.name)
             process_options["stdout"] = stdout_file
             process_options["stderr"] = stderr_file
+            # Inline code (#105) arrives as a file inside the authorized
+            # folder; the Skill-script path keeps the inline ``-c`` form.
+            # Both run pinned interpreters only: the default is this
+            # runtime's own Python in isolated mode, and a caller naming
+            # another one (the app's Node) stays responsible for pinning it.
+            argv = list(interpreter) if interpreter is not None else [
+                sys.executable,
+                "-I",
+            ]
+            if script_path is not None:
+                argv.append(str(script_path))
+            else:
+                argv.extend(["-c", script])
             process = subprocess.Popen(  # noqa: ASYNC220
-                [sys.executable, "-I", "-c", script, *(args or [])],
+                [*argv, *(args or [])],
                 **process_options,
             )
             job = None
@@ -639,7 +732,11 @@ class PythonExecutor:
             stderr_log_path=stderr_file.name,
             started_at=started_at,
             finished_at=finished_at,
-            runtime_version=sys.version.split()[0],
+            runtime_version=(
+                runtime_version
+                if runtime_version is not None
+                else sys.version.split()[0]
+            ),
         )
 
     @staticmethod

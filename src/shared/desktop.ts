@@ -273,13 +273,29 @@ export interface WikiCommand {
   revisionId: string
   documentId?: string
 }
-/** Issue 120: one package member in the upload scope, bound to its frozen hash. */
+/** Issue 120: one package member in the upload scope, bound to its frozen hash.
+ * Issue 82: script members carry their declared language (empty for the
+ * other roles and for members outside the four-language mapping). */
+export type SkillScriptLanguage = 'python' | 'js' | 'shell' | 'executable'
 export interface SkillPackageFileView {
   path: string
   role: 'body' | 'script' | 'reference' | 'attachment'
   bytes: number
   sha256: string
+  language: SkillScriptLanguage | ''
 }
+/** Issue 82: the package's declared execution environment, normalized to the
+ * frozen wire grammar (target + the five requirement dimensions). */
+export interface SkillImportEnvironmentView {
+  target: 'server' | 'user_device'
+  os: string[]
+  dependencies: string[]
+  software: string[]
+  tools: string[]
+  data: string[]
+}
+/** Issue 82: the permissions a package declares, as shown at import. */
+export interface SkillImportPermissionsView { network: boolean; subprocess: boolean }
 export interface SkillImportDestination { resourceType: string; visibility: string; ownerId?: string }
 /** Issue 120: the read-only device-side preview; nothing uploads in this step. */
 export interface SkillImportPreview {
@@ -288,6 +304,8 @@ export interface SkillImportPreview {
   name: string
   description: string
   bodyExcerpt: string
+  environment: SkillImportEnvironmentView | null
+  permissions: SkillImportPermissionsView
   files: SkillPackageFileView[]
   fileCount: number
   totalBytes: number
@@ -614,6 +632,10 @@ export interface DesktopBridge {
   refreshCompatibility(): Promise<CompatibilityView | { error: string }>
   /** Issue 77: the notification center's one query/settle entry. */
   notifications(command: NotificationCommand): Promise<NotificationCenterView>
+  /** Issue 94: the human file-browsing seam. list/read return guarded views
+   * of the confirmed workspace; open/reveal resolve the physical path only in
+   * the trusted main process and return nothing to the renderer. */
+  files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
   /** Issue 77: the main process pushes the full bounded center list after
    * every change; the renderer replaces its view instead of merging. */
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
@@ -665,7 +687,8 @@ export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
   success: '成功', error: '出错', failed: '失败', interrupted: '已中断'
 }
 export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
-  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'knowledge-material': '知识取材'
+  'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'skill-dependencies': '技能依赖安装',
+  'knowledge-material': '知识取材'
 }
 
 /** Issue 77: list or settle the device's own notification ledger. */
@@ -674,6 +697,33 @@ export type NotificationCommand =
   | { action: 'read'; id: string }
   | { action: 'read-all' }
   | { action: 'clear' }
+
+/**
+ * Issue 94: the human file-browsing seam over the confirmed workspace. The
+ * renderer names a workspace-logical path plus one action only: a guarded
+ * directory listing, a read-only preview, or an external open/reveal. The
+ * paths stay logical end to end — the physical mapping is the Runtime's own
+ * guarded resolution, `open`/`reveal` resolve in the trusted main process,
+ * and no consent or approval fact appears anywhere on this surface (a human
+ * looking at their own bound folder is free; the Agent's material-taking
+ * keeps its approval flow).
+ */
+export type FilesCommand =
+  | { action: 'list'; path: string }
+  | { action: 'read'; path: string }
+  | { action: 'open'; path: string }
+  | { action: 'reveal'; path: string }
+
+/** One guarded child entry of the workspace tree; `size` is bytes for files. */
+export interface FilesEntry { name: string; kind: 'dir' | 'file'; size: number }
+
+/** Bounded directory listing; `truncated` proves the cap instead of hiding it. */
+export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
+
+/** Read-only preview facts: strict UTF-8 text or one sanctioned image form. */
+export type FilesPreview =
+  | { kind: 'text'; content: string; truncated: boolean }
+  | { kind: 'image'; mime: string; data: string }
 
 /** Issue 74: the three session permission tiers; a loaded session always
  * starts at the lowest one and a tier choice never outlives the session. */
@@ -691,6 +741,29 @@ export const MAX_MESSAGE_SKILLS = 8
 /** Issue 78: the bound on one branch command's turn group — the assistant
  * message ids of the single turn the user branches from. */
 export const MAX_BRANCH_TURN_MESSAGES = 64
+
+/** Issue 93: 对话附件去向选择器。每条附件的去向由用户显式选择，默认
+ * "发送解析文本"（设备侧解析，原件不出电脑），显式可选"上传原件"（平台
+ * Thread 附件、跨设备可见）；"仅本机查看"是独立的 attachment-view 命令，
+ * 从不随消息发送。去向绝不默默执行。 */
+export const MAX_MESSAGE_ATTACHMENTS = 8
+/** The device-local path bound on one attachment fact; generous enough for
+ * deep Windows paths, still a wire bound. */
+export const MAX_ATTACHMENT_PATH = 4096
+export const MAX_ATTACHMENT_NAME = 256
+export type ChatAttachmentDestination = 'parsed-text' | 'upload'
+/** The destination the composer carries per chip; `local-view` executes the
+ * attachment-view command immediately and never rides a send. */
+export type ChatAttachmentChoice = ChatAttachmentDestination | 'local-view'
+export interface ChatAttachment {
+  id: string
+  path: string
+  name: string
+  destination: ChatAttachmentDestination
+}
+export const ATTACHMENT_DESTINATION_LABELS: Record<ChatAttachmentChoice, string> = {
+  'parsed-text': '发送解析文本（默认）', upload: '上传原件（平台附件）', 'local-view': '仅本机查看'
+}
 
 /** Issue 75: the at-mention delegation and slash-skill semantics ride the
  * send command as structured, optional facts. `delegateAgentId` names the
@@ -720,7 +793,11 @@ export type ChatCommand =
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;
-    delegateAgentId?: string; skillIds?: string[]; collab?: boolean }
+    delegateAgentId?: string; skillIds?: string[]; collab?: boolean;
+    /** Issue 93: the per-attachment destinations the user picked in the
+     * composer. Paths are device-local facts for the Runtime to read and
+     * parse; no content ever rides the command. */
+    attachments?: ChatAttachment[] }
   | { action: 'set-model'; scope: string; threadId: string; modelName: string }
   | { action: 'answer'; scope: string; threadId: string; turnId: string; requestId: string; text?: string; optionId?: string }
   | { action: 'consent'; scope: string; threadId: string; runId: string; taskId: string; requestHash: string;
@@ -738,6 +815,11 @@ export type ChatCommand =
    * the platform's own Thread branch endpoint and reopens the new Thread;
    * no title, no content and no local copy ever ride this command. */
   | { action: 'branch'; scope: string; threadId: string; messageId: string; messageIds?: string[] }
+  /** Issue 93: 仅本机查看. The composer dispatches it the moment the user
+   * picks that destination for one attachment; the Runtime parses on the
+   * device and answers with a bounded read-only display record. Nothing is
+   * uploaded, no run is created and nothing enters the conversation. */
+  | { action: 'attachment-view'; scope: string; threadId: string; id: string; path: string; name: string }
 
 export interface HumanInputRequest {
   version: 1 | 2
@@ -788,14 +870,17 @@ export interface ChatSubagent {
   errorTruncated: boolean
 }
 /** Issue 39: one pending device decision the Desktop chat can settle — a
- * file write (#102), a Skill script run (#122), or a knowledge material read
- * (#116). Identity and scope facts only; bytes never cross to the renderer. */
+ * file write (#102), a Skill script run (#122), a knowledge material read
+ * (#116), a Skill dependency install (#104), or an inline code run (#105).
+ * Skill-script cards carry identity and scope facts only; a file write and
+ * an inline code run show the exact bytes approval would put on disk or
+ * execute, because those bytes are the decision. */
 export interface LocalConsentView {
   taskId: string
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'knowledge-material'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code'
   path?: string
   content?: string
   directory?: string
@@ -807,6 +892,16 @@ export interface LocalConsentView {
   revisionId?: string
   manifestHash?: string
   documents?: { filename: string; contentHash: string }[]
+  /** Issue 104: the locked dependency entries and the configured source the
+   * install ask names — the source is the only network destination the
+   * approval covers. */
+  entries?: { entry: string; name: string; version: string }[]
+  source?: { kind: string; location: string }
+  /** Issue 105: the inline task's pinned language and target root, plus the
+   * full code the user is asked to approve. */
+  language?: 'python' | 'node'
+  workingRoot?: string
+  script?: string
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback
@@ -829,11 +924,45 @@ export interface PlatformReachabilityView {
   reachable: boolean
   detail: string
 }
+/** Issue 93: one attachment's destination outcome on a send reply. `parsed`
+ * means the extracted text went into the conversation with the original
+ * bytes never leaving the device; `uploaded` names the platform artifact;
+ * `failed`/`skipped` carry the engine's own reason code. Identity facts
+ * only — never content. */
+export interface ChatAttachmentStatus {
+  id: string
+  name: string
+  destination: ChatAttachmentDestination
+  status: 'parsed' | 'uploaded' | 'failed' | 'skipped'
+  sha256?: string
+  artifactId?: string
+  truncated?: boolean
+  errorCode?: string
+}
+/** Issue 93: the bounded read-only display record for 仅本机查看. The text
+ * comes from the device-side parse engine and its summary reuses the import
+ * display record's facts (parser identity/version, page/table counts). */
+export interface ChatAttachmentView {
+  id: string
+  name: string
+  status: 'parsed' | 'failed' | 'skipped'
+  text: string
+  truncated: boolean
+  errorCode?: string
+  summary?: KnowledgeImportDocumentParseView
+}
 export interface ChatSnapshot {
   compatibility?: CompatibilityView
   /** Issue 80: present on every snapshot the Runtime returns. */
   platform?: PlatformReachabilityView
   artifacts?: PlatformArtifact[]
+  /** Issue 93: the per-attachment destination outcomes on a send's own
+   * reply snapshot — transient like exportStatus and never part of the
+   * Runtime's own state. The composed message text is the durable record. */
+  attachmentStatuses?: ChatAttachmentStatus[]
+  /** Issue 93: the read-only display record on an attachment-view's own
+   * reply; bounded device-side and never persisted anywhere. */
+  attachmentView?: ChatAttachmentView
   /** Runtime-to-main only. Main consumes and removes bytes before returning IPC. */
   download?: PlatformArtifact & { content: string }
   downloadStatus?: 'saved' | 'cancelled'

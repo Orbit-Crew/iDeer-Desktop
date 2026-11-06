@@ -21,6 +21,7 @@ from .process_job import own_process_tree
 from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
+from .inline_code import InlineScriptStore
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
 from .skill_import import SkillImportError, SkillImportRegistry
@@ -32,11 +33,39 @@ from .receipts import content_hash
 from .tray import load_controller
 
 
+def browse_files_view(workspace, protected_root, action, logical_path):
+    """Issue 94: the human file-browsing seam.
+
+    A human looking at their own confirmed workspace folder is free — this
+    path consults no policy and no consent store, and records no grant rows.
+    It reuses the workspace store's guarded resolution so a browse or a
+    preview cannot reach farther than the Agent's read path could. The only
+    physical path this can produce rides ``locate`` back to the trusted main
+    process for an external open; it never reaches the renderer.
+    """
+    settings, grant = workspace.current()
+    files = WorkspaceFileStore(
+        [RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                    identity=tuple(grant['identity']), resolve_root=False)],
+        protected_roots=(protected_root,))
+    if action == 'list':
+        entries, truncated = files.list_details_with_limit(logical_path)
+        return {'entries': entries, 'truncated': truncated}
+    if action == 'read':
+        return files.preview(logical_path)
+    if action == 'locate':
+        return {'physical': str(files.resolve(logical_path))}
+    raise FileAccessError('FILES_FAILED')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument('--update-health', action='store_true')
     parser.add_argument('--desktop-version', default='0.1.0')
+    # Issue 105: the app's own executable, passed by the Desktop shell so
+    # inline Node code runs the pinned app runtime under ELECTRON_RUN_AS_NODE.
+    parser.add_argument('--node-executable', default=None)
     args = parser.parse_args()
     job = own_process_tree()
     stop = threading.Event()
@@ -56,6 +85,7 @@ def main() -> int:
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
+    files_commands: queue.Queue = queue.Queue(maxsize=1)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -273,6 +303,14 @@ def main() -> int:
                         and isinstance(command['scope'], str)):
                     workspace_commands.put_nowait(command)
                     continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'action', 'path', 'scope'}
+                        and command['type'] == 'files' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'read', 'locate'}
+                        and isinstance(command['path'], str) and 0 < len(command['path']) <= 4096
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    files_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['command'], dict)):
@@ -298,6 +336,10 @@ def main() -> int:
             login.fail("LOGIN_REAUTHENTICATION_REQUIRED")
 
         workspace = WorkspaceSelection(args.config)
+        # Issue 105: one scratch store per runtime process. The chat layer
+        # sweeps sessions through it; the controller's python service
+        # materializes into it, so both always see the same workspace tree.
+        inline_scripts = InlineScriptStore(None)
         def stop_controller():
             nonlocal controller
             previous, controller = controller, None
@@ -360,7 +402,7 @@ def main() -> int:
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
-            session_tiers=session_tiers)
+            session_tiers=session_tiers, inline_scripts=inline_scripts)
 
         def chat_control():
             while not stop.is_set():
@@ -403,7 +445,8 @@ def main() -> int:
                 settings.save(args.config)
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
-                audit=audit_log)
+                audit=audit_log, node_executable=args.node_executable,
+                inline_scripts=inline_scripts)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
@@ -724,6 +767,23 @@ def main() -> int:
                     error = 'CONNECTOR_FAILED'
                 emit({'v': 1, 'type': 'connectors', 'id': connector_command['id'],
                       'result': result, 'error': error})
+            try:
+                browse = files_commands.get_nowait()
+            except queue.Empty:
+                browse = None
+            if browse:
+                error = ''
+                result = None
+                try:
+                    if login.status()['state'] != 'authenticated' or browse['scope'] != workspace.scope():
+                        raise FileAccessError('WORKSPACE_UNAVAILABLE')
+                    result = browse_files_view(workspace, args.config.parent,
+                                               browse['action'], browse['path'])
+                except FileAccessError as exc:
+                    error = exc.code
+                except Exception:
+                    error = 'FILES_FAILED'
+                emit({'v': 1, 'type': 'files', 'id': browse['id'], 'result': result, 'error': error})
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:

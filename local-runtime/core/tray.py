@@ -39,7 +39,8 @@ from cryptography.hazmat.primitives.serialization import (
 from .audit import AuditEntry, AuditIntegrity, AuditKind, LocalAuditLog
 from .consent import ConsentStore, PendingConsent
 from .file_service import LocalFileService
-from .files import LocalFileStore
+from .files import FileAccessError, LocalFileStore
+from .inline_code import InlineScriptStore
 from .mcp import LocalMCPService, MCPSupervisor, load_mcp_specs
 from .policy import RiskLevel
 from .protocol import public_key_text
@@ -376,6 +377,12 @@ class TrayController:
     #: settings enable the explicit first-connection fallback.
     server_public_key: str | None = None
     desktop_mode: bool = False
+    #: Issue 105: the app's own Node executable for inline code; unset keeps
+    #: that language unavailable with an operable error.
+    node_executable: str | None = None
+    #: Issue 105: the shared inline-code scratch store; a fresh one is used
+    #: when the caller does not bring one.
+    inline_scripts: InlineScriptStore | None = None
 
     def __post_init__(self) -> None:
         if self.server_public_key is None and self.settings.server_public_key:
@@ -420,6 +427,27 @@ class TrayController:
             )
         else:
             self.skill_script_service = None
+        # Issue 104: the on-demand Skill dependency installer shares the
+        # script gate's consent store and reads its source from the same
+        # settings the tray edits; no source configured means no install
+        # channel, and the script gate just refuses with the detail.
+        from .skill_dependencies import SkillDependencyService, source_from_settings
+
+        self.skill_dependency_service = None
+        if self.desktop_mode and self.skill_script_service is not None:
+            self.skill_dependency_service = SkillDependencyService(
+                source=source_from_settings(self.settings.skill_dependency_source),
+                policy=self.settings.policy(),
+                consent=self.consent,
+            )
+        # Issue 105: the scratch store is one instance per runtime process —
+        # the desktop shell injects it so its chat layer sweeps sessions
+        # through the same object the python service materializes into.
+        self.inline_scripts = self.inline_scripts or InlineScriptStore(None)
+        python_service = (
+            self._desktop_python() if self.desktop_mode
+            else _build_python_service(self.settings, self.secrets, self.consent)
+        )
         self.client = LocalRuntimeClient(
             server_url=(
                 self.settings.websocket_url()
@@ -432,16 +460,17 @@ class TrayController:
             private_key=self.private_key,
             server_public_key=self.server_public_key,
             allow_unpinned_broker_key=self.settings.allow_unpinned_broker_key,
-            capabilities=self._desktop_capabilities() if self.desktop_mode else None,
+            capabilities=(
+                self._desktop_capabilities(python_service) if self.desktop_mode else None
+            ),
             restrict_capabilities=self.desktop_mode,
             runtime_version=self.settings.runtime_version,
             policy=self.settings.policy(),
             policy_hash=self.settings.policy_hash(),
             file_service=self._desktop_files() if self.desktop_mode else _build_file_service(self.settings, self.consent),
             skill_script_service=self.skill_script_service,
-            python_service=None if self.desktop_mode else _build_python_service(
-                self.settings, self.secrets, self.consent
-            ),
+            skill_dependency_service=self.skill_dependency_service,
+            python_service=python_service,
             mcp_service=self.mcp_service,
             audit=self.audit,
             consent_prompt=self._prompt,
@@ -462,6 +491,42 @@ class TrayController:
     def _desktop_files(self):
         from .file_service import WorkspaceFileService, WorkspaceSelection
         return WorkspaceFileService(WorkspaceSelection(self.settings.config_path))
+
+    def _desktop_python(self):
+        """Issue 105: inline code rides the confirmed workspace store.
+
+        The store is rebuilt from the persisted binding on every controller
+        construction (each reconnect), so a fresh grant is honored without a
+        restart; without a confirmed workspace there is no authorized folder
+        to put temp scripts in, so the service - and with it the capability
+        announcement - stays absent.
+        """
+        from .file_service import WorkspaceFileStore, WorkspaceSelection
+        from .files import RootConfig
+
+        if not self.settings.config_path:
+            return None
+        selection = WorkspaceSelection(self.settings.config_path)
+        if selection.status()['state'] != 'ready':
+            return None
+        try:
+            _settings, grant = selection.current()
+        except FileAccessError:
+            return None
+        store = WorkspaceFileStore(
+            [RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                        identity=tuple(grant['identity']), resolve_root=False)],
+            protected_roots=(Path(self.settings.config_path).parent,),
+        )
+        self.inline_scripts.attach(store)
+        return LocalPythonService(
+            store,
+            policy=self.settings.policy(),
+            consent=self.consent,
+            secrets=self.secrets,
+            node_executable=self.node_executable,
+            scripts=self.inline_scripts,
+        )
 
     def _desktop_connector_mcp(self) -> LocalMCPService | None:
         """Issue 123: desktop mode runs only the controlled connector servers.
@@ -492,7 +557,7 @@ class TrayController:
         """
         self._replace_mcp_service()
 
-    def _desktop_capabilities(self):
+    def _desktop_capabilities(self, python_service):
         from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
         from .skill_script import SKILL_SCRIPT_CAPABILITIES
         # Issue 122: the Skill script capability rides the desktop surface
@@ -500,6 +565,10 @@ class TrayController:
         capabilities = list(SKILL_SCRIPT_CAPABILITIES)
         if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready':
             capabilities.extend(WORKSPACE_CAPABILITIES)
+            # Issue 105: inline code rides the confirmed workspace the same
+            # way the file writes do; without one nothing may be announced.
+            if python_service is not None:
+                capabilities.append("local.python")
         return tuple(capabilities)
 
     def _save_connection_setting(self, name: str, value: str) -> None:
@@ -652,6 +721,9 @@ class TrayController:
     def stop(self) -> None:
         """Stop the loop thread; open prompts are failed closed, not dropped."""
         self._teardown(actor_id="local-runtime")
+        # Issue 105: shutdown sweeps every session's temp scripts - best
+        # effort, now that nothing can execute from them anymore.
+        self.inline_scripts.cleanup_all()
 
     def _teardown(self, *, actor_id: str) -> bool:
         """End the session and join the loop thread; False if none was running.
@@ -1267,6 +1339,8 @@ def load_controller(
     private_key: Ed25519PrivateKey | None = None,
     audit: LocalAuditLog | None = None,
     desktop_mode: bool = False,
+    node_executable: str | None = None,
+    inline_scripts: InlineScriptStore | None = None,
 ) -> TrayController:
     """Build a controller from a settings file; a missing file is a fresh device."""
     settings = load_settings(path)
@@ -1311,6 +1385,8 @@ def load_controller(
         private_key=private_key,
         audit=audit,
         consent_store_path=Path(path).with_name("consent.db"),
+        node_executable=node_executable,
+        inline_scripts=inline_scripts,
     )
 
 

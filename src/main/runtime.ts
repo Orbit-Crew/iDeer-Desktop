@@ -2,8 +2,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportOutcome, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
-import { MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ReceiptHistory, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -36,6 +36,10 @@ export class RuntimeProcess {
    * sidebar's Thread management rides the same identity fence. */
   private chatScope = ''
   private connectorRequests = new Map<string, { resolve: (outcome: ConnectorInternalOutcome) => void; reject: (error: Error) => void; action: (ConnectorCommand | ConnectorPreviewCommand)['action'] }>()
+  /** Issue 94: the human browsing seam's bounded in-flight set; the tree and
+   * the preview drive it concurrently, so unlike the single-slot families it
+   * caps instead of serializing. */
+  private filesRequests = new Map<string, { resolve: (view: FilesListView | FilesPreview | { physical: string }) => void; reject: (error: Error) => void }>()
   private managementRequest: { id: string; resolve: () => void; reject: (error: Error) => void } | null = null
   private healthRequest: { id: string; resolve: (value: { python: string; pid: number; echo: string }) => void; reject: (error: Error) => void } | null = null
   /** Issue 77: background-session facts the Runtime reports between polls. */
@@ -133,6 +137,34 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.workspaceRequest = null; reject(error) }
       }
       this.child!.stdin.write(JSON.stringify({ type: 'workspace', id, path, scope, confirmed: true }) + '\n')
+    })
+  }
+
+  /**
+   * Issue 94: the human file-browsing seam. `list`/`read` return guarded
+   * views of the confirmed workspace; `locate` resolves the workspace's own
+   * physical path for the trusted main process's external open and is never
+   * forwarded to the renderer. The logical-path shape here only mirrors the
+   * Runtime's gate — its store still owns the real containment decision.
+   */
+  async files(action: 'list' | 'read' | 'locate', path: string):
+      Promise<FilesListView | FilesPreview | { physical: string }> {
+    if (!['list', 'read', 'locate'].includes(action)) throw new Error('FILES_ACTION_INVALID')
+    if (typeof path !== 'string' || !path.startsWith('/') || path.includes('\\') ||
+        path.includes('\0') || path.startsWith('//') || path.split('/').some((part) => part === '..') ||
+        path.split('/').some((part) => part.includes(':')) || path.length > 4096) throw new Error('FILES_PATH_INVALID')
+    if (this.filesRequests.size >= 8) throw new Error('FILES_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' ||
+        this.snapshot.login?.state !== 'authenticated' || !this.selectionScope) throw new Error('WORKSPACE_UNAVAILABLE')
+    if (this.snapshot.workspace?.state !== 'ready') throw new Error('WORKSPACE_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.filesRequests.delete(id); reject(new Error('FILES_TIMEOUT')) }, 30000)
+      this.filesRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.filesRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.filesRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'files', id, action, path, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -528,7 +560,7 @@ export class RuntimeProcess {
       state: ['action'], refresh: ['action'], compatibility: ['action'], create: ['action', 'scope', 'agentId', 'skillId', 'projectId'],
       open: ['action', 'scope', 'threadId'], reconnect: ['action', 'scope', 'threadId'],
       stop: ['action', 'scope', 'threadId', 'runId'],
-      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab'],
+      send: ['action', 'scope', 'threadId', 'turnId', 'text', 'delegateAgentId', 'skillIds', 'collab', 'attachments'],
       // Issue 73: the session's temporary model choice; '' clears back to the
       // account default resolution chain. The model name is bounded at the
       // same 200 characters the platform preference accepts.
@@ -542,9 +574,16 @@ export class RuntimeProcess {
       tier: ['action', 'scope', 'threadId', 'tier', 'confirm'],
       // Issue 78: the branch names the target turn only; the Runtime resolves
       // it on the platform's own Thread branch endpoint.
-      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds']
+      branch: ['action', 'scope', 'threadId', 'messageId', 'messageIds'],
+      // Issue 93: 仅本机查看 names one composer-picked attachment; the Runtime
+      // parses it on the device and answers with a bounded display record.
+      'attachment-view': ['action', 'scope', 'threadId', 'id', 'path', 'name']
     }
     const allowed = keys[command.action]
+    // Issue 93: one attachment's identity facts are bounded strings — the
+    // shared check for the send list and the local-view command.
+    const boundedAttachmentFact = (value: unknown, max: number): value is string =>
+      typeof value === 'string' && value.length > 0 && value.length <= max
     if (command.action === 'stop' && (Object.keys(command).length !== 4 || !command.scope || !command.threadId || !command.runId)) throw new Error('CHAT_COMMAND_INVALID')
     // Issue 39: a script approval may carry rememberScript; nothing else may
     // add keys to the fixed consent shape.
@@ -570,7 +609,7 @@ export class RuntimeProcess {
     // message with no per-message input commands. Issue 76: `collab` is the
     // composer's collab mode switch, boolean whenever the composer sends.
     if (command.action === 'send') {
-      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown }
+      const inputCommand = command as unknown as { delegateAgentId?: unknown; skillIds?: unknown; collab?: unknown; attachments?: unknown }
       const resourceId = (value: unknown): value is string =>
         typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
       if (inputCommand.delegateAgentId !== undefined && !resourceId(inputCommand.delegateAgentId)) throw new Error('CHAT_COMMAND_INVALID')
@@ -580,6 +619,27 @@ export class RuntimeProcess {
             new Set(skillIds).size !== skillIds.length || !skillIds.every(resourceId)) throw new Error('CHAT_COMMAND_INVALID')
       }
       if (inputCommand.collab !== undefined && typeof inputCommand.collab !== 'boolean') throw new Error('CHAT_COMMAND_INVALID')
+      // Issue 93: the per-attachment destinations are explicit user picks.
+      // At most MAX_MESSAGE_ATTACHMENTS entries with unique bounded ids; a
+      // bounded device-local path and display name; and only the two
+      // destinations that ride a send — 仅本机查看 is its own command. No
+      // content ever rides the command, so every field stays a bounded
+      // string.
+      if (inputCommand.attachments !== undefined) {
+        const attachments = inputCommand.attachments as unknown
+        if (!Array.isArray(attachments) || attachments.length === 0 ||
+            attachments.length > MAX_MESSAGE_ATTACHMENTS) throw new Error('CHAT_COMMAND_INVALID')
+        const seen = new Set<string>()
+        for (const row of attachments) {
+          const item = row as { id?: unknown; path?: unknown; name?: unknown; destination?: unknown }
+          if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('CHAT_COMMAND_INVALID')
+          if (Object.keys(item).length !== 4 || !boundedAttachmentFact(item.id, 128) || seen.has(item.id) ||
+              !boundedAttachmentFact(item.path, MAX_ATTACHMENT_PATH) ||
+              !boundedAttachmentFact(item.name, MAX_ATTACHMENT_NAME) ||
+              item.destination !== 'parsed-text' && item.destination !== 'upload') throw new Error('CHAT_COMMAND_INVALID')
+          seen.add(item.id)
+        }
+      }
     }
     // Issue 78: the branch target is one bounded platform message id plus,
     // optionally, the rest of that turn's assistant ids — unique, bounded in
@@ -596,6 +656,15 @@ export class RuntimeProcess {
             new Set(messageIds).size !== messageIds.length || !messageIds.every(messageId)) throw new Error('CHAT_COMMAND_INVALID')
       }
     }
+    // Issue 93: 仅本机查看 is an exact six-key command; the attachment facts
+    // keep the same bounded identity the send list carries. The path rides
+    // the generic loop's own path exception below (non-empty, within
+    // MAX_ATTACHMENT_PATH).
+    if (command.action === 'attachment-view') {
+      const viewCommand = command as unknown as { id?: unknown; path?: unknown; name?: unknown }
+      if (Object.keys(command).length !== 6 || !boundedAttachmentFact(viewCommand.id, 128) ||
+          !boundedAttachmentFact(viewCommand.name, MAX_ATTACHMENT_NAME)) throw new Error('CHAT_COMMAND_INVALID')
+    }
     // The only upload decision the renderer may send is an explicit allow;
     // everything else stays a malformed command.
     if (command.action === 'upload' && (Object.keys(command).length !== 6 || command.decision !== 'allow')) throw new Error('CHAT_COMMAND_INVALID')
@@ -611,6 +680,10 @@ export class RuntimeProcess {
       if (key === 'skillIds' && Array.isArray(value) && allowed.includes('skillIds')) return false
       if (key === 'messageIds' && Array.isArray(value) && allowed.includes('messageIds')) return false
       if (key === 'collab' && typeof value === 'boolean' && allowed.includes('collab')) return false
+      // The #93 attachment list and view command validate their longer
+      // device-local path facts as a whole above.
+      if (key === 'attachments' && Array.isArray(value) && allowed.includes('attachments')) return false
+      if (key === 'path' && allowed.includes('path') && typeof value === 'string') return value.length > MAX_ATTACHMENT_PATH || value.length === 0
       return !allowed.includes(key) || typeof value !== 'string' || value.length > (key === 'text' ? 16000 : key === 'modelName' ? 200 : 256)
     })) {
       throw new Error('CHAT_COMMAND_INVALID')
@@ -670,7 +743,13 @@ export class RuntimeProcess {
       if (process.env[key]) env[key] = process.env[key]
     }
     // Both ends of the owned JSON pipe use UTF-8 regardless of the Windows code page.
+    // Issue 105: `process.execPath` hands the runtime the app's own binary as the
+    // pinned Node interpreter for inline code — under ELECTRON_RUN_AS_NODE the
+    // packaged Electron exe behaves as plain Node, and the dev server's Node does
+    // the same job. The runtime uses it only for user-approved inline tasks; a
+    // renderer can never change it (it never supplies paths or commands).
     const child = spawn(executable, ['-I', '-u', '-X', 'utf8', '-m', 'core.desktop', '--config', join(this.profile, 'settings.json'), '--desktop-version', this.desktopVersion,
+      '--node-executable', process.execPath,
       ...(this.maintenance ? ['--update-health'] : [])], {
       cwd: this.directory, env, windowsHide: true, stdio: 'pipe', shell: false
     })
@@ -947,12 +1026,41 @@ export class RuntimeProcess {
             const importer = this.skillImportRequests.get(value.id)
             if (importer) {
               const outcome = value.result
+              const languages: SkillPackageFileView['language'][] = ['python', 'js', 'shell', 'executable', '']
               const files = (rows: unknown): SkillImportPreview['files'] => Array.isArray(rows) ? rows.slice(0, 200).map((row: Record<string, unknown>) => ({
                 path: text(row?.path, 255),
                 role: ['body', 'script', 'reference', 'attachment'].includes(row?.role as string) ? row.role as SkillImportPreview['files'][number]['role'] : 'attachment',
                 bytes: Number.isSafeInteger(row?.bytes) && (row.bytes as number) >= 0 ? row.bytes as number : 0,
-                sha256: text(row?.sha256, 64)
+                sha256: text(row?.sha256, 64),
+                language: languages.includes(row?.language as SkillPackageFileView['language']) ? row.language as SkillPackageFileView['language'] : ''
               })).filter((row: SkillPackageFileView) => row.path !== '' && /^[0-9a-f]{64}$/.test(row.sha256)) : []
+              // Issue 82: the projected declaration must match the runtime's
+              // normalized shapes exactly — an unknown permission, an extra
+              // environment key, or a wrong entry type refuses the preview
+              // instead of displaying a partial declaration.
+              const entries = (rows: unknown): string[] | null => Array.isArray(rows) && rows.length <= 16 &&
+                rows.every((row) => typeof row === 'string' && row.length >= 1 && row.length <= 128) ? rows : null
+              const environment = (raw: unknown): SkillImportEnvironmentView | null => {
+                if (raw === null) return null
+                if (!raw || typeof raw !== 'object') return null
+                const record = raw as Record<string, unknown>
+                if (record.target !== 'server' && record.target !== 'user_device') return null
+                const os = entries(record.os)
+                const dependencies = entries(record.dependencies)
+                const software = entries(record.software)
+                const tools = entries(record.tools)
+                const data = entries(record.data)
+                return os && dependencies && software && tools && data
+                  ? { target: record.target, os, dependencies, software, tools, data } : null
+              }
+              const permissions = (raw: unknown): SkillImportPermissionsView | null => {
+                if (!raw || typeof raw !== 'object') return null
+                const record = raw as Record<string, unknown>
+                const keys = Object.keys(record)
+                return keys.length === 2 && keys.includes('network') && keys.includes('subprocess') &&
+                  typeof record.network === 'boolean' && typeof record.subprocess === 'boolean'
+                  ? { network: record.network, subprocess: record.subprocess } : null
+              }
               if (!outcome || typeof outcome.confirmed !== 'boolean' || typeof outcome.packageHash !== 'string' ||
                   !/^[0-9a-f]{64}$/.test(outcome.packageHash) || typeof outcome.name !== 'string' ||
                   !Number.isSafeInteger(outcome.fileCount) || !Number.isSafeInteger(outcome.totalBytes)) {
@@ -961,13 +1069,17 @@ export class RuntimeProcess {
                 continue
               }
               if (outcome.confirmed === false) {
-                if (importer.phase !== 'preview' || !outcome.destination || outcome.destination.visibility !== 'private') {
+                const projectedEnvironment = environment(outcome.environment)
+                const projectedPermissions = permissions(outcome.permissions)
+                if (importer.phase !== 'preview' || !outcome.destination || outcome.destination.visibility !== 'private' ||
+                    projectedEnvironment === null || projectedPermissions === null) {
                   this.skillImportRequests.delete(value.id)
                   importer.reject(new Error('SKILL_IMPORT_FAILED'))
                   continue
                 }
                 importer.resolve({ confirmed: false, origin: outcome.origin === 'markdown' || outcome.origin === 'zip' || outcome.origin === 'directory' ? outcome.origin : 'zip',
-                  name: outcome.name, description: text(outcome.description, 1024), bodyExcerpt: text(outcome.body, 2000), files: files(outcome.files),
+                  name: outcome.name, description: text(outcome.description, 1024), bodyExcerpt: text(outcome.body, 2000),
+                  environment: projectedEnvironment, permissions: projectedPermissions, files: files(outcome.files),
                   fileCount: outcome.fileCount, totalBytes: outcome.totalBytes, packageHash: outcome.packageHash,
                   destination: { resourceType: 'skill', visibility: 'private' } })
                 continue
@@ -1186,6 +1298,52 @@ export class RuntimeProcess {
             if (value.id !== this.workspaceRequest?.id) continue
             if (value.error) this.workspaceRequest?.reject(new Error('WORKSPACE_SELECTION_FAILED'))
             else this.workspaceRequest?.resolve()
+            continue
+          }
+          if (value.v === 1 && value.type === 'files') {
+            // Issue 94: bounded browse/preview/locate replies. The `locate`
+            // result (a physical path) is consumed only by the trusted main
+            // process for the external open; the renderer never receives it.
+            const pending = this.filesRequests.get(value.id)
+            if (!pending) continue
+            this.filesRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            const bad = (): void => { pending.reject(new Error('FILES_FAILED')) }
+            if (!result || typeof result !== 'object') { bad(); continue }
+            if (Array.isArray((result as FilesListView).entries)) {
+              const rows: FilesListView['entries'] = (result as FilesListView).entries
+              if (typeof (result as FilesListView).truncated !== 'boolean' || rows.length > 501 ||
+                  rows.some((row) => !row || typeof row.name !== 'string' || !row.name ||
+                    row.name.length > 256 || (row.kind !== 'dir' && row.kind !== 'file') ||
+                    !Number.isSafeInteger(row.size) || row.size < 0)) { bad(); continue }
+              pending.resolve({ entries: rows.map((row) => ({ name: row.name, kind: row.kind, size: row.size })),
+                truncated: (result as FilesListView).truncated })
+              continue
+            }
+            if ((result as FilesPreview).kind === 'text') {
+              const text = result as { kind: 'text'; content: unknown; truncated: unknown }
+              if (typeof text.content !== 'string' || text.content.length > 1048576 ||
+                  typeof text.truncated !== 'boolean') { bad(); continue }
+              pending.resolve({ kind: 'text', content: text.content, truncated: text.truncated })
+              continue
+            }
+            if ((result as FilesPreview).kind === 'image') {
+              const image = result as { kind: 'image'; mime: unknown; data: unknown }
+              const mimes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp', 'image/x-icon']
+              if (typeof image.mime !== 'string' || !mimes.includes(image.mime) ||
+                  typeof image.data !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data) ||
+                  image.data.length > 2800000) { bad(); continue }
+              pending.resolve({ kind: 'image', mime: image.mime, data: image.data })
+              continue
+            }
+            if (typeof (result as { physical?: unknown }).physical === 'string' &&
+                (result as { physical: string }).physical.length > 0 &&
+                (result as { physical: string }).physical.length <= 4096) {
+              pending.resolve({ physical: (result as { physical: string }).physical })
+              continue
+            }
+            bad()
             continue
           }
           if (value.v === 1 && value.type === 'models') {

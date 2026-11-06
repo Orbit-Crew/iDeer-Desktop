@@ -312,6 +312,37 @@ approval, refusal, storage faults and disconnect/cancellation behavior. The
 [scenario report](acceptance/issue-102/report.md) records what was executed on
 the actual candidate and installation.
 
+## Run inline code under the session tier (issue #105)
+
+The original inline Python/Node execution returns: code the model writes in a
+conversation runs on the device, under the same rules as the command line.
+The Runtime materializes the payload's code as a temp script inside the
+authorized folder — `.ideer/inline/<thread>/run-<run>-<id>.py|\.js`, written
+through the workspace store's own boundary checks — and executes that file
+with a pinned interpreter: the bundled Runtime's own Python in isolated
+mode, or the app's own executable as Node (the Desktop shell passes
+`--node-executable` at spawn; it answers under `ELECTRON_RUN_AS_NODE` and is
+probed once before the first Node task). An unconfigured or failing Node
+runtime refuses the task with `NODE_RUNTIME_UNAVAILABLE` instead of picking
+another interpreter. The payload's `runtime` field selects the language;
+unknown values stay rejected, and execution never follows a payload-supplied
+binary.
+
+The working root stays whatever the task declared, resolved through the
+workspace store, so relative writes land inside the authorized folder and
+outside roots and protected names refuse as before. The permission tiers
+apply unchanged (#74): `ask_first` asks per run through the chat card, which
+shows the full code, its language and target root — the displayed bytes are
+the exact bytes approval executes; the `autonomous` and `full` tiers are the
+standing answer for runs the confirmed workspace proves inside the folder,
+recorded as `tier:<tier>` in the receipt and audit log. A refused or denied
+ask writes nothing.
+
+The temp scripts are the session's own record: switching away from a session
+sweeps its scratch, an identity reset or runtime shutdown sweeps everything,
+and a crashed process's leftovers are swept the next time the workspace
+attaches. Nothing about the user's own files in the folder is touched.
+
 ## Stop and recover local work
 
 Stop first saves a device-bound Run fence and attempts to cancel current local
@@ -355,6 +386,42 @@ sidebar bell read the same ledger, and activating a notification — from a
 toast or a center row — focuses the window and opens the event's session
 through the same handshake the sidebar uses. See
 [issue #77 acceptance](acceptance/issue-077/report.md).
+
+## Chat attachment destinations (issue #93)
+
+The composer takes chat attachments through the 附件 button or a drag-and-drop
+onto the composer area, capped at eight per message. Every chip carries an
+explicit destination the user picks; nothing executes silently. The default is
+发送解析文本: the Runtime reads the file on the device and parses it with the
+same pure engine as the knowledge import (#81), so only the extracted text
+rides the message and the original bytes never leave the machine. The
+destination selector also offers 上传原件 (the original becomes a platform
+Thread artifact, visible to every authorized device) and 仅本机查看 (a
+read-only display record that never enters the conversation).
+
+The parsed-text blocks are bounded by the platform's own 16,000-character
+message budget: each block carries a provenance header (parser identity and
+version), and a block that does not fit is truncated with an honest 已截断
+marker instead of dropping the attachment silently. The run metadata records
+identity facts per attachment — id, name, chosen destination and source
+SHA-256; no content rides metadata. Per-attachment outcomes (parsed, uploaded,
+failed with a fixed code, or skipped for an unsupported format) ride only the
+send's own reply snapshot, transient like the export outcome; the composed
+message text stays the conversation's durable record.
+
+The upload destination reuses the Thread artifact seam (#105) with a
+`chat_attachment` kind: bounded staging, a single-use server grant re-checked
+against the current identity, and a create response that must echo exactly
+what was stored. The device bound is 10 MiB per original — wider than the
+64 KiB task-result bound, far under the parse engine's 50 MiB read ceiling.
+The created artifact appears in the thread's own artifact list.
+
+仅本机查看 is its own `attachment-view` command the composer dispatches the
+moment the destination is picked. The Runtime parses on the device and answers
+one bounded read-only record (100,000 characters plus the parse summary with
+parser identity, page and table counts); no run is created, nothing is
+uploaded, and the record never reaches the conversation. The command keeps
+working while the platform is unreachable because it touches only the device.
 
 ## Platform reachability and the disconnect pause (issue #80)
 
