@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
+import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
@@ -54,6 +55,9 @@ export class RuntimeProcess {
   private browserInputRequests = new Map<string, { resolve: () => void; reject: (error: Error) => void }>()
   private remoteBrowserHandler: ((message: { streamId: string; event: RemoteBrowserStreamMessage['event'] }) => void) | null = null
   onRemoteBrowserEvent(handler: (message: RemoteBrowserStreamMessage) => void): void { this.remoteBrowserHandler = handler }
+  /** Issue 108: the agent's consented local-browser actions the Runtime forwards. */
+  private agentBrowserHandler: ((id: string, command: Record<string, unknown>) => void) | null = null
+  onAgentBrowserCommand(handler: (id: string, command: Record<string, unknown>) => void): void { this.agentBrowserHandler = handler }
   /** Issue 77: background-session facts the Runtime reports between polls. */
   private notifyHandler: ((event: RuntimeNotifyEvent) => void) | null = null
   onNotify(handler: (event: RuntimeNotifyEvent) => void): void { this.notifyHandler = handler }
@@ -230,6 +234,17 @@ export class RuntimeProcess {
       })
     }
     throw new Error('REMOTE_BROWSER_COMMAND_INVALID')
+  }
+
+  /**
+   * Issue 108: answer one consented local-browser action. The reply rides
+   * stdin back to the Runtime's reader; the waiting task validates the
+   * bounds itself, so an unknown or stale id is simply dropped there.
+   */
+  agentBrowserReply(id: string, result: unknown, error: string): void {
+    if (!this.child || this.stopping) throw new Error('RUNTIME_UNAVAILABLE')
+    if (typeof id !== 'string' || id.length < 1 || id.length > 64) throw new Error('AGENT_BROWSER_ID_INVALID')
+    this.child.stdin.write(JSON.stringify(agentBrowserResultWire(id, result, error)) + '\n')
   }
 
   /** Issue 112: one explicit local import; identity manifest only, never content. */
@@ -1853,6 +1868,15 @@ export class RuntimeProcess {
             const message = parseRemoteBrowserStreamWire(value)
             if (!message) throw new Error('Invalid browser stream event')
             this.remoteBrowserHandler?.(message)
+            continue
+          }
+          if (value.v === 1 && value.type === 'browser-control') {
+            // Issue 108: one consented action per frame. The bounded parser
+            // decides the shape; a malformed frame is a wire failure and
+            // kills the child like every other family.
+            const message = parseAgentBrowserCommandWire(value)
+            if (!message) throw new Error('Invalid browser control frame')
+            this.agentBrowserHandler?.(message.id, message.command)
             continue
           }
           if (value.v === 1 && value.type === 'notify') {

@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 from .audit import LocalAuditLog
+from .browser_control import BrowserControlService
 from .browser_login import BrowserLogin
 from .browser_remote import BrowserStreamProxy, normalize_input_event
 from .compatibility import CompatibilityGate
@@ -98,6 +99,11 @@ def main() -> int:
     browser_stream_commands: queue.Queue = queue.Queue(maxsize=1)
     browser_input_commands: queue.Queue = queue.Queue(maxsize=256)
     browser_streams: dict = {}
+    # Issue 108: the Desktop's replies to the agent's consented browser
+    # actions. One slot per in-flight request would dead-lock the reader on a
+    # wedged service, so the bounded queue absorbs them until the main loop
+    # routes each to its waiting task.
+    browser_control_results: queue.Queue = queue.Queue(maxsize=64)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -393,6 +399,15 @@ def main() -> int:
                         and isinstance(command['event'], dict)):
                     browser_input_commands.put_nowait(command)
                     continue
+                # Issue 108: the Desktop's reply to one consented browser
+                # action. The result body is whatever the Desktop sent - the
+                # waiting service validates the bounds, not the reader.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'result', 'error'}
+                        and command['type'] == 'browser-control-result'
+                        and isinstance(command['id'], str) and 0 < len(command['id']) <= 64
+                        and isinstance(command['error'], str)):
+                    browser_control_results.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['command'], dict)):
@@ -537,6 +552,11 @@ def main() -> int:
             # Issue 74: the consent coordinator reads the chat session's tier
             # from the same registry the chat commands write.
             controller.client.session_tiers = session_tiers
+            # Issue 108: the agent's controlled browser channel rides this
+            # process's stdout/stdin wire; every rebuilt controller gets the
+            # same service so a reconnect never orphans a pending action.
+            controller.client.browser_control = BrowserControlService(
+                emit=emit, policy=getattr(controller.client, 'policy', None))
             connector_service = getattr(controller, 'connector_service', None)
             if connector_service is not None:
                 # Issue 123: the platform canonical identity rides this
@@ -954,6 +974,18 @@ def main() -> int:
                 except Exception:
                     error = 'REMOTE_BROWSER_INPUT_FAILED'
                 emit({'v': 1, 'type': 'browser-input', 'id': input_command['id'], 'error': error})
+            # Issue 108: route each Desktop reply to the browser-control task
+            # waiting on it. An unknown or already-answered id is dropped by
+            # the service itself; the queue never routes to a stale future.
+            try:
+                control_result = browser_control_results.get_nowait()
+            except queue.Empty:
+                control_result = None
+            if control_result and controller is not None:
+                control_service = getattr(controller.client, 'browser_control', None)
+                if control_service is not None:
+                    control_service.resolve(
+                        control_result['id'], control_result.get('result'), control_result['error'])
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:

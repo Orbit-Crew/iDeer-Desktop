@@ -75,6 +75,11 @@ class LocalPolicy:
             # it (it is not folder-anchored), and the coordinator drops the
             # always-allow upgrade: installs have no standing approval.
             "local.skill.dependencies",
+            # Issue 108: driving the local browser pane observes and mutates
+            # live pages on this device, so every action starts as an
+            # explicit ask; the session tier then answers observe-only reads
+            # in the upgraded tiers via its own intent rule.
+            "local.browser.control",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

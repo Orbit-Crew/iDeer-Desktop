@@ -22,6 +22,10 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
 
 from .audit import AuditEntry, AuditKind, LocalAuditLog
+from .browser_control import (
+    BrowserControlError,
+    BrowserControlResult,
+)
 from .calculator import (
     CALCULATOR_OPERATIONS,
     evaluate_aero_arguments,
@@ -95,6 +99,7 @@ class LocalRuntimeClient:
         user_id: str = "",
         local_results: Any | None = None,
         compatibility_gate: Any | None = None,
+        browser_control: Any | None = None,
     ) -> None:
         self.server_url = server_url
         self.device_id = device_id
@@ -117,6 +122,9 @@ class LocalRuntimeClient:
         # separately authorized Desktop command.
         self.local_results = local_results
         self.compatibility_gate = compatibility_gate
+        # Issue 108: the controlled channel into the local browser pane;
+        # None means this runtime surface has no browser channel at all.
+        self.browser_control = browser_control
         self.receipt_replay_enabled = False
         if capabilities is None:
             default_capabilities = ["echo"]
@@ -957,8 +965,42 @@ class LocalRuntimeClient:
                     return
                 result = execution.value
                 receipt = replace(execution.receipt, task_id=task_id)
+            elif operation == "local.browser.control":
+                # Issue 108: the agent's controlled browser channel. The
+                # service validates, gates, and forwards one fixed action to
+                # the Desktop shell; without the service this surface has no
+                # browser channel at all.
+                service = getattr(self, "browser_control", None)
+                if service is None:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                outcome = await service.execute(dict(envelope.payload))
+                if outcome is PolicyDecision.CONSENT_REQUIRED:
+                    await self.consent_coord._request_consent(
+                        envelope,
+                        dict(envelope.payload),
+                        service.consent,
+                    )
+                    return
+                if not isinstance(outcome, BrowserControlResult):
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, outcome
+                    )
+                    return
+                result = outcome.value
+                receipt = replace(outcome.receipt, task_id=task_id)
             else:
                 raise ValueError("unsupported operation")
+        except BrowserControlError as exc:
+            # Issue 108: fixed browser-control categories cross the boundary
+            # verbatim - a refused navigation or a timed-out pane never
+            # becomes a generic task error.
+            await self._send_error(
+                task_id, str(exc), exc.code, envelope.payload, operation
+            )
+            return
         except asyncio.CancelledError:
             self._record(
                 AuditKind.TASK,
@@ -1172,6 +1214,11 @@ class LocalRuntimeClient:
             service = self.skill_script_service
         elif capability == "local.skill.dependencies":
             service = self.skill_dependency_service
+        elif capability == "local.browser.control":
+            # Issue 108: the pane channel carries its own store; page facts
+            # change under any remembered approval, so no store-level
+            # always-allow rule may short-circuit it.
+            service = self.browser_control
         else:
             service = self.file_service
         if service is None:

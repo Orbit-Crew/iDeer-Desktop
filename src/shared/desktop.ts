@@ -902,7 +902,7 @@ export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
 }
 export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
   'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'skill-dependencies': '技能依赖安装',
-  'knowledge-material': '知识取材'
+  'knowledge-material': '知识取材', 'browser-control': '本机浏览器控制'
 }
 
 /** Issue 77: list or settle the device's own notification ledger. */
@@ -958,12 +958,15 @@ export type BrowserCommand = { action: 'clear' }
  * permission ask, one download's phase, a blocked navigation, a new-window
  * request routed to the owning pane, a finished partition clear); nothing
  * here carries page content, and the pane renders exactly what happened.
+ * Issue 108 adds the agent-control fact: one announce line per consented
+ * agent action on this pane (开工前标示), naming intent and target only.
  */
 export type BrowserPaneEvent =
   | { kind: 'permission'; permission: string; origin: string }
   | { kind: 'download'; phase: 'started' | 'completed' | 'canceled' | 'interrupted' | 'rejected'; filename: string; reason?: string }
   | { kind: 'navigation-blocked'; url: string }
   | { kind: 'window-open'; contentsId: number; url: string }
+  | { kind: 'agent-control'; intent: 'observe' | 'input' | 'submit' | 'download'; action: string; url: string }
   | { kind: 'cleared' }
 
 /** Issue 107: the one Chinese permission wording the pane reads; unmatched
@@ -1173,7 +1176,7 @@ export interface LocalConsentView {
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code' | 'browser-control'
   path?: string
   content?: string
   directory?: string
@@ -1195,6 +1198,11 @@ export interface LocalConsentView {
   language?: 'python' | 'node'
   workingRoot?: string
   script?: string
+  /** Issue 108: the browser-control ask names the intent and the page
+   * target; page content never rides the card. */
+  intent?: 'observe' | 'input' | 'submit' | 'download'
+  action?: string
+  url?: string
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback

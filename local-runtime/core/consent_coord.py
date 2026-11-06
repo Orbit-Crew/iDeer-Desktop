@@ -24,14 +24,15 @@ if TYPE_CHECKING:
     from .python import LocalPythonService
 
 from .audit import AuditKind
+from .browser_control import BROWSER_CONTROL_CAPABILITY, BrowserControlError, BrowserControlResult
 from .consent import ConsentExchange, ConsentRequest, ConsentStore, PendingConsent, render_consent_summary
 from .mcp import MCPExecution
 from .policy import LocalPolicy, PolicyDecision, RiskLevel
 from .protocol import MessageType, sign_envelope
+from .session_tier import GateDecision, SessionTier, browser_tier_decision, tier_gate_decision
 from .receipts import content_hash
 from .consent import request_hash
 from .files import FileAccessError
-from .session_tier import GateDecision, SessionTier, tier_gate_decision
 from .skill_dependencies import (
     SKILL_DEPENDENCIES_INSTALL_FAILED,
     SKILL_DEPENDENCY_CAPABILITIES,
@@ -286,10 +287,14 @@ class LocalConsentCoordinator:
         tier = registry.tier_for(str(payload.get("thread_id", "")))
         if tier is SessionTier.ASK_FIRST:
             return tier, GateDecision.ASK
+        capability = str(payload.get("operation", ""))
+        if capability == BROWSER_CONTROL_CAPABILITY:
+            # #108: the pane is not folder-anchored, so no workspace
+            # classifier is needed or consulted - the intent rule answers.
+            return tier, browser_tier_decision(tier, payload)
         classify = getattr(getattr(self._wire, "file_service", None), "classify", None)
         if classify is None:
             return tier, GateDecision.ASK
-        capability = str(payload.get("operation", ""))
         return tier, tier_gate_decision(tier, capability, payload, classify)
 
     async def _request_dependency_install(
@@ -899,6 +904,37 @@ class LocalConsentCoordinator:
             decision = PolicyDecision.ALLOW
             if receipt is None:
                 return
+        elif request.capability == "local.browser.control":
+            # Issue 108: the consented browser action rides the same
+            # controlled channel; a fixed refusal category crosses verbatim
+            # and the receipt carries this authorization basis like every
+            # other consented execution.
+            service = getattr(wire, "browser_control", None)
+            if service is None:
+                await wire._send_error(
+                    task_id, "browser control unavailable", "LOCAL_POLICY_DENIED",
+                    request.payload, request.capability,
+                    policy_decision=PolicyDecision.DENY.value,
+                    status="denied", consent_decision=consent_decision,
+                )
+                return
+            try:
+                outcome = await service.execute(request.payload, consent=True)
+            except BrowserControlError as exc:
+                await wire._send_error(
+                    task_id, str(exc), exc.code, request.payload,
+                    request.capability, consent_decision=consent_decision,
+                )
+                return
+            if isinstance(outcome, BrowserControlResult):
+                decision = PolicyDecision.ALLOW
+                value = outcome.value
+                receipt = replace(
+                    outcome.receipt, task_id=task_id, consent_decision=consent_decision
+                )
+            else:
+                decision = outcome
+                value = None
         else:
             assert wire.file_service is not None
             file_task = wire.file_service.execute(
