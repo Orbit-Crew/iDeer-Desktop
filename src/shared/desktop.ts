@@ -1153,6 +1153,15 @@ export interface ChatSubagent {
   error: string
   errorTruncated: boolean
 }
+/** Issue 76/112: the platform's task_* status vocabulary in display form —
+ * one shared map (antd Tag tokens included) so the chat progress card and
+ * the office pane can never drift apart; a state the platform never pushed
+ * has no view to borrow. */
+export const SUBAGENT_STATUS_VIEWS: Record<ChatSubagent['status'], { label: string; color: string }> = {
+  running: { label: '执行中', color: 'processing' }, completed: { label: '已完成', color: 'success' },
+  failed: { label: '失败', color: 'error' }, cancelled: { label: '已取消', color: 'warning' },
+  timed_out: { label: '已超时', color: 'warning' }
+}
 /** Issue 39: one pending device decision the Desktop chat can settle — a
  * file write (#102), a Skill script run (#122), a knowledge material read
  * (#116), a Skill dependency install (#104), or an inline code run (#105).
