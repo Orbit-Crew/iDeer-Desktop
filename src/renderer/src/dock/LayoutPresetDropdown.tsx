@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Popover } from 'antd'
 import { LayoutOutlined } from '@ant-design/icons'
 import { useUIStore } from '../stores/uiStore'
-import { LAYOUT_PRESETS, applyPreset, renderThumb } from './layoutPresets'
+import { LAYOUT_PRESETS, renderThumb } from './layoutPresets'
+import { requestPresetApply } from './closeGuard'
 
 /**
  * 预设列表（Popover 内容）：独立导出，便于静态验收渲染八种排布。
@@ -18,7 +19,9 @@ export function LayoutPresetList({ onPick }: { onPick?: () => void }): JSX.Eleme
           <button
             key={preset.id}
             onClick={() => {
-              applyPreset(preset.id)
+              // issue 110: preset replacement can remove a pane with a running
+              // human terminal — route through the same close-ask as pane close.
+              requestPresetApply(preset.id)
               onPick?.()
             }}
             className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded transition-colors hover:bg-gray-100 text-left"

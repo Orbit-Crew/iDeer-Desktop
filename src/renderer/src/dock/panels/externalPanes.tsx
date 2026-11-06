@@ -1,9 +1,11 @@
 // Security seam module (issue 71): the only component source allowed for
-// panes whose runtime is not 'native' (webview/pty/webgl). It renders honest
+// panes whose runtime is not 'native' (webview/webgl). It renders honest
 // status text and nothing else — no trusted bridge access, no IPC channels,
 // no embedded content. test/security.test.ts pins this: the registry must map
 // every external-content panel type to this exact component, and this module's
-// bundle graph must stay free of the bridge surface.
+// bundle graph must stay free of the bridge surface. Issue 110 wired the
+// `terminal` slot as a native-hosted pane; the Agent terminal (#111) is the
+// remaining future seam in this family.
 import type { PanelTypeId } from '../types'
 
 interface PaneStatus {
@@ -16,10 +18,6 @@ interface PaneStatus {
 // issue 107 之后 browser 不再是占位：它映射到自己的 webview 窗格组件，
 // 由主进程附加守卫与本文件之外的隔离不变量约束。
 const EXTERNAL_PANE_STATUS: Partial<Record<PanelTypeId, PaneStatus>> = {
-  terminal: {
-    headline: '终端窗格未接入',
-    detail: '人工终端与 Agent 受控终端需先完成 Runtime 执行边界改造（"浏览、终端与调度"阶段）；任意 shell 不在恢复范围。'
-  },
   viewer3d: {
     headline: '三维模型查看器未接入',
     detail: 'STEP/STL/OBJ 查看器在工程阶段接入，随包组件需先完成来源与许可核验。'

@@ -8,6 +8,7 @@ import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
+import { TerminalSessions } from './terminal'
 import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
@@ -41,12 +42,17 @@ if (!app.requestSingleInstanceLock()) {
     join(userData, 'Runtime'), Boolean(maintenanceId), app.getVersion()
   )
   let quitting = false
+  // Issue 110: the human terminal's desktop-local PTY sessions. They live in
+  // memory only — a restart opens new sessions and never pretends old ones
+  // survived — and every exit path kills them.
+  let terminalSessions: TerminalSessions | null = null
   // Issue 109: the recovery record survives restarts in the user-data area.
   let recovery: RecoveryState | null = null
   app.on('before-quit', (event) => {
     if (quitting) return
     event.preventDefault()
     quitting = true
+    terminalSessions?.killAll()
     void runtime.stop().finally(() => app.quit())
   })
 
@@ -283,6 +289,47 @@ if (!app.requestSingleInstanceLock()) {
       }
       throw new Error('FILES_COMMAND_INVALID')
     })
+    // Issue 110: the human terminal seam (decision #59). Desktop-local PTY
+    // sessions owned by the main frame only; the start dir resolves here from
+    // the bound workspace (convenience, not a boundary) and falls back to the
+    // user home. No approval, no receipt, no notification: a human using their
+    // own terminal is free, and terminal output stays on this separate channel
+    // — never the trusted desktop:* bridge, never the Runtime.
+    const terminals = new TerminalSessions({
+      onData: (payload) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('terminal:data', payload)
+      },
+      onExit: (payload) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('terminal:exit', payload)
+      }
+    }, async () => {
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready') throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+      const located = await runtime.files('locate', '/')
+      const physical = (located as { physical: string }).physical
+      if (typeof physical !== 'string' || !physical) throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+      return physical
+    })
+    terminalSessions = terminals
+    ipcMain.handle('terminal:spawn', async (event) => {
+      requireMainFrame(event)
+      return terminals.spawn(event.sender.id)
+    })
+    ipcMain.handle('terminal:write', (event, sessionId: string, data: string) => {
+      requireMainFrame(event)
+      terminals.write(event.sender.id, sessionId, data)
+    })
+    ipcMain.handle('terminal:resize', (event, sessionId: string, cols: number, rows: number) => {
+      requireMainFrame(event)
+      terminals.resize(event.sender.id, sessionId, cols, rows)
+    })
+    ipcMain.handle('terminal:kill', (event, sessionId: string) => {
+      requireMainFrame(event)
+      terminals.kill(event.sender.id, sessionId)
+    })
+    // A crashed or reloaded renderer must not leak shells (linz behavior kept;
+    // ownership is main-frame-wide because requireMainFrame admits that frame only).
+    mainWindow.webContents.once('destroyed', () => terminalSessions?.killAll())
     ipcMain.handle('desktop:chat', async (event, command) => {
       requireMainFrame(event)
       // The gate stops new local work at the declared level; it never grants

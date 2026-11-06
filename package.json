@@ -26,7 +26,10 @@
   },
   "dependencies": {
     "@ant-design/icons": "5.6.1",
+    "@xterm/addon-fit": "0.10.0",
+    "@xterm/xterm": "5.5.0",
     "antd": "5.29.3",
+    "node-pty": "1.1.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zustand": "4.5.7"
@@ -51,6 +54,7 @@
     "vitest": "1.6.0"
   },
   "allowScripts": {
-    "electron@22.3.27": true
+    "electron@22.3.27": true,
+    "node-pty@1.1.0": true
   }
 }
