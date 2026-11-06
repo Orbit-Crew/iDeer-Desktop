@@ -8,7 +8,7 @@ import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 // Issue 86: the window lifecycle's decision layer (close-to-tray vs true
 // exit) and the shell's device-local preference store.
-import { drainForExit, EXIT_DRAIN_NOTES, shouldExitOnClose } from './lifecycle'
+import { drainForExit, EXIT_DRAIN_NOTES, shouldExitOnClose, shouldInterceptClose } from './lifecycle'
 import { parsePreferenceCommand, ShellPreferenceStore } from './preferences'
 import { createAppTray } from './tray'
 import { RuntimeProcess } from './runtime'
@@ -173,9 +173,11 @@ if (!app.requestSingleInstanceLock()) {
     // with the Runtime, tasks, approvals and notifications untouched; with
     // 关窗即退出 the close IS the exit request and routes through the same
     // drain coordinator, so a close can never skip the drain. The teardown's
-    // own closes (quitting) take the natural path.
+    // own closes (quitting) take the natural path — and so does the whole
+    // update-maintenance helper instance: it has no tray icon, so a hide
+    // there would be an unrestorable zombie window (review finding).
     mainWindow.on('close', (event) => {
-      if (quitting) return
+      if (!shouldInterceptClose(Boolean(maintenanceId), quitting)) return
       event.preventDefault()
       mainWindow?.hide()
       if (shouldExitOnClose(shellPreferences.load().closeToTray, exitRequested)) requestExit()

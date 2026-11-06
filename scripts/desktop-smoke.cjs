@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, rmdirSync } = require('node:fs')
+const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, rmdirSync, renameSync } = require('node:fs')
 const { randomUUID } = require('node:crypto')
 const { tmpdir } = require('node:os')
 const { join } = require('node:path')
@@ -301,10 +301,22 @@ async function main() {
   } finally {
     if (app) await app.close()
     // Issue 86: the smoke's own preference bytes are removed again; a real
-    // preference file that existed before is restored verbatim.
+    // preference file that existed before is restored verbatim — written
+    // unconditionally (the file may have vanished mid-run) through a staged
+    // file + rename so a partial write can never clobber the real bytes
+    // (same idiom as src/main/preferences.ts's atomic store write).
     if (typeof preferencesFile === 'string') {
-      if (existingPreferences === null) rmSync(preferencesFile, { force: true })
-      else if (existsSync(preferencesFile)) writeFileSync(preferencesFile, existingPreferences)
+      if (existingPreferences === null) {
+        rmSync(preferencesFile, { force: true })
+      } else {
+        const staged = `${preferencesFile}.smoke-restore-${process.pid}`
+        try {
+          writeFileSync(staged, existingPreferences)
+          renameSync(staged, preferencesFile)
+        } finally {
+          rmSync(staged, { force: true })
+        }
+      }
     }
     rmSync(oldData, { force: true })
     if (!legacyDirExisted) rmdirSync(legacyDir)

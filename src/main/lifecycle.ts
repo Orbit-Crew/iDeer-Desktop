@@ -48,6 +48,16 @@ export function shouldExitOnClose(closeToTray: boolean, exiting: boolean): boole
   return !closeToTray && !exiting
 }
 
+/** Whether a close is intercepted at all (absorbed into the tray, or turned
+ * into an exit by `shouldExitOnClose`). The update-maintenance helper
+ * instance is never intercepted: it carries no tray icon, so a hidden window
+ * there would be unrestorable — its close takes the natural path (real
+ * destroy → `window-all-closed` → the existing teardown), and the teardown's
+ * own closes pass through as before. */
+export function shouldInterceptClose(maintenance: boolean, quitting: boolean): boolean {
+  return !maintenance && !quitting
+}
+
 /** The true-exit drain. Begins the install-grade drain, polls the shared
  * safe-stop predicate until it holds or the deadline passes, and aborts the
  * drain on every non-drained outcome. Never quits and never stops the

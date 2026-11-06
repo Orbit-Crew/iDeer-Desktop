@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EXIT_DRAIN_DEADLINE_MS, drainForExit, shouldExitOnClose,
+import { EXIT_DRAIN_DEADLINE_MS, drainForExit, shouldExitOnClose, shouldInterceptClose,
   type ExitDrainDeps } from '../src/main/lifecycle'
 import type { DrainView } from '../src/main/installer'
 
@@ -50,6 +50,20 @@ describe('window close decision (#86)', () => {
   it('never re-enters the exit for a close that belongs to the teardown or an in-flight exit', () => {
     expect(shouldExitOnClose(true, true)).toBe(false)
     expect(shouldExitOnClose(false, true)).toBe(false)
+  })
+})
+
+describe('maintenance-instance close decision (#86 review)', () => {
+  it('never hides the tray-less update-maintenance helper: its close takes the natural quit path', () => {
+    // Natural path = the window really destroys, `window-all-closed` fires
+    // and the app quits through the existing teardown — the pre-#86 behavior
+    // the helper's health-accept flow relies on.
+    expect(shouldInterceptClose(true, false)).toBe(false)
+  })
+  it('keeps intercepting closes on the normal instance unless the teardown is closing', () => {
+    expect(shouldInterceptClose(false, false)).toBe(true)
+    expect(shouldInterceptClose(false, true)).toBe(false)
+    expect(shouldInterceptClose(true, true)).toBe(false)
   })
 })
 
