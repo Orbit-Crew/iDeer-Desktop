@@ -8,7 +8,7 @@ import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
-import { TerminalSessions } from './terminal'
+import { TerminalSessions, startDirForProject } from './terminal'
 import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
@@ -302,18 +302,26 @@ if (!app.requestSingleInstanceLock()) {
       onExit: (payload) => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('terminal:exit', payload)
       }
-    }, async () => {
+    }, async (projectId: string) => {
+      // Issue 92: the selected project's bound folder is the preferred start
+      // dir, resolved from the Runtime's own binding snapshot; the workspace
+      // locate and the user home stay the fallback chain. The renderer names
+      // a project id only — never a path.
       const status = runtime.status()
-      if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready') throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
-      const located = await runtime.files('locate', '/')
-      const physical = (located as { physical: string }).physical
-      if (typeof physical !== 'string' || !physical) throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
-      return physical
+      return startDirForProject(projectId, status.projectBindings, async () => {
+        if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready') throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+        const located = await runtime.files('locate', '/')
+        const physical = (located as { physical: string }).physical
+        if (typeof physical !== 'string' || !physical) throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+        return physical
+      })
     })
     terminalSessions = terminals
-    ipcMain.handle('terminal:spawn', async (event) => {
+    ipcMain.handle('terminal:spawn', async (event, projectId?: unknown) => {
       requireMainFrame(event)
-      return terminals.spawn(event.sender.id)
+      // Issue 92: the optional argument is the selected project's id — an id
+      // selector the manager sanitizes; a path can never ride this argument.
+      return terminals.spawn(event.sender.id, typeof projectId === 'string' ? projectId : undefined)
     })
     ipcMain.handle('terminal:write', (event, sessionId: string, data: string) => {
       requireMainFrame(event)
@@ -586,10 +594,15 @@ if (!app.requestSingleInstanceLock()) {
     // touches local files or directory grants — deleting or archiving a
     // project is platform-side organization only, and the Server clears
     // Thread membership itself.
+    // Issue 92: the device-local folder binding actions join the family. The
+    // renderer names the project only; the folder is chosen in the native
+    // dialog here and confirmed with the boundary explanation before the
+    // Runtime records it — a path supplied by the renderer never reaches the
+    // wire, and a canceled dialog is a user decision, not a failure.
     ipcMain.handle('desktop:projects', async (event, command: ProjectCommand): Promise<ProjectOperationView> => {
       requireMainFrame(event)
       if (!command || typeof command !== 'object' ||
-          !['list', 'create', 'rename', 'archive', 'restore', 'delete'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
+          !['list', 'create', 'rename', 'archive', 'restore', 'delete', 'bind-folder', 'unbind-folder'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('PROJECTS_UNAUTHENTICATED')
       if (command.action === 'delete') {
@@ -601,6 +614,38 @@ if (!app.requestSingleInstanceLock()) {
           buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
         })
         if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
+      }
+      if (command.action === 'bind-folder' || command.action === 'unbind-folder') {
+        if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId)) throw new Error('PROJECTS_COMMAND_INVALID')
+      }
+      if (command.action === 'bind-folder') {
+        const chosen = await dialog.showOpenDialog(mainWindow!, { title: '选择项目文件夹', properties: ['openDirectory'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('PROJECTS_CANCELED')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认绑定项目文件夹',
+          message: '将该文件夹绑定为这个项目在本机的工作文件夹？',
+          detail: `${chosen.filePaths[0]}\n\n绑定按“项目+设备”记录，仅保存在本机：换设备登录时该项目显示未绑定（原设备绑定不迁移）。受控终端将以该文件夹为起始目录；也可在未选择工作目录时将其设为文件工具的工作目录。删除项目或解绑都不会删除本机文件。`,
+          buttons: ['取消', '确认绑定'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
+        const bound = await runtime.projects({ action: 'bind-folder', projectId: command.projectId, path: chosen.filePaths[0] })
+        // Issue 92: the file tools' boundary input is the confirmed device
+        // workspace. When none is selected yet, the bound folder may become
+        // it through the same explicit confirmation the workspace chooser
+        // uses; an existing workspace is never touched, and a failed offer
+        // never undoes the binding.
+        if (runtime.status().workspace?.state !== 'ready') {
+          const offer = await dialog.showMessageBox(mainWindow!, {
+            type: 'question', title: '设为工作目录',
+            message: '本机还没有工作目录。将绑定的文件夹同时设为工作目录？',
+            detail: '文件工具（列举/读取/写入）以确认的工作目录为边界。可以稍后在文件面板中另行选择或更换。',
+            buttons: ['暂不', '设为工作目录'], defaultId: 0, cancelId: 0, noLink: true
+          })
+          if (offer.response === 1) {
+            try { await runtime.selectWorkspace(chosen.filePaths[0], runtime.workspaceScope()) } catch { /* optional offer; the chooser stays authoritative */ }
+          }
+        }
+        return bound
       }
       return runtime.projects(command)
     })

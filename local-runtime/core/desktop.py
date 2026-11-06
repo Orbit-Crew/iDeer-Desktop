@@ -27,6 +27,7 @@ from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
 from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
+from .project_binding import ProjectBindingError, ProjectBindingRegistry
 from .skill_import import SkillImportError, SkillImportRegistry
 from .skill_script import SkillScriptError
 from .secrets import SecretStoreError, create_default_secret_store
@@ -245,10 +246,12 @@ def main() -> int:
                         {'type', 'id', 'action', 'scope'},
                         {'type', 'id', 'action', 'name', 'scope'},
                         {'type', 'id', 'action', 'projectId', 'name', 'scope'},
-                        {'type', 'id', 'action', 'projectId', 'scope'})
+                        {'type', 'id', 'action', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'projectId', 'path', 'scope'})
                         and command['type'] == 'projects' and isinstance(command['id'], str)
                         and len(command['id']) <= 64
-                        and command['action'] in {'list', 'create', 'rename', 'archive', 'restore', 'delete'}
+                        and command['action'] in {'list', 'create', 'rename', 'archive', 'restore', 'delete',
+                                                  'bind-folder', 'unbind-folder'}
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128
                         and (command['action'] != 'create' or (
                             isinstance(command['name'], str) and 0 < len(command['name'].strip()) <= 128))
@@ -256,8 +259,10 @@ def main() -> int:
                             isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128
                             and isinstance(command['name'], str)
                             and 0 < len(command['name'].strip()) <= 128))
-                        and (command['action'] not in {'archive', 'restore', 'delete'} or (
-                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))):
+                        and (command['action'] not in {'archive', 'restore', 'delete', 'bind-folder', 'unbind-folder'} or (
+                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))
+                        and (command['action'] != 'bind-folder' or (
+                            isinstance(command['path'], str) and 0 < len(command['path']) <= 1024))):
                     project_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
@@ -460,6 +465,9 @@ def main() -> int:
         # Issue 120: explicit skill package imports keep the same registry
         # discipline — device-local display facts, never package content.
         skill_imports = SkillImportRegistry(args.config.with_name('skill-imports.db'))
+        # Issue 92: one device-local row per platform project+device; the
+        # binding never migrates and never touches local files or grants.
+        project_bindings = ProjectBindingRegistry(args.config.with_name('project-bindings.db'))
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -484,7 +492,8 @@ def main() -> int:
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
-            session_tiers=session_tiers, inline_scripts=inline_scripts)
+            session_tiers=session_tiers, inline_scripts=inline_scripts,
+            project_bindings=project_bindings)
 
         def chat_control():
             while not stop.is_set():
@@ -1018,6 +1027,13 @@ def main() -> int:
                 connector_rows = connector_service.view(current_receipt_owner) if current_receipt_owner and connector_service is not None else []
             except ConnectorInstallError:
                 connector_rows = []
+            # Issue 92: this device's own project folder bindings ride the
+            # same snapshot; a different device's rows are keyed away by the
+            # profile binding, so the view is empty there by construction.
+            try:
+                binding_rows = project_bindings.view(current_receipt_owner) if current_receipt_owner else []
+            except ProjectBindingError:
+                binding_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -1081,6 +1097,8 @@ def main() -> int:
                       "skillScriptStorageError": script_registry_error,
                       "connectors": connector_rows[:20],
                       "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
+                      "projectBindings": binding_rows[:20],
+                      "projectBindingStorageError": project_bindings.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

@@ -90,7 +90,9 @@ const bridge: DesktopBridge = Object.freeze({
 // kill plus the two fixed main-owned push channels — no filesystem, no shell
 // wrapper, nothing else.
 const terminalBridge: TerminalBridge = Object.freeze({
-  spawn: () => ipcRenderer.invoke('terminal:spawn'),
+  // Issue 92: the optional project id selector rides the same invoke entry;
+  // the start dir itself is resolved in the trusted main process.
+  spawn: (projectId?: string) => ipcRenderer.invoke('terminal:spawn', ...(projectId === undefined ? [] : [projectId])),
   write: (sessionId: string, data: string) => ipcRenderer.invoke('terminal:write', sessionId, data),
   resize: (sessionId: string, cols: number, rows: number) => ipcRenderer.invoke('terminal:resize', sessionId, cols, rows),
   kill: (sessionId: string) => ipcRenderer.invoke('terminal:kill', sessionId),

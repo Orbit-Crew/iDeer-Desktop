@@ -10,13 +10,31 @@
 // and nothing in this module touches receipts, approvals or notifications:
 // a human driving their own terminal is free (no per-step audit).
 import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { spawn as ptySpawn, type IPty } from 'node-pty'
-import { MAX_TERMINAL_SESSIONS, MAX_TERMINAL_WRITE, type TerminalDataEvent, type TerminalExitEvent } from '../shared/desktop'
+import { MAX_TERMINAL_SESSIONS, MAX_TERMINAL_WRITE, type ProjectBindingView, type TerminalDataEvent, type TerminalExitEvent } from '../shared/desktop'
 
 export type { TerminalDataEvent, TerminalExitEvent }
 
 export interface TerminalSpawnView { sessionId: string }
+
+/**
+ * Issue 92: the terminal's start-dir chain (decision #59.2, now wired). The
+ * selected project's bound folder comes first — the binding is the 起始输入
+ * the issue names — then the confirmed workspace locate, and the caller's
+ * user-home fallback last. The path resolves here in the trusted process
+ * from the Runtime's own binding snapshot: the renderer supplies an id
+ * selector only, a vanished folder falls through, and no path is ever handed
+ * back to the renderer.
+ */
+export async function startDirForProject(projectId: string,
+    bindings: ProjectBindingView[] | undefined, workspace: () => Promise<string>,
+    exists: (path: string) => boolean = existsSync): Promise<string> {
+  const row = projectId ? bindings?.find((binding) => binding.projectId === projectId) : undefined
+  if (row && row.path && exists(row.path)) return row.path
+  return workspace()
+}
 
 export interface TerminalSessionSinks {
   onData(event: TerminalDataEvent): void
@@ -48,24 +66,26 @@ export class TerminalSessions {
   private sessions = new Map<string, TerminalSession>()
 
   constructor(private readonly sinks: TerminalSessionSinks,
-    private readonly resolveStartDir: () => Promise<string>,
+    private readonly resolveStartDir: (projectId: string) => Promise<string>,
     private readonly createPty: TerminalPtyFactory = defaultPtyFactory) {}
 
   size(): number { return this.sessions.size }
 
   /**
    * Spawns one human terminal PTY. The start dir is resolved here in the
-   * trusted process from the existing workspace state (the platform Project's
-   * bound folder via the Runtime's guarded locate, decision #59.2); any
-   * failure — no login, no ready workspace, Runtime down — falls back to the
-   * user home. Pure convenience, never a boundary: the shell itself is not
+   * trusted process (issue 92: the selected project's bound folder first,
+   * then the workspace locate, decision #59.2); any failure — no binding, no
+   * login, no ready workspace, Runtime down — falls back to the user home.
+   * The projectId argument is an id selector only: a malformed one is treated
+   * as no selection, and the path itself always resolves from the Runtime's
+   * own snapshot. Pure convenience, never a boundary: the shell itself is not
    * confined by it. The answer goes nowhere but into the pty: the renderer
    * receives the session id only, never a physical path (issue 94's
    * "renderer never receives a physical path" invariant holds).
    */
-  async spawn(owner: number): Promise<TerminalSpawnView> {
+  async spawn(owner: number, projectId?: string): Promise<TerminalSpawnView> {
     if (this.sessions.size >= MAX_TERMINAL_SESSIONS) throw new Error('TERMINAL_LIMIT')
-    const cwd = await this.startDir()
+    const cwd = await this.startDir(typeof projectId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(projectId) ? projectId : '')
     const pty = this.createPty({ cwd, cols: 80, rows: 24, env: { ...process.env } })
     const sessionId = randomUUID()
     const session: TerminalSession = { pty, owner, exitDelivered: false }
@@ -125,9 +145,9 @@ export class TerminalSessions {
     return session
   }
 
-  private async startDir(): Promise<string> {
+  private async startDir(projectId: string): Promise<string> {
     try {
-      const dir = await this.resolveStartDir()
+      const dir = await this.resolveStartDir(projectId)
       if (typeof dir === 'string' && dir) return dir
     } catch { /* no binding available */ }
     return homedir()
