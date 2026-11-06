@@ -16,7 +16,7 @@ const okPort = (overrides: Partial<AgentBrowserPort> = {}): AgentBrowserPort => 
   pressKey: vi.fn(async () => ({})),
   typeText: vi.fn(async () => ({})),
   click: vi.fn(async () => ({})),
-  submit: vi.fn(async () => ({ submitted: true })),
+  submit: vi.fn(async () => ({})),
   download: vi.fn(async () => ({ queued: true })),
   ...overrides
 })

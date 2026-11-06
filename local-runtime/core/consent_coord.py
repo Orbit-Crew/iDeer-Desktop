@@ -200,9 +200,12 @@ class LocalConsentCoordinator:
             # Level 2 is displayed but never silenceable (§9: dangerous work
             # has no "always allow" escape hatch). #104 installs are never
             # silenceable either: every install settles one fresh approval.
+            # #108 browser control is the same: page facts change under any
+            # standing grant, so the ask stays fresh every time.
             silenceable=level is not RiskLevel.LEVEL_2
             and not self._desktop_write(request.capability)
-            and not self._skill_dependencies(request.capability),
+            and not self._skill_dependencies(request.capability)
+            and request.capability != BROWSER_CONTROL_CAPABILITY,
             summary=self._summary(request),
             requested_at=time.monotonic(),
         )
@@ -595,6 +598,11 @@ class LocalConsentCoordinator:
             always = False
             if not approved:
                 self._pending_installs.pop(task_id, None)
+        # Issue 108: a browser action is never rememberable either. The page
+        # under any standing grant changes between asks, so a capability-wide
+        # always-allow row would authorize work nobody actually approved.
+        if request.capability == BROWSER_CONTROL_CAPABILITY:
+            always = False
         # A session-tier resolution names its own basis (#74); a human
         # decision starts from the plain approval and may only upgrade it
         # into a content- or directory-bound grant below.
@@ -921,9 +929,13 @@ class LocalConsentCoordinator:
             try:
                 outcome = await service.execute(request.payload, consent=True)
             except BrowserControlError as exc:
+                # Issue 108: a lost Desktop reply is not a proven failure -
+                # the action may have executed, so the receipt carries the
+                # 效果待核实 status instead of failed.
                 await wire._send_error(
                     task_id, str(exc), exc.code, request.payload,
                     request.capability, consent_decision=consent_decision,
+                    status='result_not_verified' if exc.code == 'AGENT_BROWSER_TIMEOUT' else 'failed',
                 )
                 return
             if isinstance(outcome, BrowserControlResult):

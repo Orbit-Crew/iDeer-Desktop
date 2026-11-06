@@ -462,6 +462,12 @@ def main() -> int:
         # transport session.
         audit_log = LocalAuditLog(db_path=args.config.with_name("audit.db"))
         session_tiers = SessionTierRegistry(audit=audit_log)
+        # Issue 108: the agent's controlled browser channel rides this
+        # process's stdout/stdin wire. One service lives across reconnects,
+        # so a rebuilt controller re-attaches the same instance and a pending
+        # action's future survives the socket it started under; the policy is
+        # read fresh on every execution so tray regrades apply immediately.
+        browser_control = BrowserControlService(emit=emit, policy=lambda: controller.client.policy if controller is not None else None)
         # Registered local results are display-only metadata for this identity;
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
@@ -552,11 +558,9 @@ def main() -> int:
             # Issue 74: the consent coordinator reads the chat session's tier
             # from the same registry the chat commands write.
             controller.client.session_tiers = session_tiers
-            # Issue 108: the agent's controlled browser channel rides this
-            # process's stdout/stdin wire; every rebuilt controller gets the
-            # same service so a reconnect never orphans a pending action.
-            controller.client.browser_control = BrowserControlService(
-                emit=emit, policy=getattr(controller.client, 'policy', None))
+            # Issue 108: every rebuilt controller rides the same browser
+            # channel service (created once above this connect()).
+            controller.client.browser_control = browser_control
             connector_service = getattr(controller, 'connector_service', None)
             if connector_service is not None:
                 # Issue 123: the platform canonical identity rides this

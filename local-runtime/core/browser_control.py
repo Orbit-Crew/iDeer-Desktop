@@ -21,7 +21,6 @@ failure.
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -57,7 +56,6 @@ MAX_TAB_ID = 10000000
 MAX_OBSERVE_TEXT = 20000
 MAX_TABS = 20
 MAX_TITLE_LENGTH = 300
-AGENT_BROWSER_MAX_RESULT_CHARS = 4096
 
 DEFAULT_CONTROL_TIMEOUT_SECONDS = 10.0
 
@@ -183,15 +181,28 @@ class BrowserControlService:
     def __init__(
         self,
         emit: Callable[[dict[str, Any]], None],
-        policy: LocalPolicy | None = None,
+        policy: LocalPolicy | Callable[[], LocalPolicy | None] | None = None,
         consent: ConsentStore | None = None,
         timeout: float = DEFAULT_CONTROL_TIMEOUT_SECONDS,
     ) -> None:
         self._emit = emit
-        self.policy = policy or LocalPolicy()
+        self._policy_source = policy
         self.consent = consent or ConsentStore()
         self._timeout = timeout
         self._pending: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Future]] = {}
+
+    @property
+    def policy(self) -> LocalPolicy:
+        """The graded policy, resolved fresh on every execution.
+
+        A callable source (the Desktop wiring reads the live controller's
+        policy each time) lets tray regrades apply without rebuilding the
+        service; anything unresolved grades with the default policy.
+        """
+        if callable(self._policy_source):
+            resolved = self._policy_source()
+            return resolved if isinstance(resolved, LocalPolicy) else LocalPolicy()
+        return self._policy_source or LocalPolicy()
 
     async def execute(
         self, payload: dict[str, Any], *, consent: bool = False
@@ -284,8 +295,6 @@ class BrowserControlService:
             elif not isinstance(value, bool):
                 raise BrowserControlError("AGENT_BROWSER_RESULT_INVALID")
             simple[key] = value
-        if len(json.dumps(simple, ensure_ascii=False)) > AGENT_BROWSER_MAX_RESULT_CHARS:
-            raise BrowserControlError("AGENT_BROWSER_RESULT_INVALID")
         return simple
 
     def _receipt(self, payload: dict[str, Any], value: dict[str, Any]) -> LocalExecutionReceipt:

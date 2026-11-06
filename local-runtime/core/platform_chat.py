@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
-from .browser_control import BROWSER_INTENTS
+from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
@@ -686,8 +686,6 @@ class DesktopChat:
                 # Issue 108: the ask announces the control before it starts -
                 # intent and page target only; page content never rides the
                 # card, and there is no remember option to widen.
-                from .browser_control import browser_intent_of
-
                 intent = browser_intent_of(payload)
                 if not intent:
                     continue

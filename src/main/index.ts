@@ -194,11 +194,13 @@ if (!app.requestSingleInstanceLock()) {
       },
       submit: async (tabId) => {
         // 提交 means the focused form's own submit: an Enter keystroke on
-        // the guest's focused element — no synthesized page script.
+        // the guest's focused element — no synthesized page script. Whether
+        // a form actually submitted is unconfirmable from here, so the
+        // result carries no submitted fact (效果待核实: no invented success).
         const contents = paneGuest(tabId)
         contents.sendInputEvent({ type: 'rawKeyDown', keyCode: 'Enter' })
         contents.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' })
-        return { submitted: true }
+        return {}
       },
       download: async (url) => {
         // The pane session's will-download gate routes this into the

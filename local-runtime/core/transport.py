@@ -996,9 +996,12 @@ class LocalRuntimeClient:
         except BrowserControlError as exc:
             # Issue 108: fixed browser-control categories cross the boundary
             # verbatim - a refused navigation or a timed-out pane never
-            # becomes a generic task error.
+            # becomes a generic task error. A timeout is not a proven
+            # failure: the action may have executed with its reply lost, so
+            # the receipt says 效果待核实 instead of failed.
             await self._send_error(
-                task_id, str(exc), exc.code, envelope.payload, operation
+                task_id, str(exc), exc.code, envelope.payload, operation,
+                status='result_not_verified' if exc.code == 'AGENT_BROWSER_TIMEOUT' else 'failed',
             )
             return
         except asyncio.CancelledError:

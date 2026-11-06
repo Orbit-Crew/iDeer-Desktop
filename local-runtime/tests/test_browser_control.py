@@ -16,7 +16,6 @@ import time
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from core.browser_control import (
-    AGENT_BROWSER_MAX_RESULT_CHARS,
     BROWSER_INTENTS,
     BrowserControlError,
     BrowserControlResult,
@@ -245,7 +244,55 @@ def test_oversized_results_are_refused_not_truncated() -> None:
     assert asyncio.run(scenario({"tabs": [{"id": i, "url": "https://e.com", "title": "t"}
                                           for i in range(21)]})) == "AGENT_BROWSER_RESULT_INVALID"
     assert asyncio.run(scenario("not a dict")) == "AGENT_BROWSER_RESULT_INVALID"
-    assert AGENT_BROWSER_MAX_RESULT_CHARS > 0
+
+
+def test_timeout_receipt_says_result_not_verified(tmp_path) -> None:
+    """A lost Desktop reply is not a proven failure: the receipt carries the
+    效果待核实 status instead of failed (the action may have executed)."""
+    import json
+
+    server_key = Ed25519PrivateKey.generate()
+    service, _sent = _service(timeout=0.05)
+    client = LocalRuntimeClient(
+        server_url="ws://unused",
+        device_id="device-1",
+        session_token="token",
+        private_key=Ed25519PrivateKey.generate(),
+        session_id="session-1",
+        browser_control=service,
+    )
+    client.connection = FakeConnection()
+    verified = _browser_task(server_key, "task-browser", _observe_payload())
+
+    async def scenario():
+        await client._handle_task(verified)
+        consent_message = json.loads(client.connection.sent[-1])
+        assert consent_message["type"] == MessageType.CONSENT_REQUIRED
+        decision = sign_envelope(
+            private_key=server_key,
+            message_type=MessageType.CONSENT_DECISION,
+            device_id="device-1",
+            session_id="session-1",
+            task_id="task-browser",
+            payload={
+                "approved": True,
+                "actor_id": "alice",
+                "request_hash": consent_message["payload"]["request_hash"],
+            },
+        )
+        await client._handle_consent_decision(
+            verify_envelope(
+                decision,
+                server_public_key=public_key_text(server_key),
+                expected_device_id="device-1",
+                expected_session_id="session-1",
+            )
+        )
+
+    asyncio.run(scenario())
+    result = json.loads(client.connection.sent[-1])
+    assert result["payload"]["receipt"]["status"] == "result_not_verified"
+    assert result["payload"]["error_code"] == "AGENT_BROWSER_TIMEOUT"
 
 
 def test_resolve_for_unknown_request_is_ignored() -> None:
@@ -430,3 +477,59 @@ def test_browser_task_without_the_service_is_denied(tmp_path) -> None:
     result = json.loads(client.connection.sent[-1])
     assert result["payload"]["receipt"]["status"] == "denied"
     assert result["payload"]["error_code"] == "LOCAL_POLICY_DENIED"
+
+
+def test_browser_ask_never_persists_an_always_allow_row(tmp_path) -> None:
+    """#108: even a tray answer with 始终允许 must not record a standing
+    grant - the page under any remembered approval changes between asks."""
+    import sqlite3
+
+    from core.consent import ConsentStore, ConsentExchange
+
+    store = ConsentStore(db_path=tmp_path / "consent.db")
+    coordinator_store = store
+    server_key = Ed25519PrivateKey.generate()
+    service, sent = _service(consent=coordinator_store)
+    client = LocalRuntimeClient(
+        server_url="ws://unused",
+        device_id="device-1",
+        session_token="token",
+        private_key=Ed25519PrivateKey.generate(),
+        session_id="session-1",
+        browser_control=service,
+    )
+    client.connection = FakeConnection()
+    verified = _browser_task(server_key, "task-browser", _observe_payload())
+
+    thread = _resolve_once(service, sent, {"tabs": []})
+    try:
+        asyncio.run(client._handle_task(verified))
+        consent_message = json.loads(client.connection.sent[-1])
+        assert consent_message["type"] == MessageType.CONSENT_REQUIRED
+        decision = sign_envelope(
+            private_key=server_key,
+            message_type=MessageType.CONSENT_DECISION,
+            device_id="device-1",
+            session_id="session-1",
+            task_id="task-browser",
+            payload={
+                "approved": True,
+                "actor_id": "alice",
+                "request_hash": consent_message["payload"]["request_hash"],
+                "always": True,
+            },
+        )
+        asyncio.run(client._handle_consent_decision(
+            verify_envelope(
+                decision,
+                server_public_key=public_key_text(server_key),
+                expected_device_id="device-1",
+                expected_session_id="session-1",
+            )
+        ))
+    finally:
+        thread.join()
+
+    with sqlite3.connect(coordinator_store.db_path) as db:
+        rows = db.execute("SELECT capability FROM always_allowed").fetchall()
+    assert ("local.browser.control",) not in rows
