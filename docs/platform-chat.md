@@ -147,8 +147,9 @@ Server's own post-action list plus the account's `projects:write` /
 `projects:delete` permissions, so no second project roster is ever stored on
 this device and the same account reads the same projects on any machine it
 logs into. Create and rename carry a bounded name only — instructions and
-presentation stay platform-side — and every write is refused before any
-Server call when the account lacks the permission, with the Server
+presentation stay platform-side — and every write is refused before the
+mutating call when the account lacks the permission (the account probe that
+states the permissions always answers first), with the Server
 re-checking and staying authoritative. A delete is confirmed twice (renderer
 popconfirm, then the trusted main-process dialog) and states plainly that
 the project's sessions survive as loose sessions; no operation in this

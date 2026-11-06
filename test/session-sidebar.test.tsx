@@ -202,4 +202,28 @@ describe('session sidebar project grouping (#91)', () => {
     const move = await screen.findByRole('button', { name: '移入项目 Beta 会话（不可用）' })
     expect(move.hasAttribute('disabled')).toBe(true)
   })
+
+  it('falls back to the full view when the selected project is archived or deleted elsewhere', async () => {
+    // Mount load and the manage modal's load both see the active project; the
+    // archive round's post-action list no longer carries it as active.
+    const projectCalls: unknown[] = []
+    ;(window as { ideer?: unknown }).ideer = {
+      threads: vi.fn(() => Promise.resolve(threadView())),
+      projects: vi.fn((command: unknown) => {
+        projectCalls.push(command)
+        return Promise.resolve(projectCalls.length < 3
+          ? projectView()
+          : projectView({ archived: true, projects: [] }))
+      }),
+      quit: vi.fn(() => Promise.resolve())
+    }
+    render(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: '切换到项目 工程项目' }))
+    expect(useSessionStore.getState().projectSelection).toEqual({ kind: 'project', projectId: 'proj-1' })
+    fireEvent.click(screen.getByRole('button', { name: /项目管理/ }))
+    fireEvent.click(await screen.findByRole('button', { name: '归档项目 工程项目' }))
+    // The post-action list no longer offers the project as active; the
+    // selection must not keep pointing new chats at a refused project.
+    await waitFor(() => expect(useSessionStore.getState().projectSelection).toEqual({ kind: 'all' }))
+  })
 })

@@ -1239,11 +1239,8 @@ export class RuntimeProcess {
                 createdAt: row.createdAt.slice(0, 64), updatedAt: row.updatedAt.slice(0, 64) })
             }
             const permissions: ProjectPermissionsView = { canWrite: result.permissions.canWrite, canDelete: result.permissions.canDelete }
-            pending.resolve(pending.action === 'create' ? { projects, permissions, created: true }
-              : pending.action === 'rename' ? { projects, permissions, renamed: true }
-              : pending.action === 'archive' ? { projects, permissions, archived: true }
-              : pending.action === 'restore' ? { projects, permissions, restored: true }
-              : pending.action === 'delete' ? { projects, permissions, deleted: true }
+            pending.resolve(outcomeFlags[pending.action] === true
+              ? { projects, permissions, [pending.action]: true } as ProjectOperationView
               : { projects, permissions })
             continue
           }

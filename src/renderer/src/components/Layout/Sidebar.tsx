@@ -17,7 +17,7 @@ import { useSessionStore, type ProjectSelection } from '../../stores/sessionStor
 import { useNotificationCenter } from '../../stores/notificationCenter'
 import { useDockStore } from '../../dock/dockStore'
 import { explainThreadError, SessionSidebarController, emptySessionSidebarView, type SessionSidebarView } from '../../stores/sessionSidebar'
-import { ProjectDirectoryController, emptyProjectDirectoryView, type ProjectDirectoryView } from '../../stores/projectDirectory'
+import { explainProjectError, ProjectDirectoryController, emptyProjectDirectoryView, type ProjectDirectoryView } from '../../stores/projectDirectory'
 import ModelSettingsModal from './ModelSettingsModal'
 import ProjectManageModal from './ProjectManageModal'
 import type { ThreadRowView } from '../../../../shared/desktop'
@@ -171,7 +171,7 @@ function SessionSidebar({ view, projects, activeThreadId, onOpenThread, onSearch
       value={draftQuery} maxLength={128} disabled={view.busy}
       onChange={(event) => scheduleSearch(event.target.value)} />
     {view.failed && <Alert type="error" showIcon className="mt-2" message={explainThreadError(view.error)} />}
-    {projects.failed && <Alert type="error" showIcon className="mt-2" message={`平台项目列表不可用：${projects.error}`} />}
+    {projects.failed && <Alert type="error" showIcon className="mt-2" message={explainProjectError(projects.error)} />}
     {!view.failed && !rows.length && !view.busy &&
       <p className="mt-3 text-xs text-gray-500">暂无平台会话。在聊天面板新建会话后，这里会显示平台返回的列表。</p>}
     {!view.failed && rows.length && readOnly &&
@@ -242,13 +242,13 @@ export default function Sidebar(): JSX.Element {
     loadedVersion.current = sessionsVersion
     void controllerRef.current?.load()
   }, [sessionsVersion])
-  // A project view that the Server no longer knows (deleted or archived out
-  // from under this selection) falls back to the full list instead of
-  // showing a silently empty page.
+  // A project view that the Server no longer serves as active (deleted, or
+  // archived from another device) falls back to the full list instead of
+  // pointing new chats at a project the Server would refuse.
   const projectSelection = useSessionStore((state) => state.projectSelection)
   useEffect(() => {
     if (projectSelection.kind !== 'project') return
-    if (projectView.projects.some((row) => row.id === projectSelection.projectId)) return
+    if (projectView.projects.some((row) => row.status === 'active' && row.id === projectSelection.projectId)) return
     useSessionStore.getState().setProjectSelection({ kind: 'all' })
   }, [projectSelection, projectView.projects])
   const controller = controllerRef.current
