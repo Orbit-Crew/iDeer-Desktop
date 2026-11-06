@@ -17,21 +17,25 @@ THREAD_B = 'thread-B'
 
 @contextmanager
 def platform(permissions=('threads:read', 'threads:write', 'threads:delete'), delete_status=200,
-             rename_status=200, delete_success=True):
+             rename_status=200, delete_success=True, move_status=200):
     """A minimal Thread-API fixture: search rows, one rename state write, one delete."""
     lock = threading.Lock()
     threads = {
         THREAD_A: dict(thread_id=THREAD_A, status='idle', display_name='Alpha 会话',
-                       created_at='2026-10-30T08:00:00+00:00', updated_at='2026-10-31T07:00:00+00:00'),
+                       created_at='2026-10-30T08:00:00+00:00', updated_at='2026-10-31T07:00:00+00:00',
+                       project_id='proj-alpha-1'),
         THREAD_B: dict(thread_id=THREAD_B, status='busy', display_name='Beta 会话',
-                       created_at='2026-10-30T09:00:00+00:00', updated_at='2026-10-30T09:30:00+00:00'),
+                       created_at='2026-10-30T09:00:00+00:00', updated_at='2026-10-30T09:30:00+00:00',
+                       project_id=None),
     }
     records = []
 
     def row_payload(row):
         return {'thread_id': row['thread_id'], 'status': row['status'],
                 'created_at': row['created_at'], 'updated_at': row['updated_at'],
-                'metadata': {}, 'values': {'title': row['display_name']}, 'interrupts': {}}
+                'metadata': ({'deerflow_project_id': row['project_id']}
+                             if row.get('project_id') else {}),
+                'values': {'title': row['display_name']}, 'interrupts': {}}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -44,7 +48,8 @@ def platform(permissions=('threads:read', 'threads:write', 'threads:delete'), de
             self.respond('GET', None)
 
         def do_POST(self):
-            self.respond('POST', json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0) or 0))))
+            raw = self.rfile.read(int(self.headers.get('Content-Length', 0) or 0))
+            self.respond('POST', json.loads(raw) if raw else None)
 
         def respond(self, method, body):
             records.append((method, self.path, body, dict(self.headers)))
@@ -56,6 +61,18 @@ def platform(permissions=('threads:read', 'threads:write', 'threads:delete'), de
                 elif self.path == '/api/threads/search':
                     status = 200
                     data = [row_payload(row) for row in threads.values()]
+                elif method == 'POST' and self.path.endswith('/move') and self.path.startswith('/api/threads/'):
+                    thread_id = self.path.split('/')[3]
+                    if thread_id not in threads:
+                        status, data = 404, {}
+                    elif move_status != 200:
+                        status, data = move_status, {}
+                    else:
+                        status = 200
+                        row = threads[thread_id]
+                        row['project_id'] = body.get('project_id')
+                        row['updated_at'] = '2026-10-31T08:00:00+00:00'
+                        data = row_payload(row)
                 elif method == 'POST' and self.path.endswith('/state') and self.path.startswith('/api/threads/'):
                     thread_id = self.path.split('/')[3]
                     if thread_id not in threads:
@@ -125,8 +142,13 @@ def test_list_returns_platform_rows_sorted_and_permissions(tmp_path):
         assert result['permissions'] == {'canRename': True, 'canDelete': True}
         # Most recently updated first, per the platform's own recency contract.
         assert [row['id'] for row in result['threads']] == [THREAD_A, THREAD_B]
+        # Issue 91: the row projection carries the Server's own project
+        # membership (metadata.deerflow_project_id); a thread without one
+        # projects as an empty projectId — the loose-session bucket.
         assert result['threads'][0] == {'id': THREAD_A, 'title': 'Alpha 会话', 'status': 'idle',
-                                        'updatedAt': '2026-10-31T07:00:00+00:00'}
+                                        'updatedAt': '2026-10-31T07:00:00+00:00',
+                                        'projectId': 'proj-alpha-1'}
+        assert result['threads'][1]['projectId'] == ''
         # The plain recency list stays bounded; only search sweeps wider.
         listings = [body for method, path, body, _ in records if path == '/api/threads/search']
         assert listings == [{'limit': 200}]
@@ -234,6 +256,78 @@ def test_delete_keeps_local_unconfirmed_receipts_queryable(tmp_path):
         assert len(history) == 1 and history[0]['task_id'] == 'task-1'
         assert history[0]['delivery_state'] == 'uncertain'
         assert ledger.thread_history(binding, THREAD_A)
+
+
+def test_move_rides_platform_move_endpoint_and_rereads(tmp_path):
+    """#91: 散会话移入项目 rides the Server's own move endpoint; the reply
+    re-reads the platform's list so the sidebar regroups in the same round."""
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        result = chat.threads_manage(wire('move', scope, threadId=THREAD_B, projectId='proj-beta-1'))
+        assert result['moved'] is True
+        # The moved thread's fresh updated_at re-ranks it first, per the
+        # platform's own recency contract.
+        assert [row['id'] for row in result['threads']] == [THREAD_B, THREAD_A]
+        assert result['threads'][0]['projectId'] == 'proj-beta-1'
+        moves = [(path, body) for method, path, body, _ in records
+                 if path == f'/api/threads/{THREAD_B}/move']
+        assert moves == [(f'/api/threads/{THREAD_B}/move', {'project_id': 'proj-beta-1'})]
+
+
+def test_move_between_projects_replaces_membership(tmp_path):
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        result = chat.threads_manage(wire('move', scope, threadId=THREAD_A, projectId='proj-beta-1'))
+        assert result['moved'] is True
+        assert result['threads'][0]['projectId'] == 'proj-beta-1'
+        moves = [body for method, path, body, _ in records
+                 if path == f'/api/threads/{THREAD_A}/move']
+        assert moves == [{'project_id': 'proj-beta-1'}]
+
+
+def test_move_refused_before_any_write_without_permission(tmp_path):
+    with platform(permissions=('threads:read',)) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        with pytest.raises(Exception) as excinfo:
+            chat.threads_manage(wire('move', scope, threadId=THREAD_B, projectId='proj-beta-1'))
+        assert 'CHAT_FORBIDDEN' in str(excinfo.value)
+        assert not [row for row in records if row[1].endswith('/move')]
+
+
+def test_move_conflict_maps_to_chat_conflict(tmp_path):
+    with platform(move_status=409) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        with pytest.raises(Exception) as excinfo:
+            chat.threads_manage(wire('move', scope, threadId=THREAD_B, projectId='proj-beta-1'))
+        assert 'CHAT_CONFLICT' in str(excinfo.value)
+
+
+def test_move_unknown_project_maps_to_chat_not_found(tmp_path):
+    """The Server fails closed on a missing, foreign or archived project."""
+    with platform(move_status=404) as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        with pytest.raises(Exception) as excinfo:
+            chat.threads_manage(wire('move', scope, threadId=THREAD_B, projectId='proj-gone-1'))
+        assert 'CHAT_NOT_FOUND' in str(excinfo.value)
+
+
+def test_move_bad_fields_are_refused(tmp_path):
+    with platform() as (origin, records):
+        chat, _, _ = make_chat(tmp_path, origin)
+        scope = chat.handle({'action': 'state'})['scope']
+        for command in (wire('move', scope, threadId=THREAD_B),
+                        wire('move', scope, threadId=THREAD_B, projectId='项目 ID 非法'),
+                        wire('move', scope, projectId='proj-beta-1'),
+                        wire('move', scope, threadId=THREAD_B, projectId='proj-beta-1', title='多余字段')):
+            with pytest.raises(Exception) as excinfo:
+                chat.threads_manage(command)
+            assert 'CHAT_COMMAND_INVALID' in str(excinfo.value)
+        assert not [row for row in records if row[1].endswith('/move')]
 
 
 def test_scope_mismatch_is_refused(tmp_path):

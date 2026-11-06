@@ -23,7 +23,11 @@ describe('threads bridge contract (#72)', () => {
       { action: 'rename', threadId: 'thread-A', title: 'ok', extra: true },
       { action: 'delete' },
       { action: 'delete', threadId: 'bad id!' },
-      { action: 'delete', threadId: 'thread-A', title: 'extra' }
+      { action: 'delete', threadId: 'thread-A', title: 'extra' },
+      { action: 'move' },
+      { action: 'move', threadId: 'thread-A' },
+      { action: 'move', threadId: 'thread-A', projectId: 'bad id!' },
+      { action: 'move', threadId: 'thread-A', projectId: 'proj-1', title: 'extra' }
     ]
     for (const command of cases) {
       await expect(runtime.threads(command as never)).rejects.toThrow('THREADS_COMMAND_INVALID')

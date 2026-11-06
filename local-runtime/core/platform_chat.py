@@ -723,6 +723,12 @@ class DesktopChat:
         return value
 
     @staticmethod
+    def _is_id(value):
+        """Non-raising twin of _id for validating Server-side row identities."""
+        return isinstance(value, str) and 1 <= len(value) <= 128 and not any(
+            c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value)
+
+    @staticmethod
     def _uuid(value):
         try:
             if str(uuid.UUID(value)) != value:
@@ -2871,22 +2877,35 @@ class DesktopChat:
             values = row.get('values') if isinstance(row.get('values'), dict) else {}
             metadata = row.get('metadata') if isinstance(row.get('metadata'), dict) else {}
             title = _bounded_text(values.get('title') or metadata.get('title'), 256) or row['thread_id']
+            # Issue 91: the Server stamps metadata.deerflow_project_id from the
+            # thread's project column. A thread without one is a loose session
+            # (projectId ''); the sidebar groups on this projection and never
+            # keeps its own membership roster.
+            project_id = metadata.get('deerflow_project_id')
+            if project_id is None:
+                project_id = ''
+            if project_id and not self._is_id(project_id):
+                raise ChatError('CHAT_PROTOCOL_ERROR')
             threads.append(dict(id=row['thread_id'], title=title,
                                 status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
-                                updatedAt=_bounded_text(row.get('updated_at', ''), 64)))
+                                updatedAt=_bounded_text(row.get('updated_at', ''), 64),
+                                projectId=project_id))
         threads.sort(key=lambda row: row['updatedAt'], reverse=True)
         return threads
 
     def threads_manage(self, command):
         """One session-sidebar round-trip against the Server's Thread API (#72).
 
-        list/search/rename/delete share one wire shape: every reply carries the
+        list/search/rename/delete/move share one wire shape: every reply carries the
         account's thread permissions plus the platform's own post-action list,
         so the sidebar re-reads authoritative state in the same round. A rename
         rides the state endpoint whose values.title the Server syncs into the
         thread display name; a delete demands the Server's own success flag and
         never touches this device's receipt ledger — unconfirmed local receipts
-        stay queryable after the platform thread is gone.
+        stay queryable after the platform thread is gone. A move (#91) carries
+        the target project id and rides the Server's own move endpoint; the
+        Server clears the old membership and fails closed on a missing,
+        foreign or archived project.
         """
         with self._lock:
             session = self._session()
@@ -2900,9 +2919,17 @@ class DesktopChat:
                 if not isinstance(query, str) or len(query) > 128:
                     raise ChatError('CHAT_COMMAND_INVALID')
                 expected = {'type', 'id', 'action', 'scope', 'query'}
-            elif action in {'rename', 'delete'}:
+            elif action in {'rename', 'delete', 'move'}:
                 self._id(command.get('threadId'))
-                expected = {'type', 'id', 'action', 'scope', 'threadId'}
+                if action == 'move':
+                    # Issue 91: 散会话移入项目。The command names the target
+                    # project; the Server fails closed on a missing, foreign
+                    # or archived project. Moving back out to loose is not a
+                    # desktop action in this ticket.
+                    self._id(command.get('projectId'))
+                    expected = {'type', 'id', 'action', 'scope', 'threadId', 'projectId'}
+                else:
+                    expected = {'type', 'id', 'action', 'scope', 'threadId'}
                 if action == 'rename':
                     title = command.get('title')
                     if not isinstance(title, str) or not 1 <= len(title.strip()) <= 200:
@@ -2918,6 +2945,11 @@ class DesktopChat:
                     raise ChatError('CHAT_FORBIDDEN')
                 self._json(session, f"/api/threads/{self._id(command['threadId'])}/state",
                            {'values': {'title': command['title'].strip()}})
+            elif action == 'move':
+                if not permissions['canRename']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, f"/api/threads/{self._id(command['threadId'])}/move",
+                           {'project_id': command['projectId']})
             elif action == 'delete':
                 if not permissions['canDelete']:
                     raise ChatError('CHAT_FORBIDDEN')
@@ -2932,6 +2964,116 @@ class DesktopChat:
             result = dict(threads=threads, permissions=permissions)
             if action == 'rename':
                 result['renamed'] = True
+            elif action == 'delete':
+                result['deleted'] = True
+            elif action == 'move':
+                result['moved'] = True
+            return result
+
+    # --- Platform project management (issue 91) ------------------------------
+
+    def _project_permissions(self, session):
+        """The account's own Project capabilities, as the Server states them.
+
+        Creation, rename and the archive/restore flip all share the platform's
+        ``projects:write`` permission; only deletion carries its own. The
+        Server re-checks and stays authoritative on every write.
+        """
+        account = self._json(session, '/api/v1/auth/me')
+        if account.get('id') != session.user_id:
+            raise ChatError('CHAT_IDENTITY_CHANGED')
+        permissions = account.get('permissions') or []
+        return dict(canWrite='projects:write' in permissions, canDelete='projects:delete' in permissions)
+
+    def _project_rows(self, session):
+        """The Server's own project list, projected to identity facts.
+
+        One unfiltered page carries active and archived projects so the manage
+        surface can offer restore; instructions and presentation stay
+        platform-side — the desktop never holds project content. No project
+        roster is ever stored on this device, so the same account reads the
+        same list on any machine it logs into.
+        """
+        outcome = self._json(session, '/api/projects')
+        rows = outcome.get('projects') if isinstance(outcome, dict) else None
+        if not isinstance(rows, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        projects = []
+        for row in rows:
+            if not isinstance(row, dict) or not self._is_id(row.get('id')) \
+                    or not isinstance(row.get('name'), str) or not row['name'] \
+                    or row.get('status') not in ('active', 'archived'):
+                raise ChatError('CHAT_PROTOCOL_ERROR')
+            projects.append(dict(id=row['id'], name=_bounded_text(row['name'], 128),
+                                 status=row['status'],
+                                 createdAt=_bounded_text(row.get('created_at', ''), 64),
+                                 updatedAt=_bounded_text(row.get('updated_at', ''), 64)))
+        return projects
+
+    def projects_manage(self, command):
+        """One project-management round-trip against the Server's Project API (#91).
+
+        list/create/rename/archive/restore/delete share one wire shape: every
+        reply carries the account's project permissions plus the platform's own
+        post-action list, so the surface re-reads authoritative state in the
+        same round. The desktop builds no second project roster and binds no
+        local state to a project here — deleting or archiving a project leaves
+        this device's files and directory grants untouched, and the Server
+        clears Thread membership itself.
+        """
+        with self._lock:
+            session = self._session()
+            if not isinstance(command, dict) or command.get('scope') != session.scope:
+                raise ChatError('CHAT_IDENTITY_CHANGED')
+            action = command.get('action')
+            if action == 'list':
+                expected = {'type', 'id', 'action', 'scope'}
+            else:
+                if action == 'create':
+                    name = command.get('name')
+                    if not isinstance(name, str) or not 1 <= len(name.strip()) <= 128:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = {'type', 'id', 'action', 'scope', 'name'}
+                elif action == 'rename':
+                    self._id(command.get('projectId'))
+                    name = command.get('name')
+                    if not isinstance(name, str) or not 1 <= len(name.strip()) <= 128:
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = {'type', 'id', 'action', 'scope', 'projectId', 'name'}
+                elif action in {'archive', 'restore', 'delete'}:
+                    self._id(command.get('projectId'))
+                    expected = {'type', 'id', 'action', 'scope', 'projectId'}
+                else:
+                    raise ChatError('CHAT_COMMAND_INVALID')
+            if set(command) != expected:
+                raise ChatError('CHAT_COMMAND_INVALID')
+            permissions = self._project_permissions(session)
+            if action == 'create':
+                if not permissions['canWrite']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, '/api/projects', {'name': command['name'].strip()})
+            elif action == 'rename':
+                if not permissions['canWrite']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, f"/api/projects/{self._id(command['projectId'])}",
+                           {'name': command['name'].strip()}, method='PATCH')
+            elif action in {'archive', 'restore'}:
+                if not permissions['canWrite']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._json(session, f"/api/projects/{self._id(command['projectId'])}/{action}", method='POST')
+            elif action == 'delete':
+                if not permissions['canDelete']:
+                    raise ChatError('CHAT_FORBIDDEN')
+                self._empty(session, f"/api/projects/{self._id(command['projectId'])}", None, method='DELETE')
+            result = dict(projects=self._project_rows(session), permissions=permissions)
+            if action == 'create':
+                result['created'] = True
+            elif action == 'rename':
+                result['renamed'] = True
+            elif action == 'archive':
+                result['archived'] = True
+            elif action == 'restore':
+                result['restored'] = True
             elif action == 'delete':
                 result['deleted'] = True
             return result
@@ -3206,7 +3348,15 @@ class DesktopChat:
                         if skill_id not in closure:
                             raise ChatError('CHAT_SKILL_OUTSIDE_AGENT')
                     metadata = {'agent_name': agent_id, 'skill_resource_id': skill_id}
-                    created = self._json(session, '/api/threads', {'metadata': metadata})
+                    body = {'metadata': metadata}
+                    # Issue 91: a selected project names the new Thread's home
+                    # on the Server itself. The id shape is checked here; the
+                    # Server fails closed on a missing, foreign or archived
+                    # project, and no selection stays the loose-session path.
+                    project_id = command.get('projectId', '')
+                    if project_id:
+                        body['project_id'] = self._id(project_id)
+                    created = self._json(session, '/api/threads', body)
                     self._load_thread(session, self._id(created['thread_id']))
                 elif action == 'open':
                     self._load_thread(session, self._id(command.get('threadId')))

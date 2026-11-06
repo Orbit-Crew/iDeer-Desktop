@@ -173,6 +173,50 @@ arrive with the project folder binding ticket (二期 #92), until which every
 branch resolves to no binding. A successful branch asks the session sidebar
 to re-read the Server's own list — the new Thread exists there now.
 
+## Platform project management (issue #91)
+
+The session sidebar gains the platform project directory in the same place
+the Web has it. Projects exist only as platform Projects: create, switch,
+rename, archive/restore and delete ride the Server's own Project API through
+one restricted `desktop:projects` channel, and the reply always carries the
+Server's own post-action list plus the account's `projects:write` /
+`projects:delete` permissions, so no second project roster is ever stored on
+this device and the same account reads the same projects on any machine it
+logs into. Create and rename carry a bounded name only — instructions and
+presentation stay platform-side — and every write is refused before the
+mutating call when the account lacks the permission (the account probe that
+states the permissions always answers first), with the Server
+re-checking and staying authoritative. A delete is confirmed twice (renderer
+popconfirm, then the trusted main-process dialog) and states plainly that
+the project's sessions survive as loose sessions; no operation in this
+family touches local files, workspace grants or the receipt ledger — the
+desktop binds nothing local to a project here (the project folder binding
+arrives with #92 on its own ticket).
+
+The sidebar projects each session by the Server's own membership stamp
+(`metadata.deerflow_project_id`), carried on every thread row the
+`desktop:threads` reply returns. The grouping is a display projection of
+that reply — never a merge of local state — and a row whose project id the
+current list does not know falls back to the 散会话 bucket instead of
+inventing a group. The project view switch (全部会话 / 散会话 / one project)
+is this device's view state; the project list itself always comes from the
+platform. 散会话移入项目 rides the Server's own move endpoint
+(`POST /api/threads/{id}/move`) as one more `desktop:threads` action gated
+by the same `threads:write` permission as rename; moving back out to loose
+is not a desktop action in this ticket, and the Server fails closed on a
+missing, foreign or archived project.
+
+When a project is selected, a newly created chat names it on the Thread
+create body (`project_id`), so 不选项目也能直接开聊 stays the loose-session
+path and a selected project's new sessions are born on the Server inside it;
+the Server rejects a missing, foreign or archived project by name. Switching
+projects never clears in-flight work — the Run lives on the Server exactly
+as the background-sessions contract states, and reopening any session
+reattaches its truthful state.
+
+History, state, export, model selection and every other chat path are
+unchanged.
+
 History combines paginated Server message records with checkpoint state. A
 human message's `X` and DynamicContext's `X__user` share the same display
 identity, matching Server/Web. The latest original Server ID is retained;

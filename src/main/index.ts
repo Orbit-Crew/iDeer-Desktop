@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
@@ -579,6 +579,30 @@ if (!app.requestSingleInstanceLock()) {
         if (confirmation.response !== 1) throw new Error('THREADS_CANCELED')
       }
       return runtime.threads(command)
+    })
+    // Issue 91: platform project management. Every action rides the Server's
+    // own Project API through the Runtime's chat-session fence; a delete is
+    // confirmed here in the trusted main process first. Nothing on this path
+    // touches local files or directory grants — deleting or archiving a
+    // project is platform-side organization only, and the Server clears
+    // Thread membership itself.
+    ipcMain.handle('desktop:projects', async (event, command: ProjectCommand): Promise<ProjectOperationView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' ||
+          !['list', 'create', 'rename', 'archive', 'restore', 'delete'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('PROJECTS_UNAUTHENTICATED')
+      if (command.action === 'delete') {
+        if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId)) throw new Error('PROJECTS_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认删除平台项目',
+          message: '删除该平台项目？',
+          detail: '项目将被删除且不可恢复；项目内的会话不会被删除，会回到散会话。本机文件与目录授权不受影响。',
+          buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
+      }
+      return runtime.projects(command)
     })
     // Issue 85: the platform scheduled-tasks management surface. The renderer
     // names the action and the task fields only; the platform owns timing,

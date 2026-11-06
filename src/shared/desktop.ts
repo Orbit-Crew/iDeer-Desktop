@@ -384,24 +384,60 @@ export type SkillScriptCommand =
 export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[]; revoked?: boolean }
 
 /** Issue 72: one platform thread as the sidebar shows it — identity facts and
- * the Server's own recency timestamp; no local roster is ever built. */
-export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string }
+ * the Server's own recency timestamp; no local roster is ever built. Issue 91:
+ * `projectId` mirrors the Server's own membership stamp (empty = 散会话). */
+export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string; projectId: string }
 /** Issue 72: the account's own Thread capabilities as the Server states them. */
 export interface ThreadPermissionsView { canRename: boolean; canDelete: boolean }
-/** Issue 72: list/search/rename/delete share one wire shape. Every reply
+/** Issue 72: list/search/rename/delete/move share one wire shape. Every reply
  * carries the account's thread permissions plus the platform's own post-action
  * list, so the sidebar re-reads authoritative state in the same round; a
- * rename or delete also carries its outcome flag. The Server-side permission
- * and owner checks stay authoritative — the renderer only grays out early. */
+ * rename, delete or move also carries its outcome flag. The Server-side
+ * permission and owner checks stay authoritative — the renderer only grays
+ * out early. Issue 91: `move` names the target project and rides the Server's
+ * own move endpoint; moving back out to loose is not a desktop action here. */
 export type ThreadCommand =
   | { action: 'list' }
   | { action: 'search'; query: string }
   | { action: 'rename'; threadId: string; title: string }
   | { action: 'delete'; threadId: string }
+  | { action: 'move'; threadId: string; projectId: string }
 export interface ThreadView {
   threads: ThreadRowView[]
   permissions: ThreadPermissionsView
   renamed?: boolean
+  deleted?: boolean
+  moved?: boolean
+}
+
+/** Issue 91: one platform project as the management surface shows it —
+ * identity facts only; instructions and presentation stay platform-side. */
+export interface ProjectView { id: string; name: string; status: 'active' | 'archived'; createdAt: string; updatedAt: string }
+/** Issue 91: the account's own Project capabilities as the Server states them.
+ * Create, rename and the archive/restore flip share `projects:write`; only
+ * deletion carries its own `projects:delete`. */
+export interface ProjectPermissionsView { canWrite: boolean; canDelete: boolean }
+/** Issue 91: list/create/rename/archive/restore/delete share one wire shape.
+ * Every reply carries the account's project permissions plus the platform's
+ * own post-action list, so the surface re-reads authoritative state in the
+ * same round and no second project roster is ever kept on this device. The
+ * Server-side permission and owner checks stay authoritative — the renderer
+ * only grays out early. Deleting or archiving never touches local files or
+ * directory grants; the Server clears Thread membership itself. */
+export type ProjectCommand =
+  | { action: 'list' }
+  | { action: 'create'; name: string }
+  | { action: 'rename'; projectId: string; name: string }
+  | { action: 'archive'; projectId: string }
+  | { action: 'restore'; projectId: string }
+  | { action: 'delete'; projectId: string }
+export interface ProjectOperationView {
+  projects: ProjectView[]
+  permissions: ProjectPermissionsView
+  created?: boolean
+  renamed?: boolean
+  archived?: boolean
+  restored?: boolean
   deleted?: boolean
 }
 
@@ -757,8 +793,15 @@ export interface DesktopBridge {
    * fallback pick. No provider or credential field crosses this bridge. */
   models(command: ModelCommand): Promise<ModelSettingsView>
   /** Issue 72: search, rename and delete platform threads, always re-reading
-   * the Server's own list; deleting never clears local unconfirmed receipts. */
+   * the Server's own list; deleting never clears local unconfirmed receipts.
+   * Issue 91: `move` names the project a session joins, per the Server's own
+   * move endpoint. */
   threads(command: ThreadCommand): Promise<ThreadView>
+  /** Issue 91: platform project management — create, rename, archive,
+   * restore and delete ride the Server's own Project API and every reply
+   * re-reads its list; the desktop keeps no second roster and no local
+   * state is bound to or cleared by a project operation. */
+  projects(command: ProjectCommand): Promise<ProjectOperationView>
   /** Issue 85: the platform scheduled-tasks management surface. The renderer
    * names the action and the task fields only; the platform owns timing,
    * previews and execution records, and a delete is confirmed in the trusted
@@ -1026,7 +1069,11 @@ export const ATTACHMENT_DESTINATION_LABELS: Record<ChatAttachmentChoice, string>
  * exists. */
 export type ChatCommand =
   | { action: 'state' | 'refresh' | 'compatibility' }
-  | { action: 'create'; scope: string; agentId: string; skillId?: string }
+  // Issue 91: `projectId` names the selected project a new session belongs
+  // to, riding the Server's own project assignment; absent stays the
+  // loose-session path. The Server fails closed on a missing, foreign or
+  // archived project.
+  | { action: 'create'; scope: string; agentId: string; skillId?: string; projectId?: string }
   | { action: 'open' | 'reconnect'; scope: string; threadId: string }
   | { action: 'stop'; scope: string; threadId: string; runId: string }
   | { action: 'send'; scope: string; threadId: string; turnId: string; text: string;

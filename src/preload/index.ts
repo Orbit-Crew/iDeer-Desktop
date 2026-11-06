@@ -1,9 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
-// Issue 84/106: one invoke site for the whole template family — both typed
-// doors (the plaza's CRUD/use and the welcome page's official-list) ride the
-// same pinned channel, so the channel inventory stays one entry per channel.
+// Issue 106: the official selection rides the templates family's one pinned
+// channel, so the channel inventory stays one entry per channel.
 const invokeTemplates = (command: TemplateCommand | OfficialTemplateCommand): Promise<unknown> =>
   ipcRenderer.invoke('desktop:templates', command)
 const invokeTemplatesAs = <T,>(command: TemplateCommand | OfficialTemplateCommand): Promise<T> =>
@@ -28,6 +27,9 @@ const bridge: DesktopBridge = Object.freeze({
   skillScripts: (command: SkillScriptCommand) => ipcRenderer.invoke('desktop:skill-scripts', command),
   models: (command: ModelCommand) => ipcRenderer.invoke('desktop:models', command),
   threads: (command: ThreadCommand) => ipcRenderer.invoke('desktop:threads', command),
+  // Issue 91: platform project management; every action rides the Server's
+  // own Project API and the reply is its post-action list.
+  projects: (command: ProjectCommand) => ipcRenderer.invoke('desktop:projects', command),
   // Issue 85: the platform scheduled-tasks management surface; deletes are
   // confirmed in the trusted main process before they reach the wire.
   schedules: (command: ScheduleCommand) => ipcRenderer.invoke('desktop:schedules', command),

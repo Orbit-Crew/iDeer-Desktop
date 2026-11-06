@@ -88,6 +88,7 @@ def main() -> int:
     model_commands: queue.Queue = queue.Queue(maxsize=1)
     template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
+    project_commands: queue.Queue = queue.Queue(maxsize=1)
     schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -220,10 +221,11 @@ def main() -> int:
                         {'type', 'id', 'action', 'scope'},
                         {'type', 'id', 'action', 'query', 'scope'},
                         {'type', 'id', 'action', 'threadId', 'scope'},
-                        {'type', 'id', 'action', 'threadId', 'title', 'scope'})
+                        {'type', 'id', 'action', 'threadId', 'title', 'scope'},
+                        {'type', 'id', 'action', 'threadId', 'projectId', 'scope'})
                         and command['type'] == 'threads' and isinstance(command['id'], str)
                         and len(command['id']) <= 64
-                        and command['action'] in {'list', 'search', 'rename', 'delete'}
+                        and command['action'] in {'list', 'search', 'rename', 'delete', 'move'}
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128
                         and (command['action'] != 'search' or (
                             isinstance(command['query'], str) and len(command['query']) <= 128))
@@ -232,8 +234,31 @@ def main() -> int:
                             and isinstance(command['title'], str)
                             and 0 < len(command['title'].strip()) <= 200))
                         and (command['action'] != 'delete' or (
-                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128))):
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128))
+                        and (command['action'] != 'move' or (
+                            isinstance(command['threadId'], str) and 0 < len(command['threadId']) <= 128
+                            and isinstance(command['projectId'], str)
+                            and 0 < len(command['projectId']) <= 128))):
                     thread_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'name', 'scope'},
+                        {'type', 'id', 'action', 'projectId', 'name', 'scope'},
+                        {'type', 'id', 'action', 'projectId', 'scope'})
+                        and command['type'] == 'projects' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'list', 'create', 'rename', 'archive', 'restore', 'delete'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'create' or (
+                            isinstance(command['name'], str) and 0 < len(command['name'].strip()) <= 128))
+                        and (command['action'] != 'rename' or (
+                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128
+                            and isinstance(command['name'], str)
+                            and 0 < len(command['name'].strip()) <= 128))
+                        and (command['action'] not in {'archive', 'restore', 'delete'} or (
+                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))):
+                    project_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
@@ -746,6 +771,27 @@ def main() -> int:
                     message = str(exc)
                     error = message if message.startswith('CHAT_') else 'THREADS_FAILED'
                 emit({'v': 1, 'type': 'threads', 'id': thread_command['id'],
+                      'result': result, 'error': error})
+            try:
+                project_command = project_commands.get_nowait()
+            except queue.Empty:
+                project_command = None
+            if project_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 91: platform project management on the Server's own
+                    # Project API, fenced by the same chat session identity. The
+                    # command never binds, clears or reads local files or
+                    # directory grants — deletion and archiving are Server-side
+                    # organization only.
+                    result = chat.projects_manage(project_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; a
+                    # server detail never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith('CHAT_') else 'PROJECTS_FAILED'
+                emit({'v': 1, 'type': 'projects', 'id': project_command['id'],
                       'result': result, 'error': error})
             try:
                 model_command = model_commands.get_nowait()
