@@ -593,6 +593,10 @@ export interface DesktopBridge {
    * of the confirmed workspace; open/reveal resolve the physical path only in
    * the trusted main process and return nothing to the renderer. */
   files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
+  /** Issue 107: the browser pane's partition clear; the confirmation dialog
+   * stays in the trusted main process, so an accidental click never wipes
+   * login state on its own. */
+  browser(command: BrowserCommand): Promise<void>
   /** Issue 77: the main process pushes the full bounded center list after
    * every change; the renderer replaces its view instead of merging. */
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
@@ -605,6 +609,9 @@ export interface DesktopBridge {
   /** Issue 109: the remote browser's one push channel — bounded display
    * facts only (pixel frames, url/tabs, honest errors); nothing is sent back. */
   onRemoteBrowserEvents(listener: (event: RemoteBrowserEvent) => void): () => void
+  /** Issue 107: the main process pushes the bounded browser-pane facts; the
+   * renderer renders them as-is and never synthesizes an event of its own. */
+  onBrowserEvents(listener: (event: BrowserPaneEvent) => void): () => void
 }
 
 export interface InstallOutcome {
@@ -688,6 +695,76 @@ export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
 export type FilesPreview =
   | { kind: 'text'; content: string; truncated: boolean }
   | { kind: 'image'; mime: string; data: string }
+
+/**
+ * Issue 107: the local browser pane's one fixed session partition. Login
+ * state, cookies and site data live here — never in the app's default session
+ * (which carries the device's own surfaces) and never in the system browser.
+ * The renderer may only attach webviews with exactly this partition, and the
+ * trusted main process validates that at attachment time.
+ */
+export const BROWSER_PARTITION = 'persist:browser-pane'
+
+/** Issue 107: the browser pane's one invoke entry — clearing the partition.
+ * The confirmation dialog stays in the trusted main process. */
+export type BrowserCommand = { action: 'clear' }
+
+/**
+ * Issue 107: the bounded facts the main process pushes while the browser pane
+ * is in use. Every entry is one observable device-side fact (a denied
+ * permission ask, one download's phase, a blocked navigation, a new-window
+ * request routed to the owning pane, a finished partition clear); nothing
+ * here carries page content, and the pane renders exactly what happened.
+ */
+export type BrowserPaneEvent =
+  | { kind: 'permission'; permission: string; origin: string }
+  | { kind: 'download'; phase: 'started' | 'completed' | 'canceled' | 'interrupted' | 'rejected'; filename: string; reason?: string }
+  | { kind: 'navigation-blocked'; url: string }
+  | { kind: 'window-open'; contentsId: number; url: string }
+  | { kind: 'cleared' }
+
+/** Issue 107: the one Chinese permission wording the pane reads; unmatched
+ * values fall back to the raw wire fact, exactly like the notification labels. */
+export const BROWSER_PERMISSION_LABELS: Record<string, string> = {
+  media: '摄像头/麦克风', geolocation: '地理位置', notifications: '通知',
+  openExternal: '打开外部应用', pointerLock: '鼠标指针锁定', fullScreen: '全屏',
+  'clipboard-read': '读取剪贴板', 'clipboard-sanitized-write': '写入剪贴板',
+  'display-capture': '屏幕捕捉', midiSysex: 'MIDI 设备', mediaKeySystem: '受保护内容(DRM)'
+}
+
+/**
+ * Issue 107: the external-content scheme boundary, shared by the renderer's
+ * address bar and the main process's navigation chokepoint. Only http(s)
+ * documents load in the browser pane; `file:` and every other scheme are not
+ * a browser-pane navigation, because a document outside the web would turn
+ * the pane into a local-file viewer.
+ */
+export function isWebUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Issue 107: the address-bar grammar. A full http(s) URL goes as-is; a bare
+ * host (dotted name, `localhost`, IPv4, optional port/path) becomes an
+ * https:// URL. Anything else — search text, `file:` paths, `javascript:` —
+ * is rejected with no search-engine fallback: the pane navigates where the
+ * user actually names, and inventing a search provider would fabricate a
+ * destination the user never chose.
+ */
+export function sanitizeAddress(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  if (/^https?:\/\//i.test(trimmed)) return isWebUrl(trimmed) ? trimmed : null
+  if (/\s|\\/.test(trimmed)) return null
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*(:\d+)?([/?#].*)?$/i.test(trimmed)) return null
+  const candidate = `https://${trimmed}`
+  return isWebUrl(candidate) ? candidate : null
+}
 
 /** Issue 74: the three session permission tiers; a loaded session always
  * starts at the lowest one and a tier choice never outlives the session. */

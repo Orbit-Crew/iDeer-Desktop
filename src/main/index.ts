@@ -1,9 +1,11 @@
 // Node 16 compatibility runs in the build banner before any imports.
-import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell, webContents } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import { BROWSER_PARTITION } from '../shared/desktop'
+import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
 import { formatDeclarationSummary } from './skillDeclaration'
@@ -74,6 +76,54 @@ if (!app.requestSingleInstanceLock()) {
       desktopVersion: app.getVersion(), electronVersion: process.versions.electron, runtime,
       quit: async () => { app.quit() } }) : null
     if (maintenanceId && !maintenanceSession) return
+    // Issue 107: the browser pane's one fixed partition and its device-side
+    // gates exist before any window loads, so a pane's first webview is
+    // already guarded. The workspace root resolution rides the Runtime's own
+    // guarded `files locate` path — the physical folder never leaves main.
+    const browserSession = session.fromPartition(BROWSER_PARTITION)
+    const browserPane = new BrowserPaneService(browserSession, {
+      push: (paneEvent) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:browser:events', paneEvent)
+      },
+      resolveWorkspaceRoot: async () => {
+        const status = runtime.status()
+        if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready' ||
+            !status.workspace.logicalRoot) return null
+        try {
+          const located = await runtime.files('locate', status.workspace.logicalRoot) as { physical?: unknown }
+          return typeof located?.physical === 'string' && located.physical ? located.physical : null
+        } catch {
+          return null
+        }
+      },
+      confirmClear: async () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return false
+        const confirmation = await dialog.showMessageBox(mainWindow, {
+          type: 'question', title: '清空浏览器分区',
+          message: '清空浏览器窗格独立分区的全部站点数据？',
+          detail: '将清除该分区内的 Cookie、站点存储与缓存：所有浏览器页签的登录态会被移除，需要重新登录。已下载到授权文件夹的文件不受影响；系统浏览器与平台凭据本就不在此分区。',
+          buttons: ['取消', '确认清空'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        return confirmation.response === 1
+      },
+      destroyPartitionGuests: () => {
+        // A crashed renderer runs no JavaScript, so nothing can re-persist
+        // after the wipe. Guests are out-of-process frames; this never takes
+        // down the app's own renderer.
+        for (const contents of webContents.getAllWebContents()) {
+          if (contents.session === browserSession && !contents.isDestroyed()) contents.forcefullyCrashRenderer()
+        }
+      },
+      clearStorage: async () => {
+        await browserSession.clearStorageData({ storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'serviceworkers', 'cachestorage', 'websql', 'shadercache'] })
+        await browserSession.clearCache()
+        await browserSession.clearAuthCache()
+      }
+    })
+    browserPane.attachPartition()
+    app.on('web-contents-created', (_event, contents) => {
+      if (contents.getType() === 'webview') browserPane.hardenGuest(contents)
+    })
     mainWindow = createMainWindow()
     // Issue 77: the Desktop's notification center. The owned Runtime reports
     // background-session facts; the trusted main process owns the ledger, the
@@ -174,6 +224,17 @@ if (!app.requestSingleInstanceLock()) {
         throw new Error('Untrusted desktop IPC sender')
       }
     }
+    // Issue 107: the browser pane's one invoke entry. The renderer names the
+    // clear action only; the confirmation dialog and the storage clearing
+    // stay in this trusted process.
+    ipcMain.handle('desktop:browser', (event, command: BrowserCommand): Promise<void> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || command.action !== 'clear' ||
+          Object.keys(command).length !== 1) {
+        throw new Error('BROWSER_COMMAND_INVALID')
+      }
+      return browserPane.clear()
+    })
 
     ipcMain.handle('desktop:status', (event): DesktopStatus => {
       requireMainFrame(event)

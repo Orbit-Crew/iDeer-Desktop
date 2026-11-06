@@ -84,6 +84,20 @@ provenance 条目；实现走 Desktop 自己的缝——人工浏览经 Runtime 
 （1 MiB 封顶）与常见位图（2 MiB 封顶），PDF/Word/Excel/二进制走外部打开；
 浏览要求已确认的工作区授权（授权本身绑定账号与设备）。
 
+## 2026-11-05 本机浏览器窗格恢复（iDeer-Desktop #107）
+
+五期·31 恢复原版浏览器窗格能力。与 #94 相同为**全新实现而非受管复制**：未复制
+linz 的 `ipc/browser` 或浏览器面板源码，无 provenance 条目。实现走 Desktop 自己的缝：
+唯一外部内容面是钉死固定持久分区（`persist:browser-pane`）的 webview，主进程在附加时
+重新校验（该分区、无 node integration、无 preload、首文档必须是 http(s)）；分区级
+权限请求默认拒绝并逐条可见、文档加载限制 http(s)、下载经 Runtime 守卫的 `files locate`
+落到已确认授权文件夹（碰撞自动改名、无授权即拒绝）、弹出窗口不开原生窗而是作为事实
+路由回所属窗格。渲染层地址栏与主进程共用同一地址语法（无搜索引擎代搜），清空分区
+在可信主进程确认。分歧清单：不恢复旧任意 IPC 旁路与本地搜索引擎兜底；`instanceId`
+不用（页签状态窗格本地、随窗格消亡，与 dock 持久化契约一致）；渲染层 CSP `frame-src`
+从 `'none'` 放宽为 `http: https:`（仅为承载校验过的 webview，`connect-src` 仍为 `'none'`）。
+安全缝测试更新见 test/security.test.ts；桥键与 webview 断言同步进桌面 smoke。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。

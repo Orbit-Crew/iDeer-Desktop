@@ -80,12 +80,13 @@ async function main() {
     assert.match(initialText, /本机 Runtime/)
     assert.match(initialText, /设备连接：/)
     assert.equal(await page.title(), 'iDeer Desktop')
-    // Issue 109 adds the remote browser entry: one invoke command plus the
-    // stream's one push channel subscription.
+    // Issue 107 adds the browser pane entry (browser + onBrowserEvents);
+    // issue 109 adds the remote browser entry (remoteBrowser +
+    // onRemoteBrowserEvents) — the two push channels never merge.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
+      'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents',
+      'manage', 'models', 'notifications', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents',
       'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser',
       'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'threads'
     ])
@@ -152,7 +153,9 @@ async function main() {
     assert.equal(runtime.sandbox, true)
     assert.equal(runtime.isolation, true)
     assert.equal(runtime.nodeIntegration, false)
-    assert.equal(runtime.webview, false)
+    // Issue 107 restores the browser pane: the main window may embed webviews
+    // again, gated by the will-attach-webview validation in window.ts.
+    assert.equal(runtime.webview, true)
     assert.equal(runtime.cloneWorks, true)
     assert.equal(runtime.decoded, '你')
 

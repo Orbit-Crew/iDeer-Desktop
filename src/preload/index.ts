@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, RemoteBrowserCommand, RemoteBrowserEvent, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, RemoteBrowserCommand, RemoteBrowserEvent, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -36,6 +36,9 @@ const bridge: DesktopBridge = Object.freeze({
   // and the explicit remote-file retrieval; the screen itself arrives on the
   // one push channel below as pixels and can never send anything back.
   remoteBrowser: (command: RemoteBrowserCommand) => ipcRenderer.invoke('desktop:remote-browser', command),
+  // Issue 107: the browser pane's clear entry; the confirmation stays in the
+  // trusted main process.
+  browser: (command: BrowserCommand) => ipcRenderer.invoke('desktop:browser', command),
   onNotifications: (listener: (view: NotificationCenterView) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, view: NotificationCenterView): void => listener(view)
     ipcRenderer.on('desktop:notifications', wrapped)
@@ -52,6 +55,12 @@ const bridge: DesktopBridge = Object.freeze({
     const wrapped = (_event: Electron.IpcRendererEvent, event: RemoteBrowserEvent): void => listener(event)
     ipcRenderer.on('desktop:remote-browser:events', wrapped)
     return () => { ipcRenderer.removeListener('desktop:remote-browser:events', wrapped) }
+  },
+  // Issue 107: the one push channel for the browser pane's bounded facts.
+  onBrowserEvents: (listener: (event: BrowserPaneEvent) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, payload: BrowserPaneEvent): void => listener(payload)
+    ipcRenderer.on('desktop:browser:events', wrapped)
+    return () => { ipcRenderer.removeListener('desktop:browser:events', wrapped) }
   }
 })
 
