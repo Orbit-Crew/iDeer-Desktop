@@ -65,8 +65,13 @@ describe('bootstrap capability boundary', () => {
     // the Runtime's guarded read path with no consent step, and an external
     // open/reveal resolves the physical path inside the trusted main
     // process — the renderer never receives or supplies a physical path.
+    // Issue 85 adds desktop:schedules for the platform scheduled-tasks
+    // management surface: the renderer names the action and task fields only;
+    // the platform owns timing, previews and execution records through the
+    // Runtime's pinned contract client, a delete is confirmed in the trusted
+    // main process, and 补跑/跳过 facts are device-local display truth.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
+      .toEqual(['desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:quit', 'desktop:receipts', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose'])
     // Issue 77 opens the bridge's only two push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Both are fixed main-owned names; the

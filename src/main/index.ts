@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, shell } from '
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCommand, NotificationCenterView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { RuntimeProcess } from './runtime'
 import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
@@ -449,6 +449,30 @@ if (!app.requestSingleInstanceLock()) {
         if (confirmation.response !== 1) throw new Error('THREADS_CANCELED')
       }
       return runtime.threads(command)
+    })
+    // Issue 85: the platform scheduled-tasks management surface. The renderer
+    // names the action and the task fields only; the platform owns timing,
+    // cron previews and execution records through the Runtime's pinned
+    // contract client. A delete is confirmed here in the trusted main
+    // process; 补跑/跳过 facts are device-local display truth keyed by the
+    // planned point.
+    ipcMain.handle('desktop:schedules', async (event, command: ScheduleCommand): Promise<SchedulesOutcome> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' ||
+          !['list', 'get', 'create', 'update', 'pause', 'resume', 'trigger', 'delete', 'runs', 'set-skip', 'preview'].includes(command.action)) throw new Error('SCHEDULES_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('SCHEDULES_UNAUTHENTICATED')
+      if (command.action === 'delete') {
+        if (typeof command.taskId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.taskId)) throw new Error('SCHEDULES_COMMAND_INVALID')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认删除定时任务',
+          message: `删除定时任务「${command.taskId}」？`,
+          detail: '删除会同时移除平台上的任务计划与排队中的执行，操作不可恢复。已有的执行记录仍可在平台查询。',
+          buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('SCHEDULES_CANCELED')
+      }
+      return runtime.schedules(command)
     })
     // Issue 123: the optional local connector install. The renderer only
     // names the action; the candidate directory is located and both the
