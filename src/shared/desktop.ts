@@ -609,6 +609,25 @@ export type TemplateCommand =
   | { action: 'delete'; templateId: string }
   | { action: 'use'; templateId: string }
 
+/** Issue 106: one official template row as the welcome page shows it — the
+ * platform's published selection, projected read-only. No usage count and
+ * no visibility fact exists on the official rows, so none is invented for
+ * display; copying a row into the account's own templates is the plain
+ * create on `templates`, and this read stays live on every mount, so the
+ * facade follows platform updates without any local snapshot. */
+export interface OfficialTemplateRowView {
+  id: string
+  name: string
+  category: string
+  content: string
+  updatedAt: string
+}
+/** Issue 106: the official read's own reply — never the account list and
+ * never a mutation flag. */
+export interface OfficialTemplatesView { official: OfficialTemplateRowView[] }
+/** Issue 106: the welcome page's one read command; no ids, no fields. */
+export type OfficialTemplateCommand = { action: 'official-list' }
+
 /** Issue 84: the `{{变量}}` placeholders a template prefill asks the user to
  * fill, in first-appearance order, deduplicated. Pure display extraction —
  * the composer keeps the raw text; filling stays a manual user edit. */
@@ -751,6 +770,11 @@ export interface DesktopBridge {
    * endpoints. A click prefills the composer and never sends; new templates
    * are the Server's private rows, visible only to their creator. */
   templates(command: TemplateCommand): Promise<TemplateView>
+  /** Issue 106: the welcome page's read-only official template selection,
+   * always read live from the platform's own endpoint. Copying a row into
+   * the account's own templates is the plain `templates` create — the two
+   * surfaces share the one wire family but never each other's replies. */
+  officialTemplates(command: OfficialTemplateCommand): Promise<OfficialTemplatesView>
   /**
    * Issue 123: optional local connector install; picking and confirmation
    * stay in main. The renderer calls it with the renderer-facing ConnectorCommand

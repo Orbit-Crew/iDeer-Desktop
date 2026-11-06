@@ -3,8 +3,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { ChatView } from '../src/renderer/src/components/ChatPanel'
 import { TemplatesSection } from '../src/renderer/src/components/TemplateSection'
+import { WelcomeSection } from '../src/renderer/src/components/WelcomeSection'
 import { useSessionStore } from '../src/renderer/src/stores/sessionStore'
-import type { ChatCommand, ChatSnapshot, TemplateCommand, TemplateView } from '../src/shared/desktop'
+import type { ChatCommand, ChatSnapshot, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, TemplateCommand, TemplateView } from '../src/shared/desktop'
 import { extractTemplateVariables } from '../src/shared/desktop'
 
 afterEach(() => {
@@ -18,6 +19,13 @@ beforeAll(() => {
     addListener: () => {}, removeListener: () => {},
     addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false
   } as MediaQueryList))
+  // The welcome section reads through the pinned bridge; tests that render
+  // the chat view without injecting one get a quiet two-row official set.
+  ;(window as unknown as { ideer: unknown }).ideer = {
+    ...(window as unknown as { ideer?: unknown }).ideer,
+    officialTemplates: async (): Promise<OfficialTemplatesView> => ({ official: [] }),
+    templates: async (): Promise<TemplateView> => ({ templates: [] })
+  }
 })
 
 const ROW_A: TemplateView['templates'][number] = {
@@ -179,5 +187,121 @@ describe('composer template prefill (#84)', () => {
     await vi.waitFor(() => expect(textarea.value).toBe('第二版 {{b}}'))
     expect(screen.getByRole('status', { name: '消息占位待补填' }).textContent).toContain('{{b}}')
     expect(commands).toEqual([])
+  })
+})
+
+// --- the welcome page's official selection (#106) -----------------------------
+
+const OFFICIAL_A: OfficialTemplateRowView = {
+  id: 'off-a', name: '官方周报', category: '办公精选',
+  content: '请根据 {{要点}} 写一份周报，语气 {{语气}}。', updatedAt: '2026-11-03T00:00:00Z'
+}
+const OFFICIAL_B: OfficialTemplateRowView = {
+  id: 'off-b', name: '官方代码评审', category: '研发精选',
+  content: '评审以下 {{语言}} 代码：', updatedAt: '2026-11-04T00:00:00Z'
+}
+
+type CopyCommand = Extract<TemplateCommand, { action: 'create' }>
+
+const makeOfficial = (rows: OfficialTemplateRowView[], failure?: string) => {
+  const reads: OfficialTemplateCommand[] = []
+  const api = vi.fn(async (command: OfficialTemplateCommand): Promise<OfficialTemplatesView> => {
+    reads.push(command)
+    if (failure) throw new Error(failure)
+    return { official: rows }
+  })
+  return { api, reads }
+}
+
+const makeCopy = (rows: TemplateView['templates']) => {
+  const commands: CopyCommand[] = []
+  const api = vi.fn(async (command: CopyCommand): Promise<TemplateView> => {
+    commands.push(command)
+    return { templates: rows, created: true }
+  })
+  return { api, commands }
+}
+
+describe('welcome official selection (#106)', () => {
+  it('shows the official rows read-only with category tags and variable chips', async () => {
+    const { api } = makeOfficial([OFFICIAL_A, OFFICIAL_B])
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByText('官方周报')).toBeTruthy())
+    expect(screen.getByText('官方代码评审')).toBeTruthy()
+    // The read-only facade: 另存为我的 is the only per-row action, and the
+    // rows carry no usage or visibility facts because none exist officially.
+    expect(screen.getByLabelText('另存为我的 官方周报')).toBeTruthy()
+    expect(screen.getByLabelText('另存为我的 官方代码评审')).toBeTruthy()
+    expect(screen.queryByLabelText('使用 官方周报')).toBeNull()
+    // Exact match: a visibility tag's whole text would be 私有/公开; the
+    // info line's 独立私有副本 must not satisfy this check.
+    expect(screen.queryByText('私有')).toBeNull()
+    expect(screen.queryByText('公开')).toBeNull()
+    expect(screen.queryByText(/使用 \d+ 次/)).toBeNull()
+    expect(screen.getByLabelText('官方周报 官方模板变量占位').textContent).toContain('{{语气}}')
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('另存为我的 rides the plain create: row fields only, no official id, no visibility', async () => {
+    const { api } = makeOfficial([OFFICIAL_A])
+    const { api: copyApi, commands } = makeCopy([])
+    render(<WelcomeSection onOfficialList={api} onCopy={copyApi} />)
+    await vi.waitFor(() => expect(screen.getByLabelText('另存为我的 官方周报')).toBeTruthy())
+    fireEvent.click(screen.getByLabelText('另存为我的 官方周报'))
+    await vi.waitFor(() => expect(commands).toContainEqual(
+      { action: 'create', name: '官方周报', category: '办公精选', content: OFFICIAL_A.content }))
+    // Independence from the original is structural: the wire carries no
+    // source reference, and the account create stays private by default.
+    expect(JSON.stringify(commands[0])).not.toContain('off-a')
+    expect(JSON.stringify(commands[0])).not.toContain('visibility')
+    await vi.waitFor(() => expect(screen.getByText('已复制为我的模板「官方周报」，可在模板广场编辑。')).toBeTruthy())
+  })
+
+  it('degrades honestly when the platform does not provide the official service', async () => {
+    const { api } = makeOfficial([], 'CHAT_NOT_FOUND')
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByText(/平台暂未提供官方模板服务/)).toBeTruthy())
+    expect(screen.queryByText('官方周报')).toBeNull()
+  })
+
+  it('degrades honestly without an authenticated account', async () => {
+    const { api } = makeOfficial([], 'TEMPLATE_UNAUTHENTICATED')
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByText(/尚未登录平台账号/)).toBeTruthy())
+  })
+
+  it('degrades honestly without read permission', async () => {
+    const { api } = makeOfficial([], 'CHAT_FORBIDDEN')
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByText(/没有官方模板的读取权限/)).toBeTruthy())
+  })
+
+  it('degrades honestly while the platform is unreachable', async () => {
+    const { api } = makeOfficial([], 'CHAT_SERVER_UNAVAILABLE')
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByText(/平台暂时不可达/)).toBeTruthy())
+  })
+
+  it('the refresh button re-reads the live official set', async () => {
+    const { api, reads } = makeOfficial([OFFICIAL_A])
+    render(<WelcomeSection onOfficialList={api} />)
+    await vi.waitFor(() => expect(screen.getByLabelText('刷新官方模板')).toBeTruthy())
+    fireEvent.click(screen.getByLabelText('刷新官方模板'))
+    await vi.waitFor(() => expect(reads).toHaveLength(2))
+    for (const read of reads) expect(read).toEqual({ action: 'official-list' })
+  })
+
+  it('ChatView hosts the welcome before the first message only', async () => {
+    render(<ChatView state={stateWith()} busy={false} attachmentView={null}
+      onCommand={async () => {}} />)
+    await vi.waitFor(() => expect(screen.getByText('欢迎 · 官方模板精选')).toBeTruthy())
+    cleanup()
+    const withMessage = stateWith({ messages: [
+      { id: 'm1', role: 'human', text: '第一条消息', name: '你', request: null, response: null }
+    ] })
+    render(<ChatView state={withMessage} busy={false} attachmentView={null}
+      onCommand={async () => {}} />)
+    await vi.waitFor(() => expect(screen.getByLabelText('聊天消息')).toBeTruthy())
+    expect(screen.queryByText('欢迎 · 官方模板精选')).toBeNull()
   })
 })

@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
@@ -611,10 +611,12 @@ if (!app.requestSingleInstanceLock()) {
     // renderer has placed the text in the composer as a draft. A delete is
     // confirmed here in the trusted main process and never silently drops a
     // shared row: the Server's own ownership check stays authoritative.
-    ipcMain.handle('desktop:templates', async (event, command: TemplateCommand): Promise<TemplateView> => {
+    // Issue 106: `official-list` joins as the welcome page's one read —
+    // same family, same authentication gate, no mutation of any kind.
+    ipcMain.handle('desktop:templates', async (event, command: TemplateCommand | OfficialTemplateCommand): Promise<TemplateView | OfficialTemplatesView> => {
       requireMainFrame(event)
       if (!command || typeof command !== 'object' ||
-          !['list', 'create', 'update', 'delete', 'use'].includes(command.action)) throw new Error('TEMPLATE_COMMAND_INVALID')
+          !['list', 'official-list', 'create', 'update', 'delete', 'use'].includes(command.action)) throw new Error('TEMPLATE_COMMAND_INVALID')
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('TEMPLATE_UNAUTHENTICATED')
       if (command.action === 'delete') {
@@ -627,6 +629,7 @@ if (!app.requestSingleInstanceLock()) {
         })
         if (confirmation.response !== 1) throw new Error('TEMPLATE_CANCELED')
       }
+      if (command.action === 'official-list') return runtime.officialTemplates(command)
       return runtime.templates(command)
     })
     // Issue 123: the optional local connector install. The renderer only

@@ -2591,6 +2591,27 @@ class DesktopChat:
                              visibility=row['visibility'][:32], updatedAt=row['updated_at'][:64]))
         return rows
 
+    def _official_template_rows(self, session):
+        """The Server's own official template selection, bounded for the
+        welcome page (#106). The rows are the platform's published picks:
+        they carry no usage count and no visibility fact, and the display
+        never invents one. A malformed row is dropped, never repaired."""
+        listing = self._json(session, '/api/templates/official')
+        raw = listing.get('templates') if isinstance(listing, dict) else None
+        if not isinstance(raw, list):
+            raise ChatError('CHAT_PROTOCOL_ERROR')
+        rows = []
+        for row in raw[:200]:
+            if not isinstance(row, dict) or not isinstance(row.get('id'), str) or not row['id'] \
+                    or len(row['id']) > 128 or not isinstance(row.get('name'), str) or not row['name'] \
+                    or not isinstance(row.get('category'), str) or not isinstance(row.get('content'), str) \
+                    or not row['content'] \
+                    or not isinstance(row.get('updated_at'), str):
+                continue
+            rows.append(dict(id=row['id'], name=row['name'][:200], category=row['category'][:64],
+                             content=row['content'][:16000], updatedAt=row['updated_at'][:64]))
+        return rows
+
     def templates_manage(self, command):
         """Relay one prompt-template plaza command to the Server's own endpoints (#84).
 
@@ -2603,7 +2624,12 @@ class DesktopChat:
         stale identity is rejected. Every reply re-reads the Server's own
         post-action list in the same round; `use` only records one prefill
         (+1) — the prefill itself is the renderer's local draft edit and
-        never a send.
+        never a send. `official-list` (#106) is the welcome page's one read:
+        the platform's published selection, projected read-only. Copying a
+        row into the account's own templates is the plain create — no source
+        reference ever rides the wire, so the copy is independent of the
+        original by construction and the official set is only ever read
+        live, which is how Desktop display follows platform updates.
         """
         with self._lock:
             session = self._session()
@@ -2611,6 +2637,8 @@ class DesktopChat:
                 raise ChatError('CHAT_IDENTITY_CHANGED')
             action = command.get('action')
             if action == 'list':
+                expected = {'type', 'id', 'action', 'scope'}
+            elif action == 'official-list':
                 expected = {'type', 'id', 'action', 'scope'}
             elif action == 'create':
                 name, category, content = command.get('name'), command.get('category'), command.get('content')
@@ -2643,6 +2671,10 @@ class DesktopChat:
                 raise ChatError('CHAT_COMMAND_INVALID')
             if set(command) != expected:
                 raise ChatError('CHAT_COMMAND_INVALID')
+            if action == 'official-list':
+                # The welcome page's one read (#106): the official selection
+                # only, never the account list and never a mutation flag.
+                return dict(official=self._official_template_rows(session))
             if action == 'create':
                 self._json(session, '/api/templates',
                            {'name': command['name'].strip(), 'category': command['category'],

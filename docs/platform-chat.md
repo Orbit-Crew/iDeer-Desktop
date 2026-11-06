@@ -114,6 +114,25 @@ by the click itself — the user reviews, fills the placeholders and sends. The
 `{{变量}}` extraction is display-only, deduplicated in first-appearance order
 and capped at 32 names.
 
+Issue #106 gives the chat its welcome page: while an open session has no
+messages yet (the original's welcome-page-to-message-page handover), the
+panel shows the platform's official template selection as a read-only
+facade. The selection is read live on every mount from the platform's own
+official endpoint (`GET /api/templates/official`) through the same restricted
+template family — a new `official-list` action with one fixed key set, the
+same session-scope fencing, bounds and single-slot gate, replying with the
+official rows only (`id`, `name`, `category`, `content`, `updatedAt`; the
+official rows carry no usage count and no visibility fact, so none is
+invented for display). There is no local snapshot anywhere: when the
+platform updates its official set, the facade follows by construction, and
+when the platform has not shipped the service, refuses the read, or the
+device is offline, the section degrades to the named honest state
+(未提供 / 无权限 / 未登录 / 不可达) instead of pretending. 另存为我的 is
+the account-template family's plain create carrying the row's own name,
+category and content — no official id ever rides the wire, so the copy
+lands as the Server's own private row and stays independent of the
+official original for its whole life; editing happens in the plaza.
+
 The platform reports parallel sub-agent execution through its own `task_*`
 custom events (`task_started`, `task_running`, `task_completed`,
 `task_failed`, `task_cancelled`, `task_timed_out`), with the parent run's

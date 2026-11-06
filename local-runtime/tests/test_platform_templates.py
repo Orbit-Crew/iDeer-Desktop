@@ -23,13 +23,20 @@ TEMPLATE_A = dict(id='11111111-1111-4111-8111-111111111111', name='周报助手'
 TEMPLATE_B = dict(id='22222222-2222-4222-8222-222222222222', name='代码评审',
                   category='研发', content='评审以下 {{语言}} 代码：',
                   usage_count=0, visibility='private', updated_at='2026-11-02T00:00:00Z')
+# Issue 106: the official selection is a different platform row family — the
+# Server publishes it; no usage count and no visibility fact exist on it.
+OFFICIAL_A = dict(id='44444444-4444-4444-8444-444444444444', name='官方周报',
+                  category='办公精选', content='请根据 {{要点}} 写一份周报。',
+                  updated_at='2026-11-03T00:00:00Z')
 
 
 @contextmanager
-def platform(*, templates=None, list_status=200, use_status=200):
+def platform(*, templates=None, list_status=200, use_status=200,
+             official=None, official_status=200):
     """Fixture Server with the template endpoints and the auth minimums."""
     records = []
     templates = list(templates) if templates is not None else [TEMPLATE_A, TEMPLATE_B]
+    official = list(official) if official is not None else [OFFICIAL_A]
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -64,6 +71,11 @@ def platform(*, templates=None, list_status=200, use_status=200):
                 elif self.command == 'POST':
                     status, data = 201, {'id': '33333333-3333-4333-8333-333333333333',
                                          'visibility': 'private'}
+                else:
+                    status, data = 405, {'detail': 'Method not allowed'}
+            elif self.path == '/api/templates/official':
+                if self.command == 'GET':
+                    status, data = official_status, {'templates': official}
                 else:
                     status, data = 405, {'detail': 'Method not allowed'}
             elif self.path.startswith('/api/templates/') and self.path.endswith('/use'):
@@ -274,3 +286,110 @@ def test_commands_require_an_authenticated_session(tmp_path):
         with pytest.raises(Exception) as exc:
             chat.templates_manage(wire(chat, 'list'))
         assert 'CHAT_UNAUTHENTICATED' in str(exc.value)
+
+
+# --- the official selection (issue 106) ---------------------------------------
+#
+# The welcome page reads the platform's own official template selection from
+# its pinned endpoint and copies a row into the account's own templates with
+# the plain create. The read is the only new relay: the copy reuses the
+# account-template contract above, so independence from the official row is
+# structural — no source reference ever rides the wire.
+
+def test_official_list_projects_bounded_readonly_rows(tmp_path):
+    with platform() as (origin, records):
+        chat = make_chat(tmp_path, origin)
+        view = chat.templates_manage(wire(chat, 'official-list'))
+        gets = [row for row in records if row[0] == '/api/templates/official' and row[3] == 'GET']
+        assert len(gets) == 1
+        assert set(view) == {'official'}
+        assert [row['id'] for row in view['official']] == [OFFICIAL_A['id']]
+        assert set(view['official'][0]) == {'id', 'name', 'category', 'content', 'updatedAt'}
+        assert view['official'][0]['name'] == '官方周报'
+        # The read-only facade carries no usage or visibility facts: those do
+        # not exist on the official rows and are never invented for display.
+        assert 'usageCount' not in view['official'][0]
+        assert 'visibility' not in view['official'][0]
+        assert 'templates' not in view
+
+
+def test_official_list_drops_malformed_rows_instead_of_repairing_them(tmp_path):
+    broken = dict(id='', name='no-id', category='', content='body',
+                  updated_at='2026-11-03T00:00:00Z')
+    partial = dict(id='55555555-5555-4555-8555-555555555555', name='缺内容',
+                   category='精选', updated_at='2026-11-03T00:00:00Z')
+    with platform(official=[broken, partial, OFFICIAL_A]) as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        view = chat.templates_manage(wire(chat, 'official-list'))
+        assert [row['id'] for row in view['official']] == [OFFICIAL_A['id']]
+
+
+def test_official_list_without_the_service_degrades_to_not_found(tmp_path):
+    with platform(official_status=404) as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(wire(chat, 'official-list'))
+        assert 'CHAT_NOT_FOUND' in str(exc.value)
+
+
+def test_official_list_without_permission_degrades_to_forbidden(tmp_path):
+    with platform(official_status=403) as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(wire(chat, 'official-list'))
+        assert 'CHAT_FORBIDDEN' in str(exc.value)
+
+
+def test_official_list_stale_scope_is_rejected(tmp_path):
+    with platform() as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        stale = wire(chat, 'official-list')
+        stale['scope'] = 'a-scope-from-an-earlier-login'
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(stale)
+        assert 'CHAT_IDENTITY_CHANGED' in str(exc.value)
+
+
+def test_official_list_requires_an_authenticated_session(tmp_path):
+    with platform() as (origin, _):
+        chat = make_chat(tmp_path, origin, state='unauthenticated')
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(wire(chat, 'official-list'))
+        assert 'CHAT_UNAUTHENTICATED' in str(exc.value)
+
+
+def test_official_list_with_unexpected_keys_is_refused(tmp_path):
+    with platform() as (origin, _):
+        chat = make_chat(tmp_path, origin)
+        with pytest.raises(Exception) as exc:
+            chat.templates_manage(wire(chat, 'official-list', templateId='x'))
+        assert 'CHAT_COMMAND_INVALID' in str(exc.value)
+
+
+def test_official_list_on_a_dead_platform_surfaces_the_outage(tmp_path):
+    """无网络： an unreachable platform is the named outage, degraded
+    honestly — the read is never answered from a local snapshot."""
+    chat = make_chat(tmp_path, 'http://127.0.0.1:1')
+    with pytest.raises(Exception) as exc:
+        chat.templates_manage(wire(chat, 'official-list'))
+    assert 'CHAT_SERVER_UNAVAILABLE' in str(exc.value)
+
+
+def test_official_copy_is_a_plain_private_create_without_a_source_reference(tmp_path):
+    """另存为我的 rides the account-template create: the POST carries the
+    row's own fields and never the official id, so the copy is independent
+    of the original by construction and lands with the Server's private
+    default visibility."""
+    with platform() as (origin, records):
+        chat = make_chat(tmp_path, origin)
+        view = chat.templates_manage(wire(chat, 'create', name=OFFICIAL_A['name'],
+                                          category=OFFICIAL_A['category'],
+                                          content=OFFICIAL_A['content']))
+        posts = [row for row in records if row[0] == '/api/templates' and row[3] == 'POST']
+        assert len(posts) == 1
+        assert posts[0][1] == {'name': '官方周报', 'category': '办公精选',
+                               'content': OFFICIAL_A['content']}
+        assert OFFICIAL_A['id'] not in json.dumps(posts[0][1])
+        assert 'visibility' not in json.dumps(posts[0][1])
+        assert view['created'] is True
+

@@ -24,9 +24,14 @@ const EMPTY_CREATE: CreateDraft = { name: '', category: '', content: '' }
 
 const uncategorized = '未分类'
 
+/** Issue 84/106: the one label an empty category earns, shared by the plaza
+ * and the welcome page so the two surfaces never drift apart. */
+export const UNCATEGORIZED_LABEL = uncategorized
+
 /** Issue 84: the `{{变量}}` chip row — the live placeholder facts a prefill
- * asks the user to fill, deduplicated in first-appearance order. */
-function VariableChips({ content, label }: { content: string; label: string }): JSX.Element | null {
+ * asks the user to fill, deduplicated in first-appearance order. Issue 106
+ * reuses it for the welcome page's read-only official rows. */
+export function VariableChips({ content, label }: { content: string; label: string }): JSX.Element | null {
   const names = extractTemplateVariables(content)
   if (names.length === 0) return null
   return <Space size={4} wrap aria-label={label}>
