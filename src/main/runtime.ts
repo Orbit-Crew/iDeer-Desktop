@@ -1874,8 +1874,11 @@ export class RuntimeProcess {
           if (value.login) {
             if (!['unauthenticated', 'awaiting-confirmation', 'authenticated', 'expired', 'error'].includes(value.login.state) ||
                 ['account', 'device', 'error'].some((key) => typeof value.login[key] !== 'string' || value.login[key].length > 256)) throw new Error('Invalid login status')
-            // Issue 95: the optional bound device id; present-but-malformed is
-            // a protocol failure exactly like every other wire family.
+            // Issue 95: the optional bound device id, held to the Runtime's own
+            // wire id grammar (_is_id: 1-128 chars of [A-Za-z0-9_-], the same
+            // discipline the projects surface enforces on projectId). A
+            // present-but-malformed value is a protocol failure, not a field
+            // to silently drop.
             const deviceId = typeof value.login.deviceId === 'string' &&
               /^[A-Za-z0-9_-]{1,128}$/.test(value.login.deviceId) ? value.login.deviceId : ''
             if (value.login.deviceId !== undefined && !deviceId) throw new Error('Invalid login status')
