@@ -699,6 +699,13 @@ export interface DesktopBridge {
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
   /** Issue 77: a notification (toast or center row) asked to open a session. */
   onNotificationActivate(listener: (payload: { id: string; threadId: string }) => void): () => void
+  /** Issue 109: the remote browser entry's fixed command set (stream
+   * open/close, input forwarding, explicit remote-file retrieval). The
+   * stream socket and its platform credential stay inside the Runtime. */
+  remoteBrowser(command: RemoteBrowserCommand): Promise<RemoteBrowserReply>
+  /** Issue 109: the remote browser's one push channel — bounded display
+   * facts only (pixel frames, url/tabs, honest errors); nothing is sent back. */
+  onRemoteBrowserEvents(listener: (event: RemoteBrowserEvent) => void): () => void
   /** Issue 107: the main process pushes the bounded browser-pane facts; the
    * renderer renders them as-is and never synthesizes an event of its own. */
   onBrowserEvents(listener: (event: BrowserPaneEvent) => void): () => void
@@ -1130,3 +1137,48 @@ export interface ChatSnapshot {
   error: string
   lastEventId: string
 }
+
+/** Issue 109: one input event the remote browser pane forwards to the
+ * platform's live browser stream (backend browser.py client->server input
+ * events: click, move, down, up, wheel, key, text, navigate; back/forward/
+ * activate_tab ride the same dispatch on the server). Coordinates are the
+ * session's own viewport pixels; nothing else rides the wire. */
+export type RemoteBrowserInputEvent =
+  | { type: 'move'; x: number; y: number }
+  | { type: 'down' | 'up' | 'click'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
+  | { type: 'wheel'; dx: number; dy: number }
+  | { type: 'key'; key: string }
+  | { type: 'text'; text: string }
+  | { type: 'navigate'; url: string }
+  | { type: 'back' }
+  | { type: 'forward' }
+  | { type: 'activate_tab'; index: number }
+
+/** Issue 109: the remote browser bridge commands. The stream belongs to an
+ * authenticated platform Thread (identity facts ride open/retrieve); input
+ * forwarding needs no identity of its own. Retrieval is the explicit
+ * "fetch a remote file to this device" step and lands through the trusted
+ * main process's native save dialog — the bytes never enter the renderer. */
+export type RemoteBrowserCommand =
+  | { action: 'open'; threadId: string; scope: string }
+  | { action: 'close' }
+  | { action: 'input'; event: RemoteBrowserInputEvent }
+  | { action: 'retrieve'; threadId: string; artifactId: string; scope: string }
+
+export interface RemoteBrowserTabRow { index: number; title: string; url: string; active: boolean }
+
+/** Issue 109: the one push channel's events. A frame is a base64 JPEG of the
+ * remote screen (external content rendered as pixels); every other kind is a
+ * bounded display fact. The renderer can never send anything back on this
+ * channel — commands ride the invoke only. */
+export type RemoteBrowserEvent =
+  | { kind: 'state'; state: 'connecting' | 'open' | 'closed'; code?: number; category?: string }
+  | { kind: 'frame'; data: string }
+  | { kind: 'url'; url: string }
+  | { kind: 'tabs'; tabs: RemoteBrowserTabRow[] }
+  | { kind: 'nav-rejected'; url: string; message: string }
+  | { kind: 'stream-error'; category: string; message: string }
+
+export interface RemoteBrowserRetrieveResult { status: 'saved' | 'cancelled' }
+
+export type RemoteBrowserReply = { streamId: string } | { acknowledged: true } | RemoteBrowserRetrieveResult

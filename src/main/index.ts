@@ -7,6 +7,7 @@ import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, Connec
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
+import { RemoteBrowserHub } from './remoteBrowser'
 import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
@@ -172,6 +173,27 @@ if (!app.requestSingleInstanceLock()) {
         return notifications.list()
       }
       throw new Error('NOTIFICATION_COMMAND_INVALID')
+    })
+    // Issue 109: the remote browser entry. The stream socket, the platform
+    // access token and the paired origin stay inside the bundled Runtime;
+    // this hub only forwards bounded events to the one fixed push channel
+    // and routes the four fixed commands (open/close/input/retrieve). A
+    // remote file is retrieved only through the artifact path with the
+    // native save dialog — the bytes never enter the renderer.
+    const remoteBrowserHub = new RemoteBrowserHub(runtime, {
+      push: (event) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:remote-browser:events', event)
+      }
+    }, async (name) => {
+      if (!mainWindow || mainWindow.isDestroyed()) throw new Error('DOWNLOAD_WINDOW_UNAVAILABLE')
+      const selected = await dialog.showSaveDialog(mainWindow, { title: '取回远端文件',
+        defaultPath: name, buttonLabel: '取回到本机', properties: ['showOverwriteConfirmation'] })
+      return selected.canceled ? undefined : selected.filePath
+    })
+    runtime.onRemoteBrowserEvent((message) => remoteBrowserHub.onRuntimeEvent(message))
+    ipcMain.handle('desktop:remote-browser', (event, command) => {
+      requireMainFrame(event)
+      return remoteBrowserHub.handle(command)
     })
     if (maintenanceSession) {
       const healthWindow = mainWindow
