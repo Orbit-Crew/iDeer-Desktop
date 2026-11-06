@@ -11,7 +11,7 @@ const datasetRow = (overrides: Partial<DatasetView> = {}): DatasetView => ({
   id: 'a'.repeat(64), filename: 'sales.xlsx', sourcePath: 'C:/data/sales.xlsx', format: 'xlsx',
   fileSha256: 'b'.repeat(64),
   sheets: [{ name: 'Q1', fingerprint: 'c'.repeat(64), schema: '编号:number、名称:string',
-    rowCount: 2, colCount: 2, truncated: false }],
+    rowCount: 2, colCount: 2, truncated: false, columnsTruncated: false }],
   rowCount: 2, projectId: 'proj-1', deviceId: 'device-102', status: 'ready', errorCode: '',
   createdAt: '2026-11-06T00:00:00Z', ...overrides
 })
@@ -68,15 +68,30 @@ describe('table dataset import surface (#102)', () => {
     renderSection({ notice: '未重复登记：内容指纹与已登记数据集一致，不产生第二条记录' })
     expect(screen.getByText(/未重复登记/)).toBeTruthy()
     cleanup()
+    // A failed row that never recognized a format states no format (#102
+    // review): the registry's real wire shape for a corrupt file.
     renderSection({ runtime: runtimeStatus({
-      datasets: [datasetRow({ status: 'failed', errorCode: 'DATASETS_PARSE_FAILED', sheets: [] })] }) })
+      datasets: [datasetRow({ status: 'failed', format: '', errorCode: 'DATASETS_PARSE_FAILED', sheets: [] })] }) })
     expect(screen.getByText('导入失败：DATASETS_PARSE_FAILED')).toBeTruthy()
+    cleanup()
+    // A failed row whose suffix named the format keeps that honest fact.
+    renderSection({ runtime: runtimeStatus({
+      datasets: [datasetRow({ status: 'failed', format: 'xlsx', errorCode: 'DATASETS_PARSE_FAILED', sheets: [] })] }) })
+    expect(screen.getByText('导入失败（XLSX）：DATASETS_PARSE_FAILED')).toBeTruthy()
     cleanup()
     renderSection({ error: 'DATASETS_UNAUTHENTICATED' })
     expect(screen.getByText('需要已认证的桌面会话')).toBeTruthy()
     cleanup()
     renderSection({ runtime: runtimeStatus({ datasetsStorageError: 'DATASETS_STORAGE_UNAVAILABLE' }) })
     expect(screen.getByText('数据集登记存储不可用，状态显示可能不完整')).toBeTruthy()
+  })
+
+  it('marks sheets that held more columns than the recorded cap', () => {
+    renderSection({ runtime: runtimeStatus({ datasets: [datasetRow({
+      filename: 'wide.csv', format: 'csv',
+      sheets: [{ name: 'wide', fingerprint: 'd'.repeat(64), schema: 'c0:number',
+        rowCount: 1, colCount: 128, truncated: false, columnsTruncated: true }] })] }) })
+    expect(screen.getByText(/工作表「wide」：1 行 × 128 列 · c0:number（列已截断）/)).toBeTruthy()
   })
 
   it('shows the empty state without inventing rows', () => {

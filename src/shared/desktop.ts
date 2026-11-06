@@ -451,11 +451,15 @@ export interface DatasetSheetView {
   rowCount: number
   colCount: number
   truncated: boolean
+  /** Honest marker for sheets that held more columns than the recorded cap. */
+  columnsTruncated: boolean
 }
 /** Issue 102: one imported table dataset as this device records it — a
  * device-local display fact bound to the importing identity. The original
  * file stays on this machine (`sourcePath` names the 原件); the record keeps
  * identity, schema, counts and content fingerprints only, never row data.
+ * `format` is '' exactly when the row is a failure that never recognized a
+ * supported format — an unknown format is stated, never guessed.
  * `projectId` mirrors the renderer's current project selection at import
  * time; the platform has no dataset endpoint, so the association is recorded
  * on the device with the row and the platform-side directory record remains
@@ -464,7 +468,7 @@ export interface DatasetView {
   id: string
   filename: string
   sourcePath: string
-  format: 'xlsx' | 'csv'
+  format: 'xlsx' | 'csv' | ''
   fileSha256: string
   sheets: DatasetSheetView[]
   rowCount: number

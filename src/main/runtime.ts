@@ -8,35 +8,44 @@ import { parseNotifyEvent } from './notifications'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
 
 /** Issue 102: one dataset sheet's bounded wire facts, shared by the status
- * snapshot and the family reply so a drift can never split the two. */
-const toDatasetSheet = (input: unknown): DatasetSheetView => {
+ * snapshot and the family reply so a drift can never split the two. Exported
+ * for the regression test that pins the registry's real wire shapes. */
+export const toDatasetSheet = (input: unknown): DatasetSheetView => {
   const sheet = input as Record<string, unknown>
   if (!sheet || typeof sheet.name !== 'string' || typeof sheet.fingerprint !== 'string' ||
       !/^[0-9a-f]{64}$/.test(sheet.fingerprint) || typeof sheet.schema !== 'string' ||
       !Number.isSafeInteger(sheet.rowCount) || !Number.isSafeInteger(sheet.colCount) ||
-      typeof sheet.truncated !== 'boolean') throw new Error('Invalid dataset sheet')
+      typeof sheet.truncated !== 'boolean' || typeof sheet.columnsTruncated !== 'boolean') {
+    throw new Error('Invalid dataset sheet')
+  }
   return { name: sheet.name.slice(0, 128), fingerprint: sheet.fingerprint,
     schema: sheet.schema.slice(0, 500), rowCount: sheet.rowCount as number,
-    colCount: sheet.colCount as number, truncated: sheet.truncated as boolean }
+    colCount: sheet.colCount as number, truncated: sheet.truncated as boolean,
+    columnsTruncated: sheet.columnsTruncated as boolean }
 }
 /** Issue 102: one device-local dataset row as the registry records it —
  * identity, schema and fingerprints only; a failed row always names its
- * fixed reason. */
-const toDatasetView = (input: unknown): DatasetView => {
+ * fixed reason. Exported for the regression test that pins the registry's
+ * real wire shapes. */
+export const toDatasetView = (input: unknown): DatasetView => {
   const row = input as Record<string, unknown>
   const projectIdPattern = /^[A-Za-z0-9_-]{1,128}$/
   if (!row || typeof row.id !== 'string' || !/^[0-9a-f]{64}$/.test(row.id) ||
       typeof row.filename !== 'string' || typeof row.sourcePath !== 'string' ||
-      (row.format !== 'xlsx' && row.format !== 'csv') ||
+      typeof row.status !== 'string' || !['ready', 'failed'].includes(row.status) ||
+      // A failed row that never recognized a supported format has no format:
+      // '' is an honest fact for failed rows only (review finding, #102).
+      ((row.format !== 'xlsx' && row.format !== 'csv') &&
+        !(row.status === 'failed' && row.format === '')) ||
       typeof row.fileSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(row.fileSha256) ||
       !Array.isArray(row.sheets) || !Number.isSafeInteger(row.rowCount) ||
       typeof row.projectId !== 'string' || (row.projectId && !projectIdPattern.test(row.projectId)) ||
       typeof row.deviceId !== 'string' ||
-      !['ready', 'failed'].includes(row.status as string) ||
       (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false) ||
       typeof row.createdAt !== 'string') throw new Error('Invalid dataset row')
   return { id: row.id, filename: row.filename.slice(0, 256), sourcePath: row.sourcePath.slice(0, 4096),
-    format: row.format, fileSha256: row.fileSha256,
+    format: row.format === 'xlsx' ? 'xlsx' : row.format === 'csv' ? 'csv' : '',
+    fileSha256: row.fileSha256,
     sheets: row.sheets.slice(0, 32).map(toDatasetSheet),
     rowCount: row.rowCount as number, projectId: row.projectId, deviceId: row.deviceId.slice(0, 128),
     status: row.status === 'failed' ? 'failed' : 'ready',
@@ -1605,17 +1614,23 @@ export class RuntimeProcess {
             // records — the renderer can never misread either as success.
             const pending = this.datasetRequests.get(value.id)
             if (!pending) continue
-            this.datasetRequests.delete(value.id)
-            if (value.error) { pending.reject(new Error(value.error)); continue }
             const result = value.result
-            if (!result || !Array.isArray(result.datasets)) { pending.reject(new Error('DATASETS_FAILED')); continue }
-            if (pending.action === 'import' &&
-                !(result.imported === true || result.duplicate === true || result.failed === true)) {
-              pending.reject(new Error('DATASETS_FAILED')); continue
+            if (value.error || !result || !Array.isArray(result.datasets) ||
+                (pending.action === 'import' &&
+                  !(result.imported === true || result.duplicate === true || result.failed === true)) ||
+                (pending.action === 'delete' && result.deleted !== true)) {
+              this.datasetRequests.delete(value.id)
+              pending.reject(new Error(value.error || 'DATASETS_FAILED'))
+              continue
             }
-            if (pending.action === 'delete' && result.deleted !== true) { pending.reject(new Error('DATASETS_FAILED')); continue }
+            // Map before settling: a malformed row is a protocol failure that
+            // kills the child while the pending entry stays registered, so
+            // the close handler rejects the importer instead of hanging it
+            // until the timeout (review finding, #102).
+            const datasets = result.datasets.slice(0, 20).map(toDatasetView)
+            this.datasetRequests.delete(value.id)
             pending.resolve({
-              datasets: result.datasets.slice(0, 20).map(toDatasetView),
+              datasets,
               imported: result.imported === true ? true : undefined,
               duplicate: result.duplicate === true ? true : undefined,
               failed: result.failed === true ? true : undefined,

@@ -59,13 +59,18 @@ export function DatasetSection({ runtime, busy, error, notice, onCommand }: Data
       <Typography.Paragraph>
         {row.status === 'ready'
           ? `${row.filename}（${row.format === 'xlsx' ? `XLSX · ${row.sheets.length} 个工作表` : 'CSV'}，共 ${row.rowCount} 行）`
+          // A failed row may never have recognized a format (format '') —
+          // the label states the format only when one was actually known.
+          : row.format === 'xlsx' ? `导入失败（XLSX）：${row.errorCode}`
+          : row.format === 'csv' ? `导入失败（CSV）：${row.errorCode}`
           : `导入失败：${row.errorCode}`}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary">
         关联项目 {row.projectId || '未关联'} · 设备 {row.deviceId} · {row.createdAt}
       </Typography.Paragraph>
-      {row.status === 'ready' && row.sheets.map(sheet => <Typography.Paragraph key={sheet.fingerprint} type="secondary">
-        工作表「{sheet.name}」：{sheet.rowCount} 行 × {sheet.colCount} 列 · {sheet.schema}{sheet.truncated ? '（已截断）' : ''}
+      {row.status === 'ready' && row.sheets.map(sheet => <Typography.Paragraph key={`${sheet.name}:${sheet.fingerprint}`} type="secondary">
+        工作表「{sheet.name}」：{sheet.rowCount} 行 × {sheet.colCount} 列 · {sheet.schema}
+        {sheet.columnsTruncated ? '（列已截断）' : ''}{sheet.truncated ? '（已截断）' : ''}
       </Typography.Paragraph>)}
       {row.status === 'ready' && <Typography.Paragraph copyable className="!mb-2">内容指纹：{row.fileSha256}</Typography.Paragraph>}
       {row.status === 'ready' && <Typography.Paragraph type="secondary">原件：{row.sourcePath}（留在本机，未被移动或上传）</Typography.Paragraph>}

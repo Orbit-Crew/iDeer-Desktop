@@ -103,6 +103,7 @@ class _SheetTable(NamedTuple):
     rows: list[list[str]]
     col_count: int
     truncated: bool
+    columns_truncated: bool = False
 
 
 def _xml_part(archive: zipfile.ZipFile, name: str) -> ET.Element:
@@ -162,6 +163,7 @@ def _sheet_table(name: str, sheet: ET.Element, shared: list[str]) -> _SheetTable
     rows: list[list[str]] = []
     col_count = 0
     truncated = False
+    columns_truncated = False
     for row in (data.findall(f"{{{_X}}}row") if data is not None else []):
         # The cap counts data rows: a header row never eats into the bound,
         # so a full bound of rows is still recorded in full.
@@ -173,8 +175,12 @@ def _sheet_table(name: str, sheet: ET.Element, shared: list[str]) -> _SheetTable
             index = _column_index(cell.get("r") or "", position)
             # Columns past the cap are outside the recorded schema; a cell
             # whose reference points backwards would corrupt the alignment
-            # this table relies on, so it is skipped, not mis-placed.
-            if index >= MAX_DATASET_COLUMNS or index < len(cells):
+            # this table relies on, so it is skipped, not mis-placed — and
+            # the cut is marked, like every other bound.
+            if index >= MAX_DATASET_COLUMNS:
+                columns_truncated = True
+                continue
+            if index < len(cells):
                 continue
             while len(cells) < index:
                 cells.append("")
@@ -182,7 +188,8 @@ def _sheet_table(name: str, sheet: ET.Element, shared: list[str]) -> _SheetTable
         col_count = max(col_count, len(cells))
         rows.append(cells)
     return _SheetTable(name=name, headers=rows[0] if rows else [], rows=rows[1:],
-                       col_count=col_count, truncated=truncated)
+                       col_count=col_count, truncated=truncated,
+                       columns_truncated=columns_truncated)
 
 
 def _xlsx_tables(raw: bytes) -> tuple[list[_SheetTable], bool]:
@@ -223,6 +230,7 @@ def _csv_table(raw: bytes, name: str) -> _SheetTable:
         raise ValueError("binary")
     rows: list[list[str]] = []
     truncated = False
+    columns_truncated = False
     try:
         for row in csv.reader(io.StringIO(text)):
             # The cap counts data rows: a header row never eats into the
@@ -230,6 +238,8 @@ def _csv_table(raw: bytes, name: str) -> _SheetTable:
             if len(rows) > 0 and len(rows) - 1 >= MAX_DATASET_ROWS:
                 truncated = True
                 break
+            if len(row) > MAX_DATASET_COLUMNS:
+                columns_truncated = True
             rows.append([_bounded(cell) for cell in row[:MAX_DATASET_COLUMNS]])
     except csv.Error as exc:
         raise ValueError("csv") from exc
@@ -239,7 +249,8 @@ def _csv_table(raw: bytes, name: str) -> _SheetTable:
     for row in rows:
         row.extend([""] * (col_count - len(row)))
     return _SheetTable(name=name, headers=rows[0] if rows else [], rows=rows[1:],
-                       col_count=col_count, truncated=truncated)
+                       col_count=col_count, truncated=truncated,
+                       columns_truncated=columns_truncated)
 
 
 def _cell_kind(text: str) -> str | None:
@@ -303,11 +314,15 @@ def _sheet_view(table: _SheetTable) -> dict[str, Any]:
         "rowCount": len(table.rows),
         "colCount": table.col_count,
         "truncated": table.truncated,
+        "columnsTruncated": table.columns_truncated,
     }
 
 
-def _failure(reason: str) -> dict[str, Any]:
-    return {"status": "failed", "parser": "", "parser_version": "", "format": "", "reason": reason}
+def _failure(reason: str, format_name: str = "") -> dict[str, Any]:
+    """A fixed-reason failure; the recognized format is kept when the suffix
+    named one (a failed row that never parsed says so honestly with '')."""
+    return {"status": "failed", "parser": "", "parser_version": "", "format": format_name,
+            "reason": reason}
 
 
 def parse_dataset(raw: bytes, filename: str) -> dict[str, Any]:
@@ -317,23 +332,22 @@ def parse_dataset(raw: bytes, filename: str) -> dict[str, Any]:
     counts and a per-sheet content fingerprint. Row data itself never
     persists: the caller records these facts and the file fingerprint only.
     """
-    if len(raw) > MAX_DATASET_FILE_BYTES:
-        return _failure(DATASETS_FILE_TOO_LARGE)
     suffix = Path(filename).suffix.lower()
+    format_name = "xlsx" if suffix == ".xlsx" else "csv" if suffix == ".csv" else ""
+    if len(raw) > MAX_DATASET_FILE_BYTES:
+        return _failure(DATASETS_FILE_TOO_LARGE, format_name)
     if suffix not in SUPPORTED_DATASET_EXTENSIONS:
         return _failure(DATASETS_FORMAT_UNSUPPORTED)
     try:
         if suffix == ".xlsx":
             tables, more_sheets = _xlsx_tables(raw)
             parser = XLSX_DATASET_PARSER
-            format_name = "xlsx"
         else:
             tables = [_csv_table(raw, Path(filename).stem[:MAX_DATASET_HEADER_CHARS] or filename)]
             more_sheets = False
             parser = CSV_DATASET_PARSER
-            format_name = "csv"
     except (_PartTooLarge, zipfile.BadZipFile, KeyError, OSError, ET.ParseError, ValueError):
-        return _failure(DATASETS_PARSE_FAILED)
+        return _failure(DATASETS_PARSE_FAILED, format_name)
     sheets = [_sheet_view(table) for table in tables]
     return {
         "status": "parsed",
@@ -457,6 +471,7 @@ class DatasetRegistry:
             "rowCount": sheet.get("rowCount") if isinstance(sheet.get("rowCount"), int) else 0,
             "colCount": sheet.get("colCount") if isinstance(sheet.get("colCount"), int) else 0,
             "truncated": sheet.get("truncated") is True,
+            "columnsTruncated": sheet.get("columnsTruncated") is True,
         }
 
     @classmethod
@@ -557,7 +572,10 @@ def datasets_manage(command: dict, *, registry: DatasetRegistry, owner) -> dict[
         if parsed["status"] != "parsed":
             identity, _ = registry.record(owner, {
                 "status": "failed", "source_path": source_path, "filename": filename,
-                "file_sha256": digest, "error_code": parsed["reason"],
+                # The recognized format is an honest fact even on failure
+                # ('' only when the suffix named no supported format).
+                "format": parsed.get("format", ""), "file_sha256": digest,
+                "error_code": parsed["reason"],
                 "project_id": project_id, "device_id": owner.get("device_id", "")})
             return _reply(registry, owner, failed=True, datasetId=identity,
                           errorCode=parsed["reason"])

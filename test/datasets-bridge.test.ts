@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
-import { RuntimeProcess } from '../src/main/runtime'
+import { RuntimeProcess, toDatasetView } from '../src/main/runtime'
 
 describe('datasets bridge contract (#102)', () => {
   it('accepts only the exact per-action shapes before any Runtime starts', async () => {
@@ -50,4 +50,41 @@ describe('datasets bridge contract (#102)', () => {
       rmSync(profile, { recursive: true, force: true })
     }
   }, 30000)
+
+  it('accepts the registry\'s real failed-row wire shape instead of crash-looping the child', () => {
+    // Regression (#102 review): a corrupt import records a failed row, and
+    // that row rides BOTH the import reply and every 0.5 s status frame —
+    // both under the runtime's protocol-failure kill switch. The fixtures
+    // below mirror DatasetRegistry._view (local-runtime/core/datasets.py)
+    // field-for-field, exactly as the desktop loop emits them.
+    const recognizedFormat = {
+      id: 'a'.repeat(64), filename: 'broken.xlsx', sourcePath: 'C:/data/broken.xlsx',
+      format: 'xlsx', fileSha256: 'b'.repeat(64), sheets: [], rowCount: 0,
+      projectId: 'proj-1', deviceId: 'device-102', status: 'failed',
+      errorCode: 'DATASETS_PARSE_FAILED', createdAt: '2026-11-07T00:00:00'
+    }
+    expect(toDatasetView(recognizedFormat)).toEqual({
+      ...recognizedFormat, format: 'xlsx', sheets: [], errorCode: 'DATASETS_PARSE_FAILED'
+    })
+    // A suffix that named no supported format is an honest '' — on failed rows only.
+    const unknownFormat = { ...recognizedFormat, filename: 'legacy.xls', format: '',
+      errorCode: 'DATASETS_FORMAT_UNSUPPORTED' }
+    expect(toDatasetView(unknownFormat).format).toBe('')
+    // A ready row can never lack its format: that shape stays a protocol failure.
+    expect(() => toDatasetView({ ...recognizedFormat, status: 'ready', format: '', errorCode: '' }))
+      .toThrow('Invalid dataset row')
+    // The ready-row sheet shape carries the honest column-cut marker.
+    const readyRow = {
+      id: 'c'.repeat(64), filename: 'wide.csv', sourcePath: 'C:/data/wide.csv',
+      format: 'csv', fileSha256: 'd'.repeat(64),
+      sheets: [{ name: 'wide', fingerprint: 'e'.repeat(64), schema: 'c0:number',
+        rowCount: 1, colCount: 128, truncated: false, columnsTruncated: true }],
+      rowCount: 1, projectId: '', deviceId: 'device-102', status: 'ready',
+      errorCode: '', createdAt: '2026-11-07T00:00:00'
+    }
+    expect(toDatasetView(readyRow).sheets[0].columnsTruncated).toBe(true)
+    expect(() => toDatasetView({ ...readyRow, sheets: [
+      { name: 'wide', fingerprint: 'e'.repeat(64), schema: '', rowCount: 1, colCount: 128,
+        truncated: false }] })).toThrow('Invalid dataset sheet')
+  })
 })

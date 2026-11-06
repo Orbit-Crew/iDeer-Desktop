@@ -266,18 +266,24 @@ def main() -> int:
                 # set only: import names the main-process-picked file and the
                 # selected platform project (empty = unassociated), delete
                 # names the registry row. The path never reaches a renderer.
+                # The per-action fields are read with .get so a cross-action
+                # key set can never raise inside this reader (the loop guard
+                # only catches ValueError/queue.Full), matching the
+                # knowledge-graph/skill-scripts gate idiom.
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'path', 'projectId', 'scope'},
                         {'type', 'id', 'action', 'datasetId', 'scope'})
-                        and command['type'] == 'datasets' and isinstance(command['id'], str)
+                        and command.get('type') == 'datasets' and isinstance(command.get('id'), str)
                         and len(command['id']) <= 64
-                        and command['action'] in {'import', 'delete'}
-                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and command.get('action') in {'import', 'delete'}
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
                         and (command['action'] != 'import' or (
-                            isinstance(command['path'], str) and 0 < len(command['path']) <= 32768
-                            and isinstance(command['projectId'], str) and len(command['projectId']) <= 128))
+                            isinstance(command.get('path'), str) and 0 < len(command['path']) <= 32768
+                            and isinstance(command.get('projectId'), str)
+                            and len(command['projectId']) <= 128))
                         and (command['action'] != 'delete' or (
-                            isinstance(command['datasetId'], str) and 0 < len(command['datasetId']) <= 128))):
+                            isinstance(command.get('datasetId'), str)
+                            and 0 < len(command['datasetId']) <= 128))):
                     dataset_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'

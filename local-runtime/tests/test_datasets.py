@@ -33,6 +33,7 @@ from core.datasets import (
     DATASETS_PARSE_FAILED,
     DATASETS_STORAGE_UNAVAILABLE,
     DATASETS_UNAUTHENTICATED,
+    MAX_DATASET_COLUMNS,
     MAX_DATASET_FILE_BYTES,
     MAX_DATASET_ROWS,
     MAX_DATASET_SHEETS,
@@ -212,6 +213,37 @@ def test_beyond_bound_sheets_are_marked_truncated_not_hidden():
     assert result["truncated"] is True
 
 
+def column_ref(index: int) -> str:
+    """The spreadsheet reference letters for a 0-based column index (26→AA)."""
+    letters = ""
+    index += 1
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
+
+
+def test_beyond_cap_columns_are_marked_truncated_not_hidden():
+    # A CSV row wider than the cap keeps the recorded 128 columns and marks
+    # the cut instead of silently dropping the rest.
+    header = ",".join(f"c{index}" for index in range(MAX_DATASET_COLUMNS + 2))
+    values = ",".join(str(index) for index in range(MAX_DATASET_COLUMNS + 2))
+    result = parse_dataset(f"{header}\n{values}\n".encode("utf-8"), "wide.csv")
+    sheet = result["sheets"][0]
+    assert sheet["colCount"] == MAX_DATASET_COLUMNS
+    assert sheet["columnsTruncated"] is True
+    assert sheet["truncated"] is False
+    # A workbook cell whose reference lands past the cap marks the same cut.
+    refs_values = [(f"{column_ref(index)}1", ' t="inlineStr"', f"<is><t>v{index}</t></is>")
+                   for index in range(MAX_DATASET_COLUMNS + 2)]
+    raw = build_workbook([("宽", worksheet(row(1, refs_values)))])
+    result = parse_dataset(raw, "wide.xlsx")
+    sheet = result["sheets"][0]
+    assert sheet["colCount"] == MAX_DATASET_COLUMNS
+    assert sheet["columnsTruncated"] is True
+    assert sheet["headers"][-1] == f"v{MAX_DATASET_COLUMNS - 1}"
+
+
 # --- Slice 2: the registry and the one device-local dispatch ---------------
 
 OWNER = {'server_origin': 'http://127.0.0.1:108', 'user_id': 'A', 'device_id': 'D1',
@@ -284,6 +316,16 @@ def test_failed_import_recorded_with_reason_and_a_fixed_file_imports(tmp_path):
     assert len(rows) == 1
     assert rows[0]['status'] == 'failed'
     assert rows[0]['errorCode'] == DATASETS_PARSE_FAILED
+    # The suffix named a supported format the device could not parse: the
+    # failed row keeps that honest fact, and only an unrecognized suffix
+    # answers format '' (the wire contract of a failed row, #102 review).
+    assert rows[0]['format'] == 'xlsx'
+    unsupported = datasets_manage({'action': 'import',
+                                   'path': picked_file(tmp_path, 'legacy.xls', b'old binary'),
+                                   'projectId': ''}, registry=registry, owner=OWNER)
+    assert unsupported['failed'] is True
+    assert view_rows(registry)[0]['format'] == ''
+    assert unsupported['errorCode'] == DATASETS_FORMAT_UNSUPPORTED
     # Repairing the file and re-importing must not be blocked by the old row.
     sheet = worksheet(row(1, [("A1", ' t="inlineStr"', "<is><t>n</t></is>")])
                       + row(2, [("A2", "", "<v>7</v>")]))
@@ -293,7 +335,7 @@ def test_failed_import_recorded_with_reason_and_a_fixed_file_imports(tmp_path):
                             registry=registry, owner=OWNER)
     assert fixed['imported'] is True
     rows = view_rows(registry)
-    assert [row['status'] for row in rows] == ['ready', 'failed']
+    assert [row['status'] for row in rows] == ['ready', 'failed', 'failed']
 
 
 def test_registry_rows_are_scoped_to_one_identity(tmp_path):
@@ -524,6 +566,23 @@ class DatasetsHarness:
             time.sleep(0.05)
         raise AssertionError("no matching datasets status frame arrived")
 
+    def status_frame_count(self) -> int:
+        with self._lock:
+            return sum(1 for frame in self.frames
+                       if frame.get("v") == 1 and "datasets" in frame)
+
+    def wait_for_more_status_frames(self, seen: int, timeout: float = 5.0) -> int:
+        """Prove the status loop keeps ticking past a point — a dead child
+        emits no further frames, so this is the liveness assertion."""
+        import time
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            count = self.status_frame_count()
+            if count > seen:
+                return count
+            time.sleep(0.05)
+        raise AssertionError(f"no status frame beyond #{seen}; the child likely died")
+
 
 def make_datasets_harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> DatasetsHarness:
     # Built inside the test body, like the files/connectors harnesses: the
@@ -553,6 +612,12 @@ def test_wire_gate_drops_malformed_datasets_commands(tmp_path, monkeypatch) -> N
             {"type": "datasets", "id": "d-6", "action": "import", "path": source, "projectId": 7, "scope": harness.scope},
             {"type": "datasets", "id": "d-7", "action": "delete", "datasetId": "", "scope": harness.scope},
             {"type": "datasets", "id": "x" * 65, "action": "delete", "datasetId": "f" * 64, "scope": harness.scope},
+            # Cross-action key sets: each must be dropped by the gate without
+            # raising inside the reader thread (review finding, #102).
+            {"type": "datasets", "id": "d-8", "action": "delete", "path": source,
+             "projectId": "", "scope": harness.scope},
+            {"type": "datasets", "id": "d-9", "action": "import", "datasetId": "f" * 64,
+             "scope": harness.scope},
         ]
         for payload in malformed:
             harness.command(payload, expect_reply=False)
@@ -635,4 +700,35 @@ def test_delete_round_trip_removes_the_row_and_keeps_the_file(tmp_path, monkeypa
         assert frame["error"] == "DATASETS_NOT_FOUND"
     finally:
         harness.finish()
+
+
+def test_corrupt_import_records_a_failed_row_the_status_frame_parses(tmp_path, monkeypatch) -> None:
+    """The exact crash-loop hole (#102 review): a real corrupt import records
+    a failed row, the wire reply settles as failed, and the 0.5 s status
+    frames carrying that failed row keep parsing — a persisted failed row
+    must never kill the child or re-kill every restarted one."""
+    harness = make_datasets_harness(tmp_path, monkeypatch)
+    harness.select_workspace(seeded_work(tmp_path))
+    harness.start()
+    try:
+        source = picked_file(tmp_path, 'broken.xlsx', b'PK\x03\x04truncated')
+        frame = harness.command({"type": "datasets", "id": "d-1", "action": "import",
+                                 "path": source, "projectId": PROJECT, "scope": harness.scope})
+        assert frame["error"] == ""
+        assert frame["result"]["failed"] is True
+        assert frame["result"]["errorCode"] == DATASETS_PARSE_FAILED
+        status = harness.wait_for_status(lambda frame: len(frame["datasets"]) == 1)
+        # The failed row's honest wire shape, exactly as the registry emits it.
+        row = status["datasets"][0]
+        assert row["status"] == "failed"
+        assert row["format"] == "xlsx"
+        assert row["errorCode"] == DATASETS_PARSE_FAILED
+        assert row["sheets"] == []
+        # The status loop keeps ticking with the failed row persisted: the
+        # shipped wire validator accepts it instead of killing the child.
+        harness.wait_for_more_status_frames(harness.status_frame_count())
+        assert harness.finish() == 0
+    finally:
+        if harness._thread.is_alive():
+            harness.finish()
 
