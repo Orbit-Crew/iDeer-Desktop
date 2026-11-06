@@ -52,9 +52,10 @@ describe('restored dock on startup', () => {
 })
 
 describe('unwired pane placeholders', () => {
-  it('keeps the browser column position with an honest status', () => {
-    const html = renderToStaticMarkup(<ExternalPanePlaceholder instanceId="inst-x" panelType="browser" />)
-    expect(html).toContain('浏览器窗格未接入')
+  it('keeps the terminal column position with an honest status', () => {
+    // Issue 107 接线 browser 后，占位清单不再包含它；终端仍是如实占位。
+    const html = renderToStaticMarkup(<ExternalPanePlaceholder instanceId="inst-x" panelType="terminal" />)
+    expect(html).toContain('终端窗格未接入')
     expect(html).toContain('浏览、终端与调度')
     expect(html).toContain('保留原版入口位置')
   })
@@ -90,8 +91,10 @@ describe('layout arrangements', () => {
 describe('panel registry vocabulary', () => {
   it('keeps every original column except the never-delivered sql pane', () => {
     const registered = PANEL_REGISTRY.map((p) => p.id)
+    // Issue 84 adds the `templates` plaza as a new native column beyond the
+    // original vocabulary.
     expect(registered.sort()).toEqual([
-      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'terminal', 'viewer3d'
+      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
     ])
     expect(getRegisteredPanel('sql')).toBeUndefined()
     expect(PANEL_META.sql.title).toBe('数据')

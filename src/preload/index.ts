@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCommand, NotificationCenterView, ProjectCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, ProjectCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -23,6 +23,10 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 91: platform project management; every action rides the Server's
   // own Project API and the reply is its post-action list.
   projects: (command: ProjectCommand) => ipcRenderer.invoke('desktop:projects', command),
+  // Issue 84: the prompt-template plaza. The renderer names CRUD/use actions
+  // only; the Server's own endpoints hold the rows, and a delete is
+  // confirmed in the trusted main process before it reaches the wire.
+  templates: (command: TemplateCommand) => ipcRenderer.invoke('desktop:templates', command),
   connectors: (command: ConnectorCommand) => ipcRenderer.invoke('desktop:connectors', command),
   checkUpdates: (mode?: 'staged') => ipcRenderer.invoke('desktop:updates:check', ...(mode === undefined ? [] : [mode])),
   importUpdate: () => ipcRenderer.invoke('desktop:updates:import'),
@@ -35,6 +39,9 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 94: the human file-browsing seam — logical workspace paths only;
   // open/reveal resolve to physical paths inside the trusted main process.
   files: (command: FilesCommand) => ipcRenderer.invoke('desktop:files', command),
+  // Issue 107: the browser pane's clear entry; the confirmation stays in the
+  // trusted main process.
+  browser: (command: BrowserCommand) => ipcRenderer.invoke('desktop:browser', command),
   onNotifications: (listener: (view: NotificationCenterView) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, view: NotificationCenterView): void => listener(view)
     ipcRenderer.on('desktop:notifications', wrapped)
@@ -44,6 +51,12 @@ const bridge: DesktopBridge = Object.freeze({
     const wrapped = (_event: Electron.IpcRendererEvent, payload: { id: string; threadId: string }): void => listener(payload)
     ipcRenderer.on('desktop:notification:activate', wrapped)
     return () => { ipcRenderer.removeListener('desktop:notification:activate', wrapped) }
+  },
+  // Issue 107: the one push channel for the browser pane's bounded facts.
+  onBrowserEvents: (listener: (event: BrowserPaneEvent) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, payload: BrowserPaneEvent): void => listener(payload)
+    ipcRenderer.on('desktop:browser:events', wrapped)
+    return () => { ipcRenderer.removeListener('desktop:browser:events', wrapped) }
   }
 })
 

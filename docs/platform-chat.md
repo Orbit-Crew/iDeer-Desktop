@@ -97,6 +97,23 @@ surface and no local orchestration channel. While collaboration is off, the
 composer's at-mention picker offers no candidates — a delegation entry that
 could not take effect is never shown.
 
+Issue #84 adds one more restricted platform-facing method, `desktop:templates`,
+for the prompt-template plaza (模板广场). Its command union allows list, create,
+update, delete and use only, and the family carries no visibility field at all:
+a creation is always the Server's own private default (个人起步), so the Desktop
+is structurally unable to widen who can see a template; publication and sharing
+stay a later, explicit platform flow. Every reply carries the Server's own
+post-action list — the renderer never keeps a local roster — and the wire always
+carries the chat session scope the Runtime last reported; Python re-fences it
+against a freshly computed session, so a stale identity is rejected. A delete is
+confirmed in a trusted main-process dialog first, and the Server's ownership
+check stays authoritative on every request. `use` records exactly one prefill
+(+1 usage): the click places the template's text into the composer as an
+editable draft with live `{{变量}}` placeholder chips, and nothing is ever sent
+by the click itself — the user reviews, fills the placeholders and sends. The
+`{{变量}}` extraction is display-only, deduplicated in first-appearance order
+and capped at 32 names.
+
 The platform reports parallel sub-agent execution through its own `task_*`
 custom events (`task_started`, `task_running`, `task_completed`,
 `task_failed`, `task_cancelled`, `task_timed_out`), with the parent run's

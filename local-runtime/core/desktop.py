@@ -82,6 +82,7 @@ def main() -> int:
     skill_preference_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_script_commands: queue.Queue = queue.Queue(maxsize=1)
     model_commands: queue.Queue = queue.Queue(maxsize=1)
+    template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -279,6 +280,39 @@ def main() -> int:
                              and isinstance(command.get('modelName'), str)
                              and len(command['modelName']) <= 200)):
                     model_commands.put_nowait(command)
+                    continue
+                # Issue 84: the prompt-template plaza. A fixed per-action key
+                # set only; the rows and their visibility live Server-side.
+                if (isinstance(command, dict) and command.get('type') == 'templates'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and command.get('action') in {'list', 'create', 'update', 'delete', 'use'}
+                        and (command['action'] == 'list' and set(command) == {'type', 'id', 'action', 'scope'}
+                             or command['action'] == 'create'
+                             and set(command) == {'type', 'id', 'action', 'name', 'category', 'content', 'scope'}
+                             and isinstance(command.get('name'), str)
+                             and 0 < len(command['name'].strip()) <= 200
+                             and isinstance(command.get('category'), str)
+                             and len(command['category']) <= 64
+                             and isinstance(command.get('content'), str)
+                             and 0 < len(command['content'].strip()) <= 16000
+                             or command['action'] in {'delete', 'use'}
+                             and set(command) == {'type', 'id', 'action', 'templateId', 'scope'}
+                             and isinstance(command.get('templateId'), str)
+                             and 0 < len(command['templateId']) <= 128
+                             or command['action'] == 'update'
+                             and isinstance(command.get('templateId'), str)
+                             and 0 < len(command['templateId']) <= 128
+                             and {'type', 'id', 'action', 'templateId', 'scope'} <= set(command)
+                             and set(command) <= {'type', 'id', 'action', 'templateId', 'name',
+                                                  'category', 'content', 'scope'}
+                             and len(set(command)) >= 6
+                             and all(isinstance(command.get(key), str) for key in
+                                     ('name', 'category', 'content') if key in command)
+                             and all(0 < len(command[key].strip()) <= 200 for key in ('name',) if key in command)
+                             and all(len(command[key]) <= 64 for key in ('category',) if key in command)
+                             and all(0 < len(command[key].strip()) <= 16000 for key in ('content',) if key in command))):
+                    template_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'scope'},
@@ -727,6 +761,22 @@ def main() -> int:
                     message = str(exc)
                     error = message if message.startswith(('CHAT_', 'MODEL_')) else 'MODEL_SETTINGS_FAILED'
                 emit({'v': 1, 'type': 'models', 'id': model_command['id'],
+                      'result': result, 'error': error})
+            try:
+                template_command = template_commands.get_nowait()
+            except queue.Empty:
+                template_command = None
+            if template_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.templates_manage(template_command)
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; a
+                    # server detail never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith('CHAT_') else 'TEMPLATE_FAILED'
+                emit({'v': 1, 'type': 'templates', 'id': template_command['id'],
                       'result': result, 'error': error})
             try:
                 connector_command = connector_commands.get_nowait()

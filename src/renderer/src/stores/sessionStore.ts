@@ -23,11 +23,17 @@ interface SessionState {
    * The selection is device-local view state; the project list itself always
    * comes from the platform. */
   projectSelection: ProjectSelection
+  /** Issue 84: one template click asks the composer to prefill its draft.
+   * Prefill only — the composer never sends on a template click; the
+   * placeholders stay visible until the user fills or edits them away. */
+  pendingPrefill: { nonce: number; content: string } | null
   requestOpen(threadId: string): void
   clearPendingOpen(): void
   setActiveThreadId(threadId: string): void
   bumpSessionsVersion(): void
   setProjectSelection(selection: ProjectSelection): void
+  requestPrefill(content: string): void
+  clearPendingPrefill(): void
 }
 
 let nonce = 0
@@ -37,9 +43,12 @@ export const useSessionStore = create<SessionState>((set) => ({
   activeThreadId: '',
   sessionsVersion: 0,
   projectSelection: { kind: 'all' },
+  pendingPrefill: null,
   requestOpen: (threadId) => set({ pendingOpen: { threadId, nonce: ++nonce } }),
   clearPendingOpen: () => set({ pendingOpen: null }),
   setActiveThreadId: (threadId) => set((state) => state.activeThreadId === threadId ? state : { activeThreadId: threadId }),
   bumpSessionsVersion: () => set((state) => ({ sessionsVersion: state.sessionsVersion + 1 })),
-  setProjectSelection: (projectSelection) => set({ projectSelection })
+  setProjectSelection: (projectSelection) => set({ projectSelection }),
+  requestPrefill: (content) => set({ pendingPrefill: { content, nonce: ++nonce } }),
+  clearPendingPrefill: () => set({ pendingPrefill: null })
 }))
