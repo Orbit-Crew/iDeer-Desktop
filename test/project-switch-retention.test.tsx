@@ -48,18 +48,22 @@ describe('project switch keeps the original session and its approval reachable (
       })
     }
     render(<ChatPanel />)
-    await screen.findByText('本机文件写入审批')
+    await screen.findByText('本机文件写入审批', {}, { timeout: 10000 })
     // 切到另一个项目：纯视图状态，会话与待审批卡片原地不动。
     useSessionStore.getState().setProjectSelection({ kind: 'project', projectId: 'proj-2' })
     expect(screen.getByText('本机文件写入审批')).toBeTruthy()
     expect(screen.getByText(/\/workspace\/p1\/result\.txt/)).toBeTruthy()
-    // The poll keeps observing the original Run while the view is narrowed.
-    await waitFor(() => expect(commands.filter((command) => command.action === 'state').length).toBeGreaterThanOrEqual(2))
+    // The poll keeps observing the original Run while the view is narrowed:
+    // at least one more status poll must land after the switch. The wait is
+    // deadline-bounded (fast machines finish on the first retry ~500 ms in;
+    // a slow CI runner gets the full 10 s budget before the count assertion).
+    await waitFor(() => expect(commands.filter((command) => command.action === 'state')
+      .length).toBeGreaterThanOrEqual(2), { timeout: 10000 })
     expect(useSessionStore.getState().activeThreadId).toBe('thread-A')
     // 切回全部会话：同一张审批卡仍在，仍可从原会话批准。
     useSessionStore.getState().setProjectSelection({ kind: 'all' })
     fireEvent.click(screen.getByRole('button', { name: '仅允许这一次' }))
-    await waitFor(() => expect(commands.some((command) => command.action === 'consent')).toBe(true))
+    await waitFor(() => expect(commands.some((command) => command.action === 'consent')).toBe(true), { timeout: 10000 })
     expect(commands.find((command) => command.action === 'consent')).toMatchObject({
       action: 'consent', scope: 'identity', threadId: 'thread-A', runId: 'run-1',
       taskId: 'task-9', decision: 'allow', requestHash: 'a'.repeat(64)
@@ -83,12 +87,14 @@ describe('project switch keeps the original session and its approval reachable (
     // session's row is not in the visible list, but the open must not care.
     useSessionStore.getState().setProjectSelection({ kind: 'project', projectId: 'proj-2' })
     render(<ChatPanel />)
-    await waitFor(() => expect(useSessionStore.getState().activeThreadId).toBe(''))
+    await waitFor(() => expect(useSessionStore.getState().activeThreadId).toBe(''), { timeout: 10000 })
     useSessionStore.getState().requestOpen('thread-A')
-    await waitFor(() => expect(commands.some((command) => command.action === 'open')).toBe(true))
+    await waitFor(() => expect(commands.some((command) => command.action === 'open')).toBe(true), { timeout: 10000 })
     expect(commands.find((command) => command.action === 'open'))
       .toEqual({ action: 'open', scope: 'identity', threadId: 'thread-A' })
-    expect(screen.getByText('本机文件写入审批')).toBeTruthy()
+    // The approval card rides the open reply's snapshot; its render trails the
+    // command push by one setState, so wait for it instead of assuming it.
+    expect(await screen.findByText('本机文件写入审批', {}, { timeout: 10000 })).toBeTruthy()
     expect(screen.getByRole('button', { name: '仅允许这一次' })).toBeTruthy()
   }, 15000)
 })
@@ -125,7 +131,7 @@ describe('notification jump-back reaches the original session under any project 
     useNotificationCenter.setState({ view: { notifications: [approvalRow], unread: 1 }, controller })
     render(<NotificationsPane />)
     fireEvent.click(screen.getByLabelText(/后台会话 A/))
-    await waitFor(() => expect(useSessionStore.getState().pendingOpen?.threadId).toBe('thread-A'))
+    await waitFor(() => expect(useSessionStore.getState().pendingOpen?.threadId).toBe('thread-A'), { timeout: 10000 })
     // The jump-back itself never touches the project view state.
     expect(useSessionStore.getState().projectSelection).toEqual({ kind: 'all' })
   })

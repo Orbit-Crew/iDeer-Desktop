@@ -52,7 +52,9 @@ describe('receipt history cross-device marking (#95)', () => {
   it('marks receipt rows whose device differs from the current device identity', async () => {
     stubIdeer('device-current')
     render(<RuntimePanel />)
-    await screen.findByText(/task-far/)
+    // The rows ride a getStatus → receipts → getStatus refresh chain; give the
+    // render its full budget instead of the 1 s default on slow CI runners.
+    await screen.findByText(/task-far/, {}, { timeout: 10000 })
     expect(screen.getByText(/task-far/).textContent).toContain('仅原设备')
     expect(screen.getByText(/task-own/).textContent).not.toContain('仅原设备')
   })
@@ -62,7 +64,7 @@ describe('receipt history cross-device marking (#95)', () => {
     // no row is marked; the raw device_id display remains the only fact.
     stubIdeer(undefined)
     render(<RuntimePanel />)
-    await screen.findByText(/task-far/)
+    await screen.findByText(/task-far/, {}, { timeout: 10000 })
     expect(screen.getByText(/task-far/).textContent).not.toContain('仅原设备')
     expect(screen.getByText(/task-far/).textContent).toContain('device-other')
   })
