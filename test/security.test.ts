@@ -107,8 +107,16 @@ describe('bootstrap capability boundary', () => {
     // action rides the Server's own Project API behind the chat-session
     // fence, a delete is confirmed in the trusted main process first, and no
     // operation on the channel touches local files or directory grants.
+    // Issue 85 adds desktop:schedules for the platform scheduled-tasks
+    // management surface: the renderer names the action and task fields only;
+    // the platform owns timing, previews and execution records through the
+    // Runtime's pinned contract client, a delete is confirmed in the trusted
+    // main process, and 补跑/跳过 facts are device-local display truth.
+    // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
+    // resize and kill on desktop-local PTY sessions — a separate minimal
+    // bridge that never rides the trusted desktop:* channel.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events

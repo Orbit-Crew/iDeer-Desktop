@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 const bridge: DesktopBridge = Object.freeze({
   manage: (action: 'logout' | 'switch-account' | 'revoke', grantId = '') => ipcRenderer.invoke('desktop:manage', action, grantId),
@@ -23,6 +23,9 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 91: platform project management; every action rides the Server's
   // own Project API and the reply is its post-action list.
   projects: (command: ProjectCommand) => ipcRenderer.invoke('desktop:projects', command),
+  // Issue 85: the platform scheduled-tasks management surface; deletes are
+  // confirmed in the trusted main process before they reach the wire.
+  schedules: (command: ScheduleCommand) => ipcRenderer.invoke('desktop:schedules', command),
   // Issue 84: the prompt-template plaza. The renderer names CRUD/use actions
   // only; the Server's own endpoints hold the rows, and a delete is
   // confirmed in the trusted main process before it reaches the wire.

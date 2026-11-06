@@ -23,6 +23,7 @@ from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
 from .policy import PolicyDecision
 from .receipt_ledger import profile_binding
+from .scheduled_tasks import SchedulesError, ScheduledTasksClient, ScheduleTaskLedger, map_platform_error
 from .secrets import SecretStore, SecretStoreError
 from .session_tier import DEFAULT_SESSION_TIER, SessionTier, SessionTierRegistry
 from .settings import load_settings
@@ -571,6 +572,14 @@ class DesktopChat:
         # The first self-reconnect waits one full cooldown from startup.
         self._reconnect_at = time.monotonic()
         self._reconcile_loading = None
+        # Issue 85: the platform scheduled-tasks family. The client owns the
+        # pinned-contract mapping and the device-side catch-up ledger (rows
+        # keyed by the profile binding, so another login never sees them); the
+        # session/request seams are this class's own, so every call rides the
+        # exact authenticated session the chat surface uses.
+        self.scheduled_tasks = ScheduledTasksClient(
+            self._session, self._json, ScheduleTaskLedger(config.with_name('schedules.db')),
+            lambda: profile_binding(load_settings(config)))
 
     def _mark_platform(self, ok: bool, detail: str = '') -> None:
         """Record one Server contact outcome; a failure pauses new Turns."""
@@ -3037,6 +3046,27 @@ class DesktopChat:
                 result['deleted'] = True
             return result
 
+    # --- Scheduled-task management (issue 85) -------------------------------
+
+    def schedules_manage(self, command):
+        """One scheduled-tasks management round-trip against the pinned
+        platform contract (#85).
+
+        The session gate comes first — an unauthenticated device is refused
+        with the family's own fixed category before anything else — and the
+        chat session scope is the identity fence: a command carrying the scope
+        of another identity is refused, never guessed. Unlike the chat surface
+        this takes no lock: management round-trips are independent platform
+        calls, and holding the chat lock across one would stall the whole
+        conversation while the Server answers.
+        """
+        try:
+            session = self._session()
+        except ChatError as exc:
+            raise map_platform_error(exc) from None
+        if not isinstance(command, dict) or command.get('scope') != session.scope:
+            raise SchedulesError('SCHEDULES_IDENTITY_CHANGED')
+        return self.scheduled_tasks.manage(command, session)
     def browser_stream_session(self, scope):
         """Issue 109: the live browser stream's identity fence.
 
