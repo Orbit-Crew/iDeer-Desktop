@@ -98,6 +98,19 @@ linz 的 `ipc/browser` 或浏览器面板源码，无 provenance 条目。实现
 从 `'none'` 放宽为 `http: https:`（仅为承载校验过的 webview，`connect-src` 仍为 `'none'`）。
 安全缝测试更新见 test/security.test.ts；桥键与 webview 断言同步进桌面 smoke。
 
+## 2026-11-07 Synapse 会话地图恢复（iDeer-Desktop #113）
+
+五期·39 恢复原版会话地图（SynapsePanel）。**全新实现而非受管复制**：未复制
+linz 的 DSH shim、SynapsePanel 源码或其 IPC 路径，无 provenance 条目。地图是
+平台 Thread 数据的只读投影：节点来自侧栏同一条平台会话 list 投影（无第二份本地
+名册），连线只来自本机发起分支那一刻平台应答自带的父子事实——Runtime 按聊天
+scope 记入设备本地 `branch_edges.db`，重启后照常重建，记录/读取失败或父会话
+不在当页一律渲染为独立节点，绝不推测关系。点节点打开会话、当前会话节点发起
+「从此分支」均复用 #78 的分支语义与同款权限门，动作经对话面板的单一序列化命令
+路径执行。零新 IPC 通道、零推送订阅、无第二引擎、无本地编排。分歧清单：不恢复
+DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径；边数据不回写
+平台；跨设备分支边不同步（另一台设备发起的分支只以节点出现）。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。
@@ -108,7 +121,7 @@ linz 的 `ipc/browser` 或浏览器面板源码，无 provenance 条目。实现
 | main/window、renderer/Layout、React/antd/zustand | 本票保留最小 UI，显示未连接，关闭即退出 | 静态、状态/能力合同、Windows 安装/退出及 Win7 专项 | Desktop |
 | ipc/chat、llm、pi、agents、scheduler、OfficePage、office 资源 | 排除自行驱动模型、Agent/多 Agent、办公室和独立平台演进 | 不列为后期承诺；需另行范围决议才能恢复 | iDeer 规格维护者 |
 | ipc/approval、security、tools、mcp、terminal、browser、file-workspace | 暂缓旧本地执行链，防止旁路；任意 shell 排除 | 一期按 Runtime 任务、目录授权和审批合同适配；接续安全、拒绝、身份、链接逃逸和真实跨仓验证 | Desktop Runtime / Server 各自维护者 |
-| workspace、ChatPage、conversation、Agent/Skill 选择及 settings | 暂缓业务接线，无本地离线兜底 | 一期登录、设备、Server 资源及 Thread/Run/Turn 接入；用户/设备隔离和真实跨仓检查 | Desktop UI / Server |
+| workspace、ChatPage、conversation、Agent/Skill 选择及 settings | 暂缓业务接线，无本地离线兜底；会话地图（SynapsePanel）经 #113 恢复为平台 Thread 只读投影（本机观察的分支边），见上方分期记录 | 一期登录、设备、Server 资源及 Thread/Run/Turn 接入；用户/设备隔离和真实跨仓检查 | Desktop UI / Server |
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |
 | kb、parsers、database、knowledgeGraph、wiki、sql.js、better-sqlite3 | 暂缓，尚未适配平台身份、Revision 和 Runtime | 知识与技能阶段；原文件重导入，图谱/Wiki 重建，权限/引用/失败及 Win7 native ABI 验证；图片占位不作为 OCR 交付 | Desktop 知识 / Server 治理 |
 | agent-skills、skills、脚本、pandoc、便携 Python | 暂缓，不能直接运行旧技能脚本 | 知识与技能阶段；完整包确认上传 private、固定版本、环境和脚本授权；随包二进制许可证/Win7 验证 | Desktop 技能 / 工具维护者 |

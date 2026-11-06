@@ -28,7 +28,10 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'webgl' },
   field: { id: 'field', title: '仿真结果', multiInstance: false, closable: true, runtime: 'webgl' },
   sql: { id: 'sql', title: '数据', multiInstance: false, closable: true, runtime: 'native' },
-  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'webview' },
+  // Issue 113: the session map is a native pane — a read-only projection of
+  // the platform's own Thread rows plus this device's observed branch edges.
+  // It never hosts external content, so it leaves the webview seam.
+  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 77: the reusable notification center — one native pane over the
   // main-process ledger; later tickets (tray badge, installs, updates) record
   // into the same surface instead of rebuilding it.

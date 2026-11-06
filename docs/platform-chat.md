@@ -173,6 +173,29 @@ arrive with the project folder binding ticket (二期 #92), until which every
 branch resolves to no binding. A successful branch asks the session sidebar
 to re-read the Server's own list — the new Thread exists there now.
 
+## The Synapse session map (issue #113)
+
+会话地图恢复为平台 Thread 数据的只读投影，落在原 dock 栏目位置的原生窗格里。
+节点是本账号自己的平台会话——与侧栏同一条 `desktop:threads` list 读数（同一投影
+`_thread_rows`，无第二份本地名册）；连线只来自本设备观察到的分支事实：分支成功的
+那一刻，平台的 branch 应答本身就带着 `parent_thread_id` 与
+`branched_from_message_id`，Runtime 把这两个事实按聊天 scope 记入设备本地的
+`branch_edges.db`（`BranchEdgeLedger`），重启后地图照常重建。边账本是尽力而为的：
+记录失败不影响已经成功的分支，读取失败按无边处理——两种情况在地图上都渲染为独立
+节点，绝不从标题、id 或时间推测关系；父会话不在当页（或已被删除）的支线同样独立
+成节点，边只在两端都在列表里时绘制。换登录（scope 变化）看不到别人的边，搜索页
+每行只在有记录时携带 `branchedFrom`，main 进程按固定 key 校验后原样透传。
+
+地图动作与普通列表同语义、同权限。点节点打开会话，走侧栏同一条
+`sessionStore.requestOpen` 信号；当前打开会话的节点才提供「从此分支」，门与对话
+完全一致（`branchGate`：无在途 run、无流、无待答澄清、平台可达，另需列表同款
+`threads:write`），点击只发起 `sessionStore.requestBranch` 信号——分支本身由
+对话面板的单一序列化命令路径执行，目标是打开会话最后一个完成的 assistant turn
+（与消息卡片上的分支按钮同一分组语义），成功后照旧 bump 会话信号，侧栏与地图
+各自重读平台列表。地图自始至终只读桥：一条 `desktop:threads` list 与一条
+`desktop:chat` state 读数，观察者节奏 1 秒；不新增任何 IPC 通道，不订阅任何推送，
+不派发任何会话变更。
+
 ## Platform project management (issue #91)
 
 The session sidebar gains the platform project directory in the same place

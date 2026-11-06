@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd'
 import type { ChatAttachmentStatus, ChatCommand, ChatSnapshot, ChatSubagent, ChatAttachmentView, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
 import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
+import { branchGate, turnGroups } from '../../../shared/chatTurns'
 import { ChatComposer } from './ChatComposer'
 import { WelcomeSection } from './WelcomeSection'
 import { useSessionStore } from '../stores/sessionStore'
@@ -284,27 +285,11 @@ export function ChatView({ state, busy, attachmentView, onCommand }: {
   return <ChatContents key={state.scope} state={state} busy={busy} attachmentView={attachmentView} onCommand={onCommand} />
 }
 
-/** Issue 78: the platform branches from one completed assistant turn, so the
- * command carries the whole turn's assistant message ids. This groups the
- * transcript exactly that way — the consecutive Agent messages between two
- * human messages; tool messages belong to the turn but never enter the id
- * group, and no other grouping exists anywhere on the device. */
-const turnGroups = (messages: ChatSnapshot['messages']): Map<string, string[]> => {
-  const groups = new Map<string, string[]>()
-  let turn: string[] = []
-  const settle = (): void => {
-    if (turn.length) {
-      for (const id of turn) groups.set(id, turn)
-      turn = []
-    }
-  }
-  for (const message of messages) {
-    if (message.role === 'human') settle()
-    else if (message.role === 'ai') turn = [...turn, message.id]
-  }
-  settle()
-  return groups
-}
+// Issue 78: the platform branches from one completed assistant turn, so the
+// command carries the whole turn's assistant message ids. The transcript
+// grouping and the branch gate live in shared/chatTurns.ts since Issue 113 —
+// the Synapse map reads the same grouping and the same gate, one vocabulary,
+// no drift.
 
 function ChatContents({ state, busy, attachmentView, onCommand }: {
   state: ChatSnapshot; busy: boolean; attachmentView: ChatAttachmentView | null; onCommand: CommandHandler
@@ -328,7 +313,7 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
   // Issue 80: an observed unreachable platform pauses new Turns by name.
   const unreachable = state.platform?.reachable === false
   const canSend = settled && !unreachable && !!state.thread?.agentId && state.model?.available !== false
-  const canBranch = settled && !unreachable && !pending
+  const canBranch = branchGate(state, busy)
   const turnIds = turnGroups(state.messages)
   const modelSourceLabels: Record<string, string> = {
     'session-override': '本会话临时选择', 'account-default': '账号默认', 'platform-default': '平台默认'
@@ -520,6 +505,9 @@ export default function ChatPanel(): JSX.Element {
   const pendingOpen = useSessionStore((state) => state.pendingOpen)
   const clearPendingOpen = useSessionStore((state) => state.clearPendingOpen)
   const openHandled = useRef(0)
+  const pendingBranch = useSessionStore((state) => state.pendingBranch)
+  const clearPendingBranch = useSessionStore((state) => state.clearPendingBranch)
+  const branchHandled = useRef(0)
   useEffect(() => {
     mounted.current = true
     let timer: ReturnType<typeof setTimeout>
@@ -576,6 +564,24 @@ export default function ChatPanel(): JSX.Element {
     clearPendingOpen()
     void command({ action: 'open', scope: state.scope, threadId: pendingOpen.threadId })
   }, [pendingOpen, state, command, clearPendingOpen])
+  // Issue 113: the Synapse map asks for one branch on the open session; the
+  // branch rides this panel's single serialized command path too. The target
+  // turn is the open session's latest completed assistant turn — the same
+  // turn semantics the per-message buttons render — and the same gate applies
+  // before anything is sent; a drifted or blocked request is dropped and the
+  // map's affordance disappears on its own next read.
+  useEffect(() => {
+    if (!pendingBranch || pendingBranch.nonce === branchHandled.current) return
+    if (!state?.scope || actionInFlight.current) return
+    branchHandled.current = pendingBranch.nonce
+    clearPendingBranch()
+    if (!state.thread?.id || !branchGate(state, busy)) return
+    const lastAi = [...state.messages].reverse().find((message) => message.role === 'ai')
+    if (!lastAi) return
+    const ids = turnGroups(state.messages).get(lastAi.id) || [lastAi.id]
+    void command({ action: 'branch', scope: state.scope, threadId: state.thread.id, messageId: lastAi.id,
+      ...(ids.length > 1 ? { messageIds: ids } : {}) })
+  }, [pendingBranch, state, busy, command, clearPendingBranch])
   // Issue 93: a local view belongs to the thread it was read in; switching
   // threads dismisses it.
   const viewThreadId = useRef('')
