@@ -360,7 +360,12 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
     <Select aria-label="选择 Skill" placeholder="可选：选择 Agent 已包含的 Skill" value={skillId} onChange={setSkillId}
       allowClear className="w-full" options={resourceOptions('skill')} disabled={busy} />
     <Button type="primary" disabled={busy || !agentId} onClick={() => {
-      void onCommand({ action: 'create', scope: state.scope, agentId: agentId!, ...(skillId ? { skillId } : {}) })
+      // Issue 91: a selected project is the new session's home on the Server;
+      // 全部/散会话 stays the loose-session path.
+      const selection = useSessionStore.getState().projectSelection
+      const projectId = selection.kind === 'project' ? selection.projectId : ''
+      void onCommand({ action: 'create', scope: state.scope, agentId: agentId!,
+        ...(skillId ? { skillId } : {}), ...(projectId ? { projectId } : {}) })
     }}>新建平台聊天</Button>
     <Select aria-label="平台 Thread 历史" placeholder="重新打开平台 Thread" className="w-full" value={threadId}
       disabled={busy} options={state.threads.map((t) => ({ value: t.id, label: `${t.title} · ${t.status}` }))}

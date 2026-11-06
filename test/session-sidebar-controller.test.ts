@@ -6,8 +6,8 @@ type ThreadsApi = Pick<DesktopBridge, 'threads'>
 
 const threadView = (overrides: Partial<ThreadView> = {}): ThreadView => ({
   threads: [
-    { id: 'thread-A', title: 'Alpha 会话', status: 'idle', updatedAt: '2026-10-31T07:00:00+00:00' },
-    { id: 'thread-B', title: 'Beta 会话', status: 'busy', updatedAt: '2026-10-30T09:00:00+00:00' }
+    { id: 'thread-A', title: 'Alpha 会话', status: 'idle', updatedAt: '2026-10-31T07:00:00+00:00', projectId: 'proj-1' },
+    { id: 'thread-B', title: 'Beta 会话', status: 'busy', updatedAt: '2026-10-30T09:00:00+00:00', projectId: '' }
   ],
   permissions: { canRename: true, canDelete: true },
   ...overrides
@@ -121,6 +121,31 @@ describe('session sidebar controller (#72)', () => {
     }
   })
 
+  it('rides the move-in round for a loose session (#91)', async () => {
+    const calls: unknown[] = []
+    const api: ThreadsApi = { threads: vi.fn((command) => { calls.push(command); return Promise.resolve(threadView()) }) }
+    const controller = new SessionSidebarController(api, () => {})
+    await controller.load()
+    await controller.move('thread-B', 'proj-1')
+    // The move targets the Server's own endpoint and carries the target
+    // project id; moving back out to loose is not a desktop action here.
+    expect(calls).toEqual([
+      { action: 'list' },
+      { action: 'move', threadId: 'thread-B', projectId: 'proj-1' }
+    ])
+    expect(controller.snapshot().failed).toBe(false)
+  })
+
+  it('refuses move without the threads:write permission or a project target', async () => {
+    const calls: unknown[] = []
+    const api: ThreadsApi = { threads: vi.fn((command) => { calls.push(command); return Promise.resolve(threadView({ permissions: { canRename: false, canDelete: true } })) }) }
+    const controller = new SessionSidebarController(api, () => {})
+    await controller.load()
+    await controller.move('thread-B', 'proj-1')
+    await controller.move('thread-B', '')
+    expect(calls).toEqual([{ action: 'list' }])
+  })
+
   it('drops the stale reply of a superseded round', async () => {
     const first = deferred<ThreadView>()
     const second = deferred<ThreadView>()
@@ -131,7 +156,7 @@ describe('session sidebar controller (#72)', () => {
     const fresh = controller.search('beta')
     first.resolve(threadView())
     await stale
-    second.resolve(threadView({ threads: [{ id: 'thread-B', title: 'Beta 会话', status: 'busy', updatedAt: '2026-10-30T09:00:00+00:00' }] }))
+    second.resolve(threadView({ threads: [{ id: 'thread-B', title: 'Beta 会话', status: 'busy', updatedAt: '2026-10-30T09:00:00+00:00', projectId: '' }] }))
     await fresh
     const final = controller.snapshot()
     expect(final.threads.map((row) => row.id)).toEqual(['thread-B'])
