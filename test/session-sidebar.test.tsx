@@ -138,7 +138,10 @@ describe('session sidebar management (#72)', () => {
     fireEvent.click(screen.getByRole('button', { name: '删除会话 Beta 会话' }))
     fireEvent.click(await screen.findByRole('button', { name: /^删\s*除$/ }))
     await waitFor(() => expect(screen.getByText(/任务在执行/)).toBeTruthy())
-  })
+    // 15 s: the delete round-trip renders the full sidebar twice and outruns
+    // the 5 s default on slow CI runners (same extension as the archive
+    // fallback test below).
+  }, 15000)
 })
 
 describe('session sidebar project grouping (#91)', () => {
