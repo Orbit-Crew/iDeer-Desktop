@@ -441,6 +441,67 @@ export interface ProjectOperationView {
   deleted?: boolean
 }
 
+/** Issue 102: one parsed sheet's recorded facts — schema summary, counts and
+ * a content fingerprint. Row data never rides this surface. */
+export interface DatasetSheetView {
+  name: string
+  fingerprint: string
+  /** The inferred schema summary (`列名:类型` pairs, bounded display fact). */
+  schema: string
+  rowCount: number
+  colCount: number
+  truncated: boolean
+}
+/** Issue 102: one imported table dataset as this device records it — a
+ * device-local display fact bound to the importing identity. The original
+ * file stays on this machine (`sourcePath` names the 原件); the record keeps
+ * identity, schema, counts and content fingerprints only, never row data.
+ * `projectId` mirrors the renderer's current project selection at import
+ * time; the platform has no dataset endpoint, so the association is recorded
+ * on the device with the row and the platform-side directory record remains
+ * an explicit platform dependency. */
+export interface DatasetView {
+  id: string
+  filename: string
+  sourcePath: string
+  format: 'xlsx' | 'csv'
+  fileSha256: string
+  sheets: DatasetSheetView[]
+  rowCount: number
+  projectId: string
+  deviceId: string
+  status: 'ready' | 'failed'
+  errorCode: string
+  createdAt: string
+}
+/**
+ * Issue 102: 表格数据集导入. The renderer names the action and the project
+ * association only — the file is located by the trusted main process's
+ * native dialog and both actions are confirmed there. Deleting removes the
+ * registry row only and never the original file.
+ */
+export type DatasetCommand =
+  | { action: 'import'; projectId: string }
+  | { action: 'delete'; datasetId: string }
+/** Main-internal: the confirmed import over the main-process-picked path;
+ * the renderer never supplies a path. */
+export type DatasetImportCommand = { action: 'import'; path: string; projectId: string }
+/** Issue 102: one wire shape for both actions. Every reply carries the
+ * identity's own bounded post-action list plus its honest outcome flag: a
+ * duplicate import answers `duplicate` with the existing row's id instead of
+ * writing a second row, and a failed import answers `failed` with the fixed
+ * reason its row records. */
+export interface DatasetOperationView {
+  datasets: DatasetView[]
+  imported?: boolean
+  duplicate?: boolean
+  failed?: boolean
+  deleted?: boolean
+  datasetId?: string
+  duplicateOf?: string
+  errorCode?: string
+}
+
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {
   slug: string
@@ -689,6 +750,10 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   knowledgeImports?: KnowledgeImportView[]
   knowledgeImportStorageError?: string
+  /** Issue 102: this identity's own dataset registry rows (bounded) plus the
+   * honest storage error; the rows ride the same 0.5 s status snapshot. */
+  datasets?: DatasetView[]
+  datasetsStorageError?: string
   knowledgePublications?: KnowledgePublicationView[]
   knowledgePublishStorageError?: string
   skillImports?: SkillImportView[]
@@ -802,6 +867,13 @@ export interface DesktopBridge {
    * re-reads its list; the desktop keeps no second roster and no local
    * state is bound to or cleared by a project operation. */
   projects(command: ProjectCommand): Promise<ProjectOperationView>
+  /** Issue 102: 表格数据集导入 — the device parses XLSX/CSV into a real
+   * registered dataset (multi-sheet, inferred column types), dedups by
+   * content fingerprint and records the platform project association with
+   * the row. File picking and confirmation stay in the trusted main
+   * process; the original file never leaves the machine and a delete
+   * removes the registry row only. */
+  datasets(command: DatasetCommand): Promise<DatasetOperationView>
   /** Issue 85: the platform scheduled-tasks management surface. The renderer
    * names the action and the task fields only; the platform owns timing,
    * previews and execution records, and a delete is confirmed in the trusted

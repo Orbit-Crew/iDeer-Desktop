@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { RuntimeProcess } from './runtime'
@@ -603,6 +603,45 @@ if (!app.requestSingleInstanceLock()) {
         if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
       }
       return runtime.projects(command)
+    })
+    // Issue 102: 表格数据集导入. The renderer names the action and the
+    // project association only; the file is located by the native dialog
+    // here and the import/delete are confirmed in this trusted process.
+    // The device parses XLSX/CSV into a real registry row (multi-sheet,
+    // inferred column types, content fingerprints) and dedups identical
+    // content into an explicit duplicate outcome; the original file stays
+    // on this machine and a delete removes the registry row only.
+    ipcMain.handle('desktop:datasets', async (event, command: DatasetCommand): Promise<DatasetOperationView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['import', 'delete'].includes(command.action)) throw new Error('DATASETS_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('DATASETS_UNAUTHENTICATED')
+      if (command.action === 'import') {
+        if (typeof command.projectId !== 'string' || command.projectId.length > 128 ||
+            (command.projectId && !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId))) throw new Error('DATASETS_COMMAND_INVALID')
+        const chosen = await dialog.showOpenDialog(mainWindow!, {
+          title: '选择要导入的表格数据文件',
+          filters: [{ name: '表格数据 (XLSX/CSV)', extensions: ['xlsx', 'csv'] }], properties: ['openFile'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('DATASETS_CANCELED')
+        const association = command.projectId ? `平台项目 ${command.projectId}` : '未关联平台项目'
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认表格数据集导入',
+          message: '解析所选表格文件并在本机登记为数据集？',
+          detail: `设备侧将真实解析 XLSX 的全部工作表与 CSV，逐列识别类型（数字/布尔/日期时间/文本），并按文件内容指纹去重：重复导入相同内容只会得到一条“内容重复”提示，不会产生第二条记录。\n\n数据集登记关联：${association}。原文件留在本机不会上传，登记内容仅含文件名、位置、内容指纹、表结构与行数等元数据。\n\n来源：${chosen.filePaths[0]}`,
+          buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
+        return runtime.datasets({ action: 'import', path: chosen.filePaths[0], projectId: command.projectId })
+      }
+      if (typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId)) throw new Error('DATASETS_COMMAND_INVALID')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认删除数据集登记',
+        message: '删除这条数据集登记记录？',
+        detail: '仅删除本机的登记记录（表结构、指纹等元数据）；原文件不会被删除或修改，平台侧也没有任何数据集记录需要移除。',
+        buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
+      return runtime.datasets({ action: 'delete', datasetId: command.datasetId })
     })
     // Issue 85: the platform scheduled-tasks management surface. The renderer
     // names the action and the task fields only; the platform owns timing,

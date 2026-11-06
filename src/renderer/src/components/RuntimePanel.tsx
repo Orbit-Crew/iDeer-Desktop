@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Input, Space, Typography } from 'antd'
 import { emptyRuntimePanelView, RuntimePanelController } from '../stores/runtimePanel'
 import { ConnectorSection } from './ConnectorSection'
+import { DatasetSection } from './DatasetSection'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
 import { SkillSection } from './SkillSection'
 import { WikiSection } from './WikiSection'
-import type { ConnectorCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportDocumentView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+import type { ConnectorCommand, DatasetCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportDocumentView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
 
 const PLATFORM_PARSE_HINT = '设备侧未解析或解析失败的文件不会被静默丢弃：可用下方「发布此版本到服务端…」把原件显式上传给平台解析。'
 
@@ -71,6 +72,25 @@ export default function RuntimePanel(): JSX.Element {
   const [skillError, setSkillError] = useState('')
   const [connectorBusy, setConnectorBusy] = useState(false)
   const [connectorError, setConnectorError] = useState('')
+  // Issue 102: the table dataset family's one command path. The import and
+  // delete dialogs live in main; this panel carries the reply's honest
+  // outcome (duplicate / recorded failure) as a notice and refreshes.
+  const [datasetBusy, setDatasetBusy] = useState(false)
+  const [datasetError, setDatasetError] = useState('')
+  const [datasetNotice, setDatasetNotice] = useState('')
+  const runDataset = (command: DatasetCommand) => {
+    setDatasetError(''); setDatasetNotice(''); setDatasetBusy(true)
+    void window.ideer.datasets(command)
+      .then(result => {
+        if (result.duplicate === true) setDatasetNotice(`未重复登记：内容指纹与已登记数据集 ${result.duplicateOf} 一致，不会产生第二条记录`)
+        else if (result.failed === true) setDatasetNotice(`导入已如实记为失败（${result.errorCode}），未伪装成数据集`)
+        else setDatasetNotice('')
+        return controller.current?.refresh(historyOffset)
+      })
+      .catch((caught: unknown) => setDatasetError(caught instanceof Error && /^[A-Z0-9_]+$/.test(caught.message)
+        ? caught.message : '导入未完成：文件定位与确认在主进程完成，需要已认证会话'))
+      .finally(() => setDatasetBusy(false))
+  }
   const runConnector = (command: ConnectorCommand) => {
     setConnectorError(''); setConnectorBusy(true)
     void window.ideer.connectors(command)
@@ -282,6 +302,14 @@ export default function RuntimePanel(): JSX.Element {
       busy={connectorBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={connectorError}
       onCommand={runConnector}
+    />
+    <Typography.Title level={5} className="mt-5">表格数据集</Typography.Title>
+    <DatasetSection
+      runtime={runtime}
+      busy={datasetBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
+      error={datasetError}
+      notice={datasetNotice}
+      onCommand={runDataset}
     />
     <Typography.Title level={5} className="mt-5">执行回执历史</Typography.Title>
     <Typography.Paragraph>重连只补传回执，不会重做操作。未确认和结果待核实的记录会持续保留；此处最多显示最近 20 条，存储不受显示数量限制。</Typography.Paragraph>

@@ -17,6 +17,7 @@ from .browser_login import BrowserLogin
 from .browser_remote import BrowserStreamProxy, normalize_input_event
 from .compatibility import CompatibilityGate
 from .connector_install import ConnectorInstallError
+from .datasets import DatasetError, DatasetRegistry, datasets_manage
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
@@ -89,6 +90,7 @@ def main() -> int:
     template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
+    dataset_commands: queue.Queue = queue.Queue(maxsize=1)
     schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -259,6 +261,24 @@ def main() -> int:
                         and (command['action'] not in {'archive', 'restore', 'delete'} or (
                             isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))):
                     project_commands.put_nowait(command)
+                    continue
+                # Issue 102: the table dataset family. A fixed per-action key
+                # set only: import names the main-process-picked file and the
+                # selected platform project (empty = unassociated), delete
+                # names the registry row. The path never reaches a renderer.
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'path', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'datasetId', 'scope'})
+                        and command['type'] == 'datasets' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and command['action'] in {'import', 'delete'}
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128
+                        and (command['action'] != 'import' or (
+                            isinstance(command['path'], str) and 0 < len(command['path']) <= 32768
+                            and isinstance(command['projectId'], str) and len(command['projectId']) <= 128))
+                        and (command['action'] != 'delete' or (
+                            isinstance(command['datasetId'], str) and 0 < len(command['datasetId']) <= 128))):
+                    dataset_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
@@ -454,6 +474,10 @@ def main() -> int:
         # Issue 112: explicit local imports keep the same discipline — the
         # registry stores device-local display facts, never file content.
         knowledge_imports = KnowledgeImportRegistry(args.config.with_name('knowledge-imports.db'))
+        # Issue 102: table dataset imports keep the same registry discipline —
+        # device-local display facts (schema, counts, fingerprints), never row
+        # data, and the original file stays on this machine.
+        datasets_registry = DatasetRegistry(args.config.with_name('datasets.db'))
         # Issue 115: explicit publications record the outcome of a confirmed
         # server copy attempt; a preview alone never writes a row.
         knowledge_publications = KnowledgePublicationRegistry(args.config.with_name('knowledge-publications.db'))
@@ -794,6 +818,30 @@ def main() -> int:
                 emit({'v': 1, 'type': 'projects', 'id': project_command['id'],
                       'result': result, 'error': error})
             try:
+                dataset_command = dataset_commands.get_nowait()
+            except queue.Empty:
+                dataset_command = None
+            if dataset_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 102: device-local dataset import/delete on this
+                    # identity's own registry. The workspace scope is the
+                    # fence, the owner binding scopes the rows, and the picked
+                    # original files are only ever read, never moved or removed.
+                    if dataset_command['scope'] != workspace.scope():
+                        raise DatasetError('DATASETS_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    result = datasets_manage(dataset_command, registry=datasets_registry, owner=owner)
+                except DatasetError as exc:
+                    # Only fixed categories cross the Desktop boundary; file
+                    # content and source details never do.
+                    error = str(exc)
+                except Exception:
+                    error = 'DATASETS_FAILED'
+                emit({'v': 1, 'type': 'datasets', 'id': dataset_command['id'],
+                      'result': result, 'error': error})
+            try:
                 model_command = model_commands.get_nowait()
             except queue.Empty:
                 model_command = None
@@ -1007,6 +1055,10 @@ def main() -> int:
                 skill_rows = skill_imports.view(current_receipt_owner) if current_receipt_owner else []
             except SkillImportError:
                 skill_rows = []
+            try:
+                dataset_rows = datasets_registry.view(current_receipt_owner) if current_receipt_owner else []
+            except DatasetError:
+                dataset_rows = []
             script_service = getattr(controller, 'skill_script_service', None) if controller is not None else None
             try:
                 script_rows = script_service.registry.view(current_receipt_owner) if current_receipt_owner and script_service is not None else []
@@ -1073,6 +1125,8 @@ def main() -> int:
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],
                       "knowledgeImportStorageError": knowledge_imports.error,
+                      "datasets": dataset_rows[:20],
+                      "datasetsStorageError": datasets_registry.error,
                       "knowledgePublications": knowledge_publication_rows[:20],
                       "knowledgePublishStorageError": knowledge_publications.error,
                       "skillImports": skill_rows[:20],
