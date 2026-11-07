@@ -2307,7 +2307,7 @@ class DesktopChat:
 
     def delete_revision_documents(self, kb_id, revision_id, content_hashes):
         """Delete documents from a library revision by registering the
-        remaining frozen documents as a new revision (#101, 决议 62).
+        remaining frozen documents as a new revision (#101, 决策票 62).
 
         删除=库新版本: the platform owns the version chain — the same
         frozen registration endpoint issues the successor revision, so the
@@ -2361,9 +2361,15 @@ class DesktopChat:
                     [document['sha256'] for document in remaining], outcome['documentCount'])
         except Exception:
             # The registration is the truth; an index carry-over failure
-            # honestly leaves the successor's index behind (missing/partial)
-            # for a later rebuild, exactly like a fresh import's.
-            pass
+            # honestly names the successor's index failed for a later rebuild,
+            # exactly like a fresh import's failed build — never a readiness
+            # claim over rows that cannot serve.
+            try:
+                if self.knowledge_index is not None:
+                    self.knowledge_index.mark_build_error(binding, outcome['revisionId'],
+                                                          outcome['manifestHash'], 'KNOWLEDGE_INDEX_FAILED')
+            except Exception:
+                pass
         self.knowledge_imports.mark_superseded(binding, registration['id'], outcome['revisionId'])
         return dict(kbId=kb_id, removedDocuments=len(removed), revision=outcome,
                     supersededRecordId=registration['id'])
@@ -2389,7 +2395,7 @@ class DesktopChat:
             pass
 
     def _offline_knowledge_snapshot(self, kb_id, revision_id, kind, exc):
-        """The offline fallback for one view-family read (#101, 决议 62).
+        """The offline fallback for one view-family read (#101, 决策票 62).
 
         Only the honest outage categories may serve a cached copy, annotated
         离线快照 with its capture time — a refused request (4xx) is a

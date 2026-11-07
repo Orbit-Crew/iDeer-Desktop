@@ -43,8 +43,10 @@ from core.datasets import (
     parse_dataset,
 )
 from core.file_service import WorkspaceSelection
+from core.knowledge_import import KnowledgeImportRegistry
 from core.protocol import public_key_text
-from core.settings import RuntimeSettings
+from core.receipt_ledger import profile_binding
+from core.settings import RuntimeSettings, load_settings
 
 X_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
@@ -671,6 +673,15 @@ def test_import_with_revision_binding_records_the_display_fact(tmp_path, monkeyp
     # same content still dedups to the row it already has.
     harness = make_datasets_harness(tmp_path, monkeypatch)
     harness.select_workspace(seeded_work(tmp_path))
+    # The binding is fail-closed like every other version seam: seed one
+    # registered revision this identity actually owns, plus the registry the
+    # desktop loop's fence reads.
+    registry = KnowledgeImportRegistry(harness.config.with_name('knowledge-imports.db'))
+    registry.record(profile_binding(load_settings(harness.config)),
+                    dict(kb_id=KB, status='registered', revision_id=REVISION,
+                    revision_no=3, manifest_hash='c' * 64, document_count=1,
+                    documents=[{'filename': 'g.md', 'sha256': 'c' * 64,
+                                'bytes': 1, 'mime': 'text/plain'}]))
     harness.start()
     try:
         content = b"a,b\n1,2\n"
@@ -692,9 +703,18 @@ def test_import_with_revision_binding_records_the_display_fact(tmp_path, monkeyp
         status = harness.wait_for_status(lambda frame: len(frame["datasets"]) == 2)
         unbound = [row for row in status["datasets"] if row["id"] != dataset_id][0]
         assert unbound["revision"] is None
+        # A revision this identity never registered refuses fail-closed: a
+        # dataset can never display an identity it never accompanied.
+        frame = harness.command({"type": "datasets", "id": "d-3", "action": "import",
+                                 "path": picked_file(tmp_path, 'stray.csv', b"s\n1\n"),
+                                 "projectId": "", "kbId": KB,
+                                 "revisionId": '99999999-9999-4999-8999-999999999999',
+                                 "revisionNo": 9, "scope": harness.scope})
+        assert frame["error"] == "DATASETS_REVISION_UNKNOWN"
+        assert frame["result"] is None
         # A malformed binding (kb without revision) is dropped by the wire
         # gate — never guessed into an identity the row never had.
-        harness.command({"type": "datasets", "id": "d-3", "action": "import",
+        harness.command({"type": "datasets", "id": "d-4", "action": "import",
                          "path": picked_file(tmp_path, 'bad.csv', b"z\n1\n"),
                          "projectId": "", "kbId": KB, "scope": harness.scope},
                         expect_reply=False)
@@ -703,7 +723,7 @@ def test_import_with_revision_binding_records_the_display_fact(tmp_path, monkeyp
         assert probe["error"] == "DATASETS_NOT_FOUND"
         with harness._lock:
             ids = [frame["id"] for frame in harness.frames if frame.get("type") == "datasets"]
-        assert "d-3" not in ids
+        assert "d-4" not in ids
     finally:
         harness.finish()
 

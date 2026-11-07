@@ -21,6 +21,7 @@ const categoryHints: Record<string, string> = {
   DATASETS_FORMAT_UNSUPPORTED: '仅支持真实解析的 .xlsx 与 .csv；旧版二进制 .xls 不在此范围',
   DATASETS_PARSE_FAILED: '文件损坏或不是可解析的 XLSX/CSV，已如实记为失败',
   DATASETS_NOT_FOUND: '该数据集登记不存在或已被删除',
+  DATASETS_REVISION_UNKNOWN: '所选知识版本已不在本机记录中，请刷新后重新选择',
   DATASETS_STORAGE_UNAVAILABLE: '数据集登记存储不可用，状态显示可能不完整',
   DATASETS_CANCELED: '已取消，本机未改动'
 }

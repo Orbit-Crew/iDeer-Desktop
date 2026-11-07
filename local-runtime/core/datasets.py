@@ -386,7 +386,7 @@ class DatasetRegistry:
                     status TEXT NOT NULL, error_code TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
                 # Issue 101: the optional knowledge revision binding — 一套版本
-                # 规矩 (决议 62) unifies the five families on Revision. An
+                # 规矩 (决策票 62) unifies the five families on Revision. An
                 # import may name the doc-library revision it accompanies;
                 # older databases gain the columns with empty defaults.
                 for column in ("kb_id TEXT NOT NULL DEFAULT ''",
@@ -454,7 +454,8 @@ class DatasetRegistry:
             "project_id": str(row.get("project_id", ""))[:128],
             "device_id": str(row.get("device_id", ""))[:128],
             # Issue 101: the optional knowledge revision binding — display
-            # facts only; an unknown/foreign revision simply stays unbound.
+            # facts only; the desktop dispatch has already fail-closed the
+            # binding against this identity's own registered revisions.
             "kb_id": str(row.get("kb_id", ""))[:128],
             "revision_id": str(row.get("revision_id", ""))[:128],
             "revision_no": int(row.get("revision_no", 0) or 0),

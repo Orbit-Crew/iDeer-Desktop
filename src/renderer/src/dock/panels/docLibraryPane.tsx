@@ -36,7 +36,8 @@ const JOB_STATE: Record<KnowledgeFolderJobView['state'], string> = {
 
 /** Issue 97: the honest per-revision index annotation. A revision whose
  * documents drifted says so (已过期) on top of its ready state; the display
- * never merges 未建 and 失败 into one vague word. */
+ * never merges 未建 and 失败 into one vague word. Issue 101: a historical
+ * revision's kept cache says it survives only until the user's cleanup. */
 export function describeIndexStatus(record: KnowledgeImportView, rebuild: KnowledgeIndexJobView | null): string {
   if (record.status !== 'registered' || !record.revisionId) return ''
   const index = record.index ?? null
@@ -46,12 +47,13 @@ export function describeIndexStatus(record: KnowledgeImportView, rebuild: Knowle
     return `检索索引重建中：已核对 ${rebuild.processedDocuments} / ${rebuild.totalDocuments} 个文件`
   }
   if (!index) return '检索索引：状态未知'
+  const kept = record.historical === true ? '（历史版本缓存，保留至用户清理）' : ''
   const drift = index.driftedDocuments > 0 ? ` · 已过期：${index.driftedDocuments} 个文件已变更，重建后可恢复检索` : ''
   switch (index.state) {
     case 'ready':
-      return `检索索引就绪：${index.servableDocuments} 个文件可全文检索${drift}`
+      return `检索索引就绪：${index.servableDocuments} 个文件可全文检索${drift}${kept}`
     case 'partial':
-      return `检索索引未完成：${index.indexedDocuments} / ${index.documents} 个文件${drift}`
+      return `检索索引未完成：${index.indexedDocuments} / ${index.documents} 个文件${drift}${kept}`
     case 'failed':
       return `检索索引失败：${index.error || 'KNOWLEDGE_INDEX_FAILED'}${drift}`
     default:

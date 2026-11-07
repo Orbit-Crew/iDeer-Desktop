@@ -25,14 +25,14 @@ from typing import Any
 # graph/wiki payloads are bounded at the seam already, and anything larger is
 # refused instead of silently truncating into a dishonest partial view.
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
-MAX_SNAPSHOT_KIND_CHARS = 128
 SNAPSHOT_KINDS = ("graph", "wiki", "wiki-navigation")
 PAGE_KIND_PREFIX = "wiki-page:"
 
 
 def _valid_kind(kind: str) -> bool:
     """One graph/wiki view family, or one page read keyed by its frozen
-    document id (``wiki-page:<documentId>``, so two pages never collide)."""
+    document id (``wiki-page:<documentId>``, so two pages never collide).
+    The accepted shapes bound the kind's length by construction."""
     if kind in SNAPSHOT_KINDS:
         return True
     if kind.startswith(PAGE_KIND_PREFIX):
@@ -107,14 +107,13 @@ class KnowledgeSnapshotStore:
 
     def _identity(self, binding, kb_id: str, revision_id: str, kind: str) -> str:
         material = json.dumps([self._encoded(binding), str(kb_id)[:128],
-                               str(revision_id)[:128], str(kind)[:MAX_SNAPSHOT_KIND_CHARS]])
+                               str(revision_id)[:128], kind])
         return hashlib.sha256(material.encode()).hexdigest()
 
     def save(self, binding, kb_id: str, revision_id: str, revision_no: int,
              manifest_hash: str, kind: str, payload: dict[str, Any]) -> bool:
         """Keep the newest successful projected view for one revision/kind."""
-        if not isinstance(kind, str) or len(kind) > MAX_SNAPSHOT_KIND_CHARS \
-                or not _valid_kind(kind) or not isinstance(payload, dict):
+        if not isinstance(kind, str) or not _valid_kind(kind) or not isinstance(payload, dict):
             raise KnowledgeSnapshotError("KNOWLEDGE_SNAPSHOT_INVALID")
         try:
             serialized = json.dumps(payload, ensure_ascii=False)

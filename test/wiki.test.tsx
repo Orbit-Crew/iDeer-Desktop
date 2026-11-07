@@ -376,4 +376,16 @@ describe('offline snapshot annotation (#101)', () => {
     expect(pageHtml).toContain('离线快照')
     expect(pageHtml).toContain('展示本机缓存的页面正文')
   })
+
+  it('labels a cached navigation index the same way', () => {
+    const navigationFixture: WikiNavigation = {
+      ...wikiView,
+      pages: [{ ...wikiView.pages[0], links: [], missingLinks: [], backlinks: [] }],
+      associations: { status: 'completed', generated: 1, failed: 0, sources: [], entities: [], relations: [] },
+      offline: true, capturedAt: '2026-11-07T01:00:00Z'
+    }
+    const html = renderSection({ wiki: null, navigation: navigationFixture })
+    expect(html).toContain('离线快照')
+    expect(html).toContain('展示最后一次成功查看的导航索引')
+  })
 })

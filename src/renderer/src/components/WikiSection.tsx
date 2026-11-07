@@ -119,6 +119,10 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
     {navigation && <>
       <Typography.Paragraph className="mt-3">
         版本 R{navigation.revisionNo} · 导航索引 · {statusNames[navigation.status]} · 成功 {navigation.generated} · 失败 {navigation.failed} · 跳过 {navigation.skipped}
+        {/* Issue 101: the cached navigation index carries the same 离线快照 label. */}
+        {navigation.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{navigation.capturedAt ? `（${navigation.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功查看的导航索引
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{navigation.manifestHash}</Typography.Paragraph>
       {navigation.status === 'partial' && <Alert type="warning" message="部分页面未生成：缺失的页面不代表完整 Wiki" />}

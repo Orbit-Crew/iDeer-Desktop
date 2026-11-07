@@ -65,6 +65,12 @@ export const toDatasetView = (input: unknown): DatasetView => {
     errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt }
 }
 
+/** Issue 101: the 离线快照 annotation a cached view carries — present only
+ * when the Runtime actually served the cached copy, never on a live view. */
+const offlineAnnotation = (outcome: Record<string, unknown>): { offline?: boolean; capturedAt?: string } =>
+  ({ offline: outcome.offline === true ? true : undefined,
+    capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined })
+
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
   private child: ChildProcessWithoutNullStreams | null = null
@@ -1681,10 +1687,7 @@ export class RuntimeProcess {
               kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, status: outcome.status,
               generated: outcome.generated, failed: outcome.failed,
-              // Issue 101: the 离线快照 annotation rides only when the Runtime
-              // served the cached copy; a live view never claims it.
-              offline: outcome.offline === true ? true : undefined,
-              capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined,
+              ...offlineAnnotation(outcome),
               entities: outcome.entities.slice(0, 200).map((row: Record<string, unknown>) => ({
                 name: text(row?.name, 200), type: text(row?.type, 64),
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255) })),
@@ -1734,9 +1737,7 @@ export class RuntimeProcess {
                 filename: text(outcome.filename, 255), title: text(outcome.title, 200),
                 contentHash: text(outcome.contentHash, 64), status: outcome.status,
                 errorCode: text(outcome.errorCode, 64), body,
-                // Issue 101: the cached page read keeps its 离线快照 annotation.
-                offline: outcome.offline === true ? true : undefined,
-                capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined })
+                ...offlineAnnotation(outcome) })
               continue
             }
             // Wiki page list: only the Server's own page/progress/source facts.
@@ -1750,8 +1751,7 @@ export class RuntimeProcess {
             pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, status: outcome.status,
               generated: outcome.generated, failed: outcome.failed, skipped: outcome.skipped,
-              offline: outcome.offline === true ? true : undefined,
-              capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined,
+              ...offlineAnnotation(outcome),
               pages: outcome.pages.slice(0, 200).map((row: Record<string, unknown>) => ({
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
                 title: text(row?.title, 200), contentHash: text(row?.contentHash, 64),

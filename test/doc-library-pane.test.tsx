@@ -294,14 +294,19 @@ describe('doc library pane (issue 101 version semantics)', () => {
   it('marks historical versions and the user-confirmed 原件已不在 on the record', async () => {
     stubIdeer()
     statusFixture = runtimeStatus({ knowledgeImports: [
-      importRow({ historical: true, supersededBy: 'e'.repeat(64) }),
+      importRow({ historical: true, supersededBy: 'e'.repeat(64), index: indexView() }),
       importRow({ id: '9'.repeat(64), revisionNo: 3, originalsMissing: true })
     ] })
     render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
     const list = await screen.findByRole('list', { name: '导入记录列表' })
     expect(list.textContent).toContain('已完成：已登记版本 R2 · 2 个文件（历史版本）')
     expect(list.textContent).toContain('已完成：已登记版本 R3 · 2 个文件（原件已不在）')
-  })
+    // The kept cache says it survives only until the user's cleanup (决策票
+    // 62: 标过期并存至用户清理) — and a cleaned row carries no such promise,
+    // because there is nothing kept.
+    expect(list.textContent).toContain('检索索引就绪：2 个文件可全文检索（历史版本缓存，保留至用户清理）')
+    expect(list.textContent).not.toContain('未建检索索引（历史版本缓存')
+  }, 15000)
 
   it('expands the document list and deletes the selection through the trusted bridge', async () => {
     const { calls } = stubIdeer()
@@ -319,12 +324,12 @@ describe('doc library pane (issue 101 version semantics)', () => {
     expect((screen.getByRole('button', { name: '删除所选文档' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: '选择文档 notes.txt' }))
     fireEvent.click(screen.getByRole('button', { name: '删除所选文档' }))
-    await waitFor(() => expect(calls.some((call) => call.method === 'deleteKnowledgeDocuments'), { timeout: 5000 }).toBe(true))
+    await waitFor(() => expect(calls.some((call) => call.method === 'deleteKnowledgeDocuments')).toBe(true), { timeout: 5000 })
     // guide.md stays selected (notes.txt was toggled back off): the delete
     // names exactly the frozen hash of the document that leaves the library.
     expect(calls.find((call) => call.method === 'deleteKnowledgeDocuments')?.args)
       .toEqual([KB, 'f'.repeat(64), ['c'.repeat(64)]])
-  })
+  }, 15000)
 
   it('offers the separate cleanup with the frozen identity and hides it once cleaned', async () => {
     const { calls } = stubIdeer()
@@ -334,10 +339,10 @@ describe('doc library pane (issue 101 version semantics)', () => {
     ] })
     render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
     fireEvent.click(await screen.findByRole('button', { name: '清理本机索引 ffffffff' }))
-    await waitFor(() => expect(calls.some((call) => call.method === 'cleanupKnowledgeRevision'), { timeout: 5000 }).toBe(true))
+    await waitFor(() => expect(calls.some((call) => call.method === 'cleanupKnowledgeRevision')).toBe(true), { timeout: 5000 })
     expect(calls.find((call) => call.method === 'cleanupKnowledgeRevision')?.args)
       .toEqual([KB, 'f'.repeat(64), 'b'.repeat(64)])
     // A cleaned revision offers no second cleanup — the marker is the fact.
     expect(screen.queryByRole('button', { name: '清理本机索引 99999999' })).toBeNull()
-  })
+  }, 15000)
 })

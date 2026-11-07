@@ -1115,6 +1115,16 @@ def main() -> int:
                     if dataset_command['scope'] != workspace.scope():
                         raise DatasetError('DATASETS_IDENTITY_CHANGED')
                     owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    # Issue 101: a named knowledge revision binding is
+                    # fail-closed like every other version seam — only a
+                    # revision this identity registered on this device can be
+                    # bound, so a dataset can never display an identity it
+                    # never accompanied.
+                    binding_kb = dataset_command.get('kbId', '')
+                    binding_revision = dataset_command.get('revisionId', '')
+                    if isinstance(binding_kb, str) and binding_kb and isinstance(binding_revision, str) and binding_revision \
+                            and knowledge_imports.find_registration_by_revision(owner, binding_kb, binding_revision) is None:
+                        raise DatasetError('DATASETS_REVISION_UNKNOWN')
                     result = datasets_manage(dataset_command, registry=datasets_registry, owner=owner)
                 except DatasetError as exc:
                     # Only fixed categories cross the Desktop boundary; file
