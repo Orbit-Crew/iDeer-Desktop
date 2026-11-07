@@ -6,7 +6,7 @@ import { DatasetSection } from './DatasetSection'
 import { KnowledgeGraphSection } from './KnowledgeGraphSection'
 import { SkillSection } from './SkillSection'
 import { WikiSection } from './WikiSection'
-import type { ConnectorCommand, DatasetCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportDocumentView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
+import type { ConnectorCommand, DatasetCommand, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportDocumentView, KnowledgeSimilarityView, SkillCommand, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../../../shared/desktop'
 
 const PLATFORM_PARSE_HINT = '设备侧未解析或解析失败的文件不会被静默丢弃：可用下方「发布此版本到服务端…」把原件显式上传给平台解析。'
 
@@ -60,6 +60,7 @@ export default function RuntimePanel(): JSX.Element {
   const [graphLocated, setGraphLocated] = useState<Record<string, KnowledgeGraphSourceLocation>>({})
   const [graphQueryResult, setGraphQueryResult] = useState<KnowledgeGraphQueryResult | null>(null)
   const [graphAskResult, setGraphAskResult] = useState<KnowledgeGraphAskResult | null>(null)
+  const [similarity, setSimilarity] = useState<KnowledgeSimilarityView | null>(null)
   const [graphSelection, setGraphSelection] = useState<Record<string, boolean>>({})
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphError, setGraphError] = useState('')
@@ -134,14 +135,16 @@ export default function RuntimePanel(): JSX.Element {
     if (command.action === 'view' || command.action === 'generate') {
       // A new revision context resets the frozen scope, its sources, and the
       // scoped answers; search/ask keep the graph view mounted so the
-      // selected scope stays visible next to its results.
-      setGraph(null); setGraphLocated({}); setGraphSelection({}); setGraphQueryResult(null); setGraphAskResult(null)
+      // selected scope stays visible next to its results. The device
+      // similarity layer (#99) belongs to that revision context too.
+      setGraph(null); setGraphLocated({}); setGraphSelection({}); setGraphQueryResult(null); setGraphAskResult(null); setSimilarity(null)
     }
     void window.ideer.knowledgeGraph(command)
       .then(result => {
         if (command.action === 'locate') setGraphLocated(current => ({ ...current, [command.documentId as string]: result as KnowledgeGraphSourceLocation }))
         else if (command.action === 'search') setGraphQueryResult(result as KnowledgeGraphQueryResult)
         else if (command.action === 'ask') setGraphAskResult(result as KnowledgeGraphAskResult)
+        else if (command.action === 'similarity') setSimilarity(result as KnowledgeSimilarityView)
         else setGraph(result as KnowledgeGraphView)
       })
       .catch(() => setGraphError('需要已认证会话，且版本与所选文档对当前账号可见'))
@@ -270,6 +273,7 @@ export default function RuntimePanel(): JSX.Element {
     <KnowledgeGraphSection
       runtime={runtime}
       graph={graph}
+      similarity={similarity}
       located={graphLocated}
       queryResult={graphQueryResult}
       askResult={graphAskResult}
