@@ -77,6 +77,12 @@ export interface KnowledgeImportView {
   status: 'registered' | 'failed'
   errorCode: string
   createdAt: string
+  /** Issue 96: the platform project identity when the registration response
+   * carried one; the library identity stays kbId/revisionId. */
+  projectId: string
+  /** Issue 96: where a folder batch came from — the workspace-logical folder
+   * and how many files it held. The stored paths never cross the bridge. */
+  source: { kind: string; folder: string; pathCount: number } | null
   documents: KnowledgeImportDocumentView[]
 }
 export interface KnowledgeImportOutcome {
@@ -85,6 +91,24 @@ export interface KnowledgeImportOutcome {
   revisionNo: number
   manifestHash: string
   documentCount: number
+}
+/** Issue 96: the doc library's one background folder import job. */
+export interface KnowledgeFolderFailureView { filename: string; errorCode: string }
+export interface KnowledgeFolderJobView {
+  state: 'running' | 'completed' | 'canceled' | 'failed'
+  kbId: string
+  folder: string
+  totalFiles: number
+  processedFiles: number
+  registeredBatches: number
+  registeredDocuments: number
+  failedBatches: number
+  skippedDuplicates: number
+  skippedUnsupported: number
+  skippedLinks: number
+  truncated: boolean
+  error: string
+  failures: KnowledgeFolderFailureView[]
 }
 /** Issue 115: device-local display fact for one explicit server publication. */
 export interface KnowledgePublicationView {
@@ -788,6 +812,8 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   knowledgeImports?: KnowledgeImportView[]
   knowledgeImportStorageError?: string
+  /** Issue 96: the doc library's one background folder import job, or null. */
+  knowledgeFolderImport?: KnowledgeFolderJobView | null
   /** Issue 102: this identity's own dataset registry rows (bounded) plus the
    * honest storage error; the rows ride the same 0.5 s status snapshot. */
   datasets?: DatasetView[]
@@ -886,6 +912,17 @@ export interface DesktopBridge {
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
   /** Issue 112: explicit local import; the main process picks files and confirms. */
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
+  /** Issue 96: the doc library's recursive folder import; the main process
+   * picks the directory and confirms, the Runtime runs the job in background. */
+  knowledgeFolderImport(kbId: string): Promise<KnowledgeFolderJobView>
+  /** Issue 96: cancel the running folder import at the next file or batch. */
+  knowledgeFolderCancel(): Promise<{ canceled: boolean }>
+  /** Issue 96: batch-delete selected import records (device-local display rows
+   * only); the confirmation stays in the trusted main process. */
+  deleteKnowledgeImports(ids: string[]): Promise<{ deleted: number }>
+  /** Issue 96: re-import one failed record's stored files through the
+   * ordinary import seam; the confirmation stays in the trusted main process. */
+  retryKnowledgeImport(recordId: string): Promise<KnowledgeImportOutcome>
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */

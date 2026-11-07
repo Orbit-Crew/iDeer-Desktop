@@ -3,6 +3,7 @@ import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
 import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
+import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
@@ -127,12 +128,22 @@ describe('bootstrap capability boundary', () => {
     // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
     // resize and kill on desktop-local PTY sessions — a separate minimal
     // bridge that never rides the trusted desktop:* channel.
+    // Issue 96 adds desktop:knowledge:folder + desktop:knowledge:folder-cancel
+    // for the doc library's recursive folder import: the renderer names the
+    // platform KB identity only, the directory picking and confirmation stay
+    // in the trusted main process, and the Runtime runs the walk/dedup/
+    // registration job in background with cancel. It also adds
+    // desktop:knowledge:delete + desktop:knowledge:retry for the batch
+    // management of the import records: deletes and retries are confirmed in
+    // the trusted main process, a delete only removes device-local display
+    // rows, and the retry's stored workspace-logical sources are re-verified
+    // by the Runtime against the grant of this moment.
     // Issue 86 adds desktop:preferences for the shell's device-local
     // window-lifecycle preference (close-to-tray vs 关窗即退出): the renderer
     // reads and writes the one boolean; the store itself lives in the trusted
     // main process because main needs it at close time.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:delete', 'desktop:knowledge:folder', 'desktop:knowledge:folder-cancel', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:retry', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -210,17 +221,21 @@ describe('dock pane security seam (issue 71)', () => {
     // Issue 112 wires the native `office` pane the same way — a read-only
     // observer on the existing chat state read, with zero own IPC surface
     // (pinned in test/office-bridge.test.ts).
+    // Issue 96 wires the native `kb` pane the same way — the doc library uses
+    // the trusted desktop:knowledge:* family only (folder import with cancel,
+    // batch delete/retry), pinned in its own pane test.
     // Issue 113 wires the native `synapse` pane the same way — the map uses
     // the trusted bridge for the Server's own thread rows and the read-only
     // state read, and its open/branch actions ride the session store into
     // the conversation's serialized command path.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'synapse'].includes(p.id))
-    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'kb', 'synapse'].includes(p.id))
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
 
     expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'synapse']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'kb', 'synapse']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
@@ -332,5 +347,17 @@ describe('dock pane security seam (issue 71)', () => {
     expect(csp).toContain("frame-src http: https:")
     expect(csp).toContain("connect-src 'none'")
     expect(csp).toMatch(/default-src 'none'/)
+  })
+
+  it('keeps every trusted invoke handler behind the main-frame sender check', () => {
+    // The trusted-channel convention: every registered invoke handler
+    // verifies the invoking frame before it touches the Runtime or local
+    // state — one unchecked registration leaves that command family open to
+    // a rogue-frame sender, so the counts can never drift apart.
+    const wiring = readFileSync('src/main/index.ts', 'utf8')
+    const registrations = wiring.match(/ipcMain\.handle\(/g) ?? []
+    const senderChecks = wiring.match(/requireMainFrame\(event\)/g) ?? []
+    expect(registrations.length).toBeGreaterThan(30)
+    expect(senderChecks.length).toBe(registrations.length)
   })
 })

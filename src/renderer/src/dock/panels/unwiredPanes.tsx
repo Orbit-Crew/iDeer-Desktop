@@ -1,16 +1,11 @@
 // Native panel types whose capability is not wired yet (issue 71). They keep
 // the original column position with an honest status; unlike external-content
 // panes these may use the trusted bridge once their capability lands, so they
-// live outside the security seam module. Issue 94 wired `files`; `kb` waits
-// for the knowledge phase.
+// live outside the security seam module. Issue 94 wired `files`; issue 96
+// wired `kb` as the doc library page.
 import type { PanelTypeId } from '../types'
 
-const UNWIRED_PANE_STATUS: Partial<Record<PanelTypeId, { headline: string; detail: string }>> = {
-  kb: {
-    headline: '知识库窗格未接入',
-    detail: '知识导入、图谱与 Wiki 当前在"本机 Runtime"面板，知识阶段迁入对应窗格。'
-  }
-}
+const UNWIRED_PANE_STATUS: Partial<Record<PanelTypeId, { headline: string; detail: string }>> = {}
 
 // instanceId 保持未用：占位窗格无实例状态，签名与面板注册表保持一致。
 export function UnwiredNativePane({ panelType }: {

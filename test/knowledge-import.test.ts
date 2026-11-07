@@ -41,3 +41,52 @@ describe('explicit local knowledge import bridge', () => {
     }
   }, 30000)
 })
+
+describe('doc library folder import and record management bridge (#96)', () => {
+  it('validates the folder, cancel and record-management commands before the Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-96/unused')
+    for (const kbId of ['', 'not-a-uuid', `${KB}/extra`, KB.slice(1)]) {
+      await expect(runtime.importKnowledgeFolder(kbId, 'C:/work/library')).rejects.toThrow('KNOWLEDGE_IMPORT_KB_INVALID')
+    }
+    for (const folder of ['', `C:/${'x'.repeat(33000)}/library`]) {
+      await expect(runtime.importKnowledgeFolder(KB, folder)).rejects.toThrow('KNOWLEDGE_IMPORT_PATHS_INVALID')
+    }
+    await expect(runtime.importKnowledgeFolder(KB, 'C:/work/library')).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    await expect(runtime.cancelKnowledgeFolder()).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+    // A stopped Runtime has no folder job; the doc library starts empty.
+    expect(runtime.status().knowledgeFolderImport ?? null).toBeNull()
+    for (const ids of [[], new Array(101).fill('a'.repeat(64)), [''], ['a'.repeat(65)], [7], ['a'.repeat(64), '']]) {
+      await expect(runtime.deleteKnowledgeImports(ids as never)).rejects.toThrow('KNOWLEDGE_IMPORT_IDS_INVALID')
+    }
+    await expect(runtime.deleteKnowledgeImports(['a'.repeat(64)])).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    for (const id of ['', 'short', `${'a'.repeat(64)}x`, 7]) {
+      await expect(runtime.retryKnowledgeImport(id as never)).rejects.toThrow('KNOWLEDGE_IMPORT_ID_INVALID')
+    }
+    await expect(runtime.retryKnowledgeImport('a'.repeat(64))).rejects.toThrow('RUNTIME_UNAVAILABLE')
+  })
+
+  it.skipIf(process.platform !== 'win32')('delivers folder import and record management through the actual bundled Runtime', async () => {
+    const profile = mkdtempSync(join(tmpdir(), 'ideer-folder-bridge-'))
+    const runtime = new RuntimeProcess(resolve('.runtime'), profile)
+    try {
+      await runtime.start()
+      const deadline = Date.now() + 15000
+      while (runtime.status().process !== 'running' && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50))
+      // No confirmed workspace: the folder job refuses before any read; the
+      // fixed category crosses the bridge and no job display fact appears.
+      await expect(runtime.importKnowledgeFolder(KB, join(profile, 'library')))
+        .rejects.toThrow('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      expect(runtime.status().knowledgeFolderImport ?? null).toBeNull()
+      // Cancel without a job is an honest no-op; an unknown record refuses.
+      await expect(runtime.cancelKnowledgeFolder()).resolves.toEqual({ canceled: true })
+      await expect(runtime.deleteKnowledgeImports(['b'.repeat(64)])).resolves.toEqual({ deleted: 0 })
+      await expect(runtime.retryKnowledgeImport('c'.repeat(64)))
+        .rejects.toThrow('KNOWLEDGE_IMPORT_RECORD_NOT_FOUND')
+      expect(runtime.status().knowledgeImports ?? []).toEqual([])
+    } finally {
+      await runtime.stop()
+      rmSync(profile, { recursive: true, force: true })
+    }
+  }, 30000)
+})
