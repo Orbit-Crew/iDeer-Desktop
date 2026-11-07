@@ -297,6 +297,9 @@ export default function RuntimePanel(): JSX.Element {
     {history?.rows.map(row => <Typography.Paragraph key={row.receipt_id}>
       {row.task_id} · {row.run_id} · {row.tool_call_id} · {row.capability} · {row.logical_target} · {row.user_id} / {row.device_id} · {row.status} · {row.error_code} ·
       {{ pending: '待确认，等待原身份合法连接', confirmed: 'Server 已确认', uncertain: '结果待核实', cleaned: '已清理，保留标记' }[row.delivery_state] || row.delivery_state}
+      {/* Issue 95: a record from another device honestly names where its
+          local side lives — the marking follows the local-result idiom. */}
+      {login?.deviceId && row.device_id !== login.deviceId ? ' · 仅原设备' : ''}
     </Typography.Paragraph>)}
     <Typography.Title level={5} className="mt-5">近期任务</Typography.Title>
     {!runtime?.tasks.length ? <Typography.Text type="secondary">暂无任务记录</Typography.Text> : runtime.tasks.map((task, index) => <Typography.Paragraph key={`${task.taskId}-${index}`}>

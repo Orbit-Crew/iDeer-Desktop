@@ -22,6 +22,9 @@ export interface LoginStatus {
   device: string
   error: string
   verification?: string
+  /** Issue 95: the bound device id while authenticated — lets history views
+   * mark records from another device as 仅原设备. Identity fact only. */
+  deviceId?: string
 }
 export interface LocalResultView {
   task_id: string
