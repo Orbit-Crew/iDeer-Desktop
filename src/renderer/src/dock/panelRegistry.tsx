@@ -29,6 +29,7 @@ import TerminalPane from './panels/terminalPane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 import OfficePane from './panels/officePane'
+import FieldPane from './panels/fieldPane'
 
 /** chat 锚点内容：桌面平台聊天（无路由，锚点窗格直接承载） */
 export function ChatAnchorContent(): JSX.Element {
@@ -61,7 +62,10 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
   { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
+  // Issue 116: the field pane — the Tecplot structured IJK ASCII subset on
+  // the #94 guarded read seam, rendered on the CAD pane's software canvas
+  // idiom; desktop-local results, never external content.
+  { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: FieldPane },
   { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
   { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane },
   { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane },

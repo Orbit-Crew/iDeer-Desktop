@@ -98,6 +98,42 @@ linz 的 `ipc/browser` 或浏览器面板源码，无 provenance 条目。实现
 从 `'none'` 放宽为 `http: https:`（仅为承载校验过的 webview，`connect-src` 仍为 `'none'`）。
 安全缝测试更新见 test/security.test.ts；桥键与 webview 断言同步进桌面 smoke。
 
+## 2026-11-07 仿真结果面板恢复（iDeer-Desktop #116）
+
+六期·41 恢复原版 Tecplot 结果面板能力（来源固定为
+[Neowyh/linz f88141b](https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13)
+的 `src/renderer/src/components/panels/tecplot-reader.ts` 与 `SolverResultsPanel.tsx`、
+`vtkViewer.ts`，可在该提交查阅）。本次为**移植适配而非逐行复刻**：解析器与原版
+`tecplot-reader.ts` 同源（分词器、`VARIABLES`/`ZONE` 头解析与 POINT/BLOCK 装载结构），
+带修正与扩展（见下）；因源文件非按原样复制（无法以 SHA-256 对本仓副本核验），无
+provenance 条目，来源以本提交固定引用；不新增任何依赖。实现走 Desktop 自己的缝：
+
+- **零新 IPC 通道**：渲染层只报工作区逻辑路径，读取复用 #94 `desktop:files` 的受控
+  `read`（Runtime 守卫解析，物理路径不出可信主进程）；Tecplot ASCII 恰为该缝的
+  严格 UTF-8 文本预览（1 MiB 封顶，`truncated` 如实标注）。
+- **原版实际支持的子集**：结构化 IJK ASCII（POINT/BLOCK、`VARIABLES`/`ZONE` 头、
+  `F=` 与新式 `DATAPACKING=` 同义）；surface 层即原版
+  `buildStructuredPolydata` 实际构建的 I×J（k=0）quad 面，点云覆盖全部 I×J×K 点；
+  色带复刻原版蓝→灰→红三点迁移；显示模式为原版三种（实体/线框/点云），线框按点
+  标量着色以逐边近似（每边取起点值）。
+- **渲染为本票自建的软件 2D 引擎**：正交投影、画家算法深度排序、头灯着色、
+  拖拽旋转/滚轮缩放，无 WebGL；同一软件画布惯用法亦用于在审的 #115 CAD 查看器。
+  与原版 vtk.js 的既声明分歧：不引入 vtk.js/WebGL，`field` 窗格由此按 #110
+  terminal 先例移出 external-content seam（`runtime: 'native'`），安全缝钉同步。
+- **如实性修正与披露**：Fortran `D` 指数原版被 `parseFloat` 静默截断成假值
+  （`1.0D+03`→`1.0`），本实现读到真值；跳过的 zone（FE 等子集外、头残缺、体不完整、
+  超上限）计数后明示而非消失；非有限值（NaN/±Inf）按文件与按 zone 计数并按中点色
+  显示，不混入量程；截断读取只显示可完整解析的 zone 并明示，截断到零个完整 zone
+  时两个事实一起说；无标量变量的文件如实拒绝着色显示（原版渲染无色几何）；固定
+  上限（zone 128、每 zone 点 2,000,000、变量 64、渲染面 524,288、渲染点 262,144）
+  超限明示。
+- **范围**：对话→面板自动开窗是 #117（结果自动开窗）的范围，本票不含；
+  数值容差验收由既有实施票（iDeer #127）框架承接。
+
+分歧清单与验收记账见
+[docs/acceptance/issue-116-tecplot-panel/report.md](acceptance/issue-116-tecplot-panel/report.md)
+（目录带后缀，避开同仓旧编号 #116 知识图谱票的既有记录）。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。
@@ -112,7 +148,7 @@ linz 的 `ipc/browser` 或浏览器面板源码，无 provenance 条目。实现
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |
 | kb、parsers、database、knowledgeGraph、wiki、sql.js、better-sqlite3 | 暂缓，尚未适配平台身份、Revision 和 Runtime | 知识与技能阶段；原文件重导入，图谱/Wiki 重建，权限/引用/失败及 Win7 native ABI 验证；图片占位不作为 OCR 交付 | Desktop 知识 / Server 治理 |
 | agent-skills、skills、脚本、pandoc、便携 Python | 暂缓，不能直接运行旧技能脚本 | 知识与技能阶段；完整包确认上传 private、固定版本、环境和脚本授权；随包二进制许可证/Win7 验证 | Desktop 技能 / 工具维护者 |
-| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项 | 工具仓及 Desktop 面板维护者 |
+| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D、CATIA、Abaqus 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
 | catia-smart | 暂缓安装分发 | 先核验 SDK/插件权利、依赖和 Win7，再决定阶段，不自动列入下一期 | 工具维护者 |
 | updater、gen-manifest、gen-patch | 暂缓旧未签名更新，不注册补丁文件关联或 CLI 执行 | 一期安全更新；签名、排空、组合恢复和数据保护专项 | Desktop 构建发布 |
 | 旧会话、配置、密钥、自动迁移、macOS/Linux | 排除当前交付范围 | 人工迁移说明由退役阶段提供；不得自动读取或删除旧数据 | 迁移维护者 |
