@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, rmdirSync } = require('node:fs')
+const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, rmdirSync, renameSync } = require('node:fs')
 const { randomUUID } = require('node:crypto')
 const { tmpdir } = require('node:os')
 const { join } = require('node:path')
@@ -66,6 +66,10 @@ async function main() {
       : { args: ['.'] })
   }
   let app
+  // Issue 86: the smoke's own close-preference bytes and any real file they
+  // replaced, restored in finally.
+  let preferencesFile = null
+  let existingPreferences = null
   try {
     app = await electron.launch(options)
     const page = await app.firstWindow()
@@ -92,7 +96,7 @@ async function main() {
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
+      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
@@ -238,26 +242,85 @@ async function main() {
     if (beforeQuitRuntime.runtime.pid) assertRuntimeExited(beforeQuitRuntime.runtime.pid)
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
 
-    // Closing the native window must exit, without a background tray process.
+    // Issue 86: the device-local close preference lives in main's userData;
+    // the smoke writes the exact bytes it needs and restores any real file.
+    const preferenceTarget = join(runtime.data, 'preferences.json')
+    preferencesFile = preferenceTarget
+    existingPreferences = existsSync(preferenceTarget) ? readFileSync(preferenceTarget, 'utf8') : null
+    const writeClosePreference = (closeToTray) => {
+      mkdirSync(runtime.data, { recursive: true })
+      writeFileSync(preferenceTarget, JSON.stringify({ closeToTray }))
+    }
+    // Issue 86: closing the native window must hide to the tray and keep
+    // running (Runtime included) — a close never exits by itself. The true
+    // exit happens through the real exit path: the renderer's 退出应用, which
+    // runs the drain coordinator and then quits.
+    writeClosePreference(true)
     app = await electron.launch(options)
     const reopenedPage = await app.firstWindow()
     await reopenedPage.locator('[data-desktop-ready="true"]').waitFor()
     if (process.platform === 'win32') await waitRuntimeState(reopenedPage, 'running')
     const beforeCloseRuntime = await reopenedPage.evaluate(() => window.ideer.getStatus())
     await recordProcesses('restart-before-native-close', 'running')
-    const closed = app.waitForEvent('close')
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
-    await closed
+    const hiddenDeadline = Date.now() + 5000
+    for (;;) {
+      const state = await app.evaluate(({ BrowserWindow }) => {
+        const win = BrowserWindow.getAllWindows()[0]
+        return { present: Boolean(win), visible: win ? win.isVisible() : false }
+      })
+      if (state.present && !state.visible) break
+      if (Date.now() > hiddenDeadline) throw new Error('Window close did not hide to the tray')
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    await recordProcesses('after-native-close-still-resident', 'running')
+    const residentExited = app.waitForEvent('close')
+    await reopenedPage.evaluate(() => window.ideer.quit())
+    await residentExited
     app = null
-    await recordProcesses('after-native-close', 'exited')
+    await recordProcesses('after-resident-quit', 'exited')
     if (beforeCloseRuntime.runtime.pid) assertRuntimeExited(beforeCloseRuntime.runtime.pid)
+    assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
+
+    // Issue 86: with 关窗即退出 set, the native close itself is the true exit —
+    // it routes through the drain coordinator and then quits.
+    writeClosePreference(false)
+    app = await electron.launch(options)
+    const prefPage = await app.firstWindow()
+    await prefPage.locator('[data-desktop-ready="true"]').waitFor()
+    const beforeExitRuntime = await prefPage.evaluate(() => window.ideer.getStatus())
+    const prefExited = app.waitForEvent('close')
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+    await prefExited
+    app = null
+    await recordProcesses('after-close-to-exit', 'exited')
+    if (beforeExitRuntime.runtime.pid) assertRuntimeExited(beforeExitRuntime.runtime.pid)
     assert.equal(readFileSync(oldData, 'utf8'), 'legacy-history-must-survive')
     console.log(JSON.stringify({ result: 'passed', platform: process.platform, elapsedMs: Date.now() - started, runtime,
       checks: ['unconnected-ui', 'session-directory', 'sandbox', 'ipc-rejection', 'navigation-popup-csp',
-        'sidebar', 'resize', ...(process.env.DESKTOP_EXECUTABLE ? ['second-instance'] : []), 'ui-quit', 'native-close']
+        'sidebar', 'resize', ...(process.env.DESKTOP_EXECUTABLE ? ['second-instance'] : []), 'ui-quit',
+        'native-close-resident', 'resident-quit', 'close-to-exit']
     }, null, 2))
   } finally {
     if (app) await app.close()
+    // Issue 86: the smoke's own preference bytes are removed again; a real
+    // preference file that existed before is restored verbatim — written
+    // unconditionally (the file may have vanished mid-run) through a staged
+    // file + rename so a partial write can never clobber the real bytes
+    // (same idiom as src/main/preferences.ts's atomic store write).
+    if (typeof preferencesFile === 'string') {
+      if (existingPreferences === null) {
+        rmSync(preferencesFile, { force: true })
+      } else {
+        const staged = `${preferencesFile}.smoke-restore-${process.pid}`
+        try {
+          writeFileSync(staged, existingPreferences)
+          renameSync(staged, preferencesFile)
+        } finally {
+          rmSync(staged, { force: true })
+        }
+      }
+    }
     rmSync(oldData, { force: true })
     if (!legacyDirExisted) rmdirSync(legacyDir)
     rmSync(profile, { recursive: true, force: true })
