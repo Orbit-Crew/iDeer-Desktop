@@ -110,6 +110,11 @@ function parseAsciiStl(buffer: Buffer): ParsedMesh {
     )
   }
   const triangles = Math.floor(positions.length / 9)
+  if (positions.length % 9 !== 0) {
+    // An incomplete trailing vertex is corruption, not a smaller model —
+    // refuse it instead of silently displaying a truncated shape.
+    throw new CadParseError('CAD_MALFORMED_GEOMETRY', `vertex 坐标不完整（${positions.length % 9} 个多余分量）`)
+  }
   return {
     positions: Float32Array.from(positions),
     indices: sequentialIndices(triangles * 3),

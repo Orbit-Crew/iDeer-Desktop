@@ -300,11 +300,11 @@ if (!app.requestSingleInstanceLock()) {
     const cadPane = new CadPaneService({
       locate: (path) => runtime.files('locate', path) as Promise<{ physical: string }>,
       // Packaged: <install>/resources/occt (extraResources, outside the asar).
-      // Development: the checkout's resources/occt, then the npm package copy.
+      // Development: the checkout's own resources/occt — the converter is a
+      // pinned repository resource, never an npm-resolved copy.
       loadOcct: () => loadOcctFromDirs([
         join(process.resourcesPath, 'occt'),
-        join(app.getAppPath(), 'resources', 'occt'),
-        join(process.cwd(), 'node_modules', 'occt-import-js', 'dist')
+        join(app.getAppPath(), 'resources', 'occt')
       ])
     })
     ipcMain.handle('desktop:cad', async (event, command: CadCommand) => {

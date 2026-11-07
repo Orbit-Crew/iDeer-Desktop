@@ -33,7 +33,14 @@ export interface StepMeshData {
   meshCount: number
   vertexCount: number
 }
-export type StepMeshResult = StepMeshData | { success: false; error: string }
+
+/** Why a conversion failed: the engine never loaded (its own honest code
+ * downstream) or the STEP content itself could not be triangulated. */
+export type StepFailureReason = 'engine-unavailable' | 'parse-failed'
+
+export type StepMeshResult =
+  | StepMeshData
+  | { success: false; reason: StepFailureReason; error: string }
 
 export class OcctLoadError extends Error {
   constructor(message: string) {
@@ -87,7 +94,11 @@ export async function stepToMesh(buffer: Buffer, loader: OcctLoader): Promise<St
   try {
     occt = await loader()
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) }
+    return {
+      success: false,
+      reason: 'engine-unavailable',
+      error: error instanceof Error ? error.message : String(error)
+    }
   }
 
   try {
@@ -95,11 +106,12 @@ export async function stepToMesh(buffer: Buffer, loader: OcctLoader): Promise<St
     if (!content || content.success === false) {
       return {
         success: false,
+        reason: 'parse-failed',
         error: content?.error || 'STEP 解析失败（可能是 ASCII/AP 版本不支持或文件损坏）'
       }
     }
     if (!Array.isArray(content.meshes) || content.meshes.length === 0) {
-      return { success: false, error: 'STEP 中未解析出可显示的几何' }
+      return { success: false, reason: 'parse-failed', error: 'STEP 中未解析出可显示的几何' }
     }
 
     // Merge every part's vertices/indices (each part indexes from 0 — offset).
@@ -119,10 +131,14 @@ export async function stepToMesh(buffer: Buffer, loader: OcctLoader): Promise<St
       meshCount += 1
     }
     if (positions.length === 0 || indices.length === 0) {
-      return { success: false, error: 'STEP 三角化后无有效网格' }
+      return { success: false, reason: 'parse-failed', error: 'STEP 三角化后无有效网格' }
     }
     return { success: true, positions, indices, meshCount, vertexCount }
   } catch (error) {
-    return { success: false, error: `STEP 转换失败: ${error instanceof Error ? error.message : String(error)}` }
+    return {
+      success: false,
+      reason: 'parse-failed',
+      error: `STEP 转换失败: ${error instanceof Error ? error.message : String(error)}`
+    }
   }
 }

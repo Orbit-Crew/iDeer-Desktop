@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Input, Select, Spin, Typography, message } from 'antd'
 import { FolderOpenOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import type { CadMeshView, DesktopBridge, DesktopStatus } from '../../../../shared/desktop'
+import { CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES } from '../../../../shared/desktop'
 import { useDockStore } from '../dockStore'
 import ThreeMeshViewer, { type CadRepresentation } from './viewer3d/ThreeMeshViewer'
 import MeshCanvasViewer from './viewer3d/MeshCanvasViewer'
@@ -20,10 +21,15 @@ import MeshCanvasViewer from './viewer3d/MeshCanvasViewer'
 type CadApi = Pick<DesktopBridge, 'cad' | 'getStatus'>
 type CadEngine = 'three' | 'canvas'
 
+const formatMegabytes = (bytes: number): string => `${Math.round(bytes / (1024 * 1024))} MB`
+const formatCount = (count: number): string => count.toLocaleString('en-US')
+
+/** Refusal texts built from the shared cap constants, so the pane never
+ * states a limit the trusted service does not enforce. */
 const CAD_ERROR_TEXT: Record<string, string> = {
   CAD_FORMAT_UNSUPPORTED: '不支持的文件类型；三维窗格仅打开 .stl / .obj / .stp / .step',
-  CAD_FILE_TOO_LARGE: '文件超出查看器 100 MB 上限，未读取',
-  CAD_MESH_TOO_LARGE: '模型三角面数超出查看器 1,000,000 上限（软渲染预算），未显示',
+  CAD_FILE_TOO_LARGE: `文件超出查看器 ${formatMegabytes(CAD_MAX_FILE_BYTES)} 上限，未读取`,
+  CAD_MESH_TOO_LARGE: `模型三角面数超出查看器 ${formatCount(CAD_MAX_TRIANGLES)} 上限（软渲染预算），未显示`,
   CAD_EMPTY_GEOMETRY: '文件中没有可显示的几何',
   CAD_NOT_FOUND: '文件不存在或已被移动',
   CAD_NOT_A_FILE: '路径不是文件',
@@ -64,7 +70,7 @@ interface ViewerState {
   error?: string
 }
 
-export function Viewer3dView({ mesh, representation, engine, onEngineFail }: {
+function Viewer3dView({ mesh, representation, engine, onEngineFail }: {
   mesh: CadMeshView
   representation: CadRepresentation
   engine: CadEngine

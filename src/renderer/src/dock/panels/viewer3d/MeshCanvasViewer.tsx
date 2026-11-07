@@ -119,31 +119,34 @@ export default memo(function MeshCanvasViewer({ positions, indices, representati
       })
     }
 
-    // Back-to-front.
+    // Back-to-front. 点云只画点，与 three.js 引擎的同一表示法语义一致；
+    // 线框/实体照常画三角形。
     tris.sort((p, q) => q.depth - p.depth)
 
-    for (const t of tris) {
-      if (representation === 'surface') {
-        const s = t.shade
-        const r = 120 + 40 * s
-        const g = 150 + 60 * s
-        const b = 205 + 35 * s
-        ctx.fillStyle = `rgb(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)})`
-        ctx.beginPath()
-        ctx.moveTo(t.pts[0][0], t.pts[0][1])
-        ctx.lineTo(t.pts[1][0], t.pts[1][1])
-        ctx.lineTo(t.pts[2][0], t.pts[2][1])
-        ctx.closePath()
-        ctx.fill()
-      } else {
-        ctx.strokeStyle = '#7fb3ff'
-        ctx.lineWidth = Math.max(1, dpr * 0.7)
-        ctx.beginPath()
-        ctx.moveTo(t.pts[0][0], t.pts[0][1])
-        ctx.lineTo(t.pts[1][0], t.pts[1][1])
-        ctx.lineTo(t.pts[2][0], t.pts[2][1])
-        ctx.closePath()
-        ctx.stroke()
+    if (representation !== 'points') {
+      for (const t of tris) {
+        if (representation === 'surface') {
+          const s = t.shade
+          const r = 120 + 40 * s
+          const g = 150 + 60 * s
+          const b = 205 + 35 * s
+          ctx.fillStyle = `rgb(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)})`
+          ctx.beginPath()
+          ctx.moveTo(t.pts[0][0], t.pts[0][1])
+          ctx.lineTo(t.pts[1][0], t.pts[1][1])
+          ctx.lineTo(t.pts[2][0], t.pts[2][1])
+          ctx.closePath()
+          ctx.fill()
+        } else {
+          ctx.strokeStyle = '#7fb3ff'
+          ctx.lineWidth = Math.max(1, dpr * 0.7)
+          ctx.beginPath()
+          ctx.moveTo(t.pts[0][0], t.pts[0][1])
+          ctx.lineTo(t.pts[1][0], t.pts[1][1])
+          ctx.lineTo(t.pts[2][0], t.pts[2][1])
+          ctx.closePath()
+          ctx.stroke()
+        }
       }
     }
     if (representation === 'points') {

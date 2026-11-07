@@ -9,7 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { build } from 'esbuild'
 import { afterAll, describe, expect, it } from 'vitest'
-import { CadPaneService, CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES } from '../src/main/cadPane'
+import { CadPaneService } from '../src/main/cadPane'
+import { CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES } from '../src/shared/desktop'
 
 const workspace = mkdtempSync(join(tmpdir(), 'ideer-cad-'))
 const subdirectory = join(workspace, 'parts')

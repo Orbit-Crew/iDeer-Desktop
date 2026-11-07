@@ -95,6 +95,12 @@ describe('ASCII STL parsing (issue 115)', () => {
     const ascii = 'solid bad\nfacet\nvertex 1 2\nendfacet\nendsolid bad\n'
     expect(() => parseStl(Buffer.from(ascii, 'utf8'))).toThrowError(expect.objectContaining({ code: 'CAD_MALFORMED_GEOMETRY' }))
   })
+
+  it('refuses an incomplete trailing vertex instead of truncating silently', () => {
+    // 10 floats: three full vertices plus one orphan coordinate.
+    const ascii = 'solid bad\n' + ['vertex 0 0 0', 'vertex 1 0 0', 'vertex 0 1 0', 'vertex 5'].join('\n') + '\nendsolid bad\n'
+    expect(() => parseStl(Buffer.from(ascii, 'utf8'))).toThrowError(expect.objectContaining({ code: 'CAD_MALFORMED_GEOMETRY' }))
+  })
 })
 
 describe('OBJ parsing (issue 115)', () => {
@@ -151,18 +157,19 @@ describe('STEP triangulation with an injected converter (issue 115)', () => {
 
   it('reports the converter failure instead of inventing geometry', async () => {
     const result = await stepToMesh(Buffer.alloc(0), () => Promise.resolve(fakeOcct({ success: false, error: 'bad AP' })))
-    expect(result).toEqual({ success: false, error: 'bad AP' })
+    expect(result).toEqual({ success: false, reason: 'parse-failed', error: 'bad AP' })
     expect(await stepToMesh(Buffer.alloc(0), () => Promise.resolve(fakeOcct(null))))
-      .toEqual({ success: false, error: 'STEP 解析失败（可能是 ASCII/AP 版本不支持或文件损坏）' })
+      .toEqual({ success: false, reason: 'parse-failed', error: 'STEP 解析失败（可能是 ASCII/AP 版本不支持或文件损坏）' })
   })
 
   it('refuses content with no displayable meshes and converter crashes alike', async () => {
     expect(await stepToMesh(Buffer.alloc(0), () => Promise.resolve(fakeOcct({ meshes: [] }))))
-      .toEqual({ success: false, error: 'STEP 中未解析出可显示的几何' })
+      .toEqual({ success: false, reason: 'parse-failed', error: 'STEP 中未解析出可显示的几何' })
     expect(await stepToMesh(Buffer.alloc(0), () => Promise.resolve(fakeOcct({
       meshes: [{ attributes: { position: { array: [] } }, index: { array: [] } }]
-    })))).toEqual({ success: false, error: 'STEP 三角化后无有效网格' })
+    })))).toEqual({ success: false, reason: 'parse-failed', error: 'STEP 三角化后无有效网格' })
+    // An engine that never loaded is its own category, distinct from a bad file.
     expect(await stepToMesh(Buffer.alloc(0), () => Promise.reject(new Error('wasm crashed'))))
-      .toEqual({ success: false, error: 'wasm crashed' })
+      .toEqual({ success: false, reason: 'engine-unavailable', error: 'wasm crashed' })
   })
 })

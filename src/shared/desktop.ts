@@ -977,6 +977,17 @@ export interface CadMeshView {
 export interface CadMeshStats { meshes: number; vertices: number; triangles: number }
 
 /**
+ * Issue 115: the CAD viewer's caps, shared by the trusted main service that
+ * enforces them and the pane whose refusal texts state them — one vocabulary,
+ * so the enforced number and the displayed number can never drift.
+ * The file cap is the original viewer's STEP limit, now covering every
+ * format; the triangle budget is the software-render policy on the
+ * disabled-GPU baseline (docs/porting.md, 2026-11-07).
+ */
+export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
+export const CAD_MAX_TRIANGLES = 1_000_000
+
+/**
  * Issue 107: the local browser pane's one fixed session partition. Login
  * state, cookies and site data live here — never in the app's default session
  * (which carries the device's own surfaces) and never in the system browser.

@@ -10,17 +10,9 @@
 // (STL/OBJ/STP/STEP — the original viewer's real formats) is the whitelist.
 // Geometry editing does not exist on this channel.
 import { closeSync, openSync, readSync, statSync, readFileSync } from 'node:fs'
-import type { CadMeshFormat, CadMeshStats, CadMeshView } from '../shared/desktop'
+import { CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES, type CadMeshFormat, type CadMeshStats, type CadMeshView } from '../shared/desktop'
 import { binaryStlCountFromHeader, CadParseError, parseObj, parseStl } from './cad/meshReaders'
 import { stepToMesh, type OcctLoader } from './cad/stepToMesh'
-
-/** Issue 115: the size cap matches the original viewer's STEP limit and now
- * covers every format — the honest boundary of what this pane will read. */
-export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
-/** Issue 115: the triangle budget for the software-rendered path (SwiftShader
- * on the disabled-GPU baseline). Beyond it the pane says so instead of
- * freezing the window. */
-export const CAD_MAX_TRIANGLES = 1_000_000
 
 const CAD_EXTENSIONS: Record<string, CadMeshFormat> = {
   '.stl': 'stl',
@@ -127,9 +119,7 @@ export class CadPaneService {
     }
     const result = await stepToMesh(buffer, this.loadOcct)
     if (!result.success) {
-      if (result.error.startsWith('未找到 occt-import-js') || result.error.startsWith('OpenCASCADE WASM 加载失败')) {
-        throw new Error('CAD_OCCT_UNAVAILABLE')
-      }
+      if (result.reason === 'engine-unavailable') throw new Error('CAD_OCCT_UNAVAILABLE')
       throw new Error(`CAD_STEP_PARSE_FAILED: ${result.error}`)
     }
     return {
