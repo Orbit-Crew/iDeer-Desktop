@@ -91,7 +91,10 @@ class BrowserLogin:
                 or device.get('status') not in {'pending', 'online', 'offline'}):
             raise ValueError('DEVICE_BINDING_INVALID')
         self._status = {"state": "authenticated", "account": str(account["email"])[:256],
-                        "device": settings.device_name, "error": ""}
+                        "device": settings.device_name, "error": "",
+                        # Issue 95: the bound device id lets the renderer mark
+                        # cross-device history as 仅原设备; identity fact only.
+                        "deviceId": settings.device_id}
         self._origin_binding = self._binding(settings)
 
     def status(self) -> dict:
@@ -226,7 +229,10 @@ class BrowserLogin:
         self._pending = None
         self._expires_at = datetime.fromisoformat(settings.business_expires_at) if settings.business_expires_at else None
         self._status = {"state": "authenticated", "account": settings.user_name[:256],
-                        "device": settings.device_name, "error": ""}
+                        "device": settings.device_name, "error": "",
+                        # Issue 95: the bound device id lets the renderer mark
+                        # cross-device history as 仅原设备; identity fact only.
+                        "deviceId": settings.device_id}
         self._origin_binding = self._binding(settings)
         return True
 

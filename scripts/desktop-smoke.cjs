@@ -91,8 +91,11 @@ async function main() {
     // Runtime runs the job in background), its cancel command, and the
     // record-management doors deleteKnowledgeImports + retryKnowledgeImport
     // (both confirmed in the trusted main process).
+    // Issue 102 adds the datasets entry: 表格数据集导入 — the renderer names
+    // the action and the project association only; file picking and both
+    // confirmations stay in the trusted main process.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'deleteKnowledgeImports', 'files', 'getStatus',
+      'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'deleteKnowledgeImports', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
       'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])

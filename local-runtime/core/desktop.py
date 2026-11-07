@@ -13,10 +13,12 @@ import uuid
 from pathlib import Path
 
 from .audit import LocalAuditLog
+from .browser_control import BrowserControlService
 from .browser_login import BrowserLogin
 from .browser_remote import BrowserStreamProxy, normalize_input_event
 from .compatibility import CompatibilityGate
 from .connector_install import ConnectorInstallError
+from .datasets import DatasetError, DatasetRegistry, datasets_manage
 from .local_results import LocalResultRegistry
 from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
@@ -95,6 +97,7 @@ def main() -> int:
     template_commands: queue.Queue = queue.Queue(maxsize=1)
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
+    dataset_commands: queue.Queue = queue.Queue(maxsize=1)
     schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -104,6 +107,11 @@ def main() -> int:
     browser_stream_commands: queue.Queue = queue.Queue(maxsize=1)
     browser_input_commands: queue.Queue = queue.Queue(maxsize=256)
     browser_streams: dict = {}
+    # Issue 108: the Desktop's replies to the agent's consented browser
+    # actions. One slot per in-flight request would dead-lock the reader on a
+    # wedged service, so the bounded queue absorbs them until the main loop
+    # routes each to its waiting task.
+    browser_control_results: queue.Queue = queue.Queue(maxsize=64)
     chat_commands: queue.Queue = queue.Queue(maxsize=8)
     install_draining = args.update_health
     output_lock = threading.Lock()
@@ -295,6 +303,30 @@ def main() -> int:
                             isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))):
                     project_commands.put_nowait(command)
                     continue
+                # Issue 102: the table dataset family. A fixed per-action key
+                # set only: import names the main-process-picked file and the
+                # selected platform project (empty = unassociated), delete
+                # names the registry row. The path never reaches a renderer.
+                # The per-action fields are read with .get so a cross-action
+                # key set can never raise inside this reader (the loop guard
+                # only catches ValueError/queue.Full), matching the
+                # knowledge-graph/skill-scripts gate idiom.
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'path', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'datasetId', 'scope'})
+                        and command.get('type') == 'datasets' and isinstance(command.get('id'), str)
+                        and len(command['id']) <= 64
+                        and command.get('action') in {'import', 'delete'}
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and (command['action'] != 'import' or (
+                            isinstance(command.get('path'), str) and 0 < len(command['path']) <= 32768
+                            and isinstance(command.get('projectId'), str)
+                            and len(command['projectId']) <= 128))
+                        and (command['action'] != 'delete' or (
+                            isinstance(command.get('datasetId'), str)
+                            and 0 < len(command['datasetId']) <= 128))):
+                    dataset_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
                         and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
@@ -428,6 +460,15 @@ def main() -> int:
                         and isinstance(command['event'], dict)):
                     browser_input_commands.put_nowait(command)
                     continue
+                # Issue 108: the Desktop's reply to one consented browser
+                # action. The result body is whatever the Desktop sent - the
+                # waiting service validates the bounds, not the reader.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'result', 'error'}
+                        and command['type'] == 'browser-control-result'
+                        and isinstance(command['id'], str) and 0 < len(command['id']) <= 64
+                        and isinstance(command['error'], str)):
+                    browser_control_results.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'command'}
                         and command['type'] == 'chat' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['command'], dict)):
@@ -482,6 +523,12 @@ def main() -> int:
         # transport session.
         audit_log = LocalAuditLog(db_path=args.config.with_name("audit.db"))
         session_tiers = SessionTierRegistry(audit=audit_log)
+        # Issue 108: the agent's controlled browser channel rides this
+        # process's stdout/stdin wire. One service lives across reconnects,
+        # so a rebuilt controller re-attaches the same instance and a pending
+        # action's future survives the socket it started under; the policy is
+        # read fresh on every execution so tray regrades apply immediately.
+        browser_control = BrowserControlService(emit=emit, policy=lambda: controller.client.policy if controller is not None else None)
         # Registered local results are display-only metadata for this identity;
         # they reach a Thread artifact only through the explicit chat upload
         # command, never through observation or task execution.
@@ -489,6 +536,10 @@ def main() -> int:
         # Issue 112: explicit local imports keep the same discipline — the
         # registry stores device-local display facts, never file content.
         knowledge_imports = KnowledgeImportRegistry(args.config.with_name('knowledge-imports.db'))
+        # Issue 102: table dataset imports keep the same registry discipline —
+        # device-local display facts (schema, counts, fingerprints), never row
+        # data, and the original file stays on this machine.
+        datasets_registry = DatasetRegistry(args.config.with_name('datasets.db'))
         # Issue 115: explicit publications record the outcome of a confirmed
         # server copy attempt; a preview alone never writes a row.
         knowledge_publications = KnowledgePublicationRegistry(args.config.with_name('knowledge-publications.db'))
@@ -577,6 +628,9 @@ def main() -> int:
             # Issue 74: the consent coordinator reads the chat session's tier
             # from the same registry the chat commands write.
             controller.client.session_tiers = session_tiers
+            # Issue 108: every rebuilt controller rides the same browser
+            # channel service (created once above this connect()).
+            controller.client.browser_control = browser_control
             connector_service = getattr(controller, 'connector_service', None)
             if connector_service is not None:
                 # Issue 123: the platform canonical identity rides this
@@ -887,6 +941,30 @@ def main() -> int:
                 emit({'v': 1, 'type': 'projects', 'id': project_command['id'],
                       'result': result, 'error': error})
             try:
+                dataset_command = dataset_commands.get_nowait()
+            except queue.Empty:
+                dataset_command = None
+            if dataset_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 102: device-local dataset import/delete on this
+                    # identity's own registry. The workspace scope is the
+                    # fence, the owner binding scopes the rows, and the picked
+                    # original files are only ever read, never moved or removed.
+                    if dataset_command['scope'] != workspace.scope():
+                        raise DatasetError('DATASETS_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    result = datasets_manage(dataset_command, registry=datasets_registry, owner=owner)
+                except DatasetError as exc:
+                    # Only fixed categories cross the Desktop boundary; file
+                    # content and source details never do.
+                    error = str(exc)
+                except Exception:
+                    error = 'DATASETS_FAILED'
+                emit({'v': 1, 'type': 'datasets', 'id': dataset_command['id'],
+                      'result': result, 'error': error})
+            try:
                 model_command = model_commands.get_nowait()
             except queue.Empty:
                 model_command = None
@@ -1047,6 +1125,18 @@ def main() -> int:
                 except Exception:
                     error = 'REMOTE_BROWSER_INPUT_FAILED'
                 emit({'v': 1, 'type': 'browser-input', 'id': input_command['id'], 'error': error})
+            # Issue 108: route each Desktop reply to the browser-control task
+            # waiting on it. An unknown or already-answered id is dropped by
+            # the service itself; the queue never routes to a stale future.
+            try:
+                control_result = browser_control_results.get_nowait()
+            except queue.Empty:
+                control_result = None
+            if control_result and controller is not None:
+                control_service = getattr(controller.client, 'browser_control', None)
+                if control_service is not None:
+                    control_service.resolve(
+                        control_result['id'], control_result.get('result'), control_result['error'])
             try:
                 selection = workspace_commands.get_nowait()
             except queue.Empty:
@@ -1100,6 +1190,10 @@ def main() -> int:
                 skill_rows = skill_imports.view(current_receipt_owner) if current_receipt_owner else []
             except SkillImportError:
                 skill_rows = []
+            try:
+                dataset_rows = datasets_registry.view(current_receipt_owner) if current_receipt_owner else []
+            except DatasetError:
+                dataset_rows = []
             script_service = getattr(controller, 'skill_script_service', None) if controller is not None else None
             try:
                 script_rows = script_service.registry.view(current_receipt_owner) if current_receipt_owner and script_service is not None else []
@@ -1167,6 +1261,8 @@ def main() -> int:
                       "knowledgeImports": knowledge_rows[:20],
                       "knowledgeImportStorageError": knowledge_imports.error,
                       "knowledgeFolderImport": folder_imports.status(),
+                      "datasets": dataset_rows[:20],
+                      "datasetsStorageError": datasets_registry.error,
                       "knowledgePublications": knowledge_publication_rows[:20],
                       "knowledgePublishStorageError": knowledge_publications.error,
                       "skillImports": skill_rows[:20],

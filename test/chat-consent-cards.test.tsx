@@ -162,3 +162,45 @@ describe('Desktop chat settles inline code asks (#105)', () => {
     })))
   })
 })
+
+describe('Desktop chat announces and settles the agent browser control (#108)', () => {
+  const navigateAsk: LocalConsentView = {
+    taskId: 'task-108', runId: 'run-1', threadId: 'thread-A', requestHash: 'c'.repeat(64), kind: 'browser-control',
+    intent: 'input', action: 'navigate', url: 'https://example.com/report'
+  }
+
+  it('announces 正在控制本机浏览器 with the intent and target before approval', () => {
+    render(<ChatView state={snapshotWith([navigateAsk])} busy={false} onCommand={vi.fn()} />)
+    expect(screen.getByText('本机浏览器控制审批')).toBeTruthy()
+    expect(screen.getByText(/正在控制本机浏览器/)).toBeTruthy()
+    expect(screen.getByText(/https:\/\/example\.com\/report/)).toBeTruthy()
+    expect(screen.queryByText(/记住/)).toBeNull()
+  })
+
+  it('settles with plain allow and deny only', async () => {
+    const onCommand = vi.fn().mockResolvedValue(undefined)
+    render(<ChatView state={snapshotWith([navigateAsk])} busy={false} onCommand={onCommand} />)
+    fireEvent.click(screen.getByText('允许本次操作'))
+    await vi.waitFor(() => expect(onCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-108', requestHash: 'c'.repeat(64), decision: 'allow'
+    })))
+    const command = onCommand.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(command.rememberScript).toBeUndefined()
+    cleanup()
+    const denyCommand = vi.fn().mockResolvedValue(undefined)
+    render(<ChatView state={snapshotWith([navigateAsk])} busy={false} onCommand={denyCommand} />)
+    fireEvent.click(screen.getByText('拒绝本次操作'))
+    await vi.waitFor(() => expect(denyCommand).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'consent', taskId: 'task-108', decision: 'deny'
+    })))
+  })
+
+  it('names the observe intent without a target', () => {
+    render(<ChatView state={snapshotWith([{
+      taskId: 'task-108b', runId: 'run-1', threadId: 'thread-A', requestHash: 'd'.repeat(64), kind: 'browser-control',
+      intent: 'observe', action: 'observe', url: ''
+    }])} busy={false} onCommand={vi.fn()} />)
+    expect(screen.getByText(/Agent 正在控制本机浏览器：观察页签列表与页面状态/)).toBeTruthy()
+    expect(screen.queryByText(/^目标：/)).toBeNull()
+  })
+})
