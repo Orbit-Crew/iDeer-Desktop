@@ -85,6 +85,19 @@ def test_set_refuses_an_oversized_path_instead_of_truncating(tmp_path):
     assert registry.view(BINDING_A) == []
 
 
+def test_set_refuses_a_device_name_beyond_the_runtime_wire_grammar(tmp_path):
+    from core.project_binding import ProjectBindingError
+    registry = make_registry(tmp_path)
+    # The main process pins binding rows to a 128-code-point device name and
+    # fail-closes the runtime on anything longer. The login surface allows
+    # 255, so the registry refuses what the wire grammar cannot carry; the
+    # chat seam truncates the login length before this boundary is reached.
+    with pytest.raises(ProjectBindingError) as excinfo:
+        registry.set(BINDING_A, 'proj-1', str(tmp_path), 'x' * 129)
+    assert 'PROJECT_BINDING_OVERFLOW' in str(excinfo.value)
+    assert registry.view(BINDING_A) == []
+
+
 def test_other_device_never_sees_the_binding(tmp_path):
     registry = make_registry(tmp_path)
     registry.set(BINDING_A, 'proj-1', str(tmp_path / 'folder'), '设备一')
@@ -112,6 +125,22 @@ def test_bind_folder_records_device_local_row_without_platform_writes(tmp_path):
         # writes platform state, local files or directory grants.
         assert [(method, path) for method, path, _, _ in records if method != 'GET'] == []
         assert [path for method, path, _, _ in records if method == 'GET' and path == '/api/projects'] == ['/api/projects']
+
+
+def test_bind_truncates_a_login_length_device_name_to_the_wire_cap(tmp_path):
+    with platform() as (origin, records):
+        chat, settings, config = make_chat_with_bindings(tmp_path, origin)
+        # The login surface allows a 255-code-point device name; the binding
+        # row must still stay inside the 128 the main process pins, so the
+        # chat seam truncates the display attribution before storing it.
+        login_name = '设' * 255
+        with_device_name(chat, settings, config, login_name)
+        folder = tmp_path / 'proj-folder'
+        folder.mkdir()
+        result = chat.projects_manage(wire('bind-folder', bind_scope(chat), projectId=PROJECT_A, path=str(folder)))
+        assert result['bound'] is True
+        assert len(result['bindings'][0]['deviceName']) == 128
+        assert result['bindings'][0]['deviceName'] == '设' * 128
 
 
 def test_list_reply_carries_the_device_binding_back(tmp_path):

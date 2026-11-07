@@ -19,6 +19,10 @@ from pathlib import Path
 from typing import Any
 
 MAX_TEXT = 1024
+# The main process pins binding rows to a 128-code-point device name and
+# fail-closes the runtime on anything longer, so the stored fact can never
+# exceed that grammar even though the login surface allows longer names.
+MAX_DEVICE_NAME = 128
 
 
 class ProjectBindingError(RuntimeError):
@@ -81,12 +85,14 @@ class ProjectBindingRegistry:
     def set(self, binding, project_id: str, path: str, device_name: str) -> None:
         """Record or replace this device's binding for one project (补绑).
 
-        A path or device name beyond the registry's cap is a caller bug: it is
-        refused outright instead of silently storing a truncated folder that
-        would never match the folder the dialog confirmed (the wire gates cap
-        the same fields, so this protects direct registry use only).
+        A path or device name beyond the registry's caps is a caller bug: it
+        is refused outright instead of silently storing a truncated folder
+        that would never match the folder the dialog confirmed (the wire
+        gates cap the same fields — the path at MAX_TEXT, the device name at
+        the runtime's 128 grammar — so this protects direct registry use
+        only; the chat seam truncates the login length first).
         """
-        if not isinstance(path, str) or not 0 < len(path) <= MAX_TEXT or len(device_name) > MAX_TEXT:
+        if not isinstance(path, str) or not 0 < len(path) <= MAX_TEXT or len(device_name) > MAX_DEVICE_NAME:
             raise ProjectBindingError("PROJECT_BINDING_OVERFLOW")
 
         def write(db):

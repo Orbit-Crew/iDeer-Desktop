@@ -23,7 +23,7 @@ from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
 from .policy import PolicyDecision
-from .project_binding import ProjectBindingError
+from .project_binding import MAX_DEVICE_NAME, ProjectBindingError
 from .receipt_ledger import profile_binding
 from .scheduled_tasks import SchedulesError, ScheduledTasksClient, ScheduleTaskLedger, map_platform_error
 from .secrets import SecretStore, SecretStoreError
@@ -3138,7 +3138,10 @@ class DesktopChat:
         resolved = os.path.abspath(path)
         if not os.path.isdir(resolved):
             raise ChatError('CHAT_COMMAND_INVALID')
-        device_name = load_settings(self.config).device_name
+        # The login surface allows a longer device name; the binding row is
+        # pinned to the runtime's 128-code-point grammar, so the display
+        # attribution truncates at the seam that stores it.
+        device_name = load_settings(self.config).device_name[:MAX_DEVICE_NAME]
         try:
             self.project_bindings.set(profile_binding(load_settings(self.config)),
                                       project_id, resolved, device_name)
