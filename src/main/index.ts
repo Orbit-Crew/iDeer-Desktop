@@ -6,6 +6,7 @@ import { createMainWindow } from './window'
 import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
+import { AgentBrowserHub, type AgentBrowserPort } from './agentBrowser'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
 import { TerminalSessions } from './terminal'
@@ -129,6 +130,91 @@ if (!app.requestSingleInstanceLock()) {
     browserPane.attachPartition()
     app.on('web-contents-created', (_event, contents) => {
       if (contents.getType() === 'webview') browserPane.hardenGuest(contents)
+    })
+    // Issue 108: the agent's controlled channel into the pane. The Runtime
+    // forwards one consented, tier-resolved action at a time; the hub
+    // announces each action on the pane's fact channel before it runs and
+    // bounds every fact on the way back. The port below is the only place
+    // where the channel touches a real webContents, and every operation is
+    // a fixed gesture — the channel can never run invented page code.
+    const paneGuests = () => webContents.getAllWebContents().filter((contents) =>
+      contents.session === browserSession && contents.getType() === 'webview' && !contents.isDestroyed())
+    const paneGuest = (tabId: number | null) => {
+      const guests = paneGuests()
+      if (tabId !== null) {
+        const named = guests.find((contents) => contents.id === tabId)
+        if (!named) throw new Error('AGENT_BROWSER_NO_TAB')
+        return named
+      }
+      if (guests.length !== 1) throw new Error('AGENT_BROWSER_NO_TAB')
+      return guests[0]
+    }
+    const agentBrowserPort: AgentBrowserPort = {
+      observe: async () => ({
+        tabs: paneGuests().map((contents) => ({ id: contents.id, url: contents.getURL(), title: contents.getTitle() }))
+      }),
+      observeText: async (tabId) => {
+        const contents = paneGuest(tabId)
+        // One fixed read expression — never a caller-supplied script.
+        const text = await contents.executeJavaScript('document.body ? document.body.innerText : ""', false)
+        return { url: contents.getURL(), title: contents.getTitle(), text: typeof text === 'string' ? text : '' }
+      },
+      navigate: async (tabId, url) => {
+        const contents = paneGuest(tabId)
+        await contents.loadURL(url)
+        return { url: contents.getURL() }
+      },
+      goBack: async (tabId) => {
+        paneGuest(tabId).goBack()
+        return {}
+      },
+      goForward: async (tabId) => {
+        paneGuest(tabId).goForward()
+        return {}
+      },
+      reload: async (tabId) => {
+        paneGuest(tabId).reload()
+        return {}
+      },
+      pressKey: async (key, tabId) => {
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'rawKeyDown', keyCode: key })
+        contents.sendInputEvent({ type: 'keyUp', keyCode: key })
+        return {}
+      },
+      typeText: async (text, tabId) => {
+        paneGuest(tabId).insertText(text)
+        return {}
+      },
+      click: async (x, y, tabId) => {
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
+        contents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+        return {}
+      },
+      submit: async (tabId) => {
+        // 提交 means the focused form's own submit: an Enter keystroke on
+        // the guest's focused element — no synthesized page script. Whether
+        // a form actually submitted is unconfirmable from here, so the
+        // result carries no submitted fact (效果待核实: no invented success).
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'rawKeyDown', keyCode: 'Enter' })
+        contents.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' })
+        return {}
+      },
+      download: async (url) => {
+        // The pane session's will-download gate routes this into the
+        // confirmed workspace exactly like a human-started download.
+        browserSession.downloadURL(url)
+        return { queued: true }
+      }
+    }
+    const agentBrowserHub = new AgentBrowserHub(agentBrowserPort, (event) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:browser:events', event)
+    })
+    runtime.onAgentBrowserCommand((id, command) => {
+      void agentBrowserHub.handle(id, command).then((outcome) =>
+        runtime.agentBrowserReply(id, outcome.result, outcome.error))
     })
     mainWindow = createMainWindow()
     // Issue 77: the Desktop's notification center. The owned Runtime reports

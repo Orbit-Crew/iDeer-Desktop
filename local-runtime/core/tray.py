@@ -563,6 +563,9 @@ class TrayController:
         # Issue 122: the Skill script capability rides the desktop surface
         # itself; workspace reads/writes still need a selected directory.
         capabilities = list(SKILL_SCRIPT_CAPABILITIES)
+        # Issue 108: the agent's controlled browser channel rides the
+        # desktop surface the same way; acting still needs an open pane tab.
+        capabilities.append("local.browser.control")
         if WorkspaceSelection(self.settings.config_path).status()['state'] == 'ready':
             capabilities.extend(WORKSPACE_CAPABILITIES)
             # Issue 105: inline code rides the confirmed workspace the same

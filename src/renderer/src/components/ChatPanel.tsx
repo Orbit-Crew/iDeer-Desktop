@@ -241,6 +241,32 @@ function InlineCodeConsentCard({ request, state, threadId, busy, blocked, onComm
   </Card>
 }
 
+/** Issue 108: the agent's ask to drive the local browser pane. The card is
+ * the 开工前标示 itself — intent and page target only, page content never
+ * rides it — and approval is per action, never rememberable: live pages
+ * change under any standing grant, so the ask stays fresh every time. */
+const BROWSER_INTENT_LABELS: Record<string, string> = {
+  observe: '观察页签列表与页面状态', input: '输入与导航', submit: '提交页面表单', download: '下载文件到授权文件夹'
+}
+function BrowserControlConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  const intent = BROWSER_INTENT_LABELS[request.intent ?? ''] ?? request.intent
+  return <Card size="small" title="本机浏览器控制审批">
+    <Typography.Paragraph>Agent 正在控制本机浏览器：{intent}</Typography.Paragraph>
+    {request.url ? <Typography.Paragraph style={{ overflowWrap: 'anywhere' }}>目标：{request.url}</Typography.Paragraph> : null}
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+    <Typography.Paragraph type="secondary">
+      操作经会话权限档位审批：变更前询问档逐次询问；完全模式不再询问。观察、输入、提交、下载都走受控通道，浏览器分区与授权文件夹边界不变。
+    </Typography.Paragraph>
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.browser.control')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>允许本次操作</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝本次操作</Button>
+    </Space>
+  </Card>
+}
+
 /** Issue 76: the collab mode's per-sub-agent progress. Every row is the
  * platform's own task_* event vocabulary rendered as-is — who is doing what,
  * how far it got, and what it finished with. No intermediate state is
@@ -458,6 +484,8 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
         if (request.kind === 'knowledge-material') return <MaterialConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         if (request.kind === 'inline-code') return <InlineCodeConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        if (request.kind === 'browser-control') return <BrowserControlConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
