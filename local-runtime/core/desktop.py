@@ -208,7 +208,7 @@ def main() -> int:
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
                         and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
                         and len(command['revisionId']) <= 64
-                        and command['action'] in {'view', 'generate', 'locate', 'search', 'ask'}
+                        and command['action'] in {'view', 'generate', 'locate', 'search', 'ask', 'similarity'}
                         and (command['action'] != 'locate' or isinstance(command.get('documentId'), str))
                         and (command['action'] not in {'search', 'ask'} or (
                             isinstance(command.get('documentIds'), list)

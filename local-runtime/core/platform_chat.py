@@ -2341,6 +2341,32 @@ class DesktopChat:
             return {"kbId": kb_id, "revisionId": revision_id, "documentId": source["documentId"],
                     "filename": located.get("filename", ""),
                     "logicalPath": str(located.get("logical_path") or "")}
+        if action == "similarity":
+            # Issue 99: the similarity layer is device-side. The frozen
+            # documents come only from the revision this identity registered
+            # on this device, every file is re-validated content-addressed,
+            # and no request about it reaches the Server.
+            if self.knowledge_files is None or self.knowledge_imports is None:
+                raise ChatError("CHAT_COMMAND_INVALID")
+            from .receipt_ledger import profile_binding
+            binding = profile_binding(load_settings(self.config))
+            if binding is None:
+                raise ChatError("KNOWLEDGE_GRAPH_IDENTITY_UNAVAILABLE")
+            registration = self.knowledge_imports.find_registration_by_revision(binding, kb_id, revision_id)
+            if registration is None or registration.get("status") != "registered":
+                raise ChatError("KNOWLEDGE_GRAPH_REVISION_UNREGISTERED")
+            from .files import FileAccessError
+            from .knowledge_material import KnowledgeMaterialError
+            try:
+                _settings, grant, files = self.knowledge_files()
+            except (FileAccessError, KnowledgeMaterialError) as exc:
+                from .knowledge_import import category_for
+                raise ChatError(category_for(exc)) from exc
+            from .knowledge_similarity import KnowledgeSimilarityError, similarity_view
+            try:
+                return similarity_view(registration, files=files, logical_root=grant["logical_root"])
+            except KnowledgeSimilarityError as exc:
+                raise ChatError(exc.code) from exc
         raise ChatError("CHAT_COMMAND_INVALID")
 
     # --- Controlled wiki entry (issue 118) ----------------------------------
