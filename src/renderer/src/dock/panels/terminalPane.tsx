@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import { useSessionStore } from '../../stores/sessionStore'
 import { useTerminalSessionStore } from '../../stores/terminalSessions'
 
 export default function TerminalPane({ instanceId }: {
@@ -53,10 +54,15 @@ export default function TerminalPane({ instanceId }: {
 
     const spawn = async (): Promise<void> => {
       try {
-        // No arguments: the start dir is resolved in the trusted main process
-        // (bound workspace folder, user home fallback) — the renderer never
-        // supplies a path or a command.
-        const view = await window.ideerTerminal.spawn()
+        // Issue 92: the selected project's id rides along as an id selector so
+        // the trusted main process can prefer that project's bound folder for
+        // the start dir (then the workspace, then the user home). The renderer
+        // never supplies a path or a command, and receives no path back.
+        const selection = useSessionStore.getState().projectSelection
+        const projectId = selection.kind === 'project' && /^[A-Za-z0-9_-]{1,128}$/.test(selection.projectId)
+          ? selection.projectId
+          : undefined
+        const view = await window.ideerTerminal.spawn(projectId)
         if (disposed) {
           void window.ideerTerminal.kill(view.sessionId).catch(() => {})
           return

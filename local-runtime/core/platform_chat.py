@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import secrets
 import socket
 import string
@@ -18,11 +19,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
+from .branch_edges import BranchEdgeLedger
 from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
 from .policy import PolicyDecision
+from .project_binding import MAX_DEVICE_NAME, ProjectBindingError
 from .receipt_ledger import profile_binding
 from .scheduled_tasks import SchedulesError, ScheduledTasksClient, ScheduleTaskLedger, map_platform_error
 from .secrets import SecretStore, SecretStoreError
@@ -511,7 +514,7 @@ class DesktopChat:
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
-                 inline_scripts=None):
+                 inline_scripts=None, project_bindings=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -531,6 +534,11 @@ class DesktopChat:
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
+        # Issue 92: the device-local project folder binding registry. Rows are
+        # keyed by the whole profile binding (project + device), so a binding
+        # never migrates across machines and binding never touches local files
+        # or directory grants.
+        self.project_bindings = project_bindings
         # Issue 74: the device's session-tier registry; every loaded session
         # starts at the lowest tier and a tier choice never outlives the
         # thread load that made it.
@@ -582,6 +590,11 @@ class DesktopChat:
         self.scheduled_tasks = ScheduledTasksClient(
             self._session, self._json, ScheduleTaskLedger(config.with_name('schedules.db')),
             lambda: profile_binding(load_settings(config)))
+        # Issue 113: the device-observed branch edges behind the Synapse
+        # session map. The Server's own parent facts are recorded at the one
+        # moment a branch succeeds; rows are keyed by the chat scope and a
+        # failed record never fails the branch or the list projection.
+        self.branch_edges = BranchEdgeLedger(config.with_name('branch_edges.db'))
 
     def _mark_platform(self, ok: bool, detail: str = '') -> None:
         """Record one Server contact outcome; a failure pauses new Turns."""
@@ -1004,6 +1017,19 @@ class DesktopChat:
         if not isinstance(created, dict) or not isinstance(created.get('thread_id'), str):
             raise ChatError('CHAT_PROTOCOL_ERROR')
         new_id = self._id(created['thread_id'])
+        # Issue 113: the Server's own parent facts are the only edge source
+        # for the session map. The record is best-effort — the branch is
+        # already platform truth — and a reply without parent facts records
+        # nothing; the map renders both cases as unconnected sessions. The
+        # parent half is always the Server's; the turn half prefers the
+        # Server's echo and falls back to the command's own message id —
+        # a device fact — when the echo is missing or malformed.
+        parent_id = created.get('parent_thread_id')
+        if isinstance(parent_id, str) and self._is_id(parent_id):
+            branched_from = created.get('branched_from_message_id')
+            if not isinstance(branched_from, str) or not self._is_id(branched_from):
+                branched_from = message_id
+            self.branch_edges.record(session.scope, new_id, parent_id, branched_from)
         binding = inherited_binding(self._thread_bindings.get(source_id))
         if binding is not None:
             self._thread_bindings[new_id] = binding
@@ -2979,6 +3005,12 @@ class DesktopChat:
         rows = self._json(session, '/api/threads/search', {'limit': limit})
         if not isinstance(rows, list):
             raise ChatError('CHAT_PROTOCOL_ERROR')
+        # Issue 113: the map's edges come only from the device-observed
+        # ledger for this scope. A row without a recorded parent stays
+        # unconnected, and a parent outside this page renders without its
+        # edge — the projection never guesses a relation from titles or
+        # recency, and a ledger read failure is an honest empty set.
+        edges = self.branch_edges.edges_for_scope(session.scope)
         threads = []
         for row in rows[:200]:
             if not isinstance(row, dict) or not isinstance(row.get('thread_id'), str) or not row['thread_id']:
@@ -2995,10 +3027,14 @@ class DesktopChat:
                 project_id = ''
             if project_id and not self._is_id(project_id):
                 raise ChatError('CHAT_PROTOCOL_ERROR')
-            threads.append(dict(id=row['thread_id'], title=title,
-                                status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
-                                updatedAt=_bounded_text(row.get('updated_at', ''), 64),
-                                projectId=project_id))
+            entry = dict(id=row['thread_id'], title=title,
+                         status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
+                         updatedAt=_bounded_text(row.get('updated_at', ''), 64),
+                         projectId=project_id)
+            edge = edges.get(row['thread_id'])
+            if edge:
+                entry['branchedFrom'] = dict(threadId=edge['parent_id'], messageId=edge['message_id'])
+            threads.append(entry)
         threads.sort(key=lambda row: row['updatedAt'], reverse=True)
         return threads
 
@@ -3129,6 +3165,14 @@ class DesktopChat:
         local state to a project here — deleting or archiving a project leaves
         this device's files and directory grants untouched, and the Server
         clears Thread membership itself.
+
+        Issue 92 adds the device-local folder binding actions to the same
+        family: `bind-folder` verifies the project on the Server's own list
+        and records the user-confirmed folder in the per-device registry
+        (keyed by the whole profile binding, so another device reads an empty
+        view), `unbind-folder` is idempotent local cleanup. Neither touches
+        local files or directory grants, and every reply also carries the
+        device's own binding rows.
         """
         with self._lock:
             session = self._session()
@@ -3150,6 +3194,15 @@ class DesktopChat:
                         raise ChatError('CHAT_COMMAND_INVALID')
                     expected = {'type', 'id', 'action', 'scope', 'projectId', 'name'}
                 elif action in {'archive', 'restore', 'delete'}:
+                    self._id(command.get('projectId'))
+                    expected = {'type', 'id', 'action', 'scope', 'projectId'}
+                elif action == 'bind-folder':
+                    self._id(command.get('projectId'))
+                    path = command.get('path')
+                    if not isinstance(path, str) or not 1 <= len(path) <= 1024 or not os.path.isabs(path):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = {'type', 'id', 'action', 'scope', 'projectId', 'path'}
+                elif action == 'unbind-folder':
                     self._id(command.get('projectId'))
                     expected = {'type', 'id', 'action', 'scope', 'projectId'}
                 else:
@@ -3174,7 +3227,30 @@ class DesktopChat:
                 if not permissions['canDelete']:
                     raise ChatError('CHAT_FORBIDDEN')
                 self._empty(session, f"/api/projects/{self._id(command['projectId'])}", None, method='DELETE')
-            result = dict(projects=self._project_rows(session), permissions=permissions)
+            elif action == 'bind-folder':
+                # The registry is keyed by the platform projectId, so a bind
+                # must reference a project that still exists on the Server's
+                # own list; the folder itself was confirmed in the trusted
+                # main process and is re-validated here before it is stored.
+                projects = self._project_rows(session)
+                if not any(row['id'] == command['projectId'] for row in projects):
+                    raise ChatError('CHAT_NOT_FOUND')
+                self._bind_project_folder(command['projectId'], command['path'])
+            if action == 'bind-folder':
+                # The bind reply reuses the one listing that verified the
+                # project; binding itself performs no platform write.
+                result = dict(projects=projects, permissions=permissions)
+            else:
+                result = dict(projects=self._project_rows(session), permissions=permissions)
+            if action == 'unbind-folder':
+                self._unbind_project_folder(command['projectId'])
+            # Every reply carries this device's own rows; on another device
+            # the view is empty and the surface shows 未绑定.
+            result['bindings'] = self._project_binding_rows()
+            if action == 'bind-folder':
+                result['bound'] = True
+            elif action == 'unbind-folder':
+                result['unbound'] = True
             if action == 'create':
                 result['created'] = True
             elif action == 'rename':
@@ -3186,6 +3262,49 @@ class DesktopChat:
             elif action == 'delete':
                 result['deleted'] = True
             return result
+
+    def _bind_project_folder(self, project_id: str, path: str) -> None:
+        """Store one device-local binding row for this profile (#92).
+
+        The folder must exist as a directory on this machine; the stored path
+        is normalized so the terminal start-dir chain and the workspace offer
+        see exactly the folder the dialog confirmed. A registry failure is a
+        local storage outage, surfaced as its own fixed category.
+        """
+        if self.project_bindings is None:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE')
+        resolved = os.path.abspath(path)
+        if not os.path.isdir(resolved):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        # The login surface allows a longer device name; the binding row is
+        # pinned to the runtime's 128-code-point grammar, so the display
+        # attribution truncates at the seam that stores it.
+        device_name = load_settings(self.config).device_name[:MAX_DEVICE_NAME]
+        try:
+            self.project_bindings.set(profile_binding(load_settings(self.config)),
+                                      project_id, resolved, device_name)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
+
+    def _unbind_project_folder(self, project_id: str) -> None:
+        if self.project_bindings is None:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE')
+        try:
+            self.project_bindings.clear(profile_binding(load_settings(self.config)), project_id)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
+
+    def _project_binding_rows(self) -> list:
+        """This device's own binding rows; an unbound profile sees none."""
+        if self.project_bindings is None:
+            return []
+        owner = profile_binding(load_settings(self.config))
+        if owner is None:
+            return []
+        try:
+            return self.project_bindings.view(owner)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
 
     # --- Scheduled-task management (issue 85) -------------------------------
 

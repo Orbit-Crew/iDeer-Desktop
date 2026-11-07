@@ -7,6 +7,7 @@ import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
+import SynapsePane from '../src/renderer/src/dock/panels/synapsePane'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -108,6 +109,10 @@ describe('bootstrap capability boundary', () => {
     // action rides the Server's own Project API behind the chat-session
     // fence, a delete is confirmed in the trusted main process first, and no
     // operation on the channel touches local files or directory grants.
+    // Issue 92 adds the device-local bind-folder/unbind-folder actions to the
+    // same desktop:projects channel — no new invoke or push channel. The
+    // renderer names the project only; the folder is chosen and confirmed in
+    // the trusted main process, and the binding rows stay device-local.
     // Issue 85 adds desktop:schedules for the platform scheduled-tasks
     // management surface: the renderer names the action and task fields only;
     // the platform owns timing, previews and execution records through the
@@ -186,10 +191,13 @@ describe('dock pane security seam (issue 71)', () => {
     // terminal is a desktop-local native-hosted pane (xterm.js over its own
     // minimal terminal bridge, decision #59) — it leaves the external-content
     // seam and is pinned to its own component plus a trusted-bridge-free
-    // module graph below. The remaining webview/webgl slots keep the
-    // placeholder; the browser slot hosts the explicit 本机/远端 choice.
+    // module graph below. Issue 113 moves the `synapse` map the same way: it
+    // is a read-only projection of the platform's own Thread rows and this
+    // device's observed branch edges — it never hosts external content. The
+    // remaining webview/webgl slots keep the placeholder; the browser slot
+    // hosts the explicit 本机/远端 choice.
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'viewer3d'])
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'viewer3d'])
     for (const def of external) {
       expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
     }
@@ -216,13 +224,18 @@ describe('dock pane security seam (issue 71)', () => {
     // Issue 96 wires the native `kb` pane the same way — the doc library uses
     // the trusted desktop:knowledge:* family only (folder import with cancel,
     // batch delete/retry), pinned in its own pane test.
+    // Issue 113 wires the native `synapse` pane the same way — the map uses
+    // the trusted bridge for the Server's own thread rows and the read-only
+    // state read, and its open/branch actions ride the session store into
+    // the conversation's serialized command path.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'kb'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'kb', 'synapse'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'kb']) {
+    expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'kb', 'synapse']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

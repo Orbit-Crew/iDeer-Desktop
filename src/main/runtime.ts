@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -698,10 +698,13 @@ export class RuntimeProcess {
    * and the account's project permissions. Deletion happens only after a
    * confirmed main-process dialog, and no operation here touches local files
    * or directory grants — the desktop keeps no second project roster.
+   * Issue 92: the device-local binding actions join the family. bind-folder's
+   * path is resolved and confirmed in the trusted main process; every reply
+   * also carries this device's own binding rows.
    */
-  async projects(command: ProjectCommand): Promise<ProjectOperationView> {
+  async projects(command: ProjectCommand | ProjectBindCommand): Promise<ProjectOperationView> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('PROJECTS_COMMAND_INVALID')
-    if (!['list', 'create', 'rename', 'archive', 'restore', 'delete'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
+    if (!['list', 'create', 'rename', 'archive', 'restore', 'delete', 'bind-folder', 'unbind-folder'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
     const wire: Record<string, unknown> = { type: 'projects', id: '', action: command.action }
     if (command.action === 'list') {
       if (Object.keys(command).length !== 1) throw new Error('PROJECTS_COMMAND_INVALID')
@@ -715,6 +718,13 @@ export class RuntimeProcess {
           !name || name.length > 128 || Object.keys(command).length !== 3) throw new Error('PROJECTS_COMMAND_INVALID')
       wire.projectId = command.projectId
       wire.name = name
+    } else if (command.action === 'bind-folder') {
+      const path = (command as ProjectBindCommand).path
+      if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId) ||
+          typeof path !== 'string' || !path || path.length > 1024 ||
+          path.includes('\0') || Object.keys(command).length !== 3) throw new Error('PROJECTS_COMMAND_INVALID')
+      wire.projectId = command.projectId
+      wire.path = path
     } else {
       if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId) ||
           Object.keys(command).length !== 2) throw new Error('PROJECTS_COMMAND_INVALID')
@@ -1721,8 +1731,22 @@ export class RuntimeProcess {
               // session. An unknown shape is a protocol failure, never a
               // guessed grouping.
               if (typeof row.projectId !== 'string' || (row.projectId && !idPattern.test(row.projectId))) throw new Error('Invalid thread row')
+              // Issue 113: the branch edge this device observed when the
+              // branch succeeded — the Runtime's own scope-bound record of
+              // the Server's parent facts. Absent means unknown and passes
+              // through as such; a present edge must be well-formed or the
+              // reply is a protocol failure, never a guessed relation.
+              let branchedFrom: ThreadRowView['branchedFrom']
+              if (row.branchedFrom != null) {
+                const edge = row.branchedFrom as ThreadRowView['branchedFrom']
+                if (!edge || typeof edge !== 'object' || typeof edge.threadId !== 'string' ||
+                    !idPattern.test(edge.threadId) || typeof edge.messageId !== 'string' ||
+                    !idPattern.test(edge.messageId)) throw new Error('Invalid thread row')
+                branchedFrom = { threadId: edge.threadId, messageId: edge.messageId }
+              }
               threads.push({ id: row.id, title: row.title.slice(0, 256), status: row.status.slice(0, 32),
-                updatedAt: row.updatedAt.slice(0, 64), projectId: row.projectId })
+                updatedAt: row.updatedAt.slice(0, 64), projectId: row.projectId,
+                ...(branchedFrom ? { branchedFrom } : {}) })
             }
             const permissions: ThreadPermissionsView = { canRename: result.permissions.canRename, canDelete: result.permissions.canDelete }
             pending.resolve(pending.action === 'rename' ? { threads, permissions, renamed: true }
@@ -1748,7 +1772,8 @@ export class RuntimeProcess {
             }
             const outcomeFlags: Partial<Record<ProjectCommand['action'], unknown>> = {
               create: result.created, rename: result.renamed, archive: result.archived,
-              restore: result.restored, delete: result.deleted
+              restore: result.restored, delete: result.deleted, 'bind-folder': result.bound,
+              'unbind-folder': result.unbound
             }
             if (pending.action !== 'list' && outcomeFlags[pending.action] !== true) { pending.reject(new Error('PROJECTS_FAILED')); continue }
             const idPattern = /^[A-Za-z0-9_-]{1,128}$/
@@ -1761,10 +1786,24 @@ export class RuntimeProcess {
               projects.push({ id: row.id, name: row.name.slice(0, 128), status: row.status,
                 createdAt: row.createdAt.slice(0, 64), updatedAt: row.updatedAt.slice(0, 64) })
             }
+            // Issue 92: the device's own binding rows ride every reply; a
+            // malformed row is a protocol failure like a malformed project.
+            const bindings: ProjectBindingView[] = []
+            if (result.bindings !== undefined) {
+              if (!Array.isArray(result.bindings)) throw new Error('Invalid project binding row')
+              for (const row of result.bindings.slice(0, 200)) {
+                if (!row || typeof row.projectId !== 'string' || !idPattern.test(row.projectId) ||
+                    typeof row.path !== 'string' || !row.path || row.path.length > 1024 ||
+                    typeof row.deviceName !== 'string' || row.deviceName.length > 128 ||
+                    typeof row.createdAt !== 'string') throw new Error('Invalid project binding row')
+                bindings.push({ projectId: row.projectId, path: row.path, deviceName: row.deviceName.slice(0, 128),
+                  createdAt: row.createdAt.slice(0, 64) })
+              }
+            }
             const permissions: ProjectPermissionsView = { canWrite: result.permissions.canWrite, canDelete: result.permissions.canDelete }
             pending.resolve(outcomeFlags[pending.action] === true
-              ? { projects, permissions, [pending.action]: true } as ProjectOperationView
-              : { projects, permissions })
+              ? { projects, permissions, bindings, [pending.action]: true } as ProjectOperationView
+              : { projects, permissions, bindings })
             continue
           }
           if (value.v === 1 && value.type === 'datasets') {
@@ -2299,6 +2338,20 @@ export class RuntimeProcess {
                 serverConnectorId: connectorText(row.serverConnectorId, 64), state: 'installed', createdAt: row.createdAt })
             }
           }
+          // Issue 92: this device's own project folder bindings ride the same
+          // snapshot; main consumes them for the terminal start-dir chain and
+          // a malformed row is a protocol failure like any other.
+          const projectBindings: ProjectBindingView[] = []
+          if (Array.isArray(value.projectBindings)) {
+            for (const row of value.projectBindings.slice(0, 20)) {
+              if (!row || typeof row.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(row.projectId) ||
+                  typeof row.path !== 'string' || !row.path || row.path.length > 1024 ||
+                  typeof row.deviceName !== 'string' || row.deviceName.length > 128 ||
+                  typeof row.createdAt !== 'string') throw new Error('Invalid project binding status')
+              projectBindings.push({ projectId: row.projectId, path: row.path,
+                deviceName: row.deviceName.slice(0, 128), createdAt: row.createdAt.slice(0, 64) })
+            }
+          }
           const datasetRows: DatasetView[] = []
           if (Array.isArray(value.datasets)) {
             for (const row of value.datasets.slice(0, 20)) {
@@ -2337,6 +2390,8 @@ export class RuntimeProcess {
             skillScriptStorageError: value.skillScriptStorageError === 'SKILL_SCRIPT_STORAGE_UNAVAILABLE' ? value.skillScriptStorageError : '',
             connectors: connectorRows,
             connectorStorageError: value.connectorStorageError === 'CONNECTOR_STORAGE_UNAVAILABLE' ? value.connectorStorageError : '',
+            projectBindings,
+            projectBindingStorageError: value.projectBindingStorageError === 'PROJECT_BINDING_STORAGE_UNAVAILABLE' ? value.projectBindingStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }

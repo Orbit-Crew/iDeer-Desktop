@@ -5,14 +5,19 @@
 // local files or directory grants; the Server clears Thread membership
 // itself, and a delete is confirmed twice (here, then in the trusted
 // main-process dialog) like a session delete.
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+// Issue 92: each row also shows the device-local folder binding — the bound
+// path with this device's attribution, or 未绑定（原设备绑定不迁移）. Bind
+// opens the trusted main process's native folder dialog (the renderer names
+// the project only), unbind is local cleanup; both ride the family round.
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined } from '@ant-design/icons'
 import { Alert, Button, Input, Modal, Popconfirm, Space, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { explainProjectError, type ProjectDirectoryController, type ProjectDirectoryView } from '../../stores/projectDirectory'
-import type { ProjectView } from '../../../../shared/desktop'
+import type { ProjectBindingView, ProjectView } from '../../../../shared/desktop'
 
-function ProjectRow({ project, canWrite, canDelete, busy, onRename, onArchive, onRestore, onDelete }: {
+function ProjectRow({ project, binding, canWrite, canDelete, busy, onRename, onArchive, onRestore, onDelete, onBind, onUnbind }: {
   project: ProjectView
+  binding: ProjectBindingView | undefined
   canWrite: boolean
   canDelete: boolean
   busy: boolean
@@ -20,6 +25,8 @@ function ProjectRow({ project, canWrite, canDelete, busy, onRename, onArchive, o
   onArchive: () => void
   onRestore: () => void
   onDelete: () => void
+  onBind: () => void
+  onUnbind: () => void
 }): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(project.name)
@@ -40,7 +47,20 @@ function ProjectRow({ project, canWrite, canDelete, busy, onRename, onArchive, o
     <div className="flex-1 min-w-0" title={project.name}>
       <div className="text-sm text-gray-800 truncate">{project.name}</div>
       <div className="text-xs text-gray-500">{project.status === 'archived' ? '已归档' : '进行中'}</div>
+      {binding
+        ? <div className="text-xs text-gray-500 truncate" title={binding.path}>
+            已绑定：{binding.path}（本设备：{binding.deviceName || '本机'}）
+          </div>
+        : <div className="text-xs text-gray-400">未绑定（原设备绑定不迁移）</div>}
     </div>
+    <span className="flex items-center">
+      {binding
+        ? <Button type="text" size="small" disabled={busy} aria-label={`解除项目文件夹绑定 ${project.name}`}
+            title="解除绑定（不删除本机文件，可随时重新绑定）" onClick={onUnbind}>解除绑定</Button>
+        : <Button type="text" size="small" icon={<FolderOpenOutlined />} disabled={busy}
+            aria-label={`绑定项目文件夹 ${project.name}`} title="绑定本机工作文件夹（按项目+设备记录）"
+            onClick={onBind}>绑定文件夹</Button>}
+    </span>
     <span className="flex items-center">
       {renameReason
         ? <span title={renameReason}><Button type="text" size="small" icon={<EditOutlined />} disabled
@@ -79,9 +99,12 @@ export function ProjectManageBody({ view, controller }: {
   }
   const active = view.projects.filter((row) => row.status === 'active')
   const archived = view.projects.filter((row) => row.status === 'archived')
+  const bindingFor = (projectId: string): ProjectBindingView | undefined =>
+    view.bindings.find((row) => row.projectId === projectId)
   return <Space direction="vertical" size="middle" className="w-full">
     <Typography.Text type="secondary">
       项目只有一种：平台项目。列表跟账号走、换设备一致；删除或归档项目不会动本机文件与目录授权，项目内的会话由平台收回为散会话。
+      文件夹绑定按“项目+设备”记录在本机，可随时补绑或解绑，换设备不迁移。
     </Typography.Text>
     {view.failed && <Alert type="error" showIcon message={explainProjectError(view.error)} />}
     <Input aria-label="新项目名称" placeholder="新项目名称" value={draftName} maxLength={128}
@@ -95,19 +118,25 @@ export function ProjectManageBody({ view, controller }: {
     {view.permissions.canWrite === false && !view.failed &&
       <Typography.Text type="secondary">当前账号没有 projects:write / projects:delete 权限，仅可查看项目列表。</Typography.Text>}
     <ul className="-mx-2" aria-label="平台项目列表">
-      {active.map((row) => <ProjectRow key={row.id} project={row} canWrite={view.permissions.canWrite}
+      {active.map((row) => <ProjectRow key={row.id} project={row} binding={bindingFor(row.id)}
+        canWrite={view.permissions.canWrite}
         canDelete={view.permissions.canDelete} busy={view.busy}
         onRename={(name) => void controller.rename(row.id, name)}
         onArchive={() => void controller.archive(row.id)}
         onRestore={() => void controller.restore(row.id)}
-        onDelete={() => void controller.remove(row.id)} />)}
+        onDelete={() => void controller.remove(row.id)}
+        onBind={() => void controller.bindFolder(row.id)}
+        onUnbind={() => void controller.unbindFolder(row.id)} />)}
       {archived.length > 0 && active.length > 0 && <li className="px-2 pt-2"><Typography.Text type="secondary">已归档</Typography.Text></li>}
-      {archived.map((row) => <ProjectRow key={row.id} project={row} canWrite={view.permissions.canWrite}
+      {archived.map((row) => <ProjectRow key={row.id} project={row} binding={bindingFor(row.id)}
+        canWrite={view.permissions.canWrite}
         canDelete={view.permissions.canDelete} busy={view.busy}
         onRename={(name) => void controller.rename(row.id, name)}
         onArchive={() => void controller.archive(row.id)}
         onRestore={() => void controller.restore(row.id)}
-        onDelete={() => void controller.remove(row.id)} />)}
+        onDelete={() => void controller.remove(row.id)}
+        onBind={() => void controller.bindFolder(row.id)}
+        onUnbind={() => void controller.unbindFolder(row.id)} />)}
     </ul>
   </Space>
 }
