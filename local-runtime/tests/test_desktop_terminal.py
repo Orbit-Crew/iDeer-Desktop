@@ -110,14 +110,11 @@ class TerminalHarness:
             status=lambda: {"state": self.login_state["value"]})
         gate = types.SimpleNamespace(bind=lambda: None, snapshot=lambda: {})
 
-        monkeypatch.setattr(desktop, "own_process_tree", lambda: None)
-        monkeypatch.setattr(desktop, "create_default_secret_store", lambda: secure)
-        monkeypatch.setattr(desktop, "BrowserLogin", lambda *args: login)
-        monkeypatch.setattr(desktop, "CompatibilityGate", lambda *args, **kwargs: gate)
-        monkeypatch.setattr(desktop, "load_controller", lambda *args, **kwargs: self.controller)
-        monkeypatch.setattr(desktop.sys, "argv", ["desktop", "--config", str(config)])
-        monkeypatch.setattr(desktop.sys, "stdin", Input())
-        monkeypatch.setattr(desktop.sys, "stdout", Output())
+        # The stdin/stdout patches land in start() (the test body's call
+        # phase), after the runner re-arms its own capture around sys.stdout;
+        # applied at construction (setup phase) they would land under the
+        # runner's capture and the wire frames would bypass the harness.
+        self._patches = (monkeypatch, secure, login, gate, Input, Output)
 
     def select_workspace(self, path: Path) -> str:
         selection = WorkspaceSelection(self.config)
@@ -138,6 +135,15 @@ class TerminalHarness:
                 self._reply.set()
 
     def start(self) -> None:
+        monkeypatch, secure, login, gate, Input, Output = self._patches
+        monkeypatch.setattr(desktop, "own_process_tree", lambda: None)
+        monkeypatch.setattr(desktop, "create_default_secret_store", lambda: secure)
+        monkeypatch.setattr(desktop, "BrowserLogin", lambda *args: login)
+        monkeypatch.setattr(desktop, "CompatibilityGate", lambda *args, **kwargs: gate)
+        monkeypatch.setattr(desktop, "load_controller", lambda *args, **kwargs: self.controller)
+        monkeypatch.setattr(desktop.sys, "argv", ["desktop", "--config", str(self.config)])
+        monkeypatch.setattr(desktop.sys, "stdin", Input())
+        monkeypatch.setattr(desktop.sys, "stdout", Output())
         self._thread = threading.Thread(
             target=lambda: self._exit.update(code=desktop.main()), daemon=True)
         self._thread.start()
@@ -193,7 +199,8 @@ def test_history_and_stop_round_trip_over_the_desktop_wire(harness, tmp_path):
     threaded = harness.command({"type": "terminal-history", "id": "t-2",
                                 "scope": harness.scope, "threadId": "thread-1"})
     assert threaded["result"]["commands"] == []
-    stop = harness.command({"type": "terminal-stop", "id": "s-1", "runId": "run-77"})
+    stop = harness.command({"type": "terminal-stop", "id": "s-1",
+                            "scope": harness.scope, "runId": "run-77"})
     assert stop["error"] == ""
     assert stop["result"] == {"requested": True}
     assert harness.stopped_runs == ["run-77"]
@@ -224,6 +231,7 @@ def test_malformed_terminal_frames_are_dropped_by_the_reader(harness, tmp_path):
         {"type": "terminal-history", "id": "t-x", "scope": harness.scope, "threadId": 5},
         {"type": "terminal-stop", "id": "s-x"},
         {"type": "terminal-stop", "id": "s-x", "runId": ""},
+        {"type": "terminal-stop", "id": "s-x", "scope": harness.scope, "runId": ""},
     ):
         harness.command(broken, expect_reply=False)
     reply = harness.command({"type": "terminal-history", "id": "t-ok",

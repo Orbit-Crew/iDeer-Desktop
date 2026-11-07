@@ -605,7 +605,7 @@ class TrayController:
         """
         self._replace_mcp_service()
 
-    def _desktop_capabilities(self, python_service, terminal_service=None):
+    def _desktop_capabilities(self, python_service, terminal_service):
         from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
         from .skill_script import SKILL_SCRIPT_CAPABILITIES
         # Issue 122: the Skill script capability rides the desktop surface

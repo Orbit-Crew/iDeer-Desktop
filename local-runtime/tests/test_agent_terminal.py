@@ -30,7 +30,13 @@ from core.consent import ConsentStore, request_hash
 from core.files import LocalFileStore, RootConfig
 from core.policy import LocalPolicy, PolicyDecision
 from core.protocol import MessageType, public_key_text, sign_envelope, verify_envelope
-from core.session_tier import GateDecision, SessionTier, payload_anchor, tier_gate_decision
+from core.session_tier import (
+    GateDecision,
+    SessionTier,
+    SessionTierRegistry,
+    payload_anchor,
+    tier_gate_decision,
+)
 from core.transport import LocalRuntimeClient
 
 BINDING = {"server_origin": "http://fixture.invalid", "user_id": "account-111",
@@ -426,6 +432,11 @@ def make_client(tmp_path: Path, service: AgentTerminalService) -> LocalRuntimeCl
         session_id="session-111",
         terminal_service=service,
     )
+    # The tier gate reads its workspace classifier off the wire's file
+    # service, exactly as the desktop wiring binds them together.
+    import types as _types
+
+    client.file_service = _types.SimpleNamespace(classify=stub_classify())
     client.connection = FakeConnection()
     return client
 
@@ -538,6 +549,78 @@ def test_transport_stop_run_cancels_a_running_terminal_command(tmp_path):
     row = history.view(client.receipt_binding(), "thread-111")[0]
     assert row["status"] == "cancelled"
     assert row["effectsUncertain"] is True
+
+
+def test_full_tier_thread_auto_runs_an_inside_command_end_to_end(tmp_path):
+    """The FULL tier resolves the ask standing: no consent round trip, the
+    settle basis ``tier:full`` rides both the receipt and the history row."""
+    history = AgentTerminalHistory(tmp_path / "terminal.db")
+    service = make_service(tmp_path, history=history)
+    client = make_client(tmp_path, service)
+    client.session_tiers = SessionTierRegistry()
+    client.session_tiers.set("thread-111", SessionTier.FULL)
+    server_key = Ed25519PrivateKey.generate()
+
+    asyncio.run(client._handle_task(signed_task(
+        server_key, payload_for("echo tier-full"), "task-tier-full")))
+    messages = [json.loads(frame) for frame in client.connection.sent]
+    # No CONSENT_REQUIRED frame: the tier is the standing answer.
+    assert not any(message["type"] == MessageType.CONSENT_REQUIRED
+                   for message in messages)
+    result = messages[-1]
+    assert result["type"] == MessageType.TASK_RESULT
+    receipt = result["payload"]["receipt"]
+    assert receipt["status"] == "completed"
+    assert receipt["consent_decision"] == "tier:full"
+    row = history.view(client.receipt_binding(), "thread-111")[0]
+    assert row["status"] == "completed"
+    assert row["authorizationBasis"] == "tier:full"
+
+
+def test_shell_executor_opens_no_pty_and_redirects_both_streams(
+    tmp_path, monkeypatch: pytest.MonkeyPatch,
+):
+    """AC1 is a property of the executor: both streams are redirected files
+    under a pinned shell argv — never a PTY, never a console pipe."""
+    captured: dict[str, object] = {}
+
+    class FakeProcess:
+        pid = 4242
+        _handle = 9999
+        returncode = 0
+
+        def poll(self) -> int:
+            return 0
+
+    class FakeJob:
+        def close(self) -> None:
+            pass
+
+    def fake_popen(args: list[str], **kwargs: object) -> FakeProcess:
+        captured.update(args=args, **kwargs)
+        return FakeProcess()
+
+    import core.agent_terminal as agent_terminal_module
+    import subprocess
+
+    monkeypatch.setattr(agent_terminal_module.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(agent_terminal_module, "_WindowsJob",
+                        lambda pid, process_handle=None: FakeJob())
+    monkeypatch.setattr(agent_terminal_module, "_resume_initial_thread",
+                        lambda pid: None)
+    monkeypatch.setattr(agent_terminal_module.os, "name", "nt")
+
+    result = asyncio.run(ShellExecutor().run(
+        ECHO_HELLO, working_root=tmp_path, timeout=5))
+
+    assert result.status is TerminalTaskStatus.COMPLETED
+    argv = captured["args"]
+    assert argv[0] == agent_terminal_module.os.environ.get("COMSPEC", "cmd.exe")
+    # stdout/stderr are redirected handles (NamedTemporaryFile objects), so
+    # the child renders no console of its own and no PTY anywhere is opened.
+    assert captured["stdout"] is not subprocess.PIPE
+    assert captured["stderr"] is not subprocess.PIPE
+    assert captured["creationflags"] & 0x4  # CREATE_SUSPENDED under the Job
 
 
 def test_terminal_capability_rides_the_desktop_announcement_only(tmp_path):

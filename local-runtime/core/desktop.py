@@ -1483,7 +1483,6 @@ def main() -> int:
         return 0
     except Exception:
         # Do not forward exception text or config/credential values to UI.
-        import traceback as _tb; _tb.print_exc()  # DEBUG-REMOVE
         print(json.dumps({"v": 1, "connection": "error", "tasks": []}), flush=True)
         return 1
     finally:

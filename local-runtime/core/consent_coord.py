@@ -900,7 +900,8 @@ class LocalConsentCoordinator:
         elif request.capability == TERMINAL_CAPABILITY:
             # Issue 111: the consented (or full-tier) terminal command rides
             # the same controlled executor; the settle basis rides the
-            # receipt exactly like the folder writes and the Python channel.
+            # receipt and the history row exactly alike, so a tier-resolved
+            # command is never displayed as an individually asked one.
             assert wire.terminal_service is not None
             terminal_result = await wire.terminal_service.execute(
                 request.payload,
@@ -909,6 +910,7 @@ class LocalConsentCoordinator:
                     task_id, stream, output
                 ),
                 ledger_binding=wire.receipt_binding(),
+                authorization_basis=consent_decision,
             )
             if not isinstance(terminal_result, TerminalResult):
                 decision = terminal_result

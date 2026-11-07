@@ -12,6 +12,14 @@ bound folder. There is no working directory outside it, no environment
 injection and no custom interpreter: the pinned system shell starts anchored
 in the authorized folder, so a command's products land inside it by default.
 
+联网随档位, honestly stated: the tier governs whether a command may run at
+all - ``full`` answers anchored-in-folder asks standing (its own confirmed
+upgrade), every lower tier asks per command with the full command line
+shown - and the audit log records which of the two answered. The device
+does not firewall a child process's sockets (the same boundary the Python
+channel documents); what the tier controls is the human's standing answer
+to everything a command may do, network included, never a packet filter.
+
 Every executed command becomes one row in the device's terminal history
 (``agent-terminal.db``, the same binding-scoped identity discipline as the
 other registries): the command text, the anchored folder, bounded output
@@ -28,6 +36,7 @@ their process is gone and only the process state is claimed honestly.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -351,7 +360,6 @@ class ShellExecutor:
         *,
         working_root: Path,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
-        secret_values: tuple[str, ...] = (),
         on_output: Callable[[str, str], Any] | None = None,
     ) -> TerminalResult:
         if not working_root.is_dir():
@@ -361,11 +369,11 @@ class ShellExecutor:
             for key, value in os.environ.items()
             if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "COMSPEC"}
         }
+        # stdout/stderr are redirected temp files, set below just before
+        # Popen; the child never shares a console pipe or a PTY.
         process_options = {
             "cwd": working_root,
             "env": env,
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE,
         }
         if os.name == "nt":
             # Keep the child suspended until the Job Object owns it; this
@@ -374,7 +382,10 @@ class ShellExecutor:
             process_options["creationflags"] = 0x200 | 0x4  # NEW_PROCESS_GROUP | SUSPENDED
         else:
             process_options["start_new_session"] = True
-        secret_redactor = SecretRedactor(secret_values)
+        # The redaction of credential-shaped output patterns is always on;
+        # the terminal payload carries no secrets slot, so there are no
+        # stored secret values to inject here.
+        secret_redactor = SecretRedactor(())
         started_at = datetime.now(UTC)
         with ExitStack() as stack:
             log_temp_names: list[str] = []
@@ -552,8 +563,6 @@ def _redact(output: str) -> str:
 
 def _summarize_log(path: str, secrets: Any) -> tuple[str, str]:
     """Bounded canonical preview plus the full-output content hash."""
-    import hashlib
-
     digest = hashlib.sha256()
     preview = bytearray()
     pending_cr = b""
@@ -613,6 +622,7 @@ class AgentTerminalService:
         consent: bool = False,
         on_output: Callable[[str, str], Any] | None = None,
         ledger_binding: dict[str, str] | None = None,
+        authorization_basis: str | None = None,
     ) -> TerminalResult | PolicyDecision:
         self._validate_payload(payload)
         command = str(payload["command"])
@@ -638,12 +648,11 @@ class AgentTerminalService:
         if not working_root.is_dir():
             raise ValueError("working_root must be a directory")
         timeout = float(payload.get("timeout", DEFAULT_TIMEOUT_SECONDS))
-        basis = self._basis_of(consent, consent_granted)
+        # The settle basis (tier:<tier> for a tier-resolved run, "approved"
+        # for a human decision) rides into the history row, so the pane never
+        # labels a tier-auto-run command as an individually asked one.
+        basis = authorization_basis or self._basis_of(consent, consent_granted)
         self._admit(ledger_binding, payload, command, anchor, basis)
-        # No secrets slot exists on the terminal payload: commands receive no
-        # injected environment, so there is nothing to resolve - the always-on
-        # output pattern redaction still applies inside the executor.
-        secret_values: tuple[str, ...] = ()
         tails = {"stdout": "", "stderr": ""}
         last_tail_write = 0.0
 
@@ -667,10 +676,9 @@ class AgentTerminalService:
             command,
             working_root=working_root,
             timeout=timeout,
-            secret_values=secret_values,
             on_output=relay,
         )
-        self._complete(ledger_binding, payload, result, basis)
+        self._complete(ledger_binding, payload, result)
         receipt = LocalExecutionReceipt(
             run_id=str(payload.get("run_id", "")),
             task_id=str(payload.get("task_id", "")),
@@ -754,19 +762,29 @@ class AgentTerminalService:
             return "consent:stored"
         return "policy"
 
+    @staticmethod
+    def _identity_fields(payload: dict[str, object], command: str, anchor: str, basis: str) -> dict[str, str]:
+        """The one row identity every history write names; nothing else.
+
+        The Run/Tool Call identity travels with every row so the pane and the
+        receipt ledger always describe the same execution fact.
+        """
+        return {
+            "thread_id": str(payload.get("thread_id", "")),
+            "run_id": str(payload.get("run_id", "")),
+            "task_id": str(payload.get("task_id", "")),
+            "tool_call_id": str(payload.get("tool_call_id", "")),
+            "command": command,
+            "working_root": anchor,
+            "authorization_basis": basis,
+        }
+
     def _record_refused(self, binding, payload, anchor, *, basis: str) -> None:
         if self.history is None or binding is None:
             return
         try:
-            self.history.record_refused(binding, {
-                "thread_id": str(payload.get("thread_id", "")),
-                "run_id": str(payload.get("run_id", "")),
-                "task_id": str(payload.get("task_id", "")),
-                "tool_call_id": str(payload.get("tool_call_id", "")),
-                "command": str(payload.get("command", "")),
-                "working_root": anchor,
-                "authorization_basis": basis,
-            })
+            self.history.record_refused(binding, self._identity_fields(
+                payload, str(payload.get("command", "")), anchor, basis))
         except TerminalHistoryError:
             pass
 
@@ -774,21 +792,13 @@ class AgentTerminalService:
         if self.history is None or binding is None:
             return
         try:
-            self.history.admit(binding, {
-                "thread_id": str(payload.get("thread_id", "")),
-                "run_id": str(payload.get("run_id", "")),
-                "task_id": str(payload.get("task_id", "")),
-                "tool_call_id": str(payload.get("tool_call_id", "")),
-                "command": command,
-                "working_root": anchor,
-                "authorization_basis": basis,
-                "started_at": _now(),
-            })
+            row = self._identity_fields(payload, command, anchor, basis)
+            row["started_at"] = _now()
+            self.history.admit(binding, row)
         except TerminalHistoryError:
             pass
 
-    def _complete(self, binding, payload, result: TerminalResult, basis: str) -> None:
-        del basis  # The row's basis is fixed at admit time.
+    def _complete(self, binding, payload, result: TerminalResult) -> None:
         if self.history is None or binding is None:
             return
         try:

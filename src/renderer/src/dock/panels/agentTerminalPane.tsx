@@ -23,6 +23,7 @@ const STATUS_VIEWS: Record<AgentTerminalEntryView['status'], { label: string; co
 }
 
 const BASIS_LABELS: Record<string, string> = {
+  approved: '逐条询问通过',
   'consent:allow_once': '逐条询问通过',
   'consent:stored': '逐条询问通过',
   'tier:full': '完全模式',

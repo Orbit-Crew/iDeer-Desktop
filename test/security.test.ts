@@ -258,7 +258,8 @@ describe('dock pane security seam (issue 71)', () => {
       // Issue 111 wires the native `agentTerminal` pane the same way — a
     // read-only projection of the Runtime's own recorded history and
     // in-flight tails on the trusted desktop:terminal:* family.
-    !['runtime', 'notifications', 'files', 'terminal', 'agentTerminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse', 'field'].includes(p.id))
+    !['runtime', 'notifications', 'files', 'terminal', 'agentTerminal', 'templates', 'office',
+      'viewer3d', 'kb', 'synapse', 'field'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
