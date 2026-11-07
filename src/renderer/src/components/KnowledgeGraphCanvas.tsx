@@ -2,7 +2,7 @@ import { Alert, Button, Checkbox, Radio, Slider, Space, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KnowledgeGraphView, KnowledgeSimilarityView } from '../../../shared/desktop'
 import {
-  buildEntityGraph, buildSimilarityGraph, clampZoom, exportGraphPayload, screenToWorld,
+  buildEntityGraph, buildSimilarityGraph, exportGraphPayload, screenToWorld,
   similarityStatusNames, WORLD_HEIGHT, WORLD_WIDTH, zoomAround, type GraphModel, type ScreenPoint, type ViewportState
 } from './graphCanvasModel'
 
@@ -10,6 +10,14 @@ const statusNames: Record<KnowledgeSimilarityView['status'], string> = {
   completed: '计算完成',
   partial: '部分可算',
   failed: '无法计算'
+}
+
+/** Client coordinates → SVG user coordinates for one mounted <svg> element. */
+function svgUserPoint(svg: SVGSVGElement, clientX: number, clientY: number): ScreenPoint {
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return { x: 0, y: 0 }
+  const point = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse())
+  return { x: point.x, y: point.y }
 }
 
 export interface KnowledgeGraphCanvasProps {
@@ -59,22 +67,22 @@ export function KnowledgeGraphCanvas({ graph, similarity, busy }: KnowledgeGraph
     if (!svg) return
     const onWheel = (event: WheelEvent): void => {
       event.preventDefault()
-      const rect = svg.getBoundingClientRect()
-      setViewport((current) => zoomAround(current, { x: rect.left, y: rect.top }, { x: event.clientX, y: event.clientY }, event.deltaY))
+      setViewport((current) => zoomAround(current, svgUserPoint(svg, event.clientX, event.clientY), event.deltaY))
     }
     svg.addEventListener('wheel', onWheel, { passive: false })
     return () => svg.removeEventListener('wheel', onWheel)
   }, [])
 
-  const pointer = (event: React.PointerEvent): ScreenPoint => ({ x: event.clientX, y: event.clientY })
-  const offset = (event: React.PointerEvent): ScreenPoint => {
-    const rect = svgRef.current?.getBoundingClientRect()
-    return { x: rect?.left ?? 0, y: rect?.top ?? 0 }
+  // 客户端坐标 → SVG 用户坐标：viewBox 的留白与居中由 getScreenCTM 负责，
+  // 画布在任何挂载尺寸下拖拽与缩放都贴合光标（审查修复）。
+  const toUserPoint = (event: { clientX: number; clientY: number }): ScreenPoint => {
+    const svg = svgRef.current
+    return svg ? svgUserPoint(svg, event.clientX, event.clientY) : { x: 0, y: 0 }
   }
   const startNodeDrag = (id: string) => (event: React.PointerEvent) => {
     if (busy || !visibleModel) return
     event.stopPropagation()
-    const world = screenToWorld(viewport, offset(event), pointer(event))
+    const world = screenToWorld(viewport, toUserPoint(event))
     const node = visibleModel.nodes.find((item) => item.id === id)
     const current = positions[id] ?? (node ? { x: node.x, y: node.y } : { x: 0, y: 0 })
     dragRef.current = { kind: 'node', id, grabX: world.x - current.x, grabY: world.y - current.y }
@@ -85,7 +93,7 @@ export function KnowledgeGraphCanvas({ graph, similarity, busy }: KnowledgeGraph
     }
   }
   const startPan = (event: React.PointerEvent) => {
-    const start = pointer(event)
+    const start = toUserPoint(event)
     dragRef.current = { kind: 'pan', grabX: start.x - viewport.x, grabY: start.y - viewport.y }
     try {
       (event.currentTarget as Element).setPointerCapture(event.pointerId)
@@ -97,12 +105,12 @@ export function KnowledgeGraphCanvas({ graph, similarity, busy }: KnowledgeGraph
     const drag = dragRef.current
     if (!drag) return
     if (drag.kind === 'pan') {
-      const start = pointer(event)
+      const start = toUserPoint(event)
       setViewport((current) => ({ ...current, x: start.x - drag.grabX, y: start.y - drag.grabY }))
       return
     }
     if (!drag.id) return
-    const world = screenToWorld(viewport, offset(event), pointer(event))
+    const world = screenToWorld(viewport, toUserPoint(event))
     setPositions((current) => ({ ...current, [drag.id as string]: { x: world.x - drag.grabX, y: world.y - drag.grabY } }))
   }
   const endDrag = () => {

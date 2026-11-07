@@ -97,6 +97,8 @@ def similarity_view(registration: dict[str, Any], *, files: Any, logical_root: s
     or drifted library is shown as exactly that, never as a complete graph.
     """
 
+    # The #112 import contract already caps a registry row at 200 documents;
+    # the slice below is only a defensive bound against anomalous rows.
     documents = [document for document in (registration.get("documents") or [])
                  if isinstance(document, dict) and isinstance(document.get("filename"), str)
                  and isinstance(document.get("sha256"), str)][:MAX_SIMILARITY_DOCUMENTS]

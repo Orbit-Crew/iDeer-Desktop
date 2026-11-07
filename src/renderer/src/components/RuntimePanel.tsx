@@ -132,11 +132,13 @@ export default function RuntimePanel(): JSX.Element {
   }
   const runGraph = (command: KnowledgeGraphCommand) => {
     setGraphError(''); setGraphBusy(true)
-    if (command.action === 'view' || command.action === 'generate') {
+    if (command.action === 'view' || command.action === 'generate' || command.action === 'similarity') {
       // A new revision context resets the frozen scope, its sources, and the
       // scoped answers; search/ask keep the graph view mounted so the
       // selected scope stays visible next to its results. The device
-      // similarity layer (#99) belongs to that revision context too.
+      // similarity layer (#99) names its own revision context too, so it
+      // switches the whole family the same way view/generate do — a canvas
+      // never shows two revisions' layers side by side.
       setGraph(null); setGraphLocated({}); setGraphSelection({}); setGraphQueryResult(null); setGraphAskResult(null); setSimilarity(null)
     }
     void window.ideer.knowledgeGraph(command)

@@ -92,9 +92,9 @@ describe('canvas viewport and export (#99)', () => {
   it('zooms around the cursor without moving the world under it', () => {
     const before: { x: number; y: number; scale: number } = { x: 0, y: 0, scale: 1 }
     const pointer = { x: 100, y: 50 }
-    const after = zoomAround(before, { x: 0, y: 0 }, pointer, -100)
+    const after = zoomAround(before, pointer, -100)
     expect(after.scale).toBeGreaterThan(1)
-    expect(screenToWorld(after, { x: 0, y: 0 }, pointer)).toEqual(screenToWorld(before, { x: 0, y: 0 }, pointer))
+    expect(screenToWorld(after, pointer)).toEqual(screenToWorld(before, pointer))
   })
 
   it('exports exactly the filtered display graph with its revision binding', () => {

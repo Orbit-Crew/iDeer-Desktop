@@ -53,20 +53,25 @@ export function clampZoom(value: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value))
 }
 
-/** Pan (x, y) plus zoom, in the SVG's client-pixel space. */
+/** Pan (x, y) plus zoom, in the SVG's user-unit space. */
 export interface ViewportState { x: number; y: number; scale: number }
 export interface ScreenPoint { x: number; y: number }
 
-/** Client point → world point for the current viewport. */
-export function screenToWorld(viewport: ViewportState, offset: ScreenPoint, point: ScreenPoint): ScreenPoint {
-  return { x: (point.x - offset.x - viewport.x) / viewport.scale, y: (point.y - offset.y - viewport.y) / viewport.scale }
+/**
+ * SVG user point → world point for the current viewport. The point must be
+ * the cursor converted through ``getScreenCTM().inverse()`` first, so the
+ * browser's viewBox letterboxing and centering are already handled and the
+ * drag math stays exact at any mounted panel size.
+ */
+export function screenToWorld(viewport: ViewportState, point: ScreenPoint): ScreenPoint {
+  return { x: (point.x - viewport.x) / viewport.scale, y: (point.y - viewport.y) / viewport.scale }
 }
 
 /** Wheel zoom that keeps the world point under the cursor stationary. */
-export function zoomAround(viewport: ViewportState, offset: ScreenPoint, point: ScreenPoint, deltaY: number): ViewportState {
+export function zoomAround(viewport: ViewportState, point: ScreenPoint, deltaY: number): ViewportState {
   const scale = clampZoom(viewport.scale * (deltaY < 0 ? 1.08 : 0.92))
-  const world = screenToWorld(viewport, offset, point)
-  return { scale, x: point.x - offset.x - world.x * scale, y: point.y - offset.y - world.y * scale }
+  const world = screenToWorld(viewport, point)
+  return { scale, x: point.x - world.x * scale, y: point.y - world.y * scale }
 }
 
 /**
