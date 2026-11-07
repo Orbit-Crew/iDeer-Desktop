@@ -25,7 +25,12 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   terminal: { id: 'terminal', title: '终端', multiInstance: true, closable: true, runtime: 'native' },
   files: { id: 'files', title: '文件', multiInstance: false, closable: true, runtime: 'native' },
   kb: { id: 'kb', title: '知识库', multiInstance: false, closable: true, runtime: 'native' },
-  viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'webgl' },
+  // Issue 115: the CAD viewer is native-hosted like the terminal — it renders
+  // the device's own converted geometry (three.js WebGL, or its software 2D
+  // engine) over the Runtime-guarded workspace read. No external content is
+  // ever embedded, so it leaves the external-content seam; 'webgl' stays
+  // reserved for the unwired field pane.
+  viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'native' },
   field: { id: 'field', title: '仿真结果', multiInstance: false, closable: true, runtime: 'webgl' },
   sql: { id: 'sql', title: '数据', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 113: the session map is a native pane — a read-only projection of

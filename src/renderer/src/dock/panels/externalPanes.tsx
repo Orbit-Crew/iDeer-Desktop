@@ -4,8 +4,10 @@
 // no embedded content. test/security.test.ts pins this: the registry must map
 // every external-content panel type to this exact component, and this module's
 // bundle graph must stay free of the bridge surface. Issue 110 wired the
-// `terminal` slot and Issue 113 wired the `synapse` map as native-hosted
-// panes; the Agent terminal (#111) is the remaining future seam in this family.
+// `terminal` slot, Issue 113 wired the `synapse` map, and issue 115 wired the
+// `viewer3d` slot as native-hosted panes (desktop-local geometry, no external
+// content); the Agent terminal (#111) is the remaining future seam in this
+// family.
 import type { PanelTypeId } from '../types'
 
 interface PaneStatus {
@@ -19,10 +21,6 @@ interface PaneStatus {
 // 由主进程附加守卫与本文件之外的隔离不变量约束。issue 113 之后 synapse
 // 同样不再是占位：会话地图是原生窗格上的平台 Thread 只读投影。
 const EXTERNAL_PANE_STATUS: Partial<Record<PanelTypeId, PaneStatus>> = {
-  viewer3d: {
-    headline: '三维模型查看器未接入',
-    detail: 'STEP/STL/OBJ 查看器在工程阶段接入，随包组件需先完成来源与许可核验。'
-  },
   field: {
     headline: '仿真结果查看器未接入',
     detail: 'Tecplot 结果查看在工程阶段接入。'

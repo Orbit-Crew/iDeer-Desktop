@@ -31,6 +31,7 @@ import SynapsePane from './panels/synapsePane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 import OfficePane from './panels/officePane'
+import Viewer3dPane from './panels/viewer3dPane'
 
 /** chat 锚点内容：桌面平台聊天（无路由，锚点窗格直接承载） */
 export function ChatAnchorContent(): JSX.Element {
@@ -65,7 +66,10 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // (recursive folder import, fingerprint dedup, batch management, background
   // import with cancel). It rides the trusted desktop:knowledge:* family only.
   { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: DocLibraryPane },
-  { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: ExternalPanePlaceholder },
+  // Issue 115: the CAD viewer — one bounded mesh read of the Runtime-guarded
+  // workspace (OCCT for STEP, local readers for STL/OBJ) rendered by its own
+  // honest engines (three.js WebGL with a software 2D fallback).
+  { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: Viewer3dPane },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
   // Issue 113: the session map — the platform's own Thread rows as nodes,
   // this device's observed branch edges as links; open/branch ride the

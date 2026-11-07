@@ -3,9 +3,11 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
+import { CadPaneService } from './cadPane'
+import { loadOcctFromDirs } from './cad/stepToMesh'
 import { AgentBrowserHub, type AgentBrowserPort } from './agentBrowser'
 // Issue 86: the window lifecycle's decision layer (close-to-tray vs true
 // exit) and the shell's device-local preference store.
@@ -449,6 +451,30 @@ if (!app.requestSingleInstanceLock()) {
         return
       }
       throw new Error('FILES_COMMAND_INVALID')
+    })
+    // Issue 115: the CAD viewer's read entry. The renderer names a
+    // workspace-logical model file; containment rides the Runtime's own
+    // `locate` gate, and the conversion (OCCT WASM for STEP, local readers
+    // for STL/OBJ) with its honest caps runs here in the trusted process —
+    // the physical path and the file bytes never reach the renderer, and an
+    // over-cap model is refused by code instead of silently degraded.
+    const cadPane = new CadPaneService({
+      locate: (path) => runtime.files('locate', path) as Promise<{ physical: string }>,
+      // Packaged: <install>/resources/occt (extraResources, outside the asar).
+      // Development: the checkout's own resources/occt — the converter is a
+      // pinned repository resource, never an npm-resolved copy.
+      loadOcct: () => loadOcctFromDirs([
+        join(process.resourcesPath, 'occt'),
+        join(app.getAppPath(), 'resources', 'occt')
+      ])
+    })
+    ipcMain.handle('desktop:cad', async (event, command: CadCommand) => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object') throw new Error('CAD_COMMAND_INVALID')
+      const keys = Object.keys(command).length
+      if (command.action !== 'read-mesh' || typeof command.path !== 'string' ||
+          command.path.length === 0 || keys !== 2) throw new Error('CAD_COMMAND_INVALID')
+      return cadPane.readMesh(command.path)
     })
     // Issue 110: the human terminal seam (decision #59). Desktop-local PTY
     // sessions owned by the main frame only; the start dir resolves here from

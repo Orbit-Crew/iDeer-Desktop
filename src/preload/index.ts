@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 // Issue 106: the official selection rides the templates family's one pinned
 // channel, so the channel inventory stays one entry per channel.
@@ -65,6 +65,12 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 94: the human file-browsing seam — logical workspace paths only;
   // open/reveal resolve to physical paths inside the trusted main process.
   files: (command: FilesCommand) => ipcRenderer.invoke('desktop:files', command),
+  // Issue 115: the CAD viewer's one invoke entry — the renderer names a
+  // workspace-logical model file; containment rides the Runtime's own locate
+  // gate and the conversion (plus its honest caps) happens in the trusted
+  // main process, which returns one bounded mesh payload and never a
+  // physical path or raw file bytes.
+  cad: (command: CadCommand) => ipcRenderer.invoke('desktop:cad', command),
   // Issue 109: the remote browser entry — stream lifecycle, input forwarding
   // and the explicit remote-file retrieval; the screen itself arrives on the
   // one push channel below as pixels and can never send anything back.

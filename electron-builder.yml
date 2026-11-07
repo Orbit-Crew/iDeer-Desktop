@@ -14,6 +14,11 @@ extraResources:
   - from: .runtime
     to: runtime
     filter: ['**/*', '!**/__pycache__/**', '!**/*.pyc']
+  # Issue 115: the OpenCASCADE WASM converter (occt-import-js, pinned from the
+  # linz commit via resources/provenance/linz-source.json). It ships outside
+  # the asar so the glue can read its .wasm sibling with fs at runtime.
+  - from: resources/occt
+    to: occt
   - from: resources/provenance
     to: provenance
   - from: resources/updates

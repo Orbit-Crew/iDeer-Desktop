@@ -990,6 +990,11 @@ export interface DesktopBridge {
    * of the confirmed workspace; open/reveal resolve the physical path only in
    * the trusted main process and return nothing to the renderer. */
   files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
+  /** Issue 115: the CAD viewer's read entry. The renderer names a
+   * workspace-logical model file; the mesh conversion (OCCT for STEP, local
+   * parsers for STL/OBJ) happens in the trusted main process and returns one
+   * bounded geometry payload — never the file bytes or a physical path. */
+  cad(command: CadCommand): Promise<CadMeshView>
   /** Issue 107: the browser pane's partition clear; the confirmation dialog
    * stays in the trusted main process, so an accidental click never wipes
    * login state on its own. */
@@ -1109,6 +1114,49 @@ export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
 export type FilesPreview =
   | { kind: 'text'; content: string; truncated: boolean }
   | { kind: 'image'; mime: string; data: string }
+
+/**
+ * Issue 115: the CAD viewer's one invoke entry. The renderer names a
+ * workspace-logical model file plus the fixed `read-mesh` action; the
+ * workspace containment stays the Runtime's own guarded `locate` resolution,
+ * the physical path and file bytes never reach the renderer, and the honest
+ * caps (file size, triangle budget) are enforced in the trusted main process
+ * — an over-cap model is refused with explicit counts, never silently
+ * degraded. Geometry editing is out of scope by issue: the channel only reads.
+ */
+export type CadCommand = { action: 'read-mesh'; path: string }
+
+/** Issue 115: which local parser produced the mesh (the original's format
+ * subset: STL and OBJ parse directly, STEP triangulates through OCCT). */
+export type CadMeshFormat = 'stl' | 'obj' | 'step'
+
+/**
+ * Issue 115: one converted mesh payload. `positions` is the flat xyz vertex
+ * array and `indices` the triangle list; `stats` reports the loaded facts
+ * (parts, vertices, triangles) so the pane can show the real size instead of
+ * inventing one. Typed arrays ride the structured clone intact.
+ */
+export interface CadMeshView {
+  format: CadMeshFormat
+  positions: Float32Array
+  indices: Uint32Array
+  stats: CadMeshStats
+}
+
+/** Issue 115: the honest size facts of one loaded model. `meshes` counts the
+ * parts the converter produced (1 for direct STL/OBJ parses). */
+export interface CadMeshStats { meshes: number; vertices: number; triangles: number }
+
+/**
+ * Issue 115: the CAD viewer's caps, shared by the trusted main service that
+ * enforces them and the pane whose refusal texts state them — one vocabulary,
+ * so the enforced number and the displayed number can never drift.
+ * The file cap is the original viewer's STEP limit, now covering every
+ * format; the triangle budget is the software-render policy on the
+ * disabled-GPU baseline (docs/porting.md, 2026-11-07).
+ */
+export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
+export const CAD_MAX_TRIANGLES = 1_000_000
 
 /**
  * Issue 107: the local browser pane's one fixed session partition. Login
