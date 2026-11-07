@@ -294,6 +294,12 @@ export default function RuntimePanel(): JSX.Element {
       busy={wikiBusy || !runtime || runtime.process !== 'running' || login?.state !== 'authenticated'}
       error={wikiError}
       onCommand={runWiki}
+      onClear={() => {
+        // Issue #100: clear only this device's derived wiki display state.
+        // The Server's pages stay; the next view, generate, or navigate
+        // repopulates the surface from the frozen revision.
+        setWiki(null); setWikiPage(null); setWikiNavigation(null)
+      }}
     />
     <Typography.Title level={5} className="mt-5">技能包导入</Typography.Title>
     <SkillSection

@@ -1,106 +1,74 @@
-# Issue #97 design decisions (settled before code)
+# Issue #100 design decisions (settled before code)
 
-## D1 — Index identity and storage: sqlite `KnowledgeIndexStore` in new `core/knowledge_index.py`
+## D1 — Renderer-only surface; no bridge, IPC, or platform changes
 
-One sqlite file next to the settings (`knowledge-index.db` via `config.with_name`), the
-`KnowledgeImportRegistry` idiom: own `threading.RLock`, `PRAGMA synchronous=FULL`, one fixed
-storage-error category (`KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE`), per-call instantiation where the
-service reads it (the registry is instantiated per search too; SQLite's busy timeout is the
-cross-instance synchronization, same as today).
+The Server's wiki navigation endpoint
+(`GET …/knowledge-revisions/{rid}/wiki/navigation`, built for old-numbering
+#119) already projects everything the graph needs: pages with honest
+`completed/skipped/failed/not_generated` statuses, resolved links, explicit
+missing targets, backlinks as the exact inverse of links, and the frozen
+document sources. The gap analysis (K05) names the Desktop gap as the
+canvas/organization, not the protocol. So #100 adds zero protocol surface:
+no `WikiCommand` action, no `src/shared/desktop.ts` type, no
+`runtime.ts`/`desktop.py`/`platform_chat.py` change, no
+`test/security.test.ts` channel-list update. This also keeps the branch
+conflict-free against the two open knowledge PRs (#153/#154), which do touch
+those files.
 
-Rows are keyed by the **encoded binding + revision_id + manifest_hash** — the exact
-`find_registration` discipline. kb_id is NOT part of the key because the search task does not
-carry it; (binding, revision_id, manifest_hash) is already unique per registered revision.
+## D2 — Deterministic graph model, no layout engine
 
-Three tables: `knowledge_index_revisions` (document_count/drifted_documents/built_at/error),
-`knowledge_index_documents` (per manifest document: servable flag, char_count, note, text, layout
-JSON), `knowledge_index_terms` (per document+term: tf, bounded line list, indexed by term for df).
+`wikiGraphModel.ts` derives nodes/edges/positions purely from the navigation
+payload: overview lays every page on one circle in manifest order; 邻域
+centers the selected page and rings its one-hop and two-hop closure over
+links ∪ backlinks (mirroring the original linz ego mode's depth 2), capped
+at 60 nodes. No cytoscape/d3 dependency (the pinned dependency list in
+`test/security.test.ts` must not grow), no randomness, no animation — the
+same index always draws the same picture, which is what makes the model
+unit-testable. Node radius grows with visible relations only (edges among
+rendered nodes), so size always names what is on screen.
 
-## D2 — State is derived, never stored as a claim
+Honesty rules carried over from the text index: an unresolved link target
+never becomes a node or edge (it stays an explicit dead end in the page
+rows below the canvas); a skipped/failed page in the closure renders with
+its own status color and is never clickable into a body; backlink rows are
+not drawn as second edges — edges come from `links` only, and the closure
+walk uses backlinks purely to reach referencing pages.
 
-`revision_view` computes the state from the rows: `ready` only while every manifest document has a
-row (`indexedDocuments >= documents > 0`), `partial` when some rows exist, `missing` when none, and
-`failed` when an error is recorded on an incomplete revision. Nothing in the store says "ready" —
-a half-written or crashed build can never impersonate completeness. `begin_revision` opens the
-revision row at the first written document so a canceled or crashed rebuild shows its honest
-partial state; `finish_revision` (completion only) refreshes the totals, drift, and built_at.
+## D3 — 清空/重建 semantics with the Server as owner
 
-## D3 — The #113 revalidation contract is preserved, not weakened
+The original linz wiki stored pages locally, so 清空 deleted them. On the
+platform, pages are Server-owned per frozen revision and the gateway has no
+DELETE wiki route (verified: only POST generate, GET view/page/navigation).
+The honest Desktop translation, matching "生成绑定库 Revision，清空后可重建":
 
-`revalidate_frozen_documents` keeps the per-search walk + name match + SHA-256 comparison. The
-`serve` callback receives the exact verified bytes (one read: digest and content come from the same
-bytes — the literal scan's original TOCTOU-safe property), so the fallback path scans the same
-bytes the digest verified. The indexed path uses the same classification and then answers intact
-documents from the index, which was built from those same hash-verified frozen bytes at import
-time. A drifted or gone document is structured `missing` exactly as before — the index is never a
-license to answer from stale text.
+- 清空展示状态 (Popconfirm): clears only this device's derived display
+  state (view, navigation, page bodies in `RuntimePanel`) via `onClear`.
+  The confirm copy states that Server pages stay, a re-view shows them
+  again, and a rebuild replaces them per page — the surface never claims a
+  Server deletion that did not happen.
+- 重建: the existing `generate` action, which the Server performs as a
+  per-document drop-and-rewrite (idempotent rebuild of every page from the
+  frozen manifest). The per-revision button reads 重新生成 once that
+  revision's displayed state is not `not_generated`, and 生成Wiki before.
 
-## D4 — Drift is a per-document mark, never an overwriting count
+## D4 — 来源标注到文档与位置
 
-The documents table carries a `drift` flag; `revision_view` derives
-`driftedDocuments` from `SUM(drift)`. A search marks the documents it actually
-observed — drifted marks are added, and a document the search verified (its
-bytes matched the frozen digest at that moment) has its mark cleared. A later
-subset search can therefore never erase the 已过期 annotation for documents it
-did not look at, and a restored file's mark clears exactly when a search
-re-verifies it. The rebuild rewrites every row with its recomputed truth.
-(This replaced an earlier whole-revision overwrite that a subset search could
-reset to zero — review finding, fixed before push.)
+`wikiSourceLine` renders `来源 {filename} · 冻结位置 {i}/{n} · 文档指纹：
+{sha256}` on both page lists and the selected node. The position is the
+row's index inside the revision's frozen manifest order — the only honest
+"位置" the platform states (pages are generated per whole document; the
+payload carries no in-document locators, and none are invented). The
+association coverage rows keep their existing format: they are the #116
+graph rows' own sources, already document- and digest-bound.
 
-## D5 — Rebuild re-verifies; it never fakes drifted content
+## D5 — Component structure and state
 
-`KnowledgeIndexRebuild` (the `KnowledgeFolderImport` job idiom: one daemon thread, one slot,
-`threading.Event` cancel checked per document, honest terminal states) re-reads every manifest
-document, re-hashes it against the frozen digest, and re-indexes only what still verifies. A
-drifted document keeps a non-servable row with `note='content_drift'` and its drift mark; the
-frozen content it once had is gone and is NOT re-taken from current
-bytes. Cancel keeps the rows written so far (each is self-consistent frozen content) and the
-derived state shows `partial`.
-
-## D6 — Import-time indexing via the transient `_text` field
-
-`build_manifest`/`build_folder_entries` already parse every document; `_entry_with_text` keeps the
-extracted text under `_text` on the manifest entry. `_register_frozen_entries` indexes the revision
-right after the platform returns the revision identity (`_index_frozen_revision`), then
-`strip_entry_text` drops the field in a `finally` — the wire payload (fixed field list) and the
-registry rows (`DOCUMENT_FIELDS`) never see it. The folder job releases each batch's text as it
-registers, bounding memory to one batch. An index failure never fails the registration (it is
-recorded via `mark_build_error` and the store's storage error; retrieval falls back visibly).
-
-## D7 — Tokenizer and BM25, stdlib-only and deterministic
-
-ASCII `\w` runs stay whole casefolded words; contiguous non-ASCII word characters become
-overlapping character bigrams (lone characters stay unigrams) — the recall/precision compromise
-for Chinese text without a segmentation dependency. Terms are truncated at 40 chars consistently
-for documents and queries. Per document: tf + first 200 line hits per term, ≤50k unique terms.
-BM25 (k1=1.5, b=0.75, Lucene-style non-negative idf) ranks documents; chunks are the term-hit
-lines of the ranked documents, each carrying the line number and the page resolved through the
-frozen parse's layout anchors (`line_page_marks`). A query that tokenizes to nothing routes to the
-literal scan (`fallbackReason: 'index-untokenized'`) so punctuation queries keep their capability.
-
-## D8 — Index keying and the verified-but-unservable classification
-
-Every per-document structure is keyed by the full `(filename, content_hash)` identity: a folder
-import dedups by content digest only, so one revision can hold two same-name documents, and their
-term rows, lengths, and BM25 scores must never merge (review finding, pinned by
-`test_same_name_documents_are_served_separately`). A verified document the index cannot honestly
-serve text for (it parsed as skipped or failed at import) is structured missing `not_searchable`
-in the indexed path — the same answer the literal engine gives, never a silent gap and never
-counted as matched (`test_verified_unparsable_document_is_not_searchable`).
-
-## D9 — Wire: result annotations, not shape changes
-
-`local.knowledge.search`'s result gains `engine` ('bm25' | 'literal'), `index` (the revision's
-derived view), and — on the degraded path — `fallbackReason`. The receipt is content-hash based,
-so additive keys are safe. No new capability name, no compat.ts change; the two new control
-commands (`knowledge-index-rebuild`, `-cancel`) follow the exact-shape gate + single-slot queue +
-scope fence idiom and required the sorted security-test channel pins plus the smoke bridge keys.
-
-## D10 — Renderer: annotation on the doc library records
-
-The per-row `index` view rides the snapshot's `knowledgeImports` rows; the one rebuild job rides as
-`knowledgeIndexRebuild` (the folder-job pattern). The pane derives 重建中 (running job matching the
-record's revisionId+manifestHash), 已过期 (driftedDocuments > 0 on top of ready/partial), and keeps
-未建 / 未完成 / 失败 distinct — no vague merged word. Rebuild/cancel ride the existing
-generation-fenced one-action controller; the explanations for the fixed `KNOWLEDGE_INDEX_*`
-categories join the existing map.
+`WikiGraphPanel` owns the two display-only states (mode, selected node) as
+local component state; they are view preferences, not data, and reset
+naturally when the panel unmounts (each 清空/view/navigate swap in
+`RuntimePanel` does exactly that). `WikiSection` stays a projection of its
+props, gaining only the optional `onClear` callback and the 重新生成 label
+decision. Tests follow the file's existing split: static markup via
+`renderToStaticMarkup` for projections, jsdom + `@testing-library/react`
+interactions for the new behaviors (the file gains the `@vitest-environment
+jsdom` header; `renderToStaticMarkup` works unchanged under jsdom).
