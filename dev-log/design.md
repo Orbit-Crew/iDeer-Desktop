@@ -1,83 +1,74 @@
-# Issue #92 design decisions (settled before code)
+# Issue #100 design decisions (settled before code)
 
-## D1 — Registry storage: sqlite `ProjectBindingRegistry` in new `core/project_binding.py`
+## D1 — Renderer-only surface; no bridge, IPC, or platform changes
 
-Matches the established device-registry idiom (`ConnectorRegistry`, `KnowledgeImportRegistry`,
-`SkillScriptRegistry`): one sqlite file next to the settings (`project-bindings.db`), own
-`threading.RLock`, rows keyed by an identity hash of `(profile_binding, project_id)`, a single
-fixed storage-error category `PROJECT_BINDING_STORAGE_UNAVAILABLE`.
+The Server's wiki navigation endpoint
+(`GET …/knowledge-revisions/{rid}/wiki/navigation`, built for old-numbering
+#119) already projects everything the graph needs: pages with honest
+`completed/skipped/failed/not_generated` statuses, resolved links, explicit
+missing targets, backlinks as the exact inverse of links, and the frozen
+document sources. The gap analysis (K05) names the Desktop gap as the
+canvas/organization, not the protocol. So #100 adds zero protocol surface:
+no `WikiCommand` action, no `src/shared/desktop.ts` type, no
+`runtime.ts`/`desktop.py`/`platform_chat.py` change, no
+`test/security.test.ts` channel-list update. This also keeps the branch
+conflict-free against the two open knowledge PRs (#153/#154), which do touch
+those files.
 
-Why not a `RuntimeSettings` field: settings is one JSON document rewritten wholesale under
-`_SAVE_LOCK`, holding the single device-wide workspace selection and its grant identity. Project
-bindings are N small rows written from the stdio dispatch loop and read by the 0.5 s status loop;
-the sqlite registry idiom fits both the write pattern and the error-surfacing pattern. A separate
-file also keeps platform-project deletion fully decoupled from local files (design constraint).
+## D2 — Deterministic graph model, no layout engine
 
-Per-device isolation is structural: `profile_binding(settings)` = (server_origin, user_id,
-**device_id**, device_public_key, broker_public_key). Rows are keyed by the whole binding, so a
-different device never sees another device's rows — 换设备登录 shows 未绑定（原设备绑定不迁移）
-without any migration logic.
+`wikiGraphModel.ts` derives nodes/edges/positions purely from the navigation
+payload: overview lays every page on one circle in manifest order; 邻域
+centers the selected page and rings its one-hop and two-hop closure over
+links ∪ backlinks (mirroring the original linz ego mode's depth 2), capped
+at 60 nodes. No cytoscape/d3 dependency (the pinned dependency list in
+`test/security.test.ts` must not grow), no randomness, no animation — the
+same index always draws the same picture, which is what makes the model
+unit-testable. Node radius grows with visible relations only (edges among
+rendered nodes), so size always names what is on screen.
 
-Row fields: identity, binding (JSON), project_id, path, device_name (display attribution, bound
-at bind time), created_at.
+Honesty rules carried over from the text index: an unresolved link target
+never becomes a node or edge (it stays an explicit dead end in the page
+rows below the canvas); a skipped/failed page in the closure renders with
+its own status color and is never clickable into a body; backlink rows are
+not drawn as second edges — edges come from `links` only, and the closure
+walk uses backlinks purely to reach referencing pages.
 
-## D2 — Wire: extend the existing `desktop:projects` family (no new channel)
+## D3 — 清空/重建 semantics with the Server as owner
 
-`ProjectCommand` gains `{ action: 'bind-folder'; projectId: string }` and
-`{ action: 'unbind-folder'; projectId: string }`. The folder path NEVER comes from the renderer:
-main opens the native `dialog.showOpenDialog` (openDirectory) and a confirm message box (boundary
-explanation, like `desktop:workspace:choose`), then sends the chosen path to the Runtime.
+The original linz wiki stored pages locally, so 清空 deleted them. On the
+platform, pages are Server-owned per frozen revision and the gateway has no
+DELETE wiki route (verified: only POST generate, GET view/page/navigation).
+The honest Desktop translation, matching "生成绑定库 Revision，清空后可重建":
 
-- runtime.ts `projects()`: per-action key validation; bind-folder carries `projectId` + `path`
-  (1..1024 chars); wire `{type:'projects', id, action, projectId, path?, scope}`.
-- desktop.py envelope gate: two new key sets in the existing `projects` gate block.
-- `DesktopChat.projects_manage`: bind-folder re-reads the platform list first and refuses an
-  unknown projectId with `CHAT_NOT_FOUND` (the registry is keyed by platform projectId, so a bind
-  must reference a live project); validates the path (absolute, isdir → else `CHAT_COMMAND_INVALID`);
-  records via the registry. unbind-folder is local cleanup, idempotent, no platform precondition.
-  Replies follow the family idiom: every reply carries the platform's own post-action list plus the
-  account permissions, and now also `bindings` (this device's rows) plus `bound:`/`unbound:` flags.
-- Registry failures raise `CHAT_BINDING_STORE_UNAVAILABLE` (new fixed category; renderer explains it).
-- Binding/unbinding is intentionally NOT gated on `projects:write`: it is a device-local accessory
-  record; the platform-side check is project existence (read) only.
+- 清空展示状态 (Popconfirm): clears only this device's derived display
+  state (view, navigation, page bodies in `RuntimePanel`) via `onClear`.
+  The confirm copy states that Server pages stay, a re-view shows them
+  again, and a rebuild replaces them per page — the surface never claims a
+  Server deletion that did not happen.
+- 重建: the existing `generate` action, which the Server performs as a
+  per-document drop-and-rewrite (idempotent rebuild of every page from the
+  frozen manifest). The per-revision button reads 重新生成 once that
+  revision's displayed state is not `not_generated`, and 生成Wiki before.
 
-## D3 — Status snapshot: `projectBindings` rides the 0.5 s snapshot
+## D4 — 来源标注到文档与位置
 
-Main-side consumption (terminal start dir) must not depend on a renderer projects round-trip.
-desktop.py status gains `projectBindings` (rows for the authenticated profile, capped 20) and
-`projectBindingStorageError`; runtime.ts parses them with the same strictness as `connectors` into
-`RuntimeStatus.projectBindings?: ProjectBindingView[]`. `ProjectBindingView` =
-`{ projectId, path, deviceName, createdAt }`.
+`wikiSourceLine` renders `来源 {filename} · 冻结位置 {i}/{n} · 文档指纹：
+{sha256}` on both page lists and the selected node. The position is the
+row's index inside the revision's frozen manifest order — the only honest
+"位置" the platform states (pages are generated per whole document; the
+payload carries no in-document locators, and none are invented). The
+association coverage rows keep their existing format: they are the #116
+graph rows' own sources, already document- and digest-bound.
 
-## D4 — Consumption (criterion 4)
+## D5 — Component structure and state
 
-- 起始输入 (start): human terminal chain becomes project binding → workspace locate → home.
-  The renderer passes its selected project as an id-only selector to `terminal:spawn`
-  (`TerminalBridge.spawn(projectId?)`); main resolves the path exclusively from the Runtime
-  snapshot (`runtime.status().projectBindings`), verifies it still exists on disk (existsSync),
-  and never hands any path back to the renderer — the invariant "renderer never supplies or
-  receives a physical path" holds; a bogus/unknown selector simply falls through the chain.
-  The chain itself is a tested exported helper in `terminal.ts` (`startDirForProject`).
-- 边界输入 (boundary): the Agent file tools' root input in desktop mode is the confirmed device
-  workspace (`WorkspaceSelection`) — unchanged. The bound folder becomes usable as that root
-  input through the existing guarded seam: after a confirmed bind, when the device has no
-  workspace yet, main offers a second explicit dialog to select the bound folder as the
-  workspace (`runtime.selectWorkspace`); pytest proves a bound folder passes the same guards
-  (`WorkspaceSelection.select(confirmed=True)` → grant → file store roots inside it). The
-  Issue-78 `_thread_bindings` scaffolding stays as-is: its per-run context consumer is future
-  work (documented in `inherited_binding`), and this ticket does not grow a second inheritance
-  path.
-
-## D5 — Renderer
-
-`ProjectDirectoryView` gains `bindings: ProjectBindingView[]` (default `[]`); the controller's
-single `run()` path passes them through; `bindFolder`/`unbindFolder` methods. `ProjectRow` shows
-已绑定：{path}（本设备：{deviceName}） or 未绑定（原设备绑定不迁移）, with 绑定文件夹 / 解除绑定
-buttons. Bind/unbind ride the existing generation-fenced `run()`; a canceled dialog stays quiet
-(`PROJECTS_CANCELED`).
-
-## Security test arrays
-
-No new IPC channel and no new push channel: bind-folder/unbind-folder ride `desktop:projects`,
-so the sorted invoke/push arrays in `test/security.test.ts` stay byte-identical; an `// Issue 92:`
-comment documents that decision in the array's comment block (per ticket).
+`WikiGraphPanel` owns the two display-only states (mode, selected node) as
+local component state; they are view preferences, not data, and reset
+naturally when the panel unmounts (each 清空/view/navigate swap in
+`RuntimePanel` does exactly that). `WikiSection` stays a projection of its
+props, gaining only the optional `onClear` callback and the 重新生成 label
+decision. Tests follow the file's existing split: static markup via
+`renderToStaticMarkup` for projections, jsdom + `@testing-library/react`
+interactions for the new behaviors (the file gains the `@vitest-environment
+jsdom` header; `renderToStaticMarkup` works unchanged under jsdom).

@@ -1,8 +1,20 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { RuntimeProcess } from '../src/main/runtime'
 import { WikiSection } from '../src/renderer/src/components/WikiSection'
-import type { KnowledgeImportView, RuntimeStatus, WikiCommand, WikiNavigation, WikiPage, WikiView } from '../src/shared/desktop'
+import type { KnowledgeImportView, RuntimeStatus, WikiCommand, WikiNavigation, WikiNavigationPage, WikiPage, WikiView } from '../src/shared/desktop'
+
+afterEach(cleanup)
+
+beforeAll(() => {
+  window.matchMedia = window.matchMedia ?? ((query: string): MediaQueryList => ({
+    matches: false, media: query, onchange: null,
+    addListener: () => {}, removeListener: () => {},
+    addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false
+  }) as MediaQueryList)
+})
 
 const KB = '33333333-3333-4333-8333-333333333333'
 const REVISION = '77777777-7777-4777-8777-777777777777'
@@ -93,7 +105,9 @@ describe('controlled wiki entry (#118)', () => {
     expect(html).toContain('版本 R1 · 生成完成 · 成功 1 · 失败 0 · 跳过 0')
     expect(html).toContain('c'.repeat(64))
     expect(html).toContain('甲零件与乙组件 · 可阅读')
-    expect(html).toContain(`来源 guide.txt · 文档指纹：${GUIDE_HASH}`)
+    // Issue #100: the source line names the document and its frozen
+    // manifest position next to the digest.
+    expect(html).toContain(`来源 guide.txt · 冻结位置 1/1 · 文档指纹：${GUIDE_HASH}`)
     // The list never carries a page body; bodies come only from the read.
     expect(html).not.toContain('甲零件属于乙组件，乙组件由甲零件与螺栓构成。')
     // The entry offers exactly the account's registered revisions.
@@ -242,5 +256,94 @@ describe('wiki navigation index with links, backlinks, and associations (#119)',
     expect(html).toContain('aria-label="导航Wiki R1"')
     expect(html).toContain('disabled')
     expect(html).not.toContain('aria-label="返回 甲零件与乙组件">')
+  })
+})
+
+describe('wiki graph navigation with overview, neighborhood, clear, and rebuild (#100)', () => {
+  const THIRD_DOCUMENT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const pageA = (): WikiNavigationPage => ({
+    documentId: DOCUMENT, filename: 'guide.txt', title: '甲零件与乙组件', contentHash: GUIDE_HASH, status: 'completed', errorCode: '',
+    links: [{ documentId: SECOND_DOCUMENT, title: '乙组件', status: 'completed' }], missingLinks: [], backlinks: []
+  })
+  const pageB = (): WikiNavigationPage => ({
+    documentId: SECOND_DOCUMENT, filename: 'bom.txt', title: '乙组件', contentHash: 'e'.repeat(64), status: 'completed', errorCode: '',
+    links: [], missingLinks: [], backlinks: [{ documentId: DOCUMENT, title: '甲零件与乙组件', status: 'completed' }]
+  })
+  const pageC = (overrides: Partial<WikiNavigationPage> = {}): WikiNavigationPage => ({
+    documentId: THIRD_DOCUMENT, filename: 'misc.txt', title: '无关页面', contentHash: 'f'.repeat(64), status: 'completed', errorCode: '',
+    links: [], missingLinks: [], backlinks: [], ...overrides
+  })
+  const graphNavigation = (pages: WikiNavigationPage[]): WikiNavigation => ({
+    ...wikiView, pages, status: 'completed', generated: pages.length, failed: 0, skipped: 0,
+    associations: { status: 'not_generated', generated: 0, failed: 0, sources: [], entities: [], relations: [] }
+  })
+
+  const renderLive = (props: { wiki?: WikiView | null; navigation?: WikiNavigation | null; busy?: boolean; onCommand?: (command: WikiCommand) => void; onClear?: () => void } = {}) =>
+    render(
+      <WikiSection
+        runtime={runtimeStatus()}
+        wiki={props.wiki ?? null}
+        navigation={props.navigation ?? null}
+        page={null}
+        busy={props.busy ?? false}
+        error=""
+        onCommand={props.onCommand ?? (() => {})}
+        onClear={props.onClear}
+      />
+    )
+
+  it('renders the overview canvas with every page, its status legend, and the frozen source positions', () => {
+    const html = renderSection({ wiki: null, navigation: graphNavigation([pageA(), pageB(), pageC()]) })
+    expect(html).toContain('概览')
+    expect(html).toContain('邻域')
+    expect(html).toContain('wiki 图导航')
+    // Every page of the index is a node; the text index keeps the frozen
+    // source position next to the digest.
+    expect(html).toContain('页面节点 甲零件与乙组件')
+    expect(html).toContain('页面节点 乙组件')
+    expect(html).toContain('页面节点 无关页面')
+    expect(html).toContain('来源 guide.txt · 冻结位置 1/3')
+    expect(html).toContain('来源 misc.txt · 冻结位置 3/3')
+    expect(html).toContain('可阅读')
+    expect(html).toContain('已跳过')
+  })
+
+  it('reads a completed page when its node is clicked', () => {
+    const onCommand = vi.fn()
+    renderLive({ navigation: graphNavigation([pageA(), pageB(), pageC()]), onCommand })
+    fireEvent.click(screen.getByLabelText('页面节点 甲零件与乙组件'))
+    expect(onCommand).toHaveBeenCalledWith({ action: 'read', kbId: KB, revisionId: REVISION, documentId: DOCUMENT })
+  })
+
+  it('never opens a skipped page from the graph', () => {
+    const onCommand = vi.fn()
+    const skipped = pageC({ status: 'skipped', errorCode: 'GRAPH_CONTENT_DRIFTED' })
+    renderLive({ navigation: graphNavigation([pageA(), pageB(), skipped]), onCommand })
+    fireEvent.click(screen.getByLabelText('页面节点 无关页面'))
+    expect(onCommand).not.toHaveBeenCalled()
+  })
+
+  it('switches to the neighborhood of the selected page and leaves unrelated pages out', () => {
+    const onCommand = vi.fn()
+    renderLive({ navigation: graphNavigation([pageA(), pageB(), pageC()]), onCommand })
+    fireEvent.click(screen.getByLabelText('页面节点 乙组件'))
+    fireEvent.click(screen.getByText('邻域'))
+    expect(screen.queryByLabelText('页面节点 无关页面')).toBeNull()
+    expect(screen.getByLabelText('页面节点 乙组件')).toBeTruthy()
+    expect(screen.getByLabelText('页面节点 甲零件与乙组件')).toBeTruthy()
+  })
+
+  it('clears the derived wiki surface only behind an explicit confirm', async () => {
+    const onClear = vi.fn()
+    renderLive({ wiki: wikiView, onClear })
+    fireEvent.click(screen.getByLabelText('清空Wiki展示状态'))
+    fireEvent.click(await screen.findByText('确认清空'))
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers 重新生成 for a revision whose pages exist and 生成Wiki before that', () => {
+    expect(renderSection({ wiki: wikiView })).toContain('aria-label="重新生成Wiki R1"')
+    expect(renderSection({ wiki: wikiView })).toContain('重新生成')
+    expect(renderSection({ wiki: null, navigation: null })).toContain('aria-label="生成Wiki R1"')
   })
 })
