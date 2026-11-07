@@ -84,6 +84,9 @@ export interface KnowledgeImportView {
    * and how many files it held. The stored paths never cross the bridge. */
   source: { kind: string; folder: string; pathCount: number } | null
   documents: KnowledgeImportDocumentView[]
+  /** Issue 97: the revision's device BM25 index facts, or null when the
+   * index store is unreadable (the storage error rides the snapshot). */
+  index?: KnowledgeIndexView | null
 }
 export interface KnowledgeImportOutcome {
   kbId: string
@@ -109,6 +112,33 @@ export interface KnowledgeFolderJobView {
   truncated: boolean
   error: string
   failures: KnowledgeFolderFailureView[]
+}
+/** Issue 97: the device-local BM25 index facts for one registered revision.
+ * State is derived from the rows, never a stored claim: ready only while
+ * every manifest document has a row; driftedDocuments is the drift a search
+ * or rebuild observed against the frozen digests (已过期). */
+export interface KnowledgeIndexView {
+  state: 'ready' | 'partial' | 'missing' | 'failed'
+  documents: number
+  indexedDocuments: number
+  servableDocuments: number
+  driftedDocuments: number
+  builtAt: string
+  error: string
+}
+/** Issue 97: the doc library's one background index rebuild job; progress
+ * and the honest outcome ride the status snapshot like the folder import. */
+export interface KnowledgeIndexJobView {
+  state: 'running' | 'completed' | 'canceled' | 'failed'
+  kbId: string
+  revisionId: string
+  manifestHash: string
+  totalDocuments: number
+  processedDocuments: number
+  indexedDocuments: number
+  driftedDocuments: number
+  unavailableDocuments: number
+  error: string
 }
 /** Issue 115: device-local display fact for one explicit server publication. */
 export interface KnowledgePublicationView {
@@ -840,6 +870,9 @@ export interface RuntimeStatus {
   knowledgeImportStorageError?: string
   /** Issue 96: the doc library's one background folder import job, or null. */
   knowledgeFolderImport?: KnowledgeFolderJobView | null
+  /** Issue 97: the one background index rebuild job, or null. */
+  knowledgeIndexRebuild?: KnowledgeIndexJobView | null
+  knowledgeIndexStorageError?: string
   /** Issue 102: this identity's own dataset registry rows (bounded) plus the
    * honest storage error; the rows ride the same 0.5 s status snapshot. */
   datasets?: DatasetView[]
@@ -943,6 +976,11 @@ export interface DesktopBridge {
   knowledgeFolderImport(kbId: string): Promise<KnowledgeFolderJobView>
   /** Issue 96: cancel the running folder import at the next file or batch. */
   knowledgeFolderCancel(): Promise<{ canceled: boolean }>
+  /** Issue 97: rebuild one registered revision's device BM25 index in the
+   * background; the workspace re-verification happens device-side. */
+  rebuildKnowledgeIndex(kbId: string, revisionId: string, manifestHash: string): Promise<KnowledgeIndexJobView>
+  /** Issue 97: cancel the running index rebuild at the next document. */
+  cancelKnowledgeIndexRebuild(): Promise<{ canceled: boolean }>
   /** Issue 96: batch-delete selected import records (device-local display rows
    * only); the confirmation stays in the trusted main process. */
   deleteKnowledgeImports(ids: string[]): Promise<{ deleted: number }>

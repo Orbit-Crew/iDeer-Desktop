@@ -4,9 +4,12 @@
 // action rides the trusted desktop:knowledge:* family, whose file picking and
 // confirmations stay in the trusted main process. Originals stay local: the
 // page only ever shows workspace-logical display facts, never physical paths.
+// Issue 97: each registered record also shows its revision's device BM25
+// index facts (未建/重建中/已过期), with a background rebuild that can be
+// canceled at the next document — the honest annotation, never a silent gap.
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Empty, Input, Space, Typography } from 'antd'
-import type { KnowledgeFolderJobView, KnowledgeImportView } from '../../../../shared/desktop'
+import type { KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView } from '../../../../shared/desktop'
 import { DocLibraryController, emptyDocLibraryView, explainDocLibraryError, type DocLibraryView } from '../../stores/docLibrary'
 import type { PanelTypeId } from '../types'
 
@@ -20,6 +23,31 @@ export function describeRecordStatus(record: KnowledgeImportView): string {
 
 const JOB_STATE: Record<KnowledgeFolderJobView['state'], string> = {
   running: '后台导入进行中', completed: '后台导入已完成', canceled: '后台导入已取消', failed: '后台导入失败'
+}
+
+/** Issue 97: the honest per-revision index annotation. A revision whose
+ * documents drifted says so (已过期) on top of its ready state; the display
+ * never merges 未建 and 失败 into one vague word. */
+export function describeIndexStatus(record: KnowledgeImportView, rebuild: KnowledgeIndexJobView | null): string {
+  if (record.status !== 'registered' || !record.revisionId) return ''
+  const index = record.index ?? null
+  const building = rebuild !== null && rebuild.state === 'running' &&
+    rebuild.revisionId === record.revisionId && rebuild.manifestHash === record.manifestHash
+  if (building) {
+    return `检索索引重建中：已核对 ${rebuild.processedDocuments} / ${rebuild.totalDocuments} 个文件`
+  }
+  if (!index) return '检索索引：状态未知'
+  const drift = index.driftedDocuments > 0 ? ` · 已过期：${index.driftedDocuments} 个文件已变更，重建后可恢复检索` : ''
+  switch (index.state) {
+    case 'ready':
+      return `检索索引就绪：${index.servableDocuments} 个文件可全文检索${drift}`
+    case 'partial':
+      return `检索索引未完成：${index.indexedDocuments} / ${index.documents} 个文件${drift}`
+    case 'failed':
+      return `检索索引失败：${index.error || 'KNOWLEDGE_INDEX_FAILED'}${drift}`
+    default:
+      return `未建检索索引${drift}`
+  }
 }
 
 function FolderJobCard({ job, busy, onCancel }: { job: KnowledgeFolderJobView; busy: boolean; onCancel: () => void }): JSX.Element {
@@ -74,6 +102,8 @@ export default function DocLibraryPane({ instanceId, panelType }: {
     runtime.login?.state === 'authenticated' && runtime.workspace?.state === 'ready'
   const records = runtime?.knowledgeImports ?? []
   const job = runtime?.knowledgeFolderImport ?? null
+  const indexRebuild = runtime?.knowledgeIndexRebuild ?? null
+  const rebuildRunning = indexRebuild !== null && indexRebuild.state === 'running'
   const selectedRows = records.filter(record => selected.includes(record.id))
   const selectedFailed = selectedRows.filter(record => record.status === 'failed')
   const toggle = (recordId: string, checked: boolean): void =>
@@ -101,6 +131,8 @@ export default function DocLibraryPane({ instanceId, panelType }: {
       {view.error && <Alert type="error" showIcon className="mb-2" message={explainDocLibraryError(view.error)} />}
       {runtime?.knowledgeImportStorageError && <Alert type="error" showIcon className="mb-2"
         message="导入记录存储不可用，状态显示可能不完整" />}
+      {runtime?.knowledgeIndexStorageError && <Alert type="error" showIcon className="mb-2"
+        message="检索索引存储不可用，导入后检索将临时降级为字面扫描；可稍后重建索引" />}
       {job && <FolderJobCard job={job} busy={view.busy}
         onCancel={() => run(() => controller.current!.cancelFolderImport())} />}
       <Typography.Title level={5} className="mt-5">导入记录</Typography.Title>
@@ -138,6 +170,21 @@ export default function DocLibraryPane({ instanceId, panelType }: {
                 <Typography.Paragraph type="secondary" className="mb-0">
                   {record.createdAt} · {record.documents.map(document => document.filename).join('、')}
                 </Typography.Paragraph>
+                {record.status === 'registered' && <Typography.Paragraph type="secondary" className="mb-0"
+                  data-testid="doc-library-index-status">
+                  {describeIndexStatus(record, indexRebuild)}
+                  {ready && !rebuildRunning && (
+                    <Button size="small" type="link" aria-label={`重建检索索引 ${record.revisionId.slice(0, 8)}`}
+                      disabled={view.busy}
+                      onClick={() => run(() => controller.current!.rebuildIndex(record))}>重建索引</Button>
+                  )}
+                  {rebuildRunning && indexRebuild.revisionId === record.revisionId &&
+                    indexRebuild.manifestHash === record.manifestHash && (
+                    <Button size="small" type="link" aria-label="取消索引重建"
+                      disabled={view.busy}
+                      onClick={() => run(() => controller.current!.cancelIndexRebuild())}>取消重建</Button>
+                  )}
+                </Typography.Paragraph>}
               </div>
             </Space>
           </Card>

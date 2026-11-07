@@ -1,83 +1,106 @@
-# Issue #92 design decisions (settled before code)
+# Issue #97 design decisions (settled before code)
 
-## D1 — Registry storage: sqlite `ProjectBindingRegistry` in new `core/project_binding.py`
+## D1 — Index identity and storage: sqlite `KnowledgeIndexStore` in new `core/knowledge_index.py`
 
-Matches the established device-registry idiom (`ConnectorRegistry`, `KnowledgeImportRegistry`,
-`SkillScriptRegistry`): one sqlite file next to the settings (`project-bindings.db`), own
-`threading.RLock`, rows keyed by an identity hash of `(profile_binding, project_id)`, a single
-fixed storage-error category `PROJECT_BINDING_STORAGE_UNAVAILABLE`.
+One sqlite file next to the settings (`knowledge-index.db` via `config.with_name`), the
+`KnowledgeImportRegistry` idiom: own `threading.RLock`, `PRAGMA synchronous=FULL`, one fixed
+storage-error category (`KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE`), per-call instantiation where the
+service reads it (the registry is instantiated per search too; SQLite's busy timeout is the
+cross-instance synchronization, same as today).
 
-Why not a `RuntimeSettings` field: settings is one JSON document rewritten wholesale under
-`_SAVE_LOCK`, holding the single device-wide workspace selection and its grant identity. Project
-bindings are N small rows written from the stdio dispatch loop and read by the 0.5 s status loop;
-the sqlite registry idiom fits both the write pattern and the error-surfacing pattern. A separate
-file also keeps platform-project deletion fully decoupled from local files (design constraint).
+Rows are keyed by the **encoded binding + revision_id + manifest_hash** — the exact
+`find_registration` discipline. kb_id is NOT part of the key because the search task does not
+carry it; (binding, revision_id, manifest_hash) is already unique per registered revision.
 
-Per-device isolation is structural: `profile_binding(settings)` = (server_origin, user_id,
-**device_id**, device_public_key, broker_public_key). Rows are keyed by the whole binding, so a
-different device never sees another device's rows — 换设备登录 shows 未绑定（原设备绑定不迁移）
-without any migration logic.
+Three tables: `knowledge_index_revisions` (document_count/drifted_documents/built_at/error),
+`knowledge_index_documents` (per manifest document: servable flag, char_count, note, text, layout
+JSON), `knowledge_index_terms` (per document+term: tf, bounded line list, indexed by term for df).
 
-Row fields: identity, binding (JSON), project_id, path, device_name (display attribution, bound
-at bind time), created_at.
+## D2 — State is derived, never stored as a claim
 
-## D2 — Wire: extend the existing `desktop:projects` family (no new channel)
+`revision_view` computes the state from the rows: `ready` only while every manifest document has a
+row (`indexedDocuments >= documents > 0`), `partial` when some rows exist, `missing` when none, and
+`failed` when an error is recorded on an incomplete revision. Nothing in the store says "ready" —
+a half-written or crashed build can never impersonate completeness. `begin_revision` opens the
+revision row at the first written document so a canceled or crashed rebuild shows its honest
+partial state; `finish_revision` (completion only) refreshes the totals, drift, and built_at.
 
-`ProjectCommand` gains `{ action: 'bind-folder'; projectId: string }` and
-`{ action: 'unbind-folder'; projectId: string }`. The folder path NEVER comes from the renderer:
-main opens the native `dialog.showOpenDialog` (openDirectory) and a confirm message box (boundary
-explanation, like `desktop:workspace:choose`), then sends the chosen path to the Runtime.
+## D3 — The #113 revalidation contract is preserved, not weakened
 
-- runtime.ts `projects()`: per-action key validation; bind-folder carries `projectId` + `path`
-  (1..1024 chars); wire `{type:'projects', id, action, projectId, path?, scope}`.
-- desktop.py envelope gate: two new key sets in the existing `projects` gate block.
-- `DesktopChat.projects_manage`: bind-folder re-reads the platform list first and refuses an
-  unknown projectId with `CHAT_NOT_FOUND` (the registry is keyed by platform projectId, so a bind
-  must reference a live project); validates the path (absolute, isdir → else `CHAT_COMMAND_INVALID`);
-  records via the registry. unbind-folder is local cleanup, idempotent, no platform precondition.
-  Replies follow the family idiom: every reply carries the platform's own post-action list plus the
-  account permissions, and now also `bindings` (this device's rows) plus `bound:`/`unbound:` flags.
-- Registry failures raise `CHAT_BINDING_STORE_UNAVAILABLE` (new fixed category; renderer explains it).
-- Binding/unbinding is intentionally NOT gated on `projects:write`: it is a device-local accessory
-  record; the platform-side check is project existence (read) only.
+`revalidate_frozen_documents` keeps the per-search walk + name match + SHA-256 comparison. The
+`serve` callback receives the exact verified bytes (one read: digest and content come from the same
+bytes — the literal scan's original TOCTOU-safe property), so the fallback path scans the same
+bytes the digest verified. The indexed path uses the same classification and then answers intact
+documents from the index, which was built from those same hash-verified frozen bytes at import
+time. A drifted or gone document is structured `missing` exactly as before — the index is never a
+license to answer from stale text.
 
-## D3 — Status snapshot: `projectBindings` rides the 0.5 s snapshot
+## D4 — Drift is a per-document mark, never an overwriting count
 
-Main-side consumption (terminal start dir) must not depend on a renderer projects round-trip.
-desktop.py status gains `projectBindings` (rows for the authenticated profile, capped 20) and
-`projectBindingStorageError`; runtime.ts parses them with the same strictness as `connectors` into
-`RuntimeStatus.projectBindings?: ProjectBindingView[]`. `ProjectBindingView` =
-`{ projectId, path, deviceName, createdAt }`.
+The documents table carries a `drift` flag; `revision_view` derives
+`driftedDocuments` from `SUM(drift)`. A search marks the documents it actually
+observed — drifted marks are added, and a document the search verified (its
+bytes matched the frozen digest at that moment) has its mark cleared. A later
+subset search can therefore never erase the 已过期 annotation for documents it
+did not look at, and a restored file's mark clears exactly when a search
+re-verifies it. The rebuild rewrites every row with its recomputed truth.
+(This replaced an earlier whole-revision overwrite that a subset search could
+reset to zero — review finding, fixed before push.)
 
-## D4 — Consumption (criterion 4)
+## D5 — Rebuild re-verifies; it never fakes drifted content
 
-- 起始输入 (start): human terminal chain becomes project binding → workspace locate → home.
-  The renderer passes its selected project as an id-only selector to `terminal:spawn`
-  (`TerminalBridge.spawn(projectId?)`); main resolves the path exclusively from the Runtime
-  snapshot (`runtime.status().projectBindings`), verifies it still exists on disk (existsSync),
-  and never hands any path back to the renderer — the invariant "renderer never supplies or
-  receives a physical path" holds; a bogus/unknown selector simply falls through the chain.
-  The chain itself is a tested exported helper in `terminal.ts` (`startDirForProject`).
-- 边界输入 (boundary): the Agent file tools' root input in desktop mode is the confirmed device
-  workspace (`WorkspaceSelection`) — unchanged. The bound folder becomes usable as that root
-  input through the existing guarded seam: after a confirmed bind, when the device has no
-  workspace yet, main offers a second explicit dialog to select the bound folder as the
-  workspace (`runtime.selectWorkspace`); pytest proves a bound folder passes the same guards
-  (`WorkspaceSelection.select(confirmed=True)` → grant → file store roots inside it). The
-  Issue-78 `_thread_bindings` scaffolding stays as-is: its per-run context consumer is future
-  work (documented in `inherited_binding`), and this ticket does not grow a second inheritance
-  path.
+`KnowledgeIndexRebuild` (the `KnowledgeFolderImport` job idiom: one daemon thread, one slot,
+`threading.Event` cancel checked per document, honest terminal states) re-reads every manifest
+document, re-hashes it against the frozen digest, and re-indexes only what still verifies. A
+drifted document keeps a non-servable row with `note='content_drift'` and its drift mark; the
+frozen content it once had is gone and is NOT re-taken from current
+bytes. Cancel keeps the rows written so far (each is self-consistent frozen content) and the
+derived state shows `partial`.
 
-## D5 — Renderer
+## D6 — Import-time indexing via the transient `_text` field
 
-`ProjectDirectoryView` gains `bindings: ProjectBindingView[]` (default `[]`); the controller's
-single `run()` path passes them through; `bindFolder`/`unbindFolder` methods. `ProjectRow` shows
-已绑定：{path}（本设备：{deviceName}） or 未绑定（原设备绑定不迁移）, with 绑定文件夹 / 解除绑定
-buttons. Bind/unbind ride the existing generation-fenced `run()`; a canceled dialog stays quiet
-(`PROJECTS_CANCELED`).
+`build_manifest`/`build_folder_entries` already parse every document; `_entry_with_text` keeps the
+extracted text under `_text` on the manifest entry. `_register_frozen_entries` indexes the revision
+right after the platform returns the revision identity (`_index_frozen_revision`), then
+`strip_entry_text` drops the field in a `finally` — the wire payload (fixed field list) and the
+registry rows (`DOCUMENT_FIELDS`) never see it. The folder job releases each batch's text as it
+registers, bounding memory to one batch. An index failure never fails the registration (it is
+recorded via `mark_build_error` and the store's storage error; retrieval falls back visibly).
 
-## Security test arrays
+## D7 — Tokenizer and BM25, stdlib-only and deterministic
 
-No new IPC channel and no new push channel: bind-folder/unbind-folder ride `desktop:projects`,
-so the sorted invoke/push arrays in `test/security.test.ts` stay byte-identical; an `// Issue 92:`
-comment documents that decision in the array's comment block (per ticket).
+ASCII `\w` runs stay whole casefolded words; contiguous non-ASCII word characters become
+overlapping character bigrams (lone characters stay unigrams) — the recall/precision compromise
+for Chinese text without a segmentation dependency. Terms are truncated at 40 chars consistently
+for documents and queries. Per document: tf + first 200 line hits per term, ≤50k unique terms.
+BM25 (k1=1.5, b=0.75, Lucene-style non-negative idf) ranks documents; chunks are the term-hit
+lines of the ranked documents, each carrying the line number and the page resolved through the
+frozen parse's layout anchors (`line_page_marks`). A query that tokenizes to nothing routes to the
+literal scan (`fallbackReason: 'index-untokenized'`) so punctuation queries keep their capability.
+
+## D8 — Index keying and the verified-but-unservable classification
+
+Every per-document structure is keyed by the full `(filename, content_hash)` identity: a folder
+import dedups by content digest only, so one revision can hold two same-name documents, and their
+term rows, lengths, and BM25 scores must never merge (review finding, pinned by
+`test_same_name_documents_are_served_separately`). A verified document the index cannot honestly
+serve text for (it parsed as skipped or failed at import) is structured missing `not_searchable`
+in the indexed path — the same answer the literal engine gives, never a silent gap and never
+counted as matched (`test_verified_unparsable_document_is_not_searchable`).
+
+## D9 — Wire: result annotations, not shape changes
+
+`local.knowledge.search`'s result gains `engine` ('bm25' | 'literal'), `index` (the revision's
+derived view), and — on the degraded path — `fallbackReason`. The receipt is content-hash based,
+so additive keys are safe. No new capability name, no compat.ts change; the two new control
+commands (`knowledge-index-rebuild`, `-cancel`) follow the exact-shape gate + single-slot queue +
+scope fence idiom and required the sorted security-test channel pins plus the smoke bridge keys.
+
+## D10 — Renderer: annotation on the doc library records
+
+The per-row `index` view rides the snapshot's `knowledgeImports` rows; the one rebuild job rides as
+`knowledgeIndexRebuild` (the folder-job pattern). The pane derives 重建中 (running job matching the
+record's revisionId+manifestHash), 已过期 (driftedDocuments > 0 on top of ready/partial), and keeps
+未建 / 未完成 / 失败 distinct — no vague merged word. Rebuild/cancel ride the existing
+generation-fenced one-action controller; the explanations for the fixed `KNOWLEDGE_INDEX_*`
+categories join the existing map.

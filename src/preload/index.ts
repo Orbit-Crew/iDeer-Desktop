@@ -25,6 +25,12 @@ const bridge: DesktopBridge = Object.freeze({
   // confirmed in the trusted main process).
   knowledgeFolderImport: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:folder', kbId),
   knowledgeFolderCancel: () => ipcRenderer.invoke('desktop:knowledge:folder-cancel'),
+  // Issue 97: one registered revision's background index rebuild (the
+  // Runtime re-verifies every frozen digest on its own job thread) and its
+  // cancel command; the renderer names the frozen identity only.
+  rebuildKnowledgeIndex: (kbId: string, revisionId: string, manifestHash: string) =>
+    ipcRenderer.invoke('desktop:knowledge:index-rebuild', kbId, revisionId, manifestHash),
+  cancelKnowledgeIndexRebuild: () => ipcRenderer.invoke('desktop:knowledge:index-rebuild-cancel'),
   deleteKnowledgeImports: (ids: string[]) => ipcRenderer.invoke('desktop:knowledge:delete', ids),
   retryKnowledgeImport: (recordId: string) => ipcRenderer.invoke('desktop:knowledge:retry', recordId),
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),

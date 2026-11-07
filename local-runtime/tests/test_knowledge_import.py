@@ -334,11 +334,14 @@ def test_build_manifest_rejects_duplicate_content_and_oversized_files():
 
     entries = build_manifest(FakeFiles(), ['/workspace/guide.md'])
     # Since #81 every manifest entry also carries the device-side parse record.
+    # Since #97 it also carries the transient extracted text under ``_text``
+    # for the device-side BM25 index; the wire and the registry exclude it.
     assert entries == [dict(filename='guide.md', sha256=hashlib.sha256(b'same bytes').hexdigest(),
                             bytes=10, mime=mimetypes.guess_type('guide.md')[0] or 'application/octet-stream',
                             parse={'status': 'parsed', 'parser': 'text-utf8', 'parserVersion': '1',
                                    'pages': 0, 'tables': 0, 'truncated': False, 'errorCode': '',
-                                   'layout': []})]
+                                   'layout': []},
+                            _text='same bytes')]
     with pytest.raises(KnowledgeImportError) as duplicate:
         build_manifest(FakeFiles(), ['/workspace/guide.md', '/workspace/copy.md'])
     assert duplicate.value.args[0] == 'KNOWLEDGE_IMPORT_DUPLICATE_CONTENT'

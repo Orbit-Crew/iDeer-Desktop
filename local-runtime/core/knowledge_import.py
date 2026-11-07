@@ -123,13 +123,7 @@ def build_manifest(files: Any, logical_paths: list[str]) -> list[dict[str, Any]]
         if digest in seen:
             raise KnowledgeImportError("KNOWLEDGE_IMPORT_DUPLICATE_CONTENT")
         seen.add(digest)
-        entries.append({
-            "filename": filename,
-            "sha256": digest,
-            "bytes": len(raw),
-            "mime": mimetypes.guess_type(filename)[0] or "application/octet-stream",
-            "parse": parse_summary(parse_document(raw, filename)),
-        })
+        entries.append(_entry_with_text(filename, digest, len(raw), raw))
     return entries
 
 
@@ -140,6 +134,34 @@ def registration_payload(entries: list[dict[str, Any]], device_id: str) -> dict[
                            size_bytes=entry["bytes"], mime_type=entry["mime"]) for entry in entries],
         "device_id": device_id[:128],
     }
+
+
+def _entry_with_text(filename: str, digest: str, size: int, raw: bytes) -> dict[str, Any]:
+    """One manifest entry plus the transient ``_text`` field (#97).
+
+    The device parses every document for its display record anyway; since
+    the BM25 index the extracted text rides along under ``_text`` so the
+    registration seam can index it behind the frozen revision identity.
+    ``_text`` is stripped by the registration seam after indexing and is
+    excluded from the wire payload and the stored registry rows by their
+    fixed field lists.
+    """
+    parsed = parse_document(raw, filename)
+    return {
+        "filename": filename,
+        "sha256": digest,
+        "bytes": size,
+        "mime": mimetypes.guess_type(filename)[0] or "application/octet-stream",
+        "parse": parse_summary(parsed),
+        "_text": parsed.get("text", "") if parsed.get("status") == "parsed" else "",
+    }
+
+
+def strip_entry_text(entries: list[dict[str, Any]]) -> None:
+    """Drop the transient ``_text`` field once the index holds it (#97)."""
+    for entry in entries:
+        if isinstance(entry, dict):
+            entry.pop("_text", None)
 
 
 # --- Issue 96: the document library's recursive folder import ----------------
@@ -263,13 +285,7 @@ def build_folder_entries(files: Any, logical_paths: list[str], known_hashes: set
                     duplicates += 1
                 else:
                     seen.add(digest)
-                    entries.append({
-                        "filename": filename,
-                        "sha256": digest,
-                        "bytes": len(raw),
-                        "mime": mimetypes.guess_type(filename)[0] or "application/octet-stream",
-                        "parse": parse_summary(parse_document(raw, filename)),
-                    })
+                    entries.append(_entry_with_text(filename, digest, len(raw), raw))
                     paths.append(logical_path)
         examined += 1
         report(examined)

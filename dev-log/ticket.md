@@ -1,69 +1,52 @@
-# Ticket: Issue #92 [二期·12] 项目文件夹绑定（项目+设备）
+# Ticket: Issue #97 [三期·18] BM25 全文索引与漂移标注
 
 ## Session facts (read first)
 
-- Work tree: `G:/code/iDeer-worktrees/issue-92-project-folder-binding`, branch `feat/issue-92-project-folder-binding`, base `794ca43` (= origin/develop).
+- Work tree: `G:/code/iDeer-worktrees/issue-97-bm25-index`, branch `feat/issue-97-bm25-index`, base `29df1e2` (= origin/develop, includes the 2026-11-07 merges #151/#152/#147/#145/#144).
 - You work ONLY inside this work tree. NEVER touch `G:/code/iDeer-Desktop` (main workspace), never push to any remote, never `git stash`, never merge/rebase.
-- Node: prepend `G:/code/iDeer-Desktop/.cache/node-dist/node-v22.23.4-win-x64` to PATH for every shell that runs node/npm. Repo npm scripts self-initialize the project env.
-- Python: use the worktree's `.venv/Scripts/python.exe`. Any pytest run that imports `core.*` MUST set `PYTHONPATH=G:/code/iDeer-worktrees/issue-92-project-folder-binding/local-runtime` so the worktree source is tested, never site-packages.
-- After ANY change under `local-runtime/core`: re-run `npm run runtime:prepare` BEFORE running live bridge tests (`test/*-bridge*.test.ts` live cases spawn `.runtime/python.exe`).
-- Mechanical-sync trap: `scripts/verify-runtime-source.py` pins files listed in `resources/provenance/runtime-source.json` (`files`) against upstream blobs; if you modify a listed file that is not yet under `modified`, add it to `modified` (migration record) and re-run the script until it passes.
-- Forbidden: creating PRs, commenting on GitHub issues, changing issue state, editing `docs/agents/issue-tracker.md`.
+- Node: prepend `G:/code/iDeer-Desktop/.cache/node-dist/node-v22.23.4-win-x64` to PATH for every shell that runs node/npm. Repo npm scripts self-initialize the project env. A fresh worktree needs `npm ci` once (project-env resolves tsc/vitest from node_modules).
+- Python: the machine Python (D:\software\anaconda) carries pytest 8.3.5 and the runtime test deps. Any pytest run that imports `core.*` MUST set `PYTHONPATH=G:/code/iDeer-worktrees/issue-97-bm25-index/local-runtime` so the worktree source is tested, never site-packages.
+- The issue was assigned to Neowyh (the authenticated developer) before work started, per docs/agents/issue-tracker.md.
+- Forbidden: commenting on GitHub issues, changing issue state, editing `docs/agents/issue-tracker.md` (the PR itself is opened by the orchestrating session after review).
+- The repo's `docs/acceptance/issue-97/` belongs to the OLD numbering (installer acceptance). This ticket's records live in `docs/acceptance/issue-97-bm25-index/` (the `-suffix` convention from issue-116-tecplot-panel).
 
-## Full issue text (Orbit-Crew/iDeer-Desktop#92)
+## Full issue text (Orbit-Crew/iDeer-Desktop#97)
 
 > ## Parent
 >
-> [linz 全量能力等价：iDeer Desktop 总规格](https://github.com/Orbit-Crew/iDeer-Desktop/issues/70)（二期：项目与文件）
+> [linz 全量能力等价：iDeer Desktop 总规格](https://github.com/Orbit-Crew/iDeer-Desktop/issues/70)（三期：知识）
 >
 > ## What to build
 >
-> 项目文件夹绑定：每个项目在每台电脑上可绑定一个本机工作文件夹（可选配件、随时补绑/解绑），绑定按"项目+设备"记录；项目详情展示"已绑路径/未绑定"及设备归属；受控终端与文件工具以此为起始/边界输入。
+> 设备侧真实 BM25 全文索引：导入文档建立索引，支持"哪些文档/哪些页提到过"检索定位；索引落后于文档时如实标注"重建中/已过期"，后台重建可取消；替代现状 UTF-8 字面扫描。
 >
 > ## Acceptance criteria
 >
-> - [x] 绑定/解绑可用，按项目+设备隔离记录 — evidence: `local-runtime/tests/test_project_bindings.py::test_bind_folder_records_device_local_row_without_platform_writes` + `::test_rebind_replaces_the_path_and_unbind_clears_it` + `::test_other_device_never_sees_the_binding` (registry keyed by the whole profile binding incl. device_id)
-> - [x] 项目详情正确展示绑定状态与设备归属 — evidence: `test/session-sidebar.test.tsx` `project folder bindings (#92) > shows the bound path with device attribution next to the project` (已绑定：path（本设备：deviceName）)
-> - [x] 换设备登录显示"未绑定（原设备绑定不迁移）" — evidence: `test/session-sidebar.test.tsx > shows the cross-device unbound note when this device has no binding row` + pytest `::test_other_device_never_sees_the_binding` (per-device keying makes the view empty elsewhere)
-> - [x] 绑定信息作为受控终端/文件工具的边界输入可被消费 — evidence: `test/terminal-start-dir.test.ts` (project binding → workspace → home chain, wired in `src/main/index.ts` via `startDirForProject`); file tools: `test_project_bindings.py::test_bound_folder_is_usable_as_the_workspace_root_input` plus the bind-flow workspace offer in `src/main/index.ts` (documented in `dev-log/design.md` D4)
-> - [x] 桥契约测试覆盖绑定读写 — evidence: `test/projects-bridge.test.ts` (exact per-action shape matrices + live bundled-Runtime round-trip: CHAT_UNAUTHENTICATED fence for bind-folder/unbind-folder, empty `projectBindings` snapshot) + `test_project_bindings.py` read-write round-trips against the fake platform
+> - [x] BM25 索引建立并可检索，结果含文档与页定位 — evidence: `local-runtime/tests/test_knowledge_index.py::test_indexed_search_ranks_and_locates_with_pages` (BM25 ranks guide.txt first; every chunk carries the line and the frozen parse's page anchor; the CJK bigram query '文索' lands on notes.txt line 2 page 2) + `::test_index_revision_builds_a_ready_derived_state` (the index is built at import from the parsed entries) + service seam `::test_service_answers_from_the_index_and_annotates_the_engine` (engine 'bm25')
+> - [x] 索引漂移（文档变更后）如实标注 — evidence: `::test_indexed_search_reports_drift_and_records_it` (the drifted file is structured missing 'content_drift', its indexed text is never served, 'CHANGED' is absent from the whole response, driftedDocuments is recorded and returned in the result's index view) + `::test_subset_search_never_erases_the_drift_annotation` (per-document marks: a subset search neither erases another document's 已过期 nor keeps a restored file's stale mark) + `::test_rebuild_counts_drift_instead_of_faking_content` (the rebuild marks the drifted row non-servable and never indexes current bytes)
+> - [x] 后台重建可取消，完成后状态刷新 — evidence: `::test_rebuild_restores_a_lost_index` (a completed rebuild → derived state ready, servableDocuments 2) + `::test_cancelled_rebuild_keeps_consistent_rows` (the cancel lands between documents behind an event gate; partial rows stay self-consistent; the derived state is honestly 'partial', never ready) + `::test_rebuild_refuses_unknown_revisions_and_a_second_job` (KNOWLEDGE_INDEX_BUSY / KNOWLEDGE_INDEX_REVISION_UNKNOWN) + control-pipe gates and dispatch in `local-runtime/core/desktop.py` (exact-shape `knowledge-index-rebuild` / `-cancel`, single-slot queues, binding-scoped registry lookup)
+> - [x] 现状字面扫描路径被替换（保留为降级可见） — evidence: `::test_service_answers_from_the_index_and_annotates_the_engine` second half (index deleted → engine 'literal', fallbackReason 'index-missing', index view 'missing', documentsMatched 2 — the same verified answers, visibly degraded) + `search_frozen_revision` keeps the exact #113 semantics (the single-read serve callback preserves hash-and-content-from-the-same-bytes; the unchanged `test_knowledge_search.py` assertions all pass) + `::test_untokenized_query_answers_no_chunks_from_the_index` + `::test_verified_unparsable_document_is_not_searchable` (the indexed path's structured missing matches the literal engine's answer)
+> - [x] Runtime 检索测试覆盖索引/漂移/重建 — evidence: `local-runtime/tests/test_knowledge_index.py` (25 tests: tokenizer/bigrams, page marks, store derived states, binding scoping, persistence across instances, build-error honesty, wire/registry text exclusion, ranked retrieval with pages, per-document drift marks incl. the subset-search preservation, same-name documents served separately, rebuild/cancel/busy/unknown) + updated `test_knowledge_import.py` (`_text` pinned in the manifest entry; the wire payload and the registry rows exclude it) + `test_knowledge_search.py` (the existing contract intact on the fallback engine)
 
 ## Design constraints (settled — do not reopen)
 
-- The platform API has NO project-binding endpoint (verified: `/api/projects` GET/POST/PATCH/DELETE/archive/restore only). Bindings are therefore a **device-local registry keyed by platform projectId**, matching `GLOSSARY.md` (项目文件夹绑定: 每台电脑各绑各的, distinct from 目录授权). Cross-device "未绑定（原设备绑定不迁移）" follows naturally from device-local storage: the registry records the device identity that made the binding, and a different device shows 未绑定 with that explanation.
-- Bind/unbind is optional and repeatable (补绑/解绑 anytime). Deleting a platform project must NOT delete local files (out of scope here, but your storage must not couple the two).
+- The #113 frozen-revision contract is NOT weakened: every search still re-validates each manifest document against the live bytes (name match + SHA-256) before anything is served; digest and served content always come from the same single read. The index only replaces the line scan with a BM25 ranking over text that was indexed from hash-verified frozen bytes.
+- A rebuild cannot recover drifted content: the frozen revision's bytes for a changed file are gone; the row stays non-servable and the drift is counted, never faked from current bytes.
+- stdlib-only (the runtime dependency set is frozen by pyproject + `test/security.test.ts`): the tokenizer is `re`-based (ASCII word runs + CJK character bigrams), BM25 is implemented in the module, storage is sqlite3.
+- Index identity is (binding, revision_id, manifest_hash) — the same binding-scoped discipline as `find_registration`; kb_id is not part of the key (the search task does not carry it).
+- No new IPC capability: `local.knowledge.search` keeps its name; the new control commands are `knowledge-index-rebuild` / `knowledge-index-rebuild-cancel` (security test channel pins updated).
 
 ## Architecture map (verified)
 
-- Project management (#91) surface to extend: `src/renderer/src/components/Layout/ProjectManageModal.tsx` (`ProjectRow`), opened from `Sidebar.tsx`; store `src/renderer/src/stores/projectDirectory.ts` (`ProjectDirectoryController`, generation-fenced `run()`, `explainProjectError`); selection state `sessionStore.ts` `ProjectSelection` + `setProjectSelection` (sessionStore.ts:51).
-- IPC ladder to clone: `ProjectCommand` union (`src/shared/desktop.ts` 413-442) → `window.ideer.projects` (`src/preload/index.ts`:25) → `ipcMain.handle('desktop:projects')` (`src/main/index.ts` 589-606) → `RuntimeProcess.projects()` (`src/main/runtime.ts` 542-577, single-slot, `{type:'projects', id, action, ..., scope: this.chatScope}`) → desktop.py envelope gate (244-262) + `project_commands` queue + dispatch (771-791) → `DesktopChat.projects_manage` (`local-runtime/core/platform_chat.py` 2981-3035). Prefer extending the existing `projects` family with new actions over inventing a new channel family; if you must add a channel, the security test arrays must be updated in sorted order.
-- Channel whitelist test: `test/security.test.ts` bundles the preload and asserts exact sorted invoke channel list (lines ~118-119) and push channels (~129-130). Same file pins package.json dependency list — do not add dependencies.
-- Existing device-wide workspace binding (NOT per-project): `local-runtime/core/file_service.py` `WorkspaceSelection` (line 75, `scope()` = sha256 of account/device+workspace), `select()` (169), directory grants; terminal start dir: `src/main/terminal.ts` `TerminalSessions.resolveStartDir` wired at `src/main/index.ts` 298-312 — currently `runtime.files('locate','/')` of the single workspace with home fallback; its doc comment already anticipates "project-bound folder, user home as fallback" (decision #59.2). Browser pane locate: index.ts 94-104.
-- Status snapshot flow: desktop.py emits status every 0.5 s; `RuntimeProcess` parses it in the stdout reader (`runtime.ts` ~1821-1971) into `RuntimeStatus` (`src/shared/desktop.ts` ~670). New binding state should ride this snapshot (e.g. `projectBindings` field) or a dedicated projects action reply — pick one, document it.
-- Runtime facade split: `local-runtime/core/desktop.py` (stdio dispatch) + `local-runtime/core/platform_chat.py` (`DesktopChat`) + settings persistence `local-runtime/core/settings.py` (`RuntimeSettings`, save() line 229). A device-local registry can be a small sqlite/json store owned by the Runtime (pattern: `KnowledgeImportRegistry` sqlite in `core/knowledge_import.py` 133-265) or a `RuntimeSettings` field — decide by matching existing idiom, and document why.
-- Tests to extend: `test/projects-bridge.test.ts` (bridge contract incl. live round-trip), `test/session-sidebar.test.tsx` (jsdom, stubIdeer helper), `local-runtime/tests/test_platform_projects.py` (in-file `http.server` fake platform).
+- Index store + rebuild job: `local-runtime/core/knowledge_index.py` (`KnowledgeIndexStore`, sqlite `knowledge-index.db` via `config.with_name`; derived state is never stored as a claim; `KnowledgeIndexRebuild` daemon-thread job following the `KnowledgeFolderImport` idiom).
+- Import-time indexing: `knowledge_import.py` `_entry_with_text` (transient `_text` on manifest entries) → `platform_chat.py` `_register_frozen_entries` → `_index_frozen_revision` (best-effort, never fails the registration; `_text` stripped in `finally`; the wire payload and `DOCUMENT_FIELDS` exclude it).
+- Retrieval: `knowledge_search.py` — `locate_frozen_files` (the bounded walk, shared) + `revalidate_frozen_documents` (hash + optional single-read `serve` callback) + `search_frozen_revision` (literal fallback, engine 'literal') + `search_frozen_revision_indexed` (BM25 chunks with line/page, engine 'bm25', drift observed onto the store).
+- Service dispatch + degraded annotation: `file_service.py` `_search_knowledge` (ready index + tokenizable query → BM25; otherwise the literal scan with `fallbackReason` index-missing/partial/failed/storage/untokenized and the index view attached).
+- Desktop wiring: `desktop.py` — store/job construction, two command gates + queues, dispatch blocks, snapshot `knowledgeIndexRebuild`/`knowledgeIndexStorageError` + per-row `index` view.
+- TS ladder: shared types (`KnowledgeIndexView`, `KnowledgeIndexJobView`, `KnowledgeImportView.index`, `RuntimeStatus.knowledgeIndexRebuild/knowledgeIndexStorageError`, bridge methods) → `src/main/runtime.ts` (single-slot maps, reply handlers, `parseKnowledgeIndexJob/View`, snapshot fields) → `src/main/index.ts` (`desktop:knowledge:index-rebuild` + `-cancel`, main-side validation, no dialogs — read-only compute) → `src/preload/index.ts` → `docLibraryPane.tsx` + `stores/docLibrary.ts` (badge, rebuild/cancel buttons, fixed-category explanations) → `test/security.test.ts` + `scripts/desktop-smoke.cjs` pins.
 
 ## Scope guidance
 
-1. Runtime: project-binding registry (bind/unbind/read per project+device, device identity recorded), surfaced through the projects family + status; pytest coverage (bind, unbind, rebind, per-device isolation, unknown project).
-2. Bridge: new actions on `desktop:projects` (`bind-folder` with a main-side native folder dialog + confirm like existing dialogs, `unbind-folder`), shared types, preload d.ts, security test sorted arrays with `// Issue 92:` comment.
-3. Consumption (criterion 4): `TerminalSessions.resolveStartDir` prefers the bound folder of the currently selected project (fallback chain: project binding → workspace locate → home); document how file tools see the boundary — the bound folder must be usable as the workspace/root input for that project's chats (the exact seam is yours; keep it honest and tested — at minimum terminal start-dir consumption + a documented, tested path for file tools).
-4. UI: project rows/details in `ProjectManageModal.tsx` (and/or sidebar) show 已绑路径/未绑定 + device attribution; bind (folder picker via main dialog) / unbind buttons; a different-device view shows 未绑定（原设备绑定不迁移）. jsdom tests.
-5. Bridge contract test covers bind/unbind read-write round-trip (criterion 5).
-
-## Workflow (required)
-
-1. Test-first red-green slices: write the failing test first per slice (pytest for Runtime registry/consumption, vitest for bridge/UI), watch it fail, implement, watch it pass. Focused verification only per slice: the touched pytest/vitest files + `npm run typecheck` + (channel changes) `npm run test:security`. Do NOT run the full suite repeatedly — the orchestrator runs the PR gate.
-2. Impact analysis before edits: grep callers of every seam you touch; new IPC surface must land simultaneously in shared types, preload + d.ts, main handler, and the sorted security-test arrays.
-3. Two-axis review before your final commit: (a) correctness — re-read the diff against the acceptance criteria, chase error paths (canceled dialogs, unknown project, identity change) and cancellation; (b) idiom — diff against neighboring implementations, fix deviations (naming, error categories, comment style `// Issue 92:`). Record findings and fixes in `dev-log/review.md`.
-4. Commit: conventional, `feat(projects): ... (#92)`; tree must end clean (`git status` empty); check off the acceptance boxes above with one evidence line each (test id or explicit staged reason).
-5. Session files only in `dev-log/`.
-
-## Report format (final message)
-
-- STATUS: DONE | BLOCKED (+ why)
-- Commit hash(es) + subjects
-- Acceptance criteria: pass/fail/staged each, with the proving test id
-- Checks run + exit codes
-- Files changed (paths)
-- Risks/notes for the reviewer
+1. Renderer scope is the doc library pane only: per-record index facts + rebuild/cancel. Search results stay agent-facing over the platform task path (no new pane; the receipt carries the result).
+2. The literal scan stays for `local.files.search` (raw workspace file search is a different capability, out of scope here).
+3. A rebuild does not re-import: changed documents need a new revision through the ordinary import seam (#101's 重导入 semantics); the rebuild only repairs the index and records drift honestly.

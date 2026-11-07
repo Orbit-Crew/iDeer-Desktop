@@ -514,7 +514,7 @@ class DesktopChat:
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
-                 inline_scripts=None, project_bindings=None):
+                 inline_scripts=None, project_bindings=None, knowledge_index=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -531,6 +531,10 @@ class DesktopChat:
         self.knowledge_imports = knowledge_imports
         self.knowledge_publications = knowledge_publications
         self.knowledge_files = knowledge_files
+        # Issue 97: the device BM25 index over the frozen revisions; every
+        # successful registration indexes its freshly parsed text behind the
+        # revision identity. Originals and index content stay on the device.
+        self.knowledge_index = knowledge_index
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
@@ -2146,7 +2150,34 @@ class DesktopChat:
             revision_id=created['id'], revision_no=created['revision_no'],
             manifest_hash=created['manifest_hash'], document_count=created['document_count'],
             project_id=project_id, source=source, documents=entries))
+        self._index_frozen_revision(binding, outcome, entries)
         return outcome
+
+    def _index_frozen_revision(self, binding, outcome, entries):
+        """Index one freshly registered revision device-side (#97).
+
+        导入文档建立索引: the parsed text the manifest builders kept under the
+        transient ``_text`` field is written to the BM25 index behind the
+        frozen revision identity, then stripped so it never reaches the wire,
+        the registry rows, or any longer-lived caller memory. An index
+        failure never fails a registered import — the registration is the
+        truth, the index honestly stays behind (missing/partial), and
+        retrieval falls back to the literal scan until a rebuild succeeds.
+        """
+        from .knowledge_import import strip_entry_text
+        try:
+            if self.knowledge_index is not None and entries:
+                self.knowledge_index.index_revision(binding, outcome['revisionId'],
+                                                    outcome['manifestHash'], entries)
+        except Exception:
+            try:
+                if self.knowledge_index is not None:
+                    self.knowledge_index.mark_build_error(binding, outcome['revisionId'],
+                                                          outcome['manifestHash'], 'KNOWLEDGE_INDEX_FAILED')
+            except Exception:
+                pass
+        finally:
+            strip_entry_text(entries)
 
     def register_local_import(self, kb_id, paths, *, source=None):
         """Freeze one explicit local import as a platform Revision manifest.
