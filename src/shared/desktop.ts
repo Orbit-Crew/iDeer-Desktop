@@ -211,12 +211,38 @@ export interface KnowledgeGraphSourceLocation {
   reason?: string
 }
 export interface KnowledgeGraphCommand {
-  action: 'view' | 'generate' | 'locate' | 'search' | 'ask'
+  action: 'view' | 'generate' | 'locate' | 'search' | 'ask' | 'similarity'
   kbId: string
   revisionId: string
   documentId?: string
   documentIds?: string[]
   query?: string
+}
+/** Issue 99: one frozen document's device-side similarity verification row. */
+export interface KnowledgeSimilarityDocument {
+  id: string
+  filename: string
+  contentHash: string
+  status: 'matched' | 'not_enough_content' | 'content_drift' | 'not_searchable' | 'file_unavailable'
+  tokenCount: number
+}
+/** Issue 99: one device-computed similarity edge above the baseline threshold. */
+export interface KnowledgeSimilarityEdge { source: string; target: string; weight: number }
+/**
+ * Issue 99: the device-computed similarity layer bound to the frozen
+ * revision. Computed on demand against re-verified bytes — never a stored
+ * claim — so a repeated request for the same revision re-verifies honestly.
+ */
+export interface KnowledgeSimilarityView {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  status: 'completed' | 'partial' | 'failed'
+  threshold: number
+  truncated: boolean
+  documents: KnowledgeSimilarityDocument[]
+  edges: KnowledgeSimilarityEdge[]
 }
 /** Issue 117: one selected document inside a scoped query/ask, with its frozen source. */
 export interface KnowledgeGraphScopeRow {
@@ -964,7 +990,7 @@ export interface DesktopBridge {
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
-  knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult>
+  knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView>
   /** Issue 118: controlled wiki page list, generation, and single-page reading. */
   knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation>
   /** Issue 120: skill package preview import; picking and confirmation stay in main. */

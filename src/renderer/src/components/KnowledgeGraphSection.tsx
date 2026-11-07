@@ -1,6 +1,7 @@
 import { Alert, Button, Card, Checkbox, Input, Space, Typography } from 'antd'
 import { useState } from 'react'
-import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportView, RuntimeStatus } from '../../../shared/desktop'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportView, KnowledgeSimilarityView, RuntimeStatus } from '../../../shared/desktop'
+import { KnowledgeGraphCanvas } from './KnowledgeGraphCanvas'
 
 const statusNames: Record<KnowledgeGraphView['status'], string> = {
   not_generated: '尚未生成',
@@ -12,6 +13,7 @@ const statusNames: Record<KnowledgeGraphView['status'], string> = {
 export interface KnowledgeGraphSectionProps {
   runtime?: RuntimeStatus
   graph: KnowledgeGraphView | null
+  similarity: KnowledgeSimilarityView | null
   located: Record<string, KnowledgeGraphSourceLocation>
   queryResult: KnowledgeGraphQueryResult | null
   askResult: KnowledgeGraphAskResult | null
@@ -39,7 +41,7 @@ export function selectedScope(sources: KnowledgeGraphView['sources'], selection:
  * 均由 Server 编排并携带可核对的文档来源；资料缺失或部分失败时明确展示
  * 失败类别，不生成没有依据的结论。
  */
-export function KnowledgeGraphSection({ runtime, graph, located, queryResult, askResult, selection, busy, error, onSelection, onCommand }: KnowledgeGraphSectionProps): JSX.Element {
+export function KnowledgeGraphSection({ runtime, graph, similarity, located, queryResult, askResult, selection, busy, error, onSelection, onCommand }: KnowledgeGraphSectionProps): JSX.Element {
   const registered = (runtime?.knowledgeImports ?? []).filter(row => row.status === 'registered')
   const [searchText, setSearchText] = useState('')
   const [question, setQuestion] = useState('')
@@ -62,7 +64,12 @@ export function KnowledgeGraphSection({ runtime, graph, located, queryResult, as
         onClick={() => onCommand({ action: 'view', kbId: row.kbId, revisionId: row.revisionId })}>查看图谱</Button>
       <Button aria-label={`生成图谱 R${row.revisionNo}`} disabled={busy}
         onClick={() => onCommand({ action: 'generate', kbId: row.kbId, revisionId: row.revisionId })}>生成图谱</Button>
+      <Button aria-label={`生成相似图 R${row.revisionNo}`} disabled={busy}
+        onClick={() => onCommand({ action: 'similarity', kbId: row.kbId, revisionId: row.revisionId })}>生成相似图</Button>
     </Space>)}
+    {(graph || similarity) && <KnowledgeGraphCanvas
+      key={graph?.revisionId ?? similarity?.revisionId ?? 'none'}
+      graph={graph} similarity={similarity} busy={busy} />}
     {graph && <>
       <Typography.Paragraph className="mt-3">
         版本 R{graph.revisionNo} · {statusNames[graph.status]} · 成功 {graph.generated} · 失败 {graph.failed}
