@@ -119,7 +119,7 @@ DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径
 | 能力及来源目录 | 状态与原因 | 依赖、重纳入条件、阶段及验证 | 维护责任 |
 | --- | --- | --- | --- |
 | main/window、renderer/Layout、React/antd/zustand | 本票保留最小 UI，显示未连接，关闭即退出 | 静态、状态/能力合同、Windows 安装/退出及 Win7 专项 | Desktop |
-| ipc/chat、llm、pi、agents、scheduler、OfficePage、office 资源 | 排除自行驱动模型、Agent/多 Agent、办公室和独立平台演进 | 不列为后期承诺；需另行范围决议才能恢复 | iDeer 规格维护者 |
+| ipc/chat、llm、pi、agents、scheduler、OfficePage、office 资源 | 排除自行驱动模型、Agent/多 Agent 和独立平台演进；办公室经范围决议（[Desktop #112](https://github.com/Orbit-Crew/iDeer-Desktop/issues/112)）收窄恢复为平台 Run/子代理事件只读可视化，无控制操作、无本地消息总线、无第二引擎 | 其余不列为后期承诺；办公室只读窗格按 #112 验收（纯只读、无事件不伪造、桥契约测试覆盖事件映射） | iDeer 规格维护者 |
 | ipc/approval、security、tools、mcp、terminal、browser、file-workspace | 暂缓旧本地执行链，防止旁路；任意 shell 排除 | 一期按 Runtime 任务、目录授权和审批合同适配；接续安全、拒绝、身份、链接逃逸和真实跨仓验证 | Desktop Runtime / Server 各自维护者 |
 | workspace、ChatPage、conversation、Agent/Skill 选择及 settings | 暂缓业务接线，无本地离线兜底；会话地图（SynapsePanel）经 #113 恢复为平台 Thread 只读投影（本机观察的分支边），见上方分期记录 | 一期登录、设备、Server 资源及 Thread/Run/Turn 接入；用户/设备隔离和真实跨仓检查 | Desktop UI / Server |
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |

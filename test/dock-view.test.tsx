@@ -38,8 +38,10 @@ describe('restored dock on startup', () => {
     expect(html).toContain('退出应用')
     // 默认布局不开未接入的窗格
     expect(html).not.toContain('浏览器窗格未接入')
-    // 原版残留业务不得出现
-    expect(html).not.toMatch(/办公室|DeepSeek|Ollama|API Key/)
+    // 原版残留业务不得出现；办公室自 #112 起收窄为平台事件只读窗格，
+    // 仍不进默认布局，只作为可选面板从添加入口进入
+    expect(html).not.toMatch(/DeepSeek|Ollama|API Key/)
+    expect(html).not.toContain('办公室')
     expect(html).not.toMatch(/<textarea|type="submit"/)
   })
 
@@ -99,9 +101,10 @@ describe('panel registry vocabulary', () => {
   it('keeps every original column except the never-delivered sql pane', () => {
     const registered = PANEL_REGISTRY.map((p) => p.id)
     // Issue 84 adds the `templates` plaza as a new native column beyond the
-    // original vocabulary.
+    // original vocabulary. Issue 112 adds the `office` pane the same way —
+    // the narrowed read-only restoration of the excluded office page.
     expect(registered.sort()).toEqual([
-      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
+      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'office', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
     ])
     expect(getRegisteredPanel('sql')).toBeUndefined()
     expect(PANEL_META.sql.title).toBe('数据')
@@ -118,6 +121,7 @@ describe('panel registry vocabulary', () => {
     expect(html).toContain('仿真结果')
     expect(html).toContain('会话地图')
     expect(html).toContain('通知中心')
+    expect(html).toContain('办公室')
     // 锚点对话不进添加列表
     expect(html).not.toContain('>对话<')
   })

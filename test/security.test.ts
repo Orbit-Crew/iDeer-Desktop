@@ -192,17 +192,20 @@ describe('dock pane security seam (issue 71)', () => {
     // the separate minimal terminal bridge (pinned in its own graph test).
     // Issue 84 wires the native `templates` pane the same way — the plaza
     // uses the trusted bridge for the Server's own template rows only.
+    // Issue 112 wires the native `office` pane the same way — a read-only
+    // observer on the existing chat state read, with zero own IPC surface
+    // (pinned in test/office-bridge.test.ts).
     // Issue 113 wires the native `synapse` pane the same way — the map uses
     // the trusted bridge for the Server's own thread rows and the read-only
     // state read, and its open/branch actions ride the session store into
     // the conversation's serialized command path.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'synapse'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'synapse'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
     expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'synapse']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'synapse']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

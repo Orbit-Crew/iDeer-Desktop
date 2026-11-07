@@ -14,7 +14,10 @@ describe('Desktop startup without Server', () => {
     expect(html).toContain('本机 Runtime')
     expect(html).toContain('切换窗口排布')
     expect(html).toContain('退出应用')
-    expect(html).not.toMatch(/办公室|DeepSeek|Ollama|API Key/)
+    // 原版残留业务不得出现；办公室自 #112 起收窄为平台事件只读窗格，
+    // 仍不进默认布局（见 dock-view 与 office-pane 测试）
+    expect(html).not.toMatch(/DeepSeek|Ollama|API Key/)
+    expect(html).not.toContain('办公室')
     expect(html).not.toMatch(/<textarea|type="submit"/)
   })
 })
