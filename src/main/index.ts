@@ -743,6 +743,17 @@ if (!app.requestSingleInstanceLock()) {
       if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_WIKI_UNAUTHENTICATED')
       return runtime.knowledgeWiki(command)
     })
+    // Issue 98: the user's own library search. The renderer names the
+    // authorized KB/Revision and the query only; the search runs entirely
+    // device-side over the same engines as the broker task, and its answer
+    // carries the library identity, the page/table citations, and the
+    // honest evidenceComplete fact — read-only compute, no dialogs.
+    ipcMain.handle('desktop:knowledge:search', (event, kbId: string, revisionId: string, query: string) => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_SEARCH_UNAUTHENTICATED')
+      return runtime.knowledgeSearch(kbId, revisionId, query)
+    })
     // Issue 120: the skill package import flow. Package picking, the
     // device-side preview, and the upload confirmation stay in the trusted
     // main process: the preview uploads nothing, a canceled flow never

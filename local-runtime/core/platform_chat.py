@@ -2400,6 +2400,56 @@ class DesktopChat:
                 raise ChatError(exc.code) from exc
         raise ChatError("CHAT_COMMAND_INVALID")
 
+    # --- User-side library retrieval (issue 98) ------------------------------
+
+    def knowledge_search(self, kb_id, revision_id, *, query=""):
+        """The user's own retrieval over one registered frozen revision (#98).
+
+        The doc library's search rides the exact engines the broker task
+        uses — the same content-addressed revalidation, the same engine
+        decision, the same structured missing — through
+        ``search_registered_revision``. Documents are cited by their frozen
+        (filename, content hash) identity with the page/table anchors of the
+        frozen parse, the view carries the library identity and the
+        ``evidenceComplete`` fact, and the retrieval credentials ride as the
+        binding summary this search ran under. Nothing here calls the
+        Server: an offline device still answers its own question.
+        """
+        if self.knowledge_imports is None or self.knowledge_files is None:
+            raise ChatError("CHAT_COMMAND_INVALID")
+        if not isinstance(query, str) or not 1 <= len(query) <= 512 or "\n" in query:
+            raise ChatError("CHAT_COMMAND_INVALID")
+        kb_id = self._uuid(kb_id)
+        revision_id = self._uuid(revision_id)
+        from .receipt_ledger import profile_binding
+        binding = profile_binding(load_settings(self.config))
+        if binding is None:
+            raise ChatError("KNOWLEDGE_SEARCH_IDENTITY_UNAVAILABLE")
+        registration = self.knowledge_imports.find_registration_by_revision(binding, kb_id, revision_id)
+        from .files import FileAccessError
+        from .knowledge_material import KnowledgeMaterialError
+        try:
+            _settings, grant, files = self.knowledge_files()
+        except (FileAccessError, KnowledgeMaterialError) as exc:
+            # The search's own fixed categories: an unconfirmed or vanished
+            # workspace is not a generic failure, and a material error's code
+            # is already a fixed category.
+            code = str(exc)
+            if code == "WORKSPACE_UNAVAILABLE":
+                raise ChatError("KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE") from exc
+            if isinstance(exc, KnowledgeMaterialError) or code in {"OUTSIDE_ALLOWED_ROOTS", "PROTECTED_PATH"}:
+                raise ChatError("KNOWLEDGE_SEARCH_FILE_UNAVAILABLE") from exc
+            raise ChatError("KNOWLEDGE_SEARCH_FAILED") from exc
+        from .knowledge_index import KnowledgeIndexStore
+        from .knowledge_search import KnowledgeSearchError, search_registered_revision
+        index = KnowledgeIndexStore(self.config.with_name('knowledge-index.db'))
+        try:
+            return search_registered_revision(registration, query, files=files,
+                                              logical_root=grant["logical_root"],
+                                              index=index, binding=binding)
+        except KnowledgeSearchError as exc:
+            raise ChatError(exc.code) from exc
+
     # --- Controlled wiki entry (issue 118) ----------------------------------
 
     def wiki(self, kb_id, revision_id, *, action, document_id=None):

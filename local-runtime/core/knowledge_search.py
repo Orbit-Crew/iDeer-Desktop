@@ -15,6 +15,12 @@ and locates hits by line and page anchor; the original literal line scan
 (``search_frozen_revision``) stays as the visible degraded fallback for a
 revision whose index is missing, incomplete, or failed, and the result
 always names the engine that answered.
+
+Since #98 every hit also cites its frozen parse anchors (page and table)
+and the result carries the library identity plus the ``evidenceComplete``
+fact. ``answer_frozen_revision`` is the shared seam: the broker task and
+the user's doc-library search (``search_registered_revision``) answer
+identically, and the user-facing projection is a bounded camelCase view.
 """
 from __future__ import annotations
 
@@ -169,21 +175,34 @@ def revalidate_frozen_documents(payload: dict[str, Any], *, files: Any, candidat
     return verified, missing
 
 
-def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root: str) -> dict[str, Any]:
+def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root: str,
+                           layouts: dict[tuple[str, str], list] | None = None) -> dict[str, Any]:
     """Re-validate every frozen document against live bytes, then scan.
 
     The degraded literal-scan path (#97): kept as the visible fallback for a
     revision whose index is missing, incomplete, or failed, and for queries
     that tokenize to nothing. A document whose bytes no longer hash to the
     frozen digest contributes nothing: the answer is never impersonated with
-    current content.
+    current content. ``layouts`` (#98), when the frozen parse layout is
+    known for an exact (filename, content hash), lets a hit cite the page
+    and table the parse anchored; an unknown layout cites none — never a
+    guessed page number.
     """
+    from .knowledge_index import page_for_line, line_page_marks, table_for_line, table_line_marks
 
     query = payload["query"]
     frozen = payload["documents"]
     candidates, truncated = locate_frozen_files(files, logical_root)
     chunks: list[dict[str, Any]] = []
     overflow = [False]
+    anchors: dict[str, tuple[list, list]] = {}
+
+    def marks_for(document: dict[str, Any]) -> tuple[list, list]:
+        key = document["document_id"]
+        if key not in anchors:
+            layout = (layouts or {}).get((document["filename"].lower(), document["content_hash"]))
+            anchors[key] = (line_page_marks(layout), table_line_marks(layout)) if layout else ([], [])
+        return anchors[key]
 
     def scan(document: dict[str, Any], logical_path: str, raw: bytes) -> bool:
         try:
@@ -194,13 +213,16 @@ def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root:
             # Frozen bytes verified, but no line model exists for the
             # content: report it instead of pretending to search it.
             return False
+        page_marks, table_marks = marks_for(document)
         for number, line in enumerate(text.splitlines(), 1):
             if query in line:
                 chunks.append({
                     "document_id": document["document_id"],
                     "document_keyword": document["filename"],
                     "content": line[:MAX_LINE_CHARS],
-                    "position": {"logical_path": logical_path, "line": number},
+                    "position": {"logical_path": logical_path, "line": number,
+                                 "page": page_for_line(page_marks, number),
+                                 "table": table_for_line(table_marks, number)},
                 })
                 if len(chunks) >= MAX_MATCHES:
                     overflow[0] = True
@@ -236,7 +258,7 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
     recorded on the index store so the doc library can annotate 已过期
     instead of pretending the index is current.
     """
-    from .knowledge_index import line_page_marks, page_for_line
+    from .knowledge_index import line_page_marks, page_for_line, table_for_line, table_line_marks
 
     frozen = payload["documents"]
     candidates, truncated = locate_frozen_files(files, logical_root)
@@ -271,6 +293,7 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
                 continue
             lines = ranked["text"].splitlines()
             marks = line_page_marks(ranked["layout"])
+            table_marks = table_line_marks(ranked["layout"])
             hit_lines = sorted({line for positions in ranked["termLines"].values() for line in positions})
             for number in hit_lines:
                 if not 1 <= number <= len(lines):
@@ -280,7 +303,8 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
                     "document_keyword": document["filename"],
                     "content": lines[number - 1][:MAX_LINE_CHARS],
                     "position": {"logical_path": logical_path, "line": number,
-                                 "page": page_for_line(marks, number)},
+                                 "page": page_for_line(marks, number),
+                                 "table": table_for_line(table_marks, number)},
                 })
                 if len(chunks) >= MAX_MATCHES:
                     truncated = True
@@ -305,3 +329,148 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
         "engine": "bm25",
         "index": view,
     }
+
+
+def answer_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root: str,
+                           index: Any, binding: Any, library: dict[str, Any]) -> dict[str, Any]:
+    """One frozen revision's retrieval under the shared engine decision (#98).
+
+    The broker task and the user's library search answer identically: the
+    revision view picks the engine (BM25 when it covers the whole revision
+    and the query tokenizes, the literal scan otherwise with a visible
+    ``fallbackReason``), every document is re-validated before a line is
+    served, and the result carries the library identity plus the
+    ``evidenceComplete`` fact — false whenever a document is missing or the
+    answer was cut, so a partial answer never impersonates a full one.
+    ``library`` supplies the registration-side identity (kbId, revisionNo)
+    the payload itself does not carry.
+    """
+    from .knowledge_index import KnowledgeIndexError, tokenize
+
+    try:
+        view = index.revision_view(binding, payload["revision_id"], payload["manifest_hash"])
+    except KnowledgeIndexError:
+        view = {"state": "missing", "documents": 0, "indexedDocuments": 0, "servableDocuments": 0,
+                "driftedDocuments": 0, "builtAt": "",
+                "error": "KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE"}
+    layouts = None
+    try:
+        layouts = index.document_layouts(binding, payload["revision_id"], payload["manifest_hash"])
+    except KnowledgeIndexError:
+        layouts = None
+    if view["state"] == "ready" and tokenize(payload["query"]):
+        result = search_frozen_revision_indexed(payload, files=files, logical_root=logical_root,
+                                                index=index, binding=binding)
+    else:
+        result = search_frozen_revision(payload, files=files, logical_root=logical_root, layouts=layouts)
+        result["index"] = view
+        if not tokenize(payload["query"]):
+            # The query has no indexable terms (punctuation-only): the scan
+            # is the only honest answer, and the result says why.
+            result["fallbackReason"] = "index-untokenized"
+        elif view["error"] == "KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE":
+            result["fallbackReason"] = "index-storage"
+        else:
+            result["fallbackReason"] = f"index-{view['state']}"
+    result["library"] = {"kbId": str(library.get("kbId", ""))[:128],
+                         "revisionId": payload["revision_id"],
+                         "revisionNo": library.get("revisionNo"),
+                         "manifestHash": payload["manifest_hash"]}
+    result["evidenceComplete"] = not result["missing"] and not result["truncated"]
+    return result
+
+
+def search_registered_revision(registration: dict[str, Any], query: str, *, files: Any,
+                               logical_root: str, index: Any, binding: Any) -> dict[str, Any]:
+    """The user's own retrieval over one registered frozen revision (#98).
+
+    The doc library's search rides the exact engines the broker task uses —
+    the same content-addressed revalidation, the same engine decision, the
+    same structured missing — through ``answer_frozen_revision``. What
+    differs is only the identity and the projection: the registry never
+    stores platform document ids, so the frozen (filename, content hash)
+    pair is the document identity here, and the display view is bounded
+    camelCase with the retrieval credentials (the binding summary this
+    search ran under) attached. Nothing here calls the Server.
+    """
+    if not isinstance(registration, dict) or registration.get("status") != "registered" \
+            or not isinstance(registration.get("revisionId"), str) or not registration["revisionId"] \
+            or not isinstance(registration.get("manifestHash"), str) \
+            or _HEX64.match(registration["manifestHash"]) is None:
+        raise KnowledgeSearchError("KNOWLEDGE_SEARCH_REVISION_UNREGISTERED")
+    documents: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for document in (registration.get("documents") or []):
+        if not isinstance(document, dict) or not isinstance(document.get("filename"), str) \
+                or not _FILENAME.match(document["filename"]) \
+                or not isinstance(document.get("sha256"), str) or _HEX64.match(document["sha256"]) is None:
+            raise KnowledgeSearchError("KNOWLEDGE_SEARCH_REVISION_UNREGISTERED")
+        key = (document["filename"], document["sha256"])
+        if key in seen:
+            continue
+        seen.add(key)
+        documents.append({"document_id": document["sha256"], "filename": document["filename"],
+                          "content_hash": document["sha256"]})
+    if not documents:
+        raise KnowledgeSearchError("KNOWLEDGE_SEARCH_REVISION_UNREGISTERED")
+    payload = {"query": query, "revision_id": str(registration.get("revisionId", "")),
+               "manifest_hash": str(registration.get("manifestHash", "")), "documents": documents}
+    result = answer_frozen_revision(payload, files=files, logical_root=logical_root,
+                                    index=index, binding=binding,
+                                    library={"kbId": registration.get("kbId", ""),
+                                             "revisionNo": registration.get("revisionNo")})
+    return project_search_view(result, payload, binding)
+
+
+def project_search_view(result: dict[str, Any], payload: dict[str, Any], binding: Any) -> dict[str, Any]:
+    """The bounded camelCase display view of one engine answer (#98).
+
+    Every field is validated and bounded — anything the engine did not
+    state is dropped rather than invented. Documents are cited by their
+    frozen identity, hits by line and the page/table the frozen parse
+    anchored, and the missing stay structured with their fixed reasons.
+    """
+    from .receipt_ledger import BINDING_FIELDS
+
+    by_id = {document["document_id"]: document for document in payload["documents"]}
+    chunks = []
+    for chunk in (result.get("chunks") or [])[:MAX_MATCHES]:
+        if not isinstance(chunk, dict):
+            continue
+        document = by_id.get(str(chunk.get("document_id", "")), {})
+        position = chunk.get("position") if isinstance(chunk.get("position"), dict) else {}
+        page = position.get("page")
+        table = position.get("table")
+        chunks.append({"filename": str(chunk.get("document_keyword", ""))[:255],
+                       "contentHash": str(document.get("content_hash", "")),
+                       "content": str(chunk.get("content", ""))[:MAX_LINE_CHARS],
+                       "position": {"logicalPath": str(position.get("logical_path", "")),
+                                    "line": position.get("line") if type(position.get("line")) is int else 0,
+                                    "page": page if type(page) is int else None,
+                                    "table": table if type(table) is int else None}})
+    missing = []
+    for entry in (result.get("missing") or [])[:MAX_PAYLOAD_DOCUMENTS]:
+        if not isinstance(entry, dict):
+            continue
+        document = by_id.get(str(entry.get("document_id", "")), {})
+        missing.append({"filename": str(document.get("filename", ""))[:255],
+                        "reason": str(entry.get("reason", ""))[:32]})
+    library = result.get("library") if isinstance(result.get("library"), dict) else {}
+    revision_no = library.get("revisionNo")
+    matched = result.get("documentsMatched")
+    credentials = {field: str((binding or {}).get(field, "")) for field in BINDING_FIELDS}
+    return {"kbId": str(library.get("kbId", ""))[:128],
+            "revisionId": str(library.get("revisionId", "")),
+            "revisionNo": revision_no if type(revision_no) is int else 0,
+            "manifestHash": str(library.get("manifestHash", "")),
+            "query": str(payload.get("query", ""))[:MAX_QUERY_CHARS],
+            "engine": str(result.get("engine", ""))[:16],
+            "fallbackReason": str(result.get("fallbackReason", ""))[:32],
+            "chunks": chunks, "missing": missing,
+            "truncated": result.get("truncated") is True,
+            "documentsMatched": matched if type(matched) is int and matched >= 0 else 0,
+            "documentsTotal": len(payload["documents"]),
+            "evidenceComplete": result.get("evidenceComplete") is True,
+            "credentials": {"serverOrigin": credentials["server_origin"][:255],
+                            "userId": credentials["user_id"][:128],
+                            "deviceId": credentials["device_id"][:128]}}

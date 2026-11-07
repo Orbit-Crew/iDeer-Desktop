@@ -1,16 +1,28 @@
-# Ticket: Issue #97 [三期·18] BM25 全文索引与漂移标注
+# Ticket: Issue #98 [三期·19] 检索问答引用到页
 
 ## Session facts (read first)
 
-- Work tree: `G:/code/iDeer-worktrees/issue-97-bm25-index`, branch `feat/issue-97-bm25-index`, base `29df1e2` (= origin/develop, includes the 2026-11-07 merges #151/#152/#147/#145/#144).
-- You work ONLY inside this work tree. NEVER touch `G:/code/iDeer-Desktop` (main workspace), never push to any remote, never `git stash`, never merge/rebase.
-- Node: prepend `G:/code/iDeer-Desktop/.cache/node-dist/node-v22.23.4-win-x64` to PATH for every shell that runs node/npm. Repo npm scripts self-initialize the project env. A fresh worktree needs `npm ci` once (project-env resolves tsc/vitest from node_modules).
-- Python: the machine Python (D:\software\anaconda) carries pytest 8.3.5 and the runtime test deps. Any pytest run that imports `core.*` MUST set `PYTHONPATH=G:/code/iDeer-worktrees/issue-97-bm25-index/local-runtime` so the worktree source is tested, never site-packages.
-- The issue was assigned to Neowyh (the authenticated developer) before work started, per docs/agents/issue-tracker.md.
-- Forbidden: commenting on GitHub issues, changing issue state, editing `docs/agents/issue-tracker.md` (the PR itself is opened by the orchestrating session after review).
-- The repo's `docs/acceptance/issue-97/` belongs to the OLD numbering (installer acceptance). This ticket's records live in `docs/acceptance/issue-97-bm25-index/` (the `-suffix` convention from issue-116-tecplot-panel).
+- Work tree: `G:/code/iDeer-worktrees/issue-98-retrieval-citations`, branch
+  `feat/issue-98-retrieval-citations`, base `57b7d27` (= origin/develop,
+  includes the #97/#153 BM25 index and #99/#154 similarity merges).
+- You work ONLY inside this work tree. NEVER touch `G:/code/iDeer-Desktop`
+  (main workspace), never `git stash`, never merge/rebase.
+- Node: prepend `G:/code/iDeer-Desktop/.cache/node-dist/node-v22.23.4-win-x64`
+  to PATH for every shell that runs node/npm. Repo npm scripts self-initialize
+  the project env. A fresh worktree needs `npm ci` and `npm run
+  runtime:prepare` once (the real-runtime bridge tests spawn `.runtime`).
+- Python: the machine Python (D:\software\anaconda) carries pytest 8.3.5 and
+  the runtime test deps. Any pytest run that imports `core.*` MUST set
+  `PYTHONPATH=<worktree>/local-runtime` so the worktree source is tested,
+  never site-packages. Sandbox note: pytest's default `%TEMP%` is denied;
+  point `TMP/TEMP/TMPDIR` at the adjacent `<checkout>.tmp` directory.
+- The issue was assigned to Neowyh (the authenticated developer) before work
+  started, per docs/agents/issue-tracker.md.
+- The repo's `docs/acceptance/issue-98/` belongs to the OLD numbering
+  (installer acceptance). This ticket's records live in
+  `docs/acceptance/issue-98-retrieval-citations/` (the `-suffix` convention).
 
-## Full issue text (Orbit-Crew/iDeer-Desktop#97)
+## Full issue text (Orbit-Crew/iDeer-Desktop#98)
 
 > ## Parent
 >
@@ -18,35 +30,81 @@
 >
 > ## What to build
 >
-> 设备侧真实 BM25 全文索引：导入文档建立索引，支持"哪些文档/哪些页提到过"检索定位；索引落后于文档时如实标注"重建中/已过期"，后台重建可取消；替代现状 UTF-8 字面扫描。
+> 检索与问答引用到页：问答/检索结果标注库、Revision、文档与命中位置（页/表），关联回执与检索凭据；离线或部分失败如实说明依据不完整，不冒充无结果。
 >
 > ## Acceptance criteria
 >
-> - [x] BM25 索引建立并可检索，结果含文档与页定位 — evidence: `local-runtime/tests/test_knowledge_index.py::test_indexed_search_ranks_and_locates_with_pages` (BM25 ranks guide.txt first; every chunk carries the line and the frozen parse's page anchor; the CJK bigram query '文索' lands on notes.txt line 2 page 2) + `::test_index_revision_builds_a_ready_derived_state` (the index is built at import from the parsed entries) + service seam `::test_service_answers_from_the_index_and_annotates_the_engine` (engine 'bm25')
-> - [x] 索引漂移（文档变更后）如实标注 — evidence: `::test_indexed_search_reports_drift_and_records_it` (the drifted file is structured missing 'content_drift', its indexed text is never served, 'CHANGED' is absent from the whole response, driftedDocuments is recorded and returned in the result's index view) + `::test_subset_search_never_erases_the_drift_annotation` (per-document marks: a subset search neither erases another document's 已过期 nor keeps a restored file's stale mark) + `::test_rebuild_counts_drift_instead_of_faking_content` (the rebuild marks the drifted row non-servable and never indexes current bytes)
-> - [x] 后台重建可取消，完成后状态刷新 — evidence: `::test_rebuild_restores_a_lost_index` (a completed rebuild → derived state ready, servableDocuments 2) + `::test_cancelled_rebuild_keeps_consistent_rows` (the cancel lands between documents behind an event gate; partial rows stay self-consistent; the derived state is honestly 'partial', never ready) + `::test_rebuild_refuses_unknown_revisions_and_a_second_job` (KNOWLEDGE_INDEX_BUSY / KNOWLEDGE_INDEX_REVISION_UNKNOWN) + control-pipe gates and dispatch in `local-runtime/core/desktop.py` (exact-shape `knowledge-index-rebuild` / `-cancel`, single-slot queues, binding-scoped registry lookup)
-> - [x] 现状字面扫描路径被替换（保留为降级可见） — evidence: `::test_service_answers_from_the_index_and_annotates_the_engine` second half (index deleted → engine 'literal', fallbackReason 'index-missing', index view 'missing', documentsMatched 2 — the same verified answers, visibly degraded) + `search_frozen_revision` keeps the exact #113 semantics (the single-read serve callback preserves hash-and-content-from-the-same-bytes; the unchanged `test_knowledge_search.py` assertions all pass) + `::test_untokenized_query_answers_no_chunks_from_the_index` + `::test_verified_unparsable_document_is_not_searchable` (the indexed path's structured missing matches the literal engine's answer)
-> - [x] Runtime 检索测试覆盖索引/漂移/重建 — evidence: `local-runtime/tests/test_knowledge_index.py` (25 tests: tokenizer/bigrams, page marks, store derived states, binding scoping, persistence across instances, build-error honesty, wire/registry text exclusion, ranked retrieval with pages, per-document drift marks incl. the subset-search preservation, same-name documents served separately, rebuild/cancel/busy/unknown) + updated `test_knowledge_import.py` (`_text` pinned in the manifest entry; the wire payload and the registry rows exclude it) + `test_knowledge_search.py` (the existing contract intact on the fallback engine)
+> - [ ] 引用展示 库/版本/文档/页（表）定位
+> - [ ] 引用与 Tool Receipt/检索凭据关联可查
+> - [ ] 离线/部分失败提示"依据不完整"而非假成功
+> - [ ] 桥契约与 Runtime 测试覆盖引用链
+>
+> ## Blocked by
+>
+> - [三期·18 BM25 全文索引与漂移标注](…/issues/97)（已合并 #153）
 
 ## Design constraints (settled — do not reopen)
 
-- The #113 frozen-revision contract is NOT weakened: every search still re-validates each manifest document against the live bytes (name match + SHA-256) before anything is served; digest and served content always come from the same single read. The index only replaces the line scan with a BM25 ranking over text that was indexed from hash-verified frozen bytes.
-- A rebuild cannot recover drifted content: the frozen revision's bytes for a changed file are gone; the row stays non-servable and the drift is counted, never faked from current bytes.
-- stdlib-only (the runtime dependency set is frozen by pyproject + `test/security.test.ts`): the tokenizer is `re`-based (ASCII word runs + CJK character bigrams), BM25 is implemented in the module, storage is sqlite3.
-- Index identity is (binding, revision_id, manifest_hash) — the same binding-scoped discipline as `find_registration`; kb_id is not part of the key (the search task does not carry it).
-- No new IPC capability: `local.knowledge.search` keeps its name; the new control commands are `knowledge-index-rebuild` / `knowledge-index-rebuild-cancel` (security test channel pins updated).
+- The #113 frozen-revision contract is NOT weakened: every search still
+  re-validates each manifest document against the live bytes before anything
+  is served, and the structured missing list stays the honest gap report.
+- One answering seam: `answer_frozen_revision` in `knowledge_search.py` is
+  the shared engine decision (BM25 when ready + tokenizable query, literal
+  scan otherwise with a visible `fallbackReason`). The broker task and the
+  user's library search answer identically; only the projection differs.
+- Citations come only from the frozen parse's layout anchors
+  (`kind: page|table`): a hit outside every table span cites no table, and an
+  unknown layout cites no page — never a guessed page number.
+- The broker result stays snake_case and additive (`library`,
+  `evidenceComplete`, `position.table`) — the Server consumed the #113 shape
+  and additive keys are safe (result is content-hash bound).
+- The user-facing view (`search_registered_revision`) is bounded camelCase;
+  documents are cited by their frozen (filename, content hash) identity —
+  the registry never stores platform document ids, so none are invented.
+- Device-side retrieval never calls the Server: an offline device still
+  answers its own question, and the retrieval credentials ride as the binding
+  summary (origin/user/device) — public keys never cross the bridge.
+- The receipt chain is content-addressed: `receipt.result_hash` pins the
+  exact cited result; the ledger row binds the credential profile. No
+  receipt hash inside the result (that would be circular).
 
 ## Architecture map (verified)
 
-- Index store + rebuild job: `local-runtime/core/knowledge_index.py` (`KnowledgeIndexStore`, sqlite `knowledge-index.db` via `config.with_name`; derived state is never stored as a claim; `KnowledgeIndexRebuild` daemon-thread job following the `KnowledgeFolderImport` idiom).
-- Import-time indexing: `knowledge_import.py` `_entry_with_text` (transient `_text` on manifest entries) → `platform_chat.py` `_register_frozen_entries` → `_index_frozen_revision` (best-effort, never fails the registration; `_text` stripped in `finally`; the wire payload and `DOCUMENT_FIELDS` exclude it).
-- Retrieval: `knowledge_search.py` — `locate_frozen_files` (the bounded walk, shared) + `revalidate_frozen_documents` (hash + optional single-read `serve` callback) + `search_frozen_revision` (literal fallback, engine 'literal') + `search_frozen_revision_indexed` (BM25 chunks with line/page, engine 'bm25', drift observed onto the store).
-- Service dispatch + degraded annotation: `file_service.py` `_search_knowledge` (ready index + tokenizable query → BM25; otherwise the literal scan with `fallbackReason` index-missing/partial/failed/storage/untokenized and the index view attached).
-- Desktop wiring: `desktop.py` — store/job construction, two command gates + queues, dispatch blocks, snapshot `knowledgeIndexRebuild`/`knowledgeIndexStorageError` + per-row `index` view.
-- TS ladder: shared types (`KnowledgeIndexView`, `KnowledgeIndexJobView`, `KnowledgeImportView.index`, `RuntimeStatus.knowledgeIndexRebuild/knowledgeIndexStorageError`, bridge methods) → `src/main/runtime.ts` (single-slot maps, reply handlers, `parseKnowledgeIndexJob/View`, snapshot fields) → `src/main/index.ts` (`desktop:knowledge:index-rebuild` + `-cancel`, main-side validation, no dialogs — read-only compute) → `src/preload/index.ts` → `docLibraryPane.tsx` + `stores/docLibrary.ts` (badge, rebuild/cancel buttons, fixed-category explanations) → `test/security.test.ts` + `scripts/desktop-smoke.cjs` pins.
+- Anchor helpers: `local-runtime/core/knowledge_index.py`
+  (`table_line_marks`/`table_for_line` mirror the page marks; a table is a
+  bounded span, unlike a from-here-on page) + `document_layouts` store read
+  keyed by (lowercased filename, content hash).
+- Engines: `local-runtime/core/knowledge_search.py` — indexed chunks gain
+  `position.table`; the literal engine accepts `layouts` and cites
+  page/table when the frozen parse is known. `answer_frozen_revision`
+  attaches `library` + `evidenceComplete`; `search_registered_revision`
+  builds the registry-driven payload (document_id = sha256, internal key
+  only) and projects the display view; `project_search_view` bounds and
+  camelCases everything.
+- Broker seam: `local-runtime/core/file_service.py::_search_knowledge` now
+  delegates to `answer_frozen_revision` (no duplicated engine decision).
+- Desktop entry: `local-runtime/core/platform_chat.py::knowledge_search`
+  (the `similarity` action's precedent: binding-scoped registry lookup +
+  `knowledge_files()` grant) with search-specific fixed categories;
+  `local-runtime/core/desktop.py` adds the exact-shape `knowledge-search`
+  gate + single-slot queue + dispatch (only `CHAT_*`/`KNOWLEDGE_*` cross).
+- TS ladder: shared types (`KnowledgeSearchView`/`Hit`/`Gap`, bridge method)
+  → `src/main/runtime.ts` (single-slot map, pre-runtime validation, bounded
+  reply projection; NO selectionScope gate — an unconfirmed workspace answers
+  with the Runtime's honest `KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE`) →
+  `src/main/index.ts` (`desktop:knowledge:search`, requireMainFrame +
+  authenticated) → `src/preload/index.ts` → `stores/docLibrary.ts`
+  (`searchRecord`, generation-fenced, fixed-category explanations) →
+  `docLibraryPane.tsx` (per-record search + `SearchCitations` card) →
+  security-test channel pin + smoke bridge keys.
+- QA honesty: `KnowledgeGraphSection.tsx` adds the 依据不完整 banner for a
+  partial/failed scope (answer or retrieval) on top of the existing refusal
+  alert.
 
 ## Scope guidance
 
-1. Renderer scope is the doc library pane only: per-record index facts + rebuild/cancel. Search results stay agent-facing over the platform task path (no new pane; the receipt carries the result).
-2. The literal scan stays for `local.files.search` (raw workspace file search is a different capability, out of scope here).
-3. A rebuild does not re-import: changed documents need a new revision through the ordinary import seam (#101's 重导入 semantics); the rebuild only repairs the index and records drift honestly.
+1. No changes to `local.knowledge.search`'s wire contract beyond additive
+   keys; the Server-facing result keeps snake_case.
+2. No new dependency; one new IPC channel with its security pin.
+3. The graph/ask surface cannot gain page numbers (the Server does not state
+   them) — the device states the incompleteness instead of inventing facts.

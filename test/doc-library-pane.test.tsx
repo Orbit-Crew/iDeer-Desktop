@@ -2,7 +2,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
-import type { DesktopStatus, KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, RuntimeStatus } from '../src/shared/desktop'
+import type { DesktopStatus, KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgeSearchView, RuntimeStatus } from '../src/shared/desktop'
 
 afterEach(cleanup)
 
@@ -84,6 +84,10 @@ const stubIdeer = (impl: { reject?: string; outcomeOverrides?: Record<string, un
     cancelKnowledgeIndexRebuild: vi.fn(() => {
       calls.push({ method: 'cancelKnowledgeIndexRebuild', args: [] })
       return Promise.resolve({ canceled: true })
+    }),
+    knowledgeSearch: vi.fn((kbId: string, revisionId: string, query: string) => {
+      calls.push({ method: 'knowledgeSearch', args: [kbId, revisionId, query] })
+      return impl.reject ? Promise.reject(new Error(impl.reject)) : Promise.resolve(searchView())
     })
   }
   return { calls }
@@ -95,6 +99,22 @@ const indexView = (overrides: Partial<KnowledgeIndexView> = {}): KnowledgeIndexV
 
 const indexJob = (overrides: Partial<KnowledgeIndexJobView> = {}): KnowledgeIndexJobView =>
   ({ state: 'running', kbId: KB, revisionId: 'f'.repeat(64), manifestHash: 'b'.repeat(64), totalDocuments: 2, processedDocuments: 1, indexedDocuments: 1, driftedDocuments: 0, unavailableDocuments: 0, error: '', ...overrides })
+
+/** Issue 98: one library search's bounded citation view. */
+const searchView = (overrides: Partial<KnowledgeSearchView> = {}): KnowledgeSearchView => ({
+  kbId: KB, revisionId: 'f'.repeat(64), revisionNo: 2, manifestHash: 'b'.repeat(64),
+  query: 'ALPHA', engine: 'bm25', fallbackReason: '',
+  chunks: [
+    { filename: 'report.md', contentHash: 'c'.repeat(64), content: 'alpha in table body',
+      position: { logicalPath: '/workspace/report.md', line: 2, page: 4, table: 2 } },
+    { filename: 'guide.md', contentHash: 'd'.repeat(64), content: 'the launch code is ALPHA-7',
+      position: { logicalPath: '/workspace/guide.md', line: 1, page: 1, table: null } }
+  ],
+  missing: [], truncated: false, documentsMatched: 2, documentsTotal: 2,
+  evidenceComplete: true,
+  credentials: { serverOrigin: 'https://test.invalid', userId: 'a@test.invalid', deviceId: 'dev' },
+  ...overrides
+})
 
 describe('doc library pane (issue 96)', () => {
   it('renders import records with honest outcomes, platform association and folder source', async () => {
@@ -274,5 +294,81 @@ describe('doc library pane (issue 97 index facts)', () => {
     const statuses = await screen.findAllByTestId('doc-library-index-status')
     expect(statuses[0].textContent).toContain('检索索引失败：KNOWLEDGE_INDEX_FAILED')
     expect(statuses[1].textContent).toContain('检索索引：状态未知')
+  })
+})
+
+describe('doc library pane (issue 98 library search)', () => {
+  it('searches one registered revision and displays citations down to page and table', async () => {
+    const { calls } = stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const input = await screen.findByRole('textbox', { name: '检索版本 ffffffff' })
+    fireEvent.change(input, { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    await waitFor(() => expect(calls.some((call) => call.method === 'knowledgeSearch')).toBe(true))
+    expect(calls.find((call) => call.method === 'knowledgeSearch')?.args).toEqual([KB, 'f'.repeat(64), 'ALPHA'])
+    const result = await screen.findByTestId('doc-library-search-result')
+    // The citation chain on display: library revision, engine, hit locations.
+    expect(result.textContent).toContain('检索“ALPHA” · 版本 R2 · 引擎 BM25 全文索引')
+    expect(result.textContent).toContain('命中文档 2 / 2')
+    expect(result.textContent).toContain('report.md · 第 4 页 · 行 2 · 表 2 · 指纹 cccccccccccc')
+    expect(result.textContent).toContain('guide.md · 第 1 页 · 行 1 · 指纹 dddddddddddd')
+    expect(result.textContent).toContain('alpha in table body')
+    // The retrieval credentials close the chain and no physical path shows.
+    expect(result.textContent).toContain('检索凭据：https://test.invalid · 用户 a@test.invalid · 设备 dev')
+    expect(result.textContent).not.toMatch(/\\|workspace\/report/)
+    expect(result.textContent).not.toContain('依据不完整')
+  })
+
+  it('marks incomplete evidence with the structured missing reasons instead of faking a full answer', async () => {
+    stubIdeer()
+    ;(window as unknown as { ideer: { knowledgeSearch: unknown } }).ideer.knowledgeSearch = vi.fn(() =>
+      Promise.resolve(searchView({
+        evidenceComplete: false, documentsMatched: 1, truncated: true,
+        missing: [{ filename: 'report.md', reason: 'content_drift' }],
+        chunks: [{ filename: 'guide.md', contentHash: 'd'.repeat(64), content: 'the launch code is ALPHA-7',
+          position: { logicalPath: '/workspace/guide.md', line: 1, page: 1, table: null } }]
+      })))
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.change(await screen.findByRole('textbox', { name: '检索版本 ffffffff' }), { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    const partial = await screen.findByTestId('doc-library-search-result')
+    expect(partial.textContent).toContain('依据不完整：部分文档未能参与本次检索')
+    expect(partial.textContent).toContain('未参与检索：report.md · 内容已变更（已过期）')
+    expect(partial.textContent).toContain('命中数量达到上限，已截断显示')
+    expect(partial.textContent).toContain('命中文档 1 / 2')
+    expect(partial.textContent).toContain('the launch code is ALPHA-7')
+    expect(partial.textContent).not.toContain('alpha in table body')
+  })
+
+  it('explains a refused search through its fixed category', async () => {
+    stubIdeer({ reject: 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED' })
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.change(await screen.findByRole('textbox', { name: '检索版本 ffffffff' }), { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    expect(await screen.findByTestId('doc-library-search-error').then((node) => node.textContent))
+      .toContain('该版本已不在本机记录中，列表已刷新')
+    // A refused search keeps no stale citation view on display.
+    expect(screen.queryByTestId('doc-library-search-result')).toBeNull()
+  })
+
+  it('annotates a degraded literal answer with its visible fallback reason', async () => {
+    stubIdeer()
+    ;(window as unknown as { ideer: { knowledgeSearch: unknown } }).ideer.knowledgeSearch = vi.fn(() =>
+      Promise.resolve(searchView({ engine: 'literal', fallbackReason: 'index-missing',
+        chunks: [
+          { filename: 'guide.md', contentHash: 'd'.repeat(64), content: 'the launch code is ALPHA-7',
+            position: { logicalPath: '/workspace/guide.md', line: 1, page: null, table: null } }
+        ] })))
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.change(await screen.findByRole('textbox', { name: '检索版本 ffffffff' }), { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    const degraded = await screen.findByTestId('doc-library-search-result')
+    expect(degraded.textContent).toContain('引擎 字面扫描（降级） · 降级原因 index-missing')
+    // No frozen anchor, no invented page number.
+    expect(degraded.textContent).toContain('guide.md · 行 1 · 指纹 dddddddddddd')
   })
 })

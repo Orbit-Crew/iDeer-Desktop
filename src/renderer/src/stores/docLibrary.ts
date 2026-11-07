@@ -6,7 +6,10 @@
 // confirmation dialog is a user decision, not a failure.
 // Issue 97: the revision index facts ride the same snapshot rows, and the
 // index rebuild (start/cancel) follows the same one-action-at-a-time rules.
-import type { DesktopBridge, KnowledgeImportView, RuntimeStatus } from '../../../shared/desktop'
+// Issue 98: the user's own library search rides the same discipline; its
+// bounded citation view is the reply's own display fact, keyed by the record
+// it searched, with the honest evidenceComplete fact shown as 依据不完整.
+import type { DesktopBridge, KnowledgeImportView, KnowledgeSearchView, RuntimeStatus } from '../../../shared/desktop'
 
 export interface DocLibraryView {
   runtime: RuntimeStatus | null
@@ -14,9 +17,14 @@ export interface DocLibraryView {
   /** One user action at a time; the pane disables its action buttons on it. */
   busy: boolean
   error: string
+  /** Issue 98: the newest library search's citation view and the record it
+   * searched; null until one search has answered. */
+  search: { recordId: string; view: KnowledgeSearchView } | null
+  searchError: string
 }
 
-export const emptyDocLibraryView = (): DocLibraryView => ({ runtime: null, failed: false, busy: false, error: '' })
+export const emptyDocLibraryView = (): DocLibraryView =>
+  ({ runtime: null, failed: false, busy: false, error: '', search: null, searchError: '' })
 
 /** Fixed wire categories the doc library can explain in Chinese; anything else
  * reads as a generic failure with the category shown. */
@@ -43,6 +51,18 @@ const errorExplanations: Record<string, string> = {
   KNOWLEDGE_INDEX_TIMEOUT: '操作超时，结果以索引状态为准，请刷新核对',
   KNOWLEDGE_INDEX_IDENTITY_CHANGED: '登录身份已变化，请重新打开文档库',
   KNOWLEDGE_INDEX_FAILED: '索引重建未完成，请稍后重试',
+  // Issue 98: the library search's fixed categories.
+  KNOWLEDGE_SEARCH_UNAUTHENTICATED: '请先登录平台后再检索文档库',
+  KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE: '需要先选择并确认工作目录，才能检索文档库',
+  KNOWLEDGE_SEARCH_FILE_UNAVAILABLE: '工作目录当前不可读，无法检索文档库',
+  KNOWLEDGE_SEARCH_KB_INVALID: '平台知识库标识无效，无法检索',
+  KNOWLEDGE_SEARCH_REVISION_INVALID: '版本标识无效，无法检索',
+  KNOWLEDGE_SEARCH_QUERY_INVALID: '检索词无效：请输入 1–512 个字符且不包含换行',
+  KNOWLEDGE_SEARCH_REVISION_UNREGISTERED: '该版本已不在本机记录中，列表已刷新',
+  KNOWLEDGE_SEARCH_IDENTITY_UNAVAILABLE: '登录身份信息不完整，无法检索',
+  KNOWLEDGE_SEARCH_BUSY: '上一个操作还在进行，请稍候',
+  KNOWLEDGE_SEARCH_TIMEOUT: '操作超时，请稍后重试',
+  KNOWLEDGE_SEARCH_FAILED: '检索未完成，请稍后重试',
   RUNTIME_UNAVAILABLE: '本机 Runtime 未运行，请先连接设备'
 }
 
@@ -58,7 +78,7 @@ export const explainDocLibraryError = (message: string): string => {
 export class DocLibraryController {
   private generation = 0
   private view = emptyDocLibraryView()
-  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport' | 'rebuildKnowledgeIndex' | 'cancelKnowledgeIndexRebuild'>,
+  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport' | 'rebuildKnowledgeIndex' | 'cancelKnowledgeIndexRebuild' | 'knowledgeSearch'>,
               private readonly publish: (view: DocLibraryView) => void) {}
   snapshot(): DocLibraryView { return this.view }
   private update(change: Partial<DocLibraryView>): void { this.view = { ...this.view, ...change }; this.publish(this.view) }
@@ -110,6 +130,25 @@ export class DocLibraryController {
 
   cancelIndexRebuild(): Promise<void> {
     return this.run(() => this.api.cancelKnowledgeIndexRebuild())
+  }
+
+  /** Issue 98: the user's own search over one registered revision. The
+   * bounded citation view is the reply's display fact (keyed by the record);
+   * a failure explains itself through the fixed categories and never keeps
+   * a stale answer on display. */
+  async searchRecord(record: KnowledgeImportView, query: string): Promise<void> {
+    this.invalidate()
+    const generation = this.generation
+    this.update({ busy: true, error: '', search: null, searchError: '' })
+    try {
+      const view = await this.api.knowledgeSearch(record.kbId, record.revisionId, query)
+      if (generation !== this.generation) return
+      this.update({ busy: false, failed: false, search: { recordId: record.id, view } })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (generation !== this.generation) return
+      this.update({ busy: false, searchError: message })
+    }
   }
 
   deleteRecords(ids: string[]): Promise<void> {

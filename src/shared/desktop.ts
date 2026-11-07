@@ -244,6 +244,40 @@ export interface KnowledgeSimilarityView {
   documents: KnowledgeSimilarityDocument[]
   edges: KnowledgeSimilarityEdge[]
 }
+/** Issue 98: one cited hit of the user's library search, bound to the frozen
+ * document identity and the frozen parse's page/table anchors. */
+export interface KnowledgeSearchHit {
+  filename: string
+  contentHash: string
+  content: string
+  position: { logicalPath: string; line: number; page: number | null; table: number | null }
+}
+/** Issue 98: a frozen document that could not contribute, with its fixed reason. */
+export interface KnowledgeSearchGap {
+  filename: string
+  reason: 'content_drift' | 'not_searchable' | 'file_unavailable' | string
+}
+/** Issue 98: the device-side citation view of one library search. The search
+ * rides the same engines as the broker task, never calls the Server, and
+ * `evidenceComplete` says honestly whether every document contributed —
+ * 依据不完整 must be visible instead of a fake full answer. `credentials`
+ * is the binding summary (origin/user/device) the search ran under. */
+export interface KnowledgeSearchView {
+  kbId: string
+  revisionId: string
+  revisionNo: number
+  manifestHash: string
+  query: string
+  engine: string
+  fallbackReason: string
+  chunks: KnowledgeSearchHit[]
+  missing: KnowledgeSearchGap[]
+  truncated: boolean
+  documentsMatched: number
+  documentsTotal: number
+  evidenceComplete: boolean
+  credentials: { serverOrigin: string; userId: string; deviceId: string }
+}
 /** Issue 117: one selected document inside a scoped query/ask, with its frozen source. */
 export interface KnowledgeGraphScopeRow {
   documentId: string
@@ -993,6 +1027,11 @@ export interface DesktopBridge {
   knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView>
   /** Issue 118: controlled wiki page list, generation, and single-page reading. */
   knowledgeWiki(command: WikiCommand): Promise<WikiView | WikiPage | WikiNavigation>
+  /** Issue 98: the user's own search over one registered frozen revision;
+   * the same engines as the broker task, entirely device-side, with the
+   * library identity, the page/table citations, and the honest
+   * evidenceComplete fact. */
+  knowledgeSearch(kbId: string, revisionId: string, query: string): Promise<KnowledgeSearchView>
   /** Issue 120: skill package preview import; picking and confirmation stay in main. */
   skills(command: SkillCommand): Promise<SkillImportPreview | SkillImportOutcome | SkillPublishOutcome>
   /** Issue 121: configure Skill trigger preferences; the Server matches, the Desktop never does. */

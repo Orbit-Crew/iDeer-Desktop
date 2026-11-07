@@ -21,7 +21,8 @@ from core.file_service import WorkspaceFileService, WorkspaceFileStore, Workspac
 from core.files import RootConfig
 from core.knowledge_import import KnowledgeImportRegistry, registration_payload, strip_entry_text
 from core.knowledge_index import (KnowledgeIndexError, KnowledgeIndexRebuild, KnowledgeIndexStore,
-                                  document_terms, line_page_marks, page_for_line, tokenize)
+                                  document_terms, line_page_marks, page_for_line, table_for_line,
+                                  table_line_marks, tokenize)
 from core.knowledge_search import search_frozen_revision_indexed
 from core.receipt_ledger import profile_binding
 from core.settings import RuntimeSettings, load_settings
@@ -71,6 +72,27 @@ def test_page_marks_cover_lines_in_order() -> None:
     assert page_for_line(marks, 9) == 3
     assert page_for_line([], 1) is None
     assert line_page_marks([{'kind': 'page', 'page': None, 'line': 1}]) == []
+
+
+def test_table_marks_cover_only_their_own_span() -> None:
+    """Issue 98: a table anchor is a bounded span, not a from-here-on mark —
+    a hit line outside every span cites no table, and a degenerate anchor
+    (no number, zero lines, malformed entry) never resolves."""
+    layout = [{'kind': 'page', 'page': 1, 'line': 1, 'lines': 6},
+              {'kind': 'table', 'table': 1, 'line': 2, 'lines': 2},
+              {'kind': 'table', 'table': 2, 'line': 5, 'lines': 1},
+              {'kind': 'table', 'table': None, 'line': 9, 'lines': 1},
+              {'kind': 'table', 'table': 3, 'line': 10, 'lines': 0},
+              {'kind': 'page', 'page': 1, 'line': 11, 'lines': 1}]
+    marks = table_line_marks(layout)
+    assert marks == [(2, 3, 1), (5, 5, 2)]
+    assert table_for_line(marks, 1) is None
+    assert table_for_line(marks, 2) == 1
+    assert table_for_line(marks, 3) == 1
+    assert table_for_line(marks, 4) is None
+    assert table_for_line(marks, 5) == 2
+    assert table_for_line(marks, 6) is None
+    assert table_for_line([], 2) is None
 
 
 # --- the store -----------------------------------------------------------------
@@ -196,8 +218,52 @@ def test_indexed_search_ranks_and_locates_with_pages(tmp_path) -> None:
     cjk = search_frozen_revision_indexed(_payload('', query='文索'), files=files,
                                          logical_root='/workspace', index=store, binding=BINDING)
     assert [chunk['document_keyword'] for chunk in cjk['chunks']] == ['notes.txt']
-    assert cjk['chunks'][0]['position'] == {'logical_path': '/workspace/notes.txt', 'line': 2, 'page': 2}
+    assert cjk['chunks'][0]['position'] == {'logical_path': '/workspace/notes.txt', 'line': 2, 'page': 2,
+                                            'table': None}
     assert cjk['chunks'][0]['content'].count('全文索引') == 2
+
+
+def test_indexed_search_cites_the_table_a_hit_lands_in(tmp_path) -> None:
+    """Issue 98: a hit line inside a frozen table span cites that table; a
+    line outside every span cites none — the anchors come only from the
+    frozen parse, never guessed from content."""
+    text = 'report header line\nalpha in table body\nalpha after the table\n'
+    (tmp_path / 'report.txt').write_bytes(text.encode('utf-8'))
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    entry = _entry('report.txt', text)
+    entry['parse']['layout'] = [{'kind': 'page', 'page': 1, 'line': 1, 'lines': 3},
+                                {'kind': 'table', 'table': 2, 'line': 2, 'lines': 1}]
+    store.index_revision(BINDING, REVISION, MANIFEST, [entry])
+    files = _store_for(tmp_path, tmp_path)
+
+    result = search_frozen_revision_indexed(_payload('', query='alpha', documents=[_document('report.txt', text)]),
+                                            files=files, logical_root='/workspace',
+                                            index=store, binding=BINDING)
+    positions = {chunk['position']['line']: chunk['position'] for chunk in result['chunks']}
+    assert positions[2]['table'] == 2 and positions[2]['page'] == 1
+    assert positions[3]['table'] is None and positions[3]['page'] == 1
+
+
+def test_document_layouts_reads_back_the_frozen_parse_anchors(tmp_path) -> None:
+    """Issue 98: the literal engine's layout source — keyed by the frozen
+    (lowercased filename, content hash) identity, empty for a revision the
+    index never stored, and never carrying text."""
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    assert store.document_layouts(BINDING, REVISION, MANIFEST) == {}
+    entries = _entries()
+    for entry in entries:
+        entry['parse']['layout'] = _layout_for(entry['filename'])
+    store.index_revision(BINDING, REVISION, MANIFEST, entries)
+
+    layouts = store.document_layouts(BINDING, REVISION, MANIFEST)
+    assert set(layouts) == {('guide.txt', hashlib.sha256(GUIDE.encode()).hexdigest()),
+                            ('notes.txt', hashlib.sha256(NOTES.encode()).hexdigest())}
+    assert layouts[('guide.txt', hashlib.sha256(GUIDE.encode()).hexdigest())] == _layout_for('guide.txt')
+    # Layout rows carry anchors only — never the parsed text itself.
+    assert all(set(anchor) <= {'kind', 'page', 'table', 'title', 'line', 'lines'}
+               for anchors in layouts.values() for anchor in anchors)
+    foreign = store.document_layouts({'user_id': 'B', 'device_id': 'D1'}, REVISION, MANIFEST)
+    assert foreign == {}
 
 
 def test_indexed_search_reports_drift_and_records_it(tmp_path) -> None:

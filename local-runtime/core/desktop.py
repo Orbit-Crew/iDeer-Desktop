@@ -94,6 +94,9 @@ def main() -> int:
     knowledge_index_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_index_cancel_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_manage_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 98: the user's own library search over one registered revision —
+    # one slot like every knowledge command; the search never calls the Server.
+    knowledge_search_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -222,6 +225,20 @@ def main() -> int:
                         and command['confirmed'] in (True, False)
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_publish_commands.put_nowait(command)
+                    continue
+                # Issue 98: the user's own search over one registered frozen
+                # revision. The renderer names the revision and the query
+                # only; the workspace re-verification happens device-side
+                # through the same engines the broker task rides.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'query', 'scope'}
+                        and command['type'] == 'knowledge-search' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and isinstance(command['query'], str) and 0 < len(command['query']) <= 512
+                        and '\n' not in command['query']
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_search_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'kbId', 'revisionId', 'action', 'scope'},
@@ -896,6 +913,22 @@ def main() -> int:
                     message = str(exc)
                     error = message if message.startswith(('CHAT_', 'KNOWLEDGE_')) else 'KNOWLEDGE_GRAPH_FAILED'
                 emit({'v': 1, 'type': 'knowledge-graph', 'id': graph_command['id'],
+                      'result': result, 'error': error})
+            try:
+                search_command = knowledge_search_commands.get_nowait()
+            except queue.Empty:
+                search_command = None
+            if search_command:
+                error = ''
+                result = None
+                try:
+                    result = chat.knowledge_search(search_command['kbId'], search_command['revisionId'],
+                                                   query=search_command['query'])
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary.
+                    message = str(exc)
+                    error = message if message.startswith(('CHAT_', 'KNOWLEDGE_')) else 'KNOWLEDGE_SEARCH_FAILED'
+                emit({'v': 1, 'type': 'knowledge-search', 'id': search_command['id'],
                       'result': result, 'error': error})
             try:
                 wiki_command = knowledge_wiki_commands.get_nowait()
