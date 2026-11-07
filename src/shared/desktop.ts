@@ -931,6 +931,10 @@ export interface DesktopBridge {
    * stays in the trusted main process, so an accidental click never wipes
    * login state on its own. */
   browser(command: BrowserCommand): Promise<void>
+  /** Issue 86: the shell's device-local window-lifecycle preference (close
+   * to tray vs 关窗即退出). The command carries the action and the one
+   * boolean only; the store lives in the trusted main process's userData. */
+  preferences(command: PreferenceCommand): Promise<PreferencesView>
   /** Issue 77: the main process pushes the full bounded center list after
    * every change; the renderer replaces its view instead of merging. */
   onNotifications(listener: (view: NotificationCenterView) => void): () => void
@@ -952,6 +956,19 @@ export interface InstallOutcome {
   installed: boolean
   stage: 'confirmed' | 'draining' | 'ready' | 'stopped' | 'applied' | 'launched' | 'blocked' | 'canceled' | 'failed'
   detail: string
+}
+
+/**
+ * Issue 86: the shell's device-local window-lifecycle preference. One
+ * boolean, owned by the main process (a small userData JSON the close path
+ * reads), never stored in the Runtime settings profile and never synced:
+ * whether closing the window hides to the tray (default, resident) or exits.
+ */
+export type PreferenceCommand = { action: 'get' } | { action: 'set'; closeToTray: boolean }
+
+/** The full current preference view; every reply re-reads the store. */
+export interface PreferencesView {
+  closeToTray: boolean
 }
 
 /**
