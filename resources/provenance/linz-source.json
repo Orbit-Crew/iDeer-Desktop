@@ -31,6 +31,8 @@
     "src/renderer/src/dock/panelRegistry.tsx": "e6f3c1260807168f2a4d891cb4a57800172915c1761e3542c64ea4d96bcb2cc5",
     "src/renderer/src/dock/persistence.ts": "e262e927bf3c40fb5e21fd2e6f84e9e53343210e0f1d26d60477a8fb347b52a5",
     "src/renderer/src/dock/types.ts": "bc8fcea7eea9cf3fc1dad18af119dcebf94a607752c159246bdffccf21378ee2",
-    "src/renderer/src/components/Chat/LayoutPresetDropdown.tsx": "a080e7e214b73c997cc12839c9098866ef469413008f07d9825bb8ab1e71b1f5"
+    "src/renderer/src/components/Chat/LayoutPresetDropdown.tsx": "a080e7e214b73c997cc12839c9098866ef469413008f07d9825bb8ab1e71b1f5",
+    "resources/occt/occt-import-js.js": "3fb44ce11d00611f9b3f3c5775d520ebab48930c1f08279b7b1316f05f0d3379",
+    "resources/occt/occt-import-js.wasm": "33391fc9d94ea5c869a6718488bf0a9a464222bac9bdc764dfe1690cef281952"
   }
 }
