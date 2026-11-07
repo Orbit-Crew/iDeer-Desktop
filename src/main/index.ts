@@ -645,6 +645,26 @@ if (!app.requestSingleInstanceLock()) {
       requireMainFrame(event)
       return runtime.cancelKnowledgeFolder()
     })
+    // Issue 97: one registered revision's background index rebuild. The
+    // renderer names the frozen identity only; the Runtime re-verifies every
+    // document against the live workspace bytes on its own job thread, and
+    // the reply is the running job's bounded view.
+    ipcMain.handle('desktop:knowledge:index-rebuild', (event, kbId: string, revisionId: string, manifestHash: string) => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_INDEX_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_INDEX_WORKSPACE_UNAVAILABLE')
+      if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+      if (typeof revisionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(revisionId)) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+      if (typeof manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(manifestHash)) throw new Error('KNOWLEDGE_INDEX_MANIFEST_INVALID')
+      return runtime.rebuildKnowledgeIndex(kbId, revisionId, manifestHash)
+    })
+    // Issue 97: the index rebuild cancel command; a cancel without a running
+    // job is an honest no-op.
+    ipcMain.handle('desktop:knowledge:index-rebuild-cancel', (event) => {
+      requireMainFrame(event)
+      return runtime.cancelKnowledgeIndexRebuild()
+    })
     // Issue 96: batch delete of import records. The confirmation stays in the
     // trusted main process; a delete only removes device-local display rows.
     ipcMain.handle('desktop:knowledge:delete', async (event, ids: string[]): Promise<{ deleted: number }> => {

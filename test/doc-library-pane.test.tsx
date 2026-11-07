@@ -2,7 +2,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
-import type { DesktopStatus, KnowledgeFolderJobView, KnowledgeImportView, RuntimeStatus } from '../src/shared/desktop'
+import type { DesktopStatus, KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, RuntimeStatus } from '../src/shared/desktop'
 
 afterEach(cleanup)
 
@@ -76,10 +76,25 @@ const stubIdeer = (impl: { reject?: string; outcomeOverrides?: Record<string, un
       calls.push({ method: 'retryKnowledgeImport', args: [recordId] })
       return impl.reject ? Promise.reject(new Error(impl.reject))
         : Promise.resolve({ kbId: KB, revisionId: 'f'.repeat(64), revisionNo: 3, manifestHash: 'b'.repeat(64), documentCount: 1, ...impl.outcomeOverrides })
+    }),
+    rebuildKnowledgeIndex: vi.fn((kbId: string, revisionId: string, manifestHash: string) => {
+      calls.push({ method: 'rebuildKnowledgeIndex', args: [kbId, revisionId, manifestHash] })
+      return impl.reject ? Promise.reject(new Error(impl.reject)) : Promise.resolve(indexJob())
+    }),
+    cancelKnowledgeIndexRebuild: vi.fn(() => {
+      calls.push({ method: 'cancelKnowledgeIndexRebuild', args: [] })
+      return Promise.resolve({ canceled: true })
     })
   }
   return { calls }
 }
+
+/** Issue 97: one revision's derived index facts and the one rebuild job. */
+const indexView = (overrides: Partial<KnowledgeIndexView> = {}): KnowledgeIndexView =>
+  ({ state: 'ready', documents: 2, indexedDocuments: 2, servableDocuments: 2, driftedDocuments: 0, builtAt: '2026-11-07T01:00:00Z', error: '', ...overrides })
+
+const indexJob = (overrides: Partial<KnowledgeIndexJobView> = {}): KnowledgeIndexJobView =>
+  ({ state: 'running', kbId: KB, revisionId: 'f'.repeat(64), manifestHash: 'b'.repeat(64), totalDocuments: 2, processedDocuments: 1, indexedDocuments: 1, driftedDocuments: 0, unavailableDocuments: 0, error: '', ...overrides })
 
 describe('doc library pane (issue 96)', () => {
   it('renders import records with honest outcomes, platform association and folder source', async () => {
@@ -201,5 +216,63 @@ describe('doc library pane (issue 96)', () => {
     fireEvent.click(screen.getByRole('button', { name: '重试所选失败记录' }))
     expect(await screen.findByText('该记录没有保存来源文件，无法重试；该记录已不存在，列表已刷新')).toBeTruthy()
     expect(retries).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('doc library pane (issue 97 index facts)', () => {
+  it('annotates each registered record with its honest index state', async () => {
+    stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [
+      importRow({ index: indexView() }),
+      importRow({ id: '9'.repeat(64), index: indexView({ state: 'missing', documents: 0, indexedDocuments: 0, servableDocuments: 0, builtAt: '' }) })
+    ] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const statuses = await screen.findAllByTestId('doc-library-index-status')
+    expect(statuses[0].textContent).toContain('检索索引就绪：2 个文件可全文检索')
+    expect(statuses[1].textContent).toContain('未建检索索引')
+  })
+
+  it('says 已过期 with the drifted count on top of a ready index', async () => {
+    stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [
+      importRow({ index: indexView({ driftedDocuments: 1 }) })
+    ] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const status = await screen.findByTestId('doc-library-index-status')
+    expect(status.textContent).toContain('检索索引就绪：2 个文件可全文检索')
+    expect(status.textContent).toContain('已过期：1 个文件已变更，重建后可恢复检索')
+  })
+
+  it('shows the running rebuild with its progress and an honest cancel', async () => {
+    const { calls } = stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow({ index: indexView() })],
+      knowledgeIndexRebuild: indexJob() })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const status = await screen.findByTestId('doc-library-index-status')
+    expect(status.textContent).toContain('检索索引重建中：已核对 1 / 2 个文件')
+    fireEvent.click(screen.getByRole('button', { name: '取消索引重建' }))
+    await waitFor(() => expect(calls.some((call) => call.method === 'cancelKnowledgeIndexRebuild')).toBe(true))
+  })
+
+  it('starts the index rebuild through the trusted bridge with the frozen identity', async () => {
+    const { calls } = stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow({ index: indexView({ state: 'missing', documents: 0, indexedDocuments: 0, servableDocuments: 0, builtAt: '' }) })] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.click(await screen.findByRole('button', { name: '重建检索索引 ffffffff' }))
+    await waitFor(() => expect(calls.some((call) => call.method === 'rebuildKnowledgeIndex')).toBe(true))
+    expect(calls.find((call) => call.method === 'rebuildKnowledgeIndex')?.args)
+      .toEqual([KB, 'f'.repeat(64), 'b'.repeat(64)])
+  })
+
+  it('explains a failed rebuild with its fixed category and keeps 未建 distinct', async () => {
+    stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [
+      importRow({ index: indexView({ state: 'failed', error: 'KNOWLEDGE_INDEX_FAILED' }) }),
+      importRow({ id: '9'.repeat(64), index: null })
+    ] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const statuses = await screen.findAllByTestId('doc-library-index-status')
+    expect(statuses[0].textContent).toContain('检索索引失败：KNOWLEDGE_INDEX_FAILED')
+    expect(statuses[1].textContent).toContain('检索索引：状态未知')
   })
 })

@@ -4,7 +4,9 @@
 // cancel, batch delete, retry) is one generation-fenced round-trip; the reply
 // refreshes the same snapshot instead of merging local state, and a canceled
 // confirmation dialog is a user decision, not a failure.
-import type { DesktopBridge, RuntimeStatus } from '../../../shared/desktop'
+// Issue 97: the revision index facts ride the same snapshot rows, and the
+// index rebuild (start/cancel) follows the same one-action-at-a-time rules.
+import type { DesktopBridge, KnowledgeImportView, RuntimeStatus } from '../../../shared/desktop'
 
 export interface DocLibraryView {
   runtime: RuntimeStatus | null
@@ -30,6 +32,17 @@ const errorExplanations: Record<string, string> = {
   KNOWLEDGE_IMPORT_RECORD_NOT_FOUND: '该记录已不存在，列表已刷新',
   KNOWLEDGE_IMPORT_RETRY_NOT_FAILED: '只有失败的记录可以重试',
   KNOWLEDGE_IMPORT_FAILED: '导入未完成，请查看失败原因后重试',
+  // Issue 97: the index rebuild's fixed categories.
+  KNOWLEDGE_INDEX_UNAUTHENTICATED: '请先登录平台后再重建索引',
+  KNOWLEDGE_INDEX_WORKSPACE_UNAVAILABLE: '需要先选择并确认工作目录，才能重建索引',
+  KNOWLEDGE_INDEX_KB_INVALID: '平台知识库标识无效，无法重建索引',
+  KNOWLEDGE_INDEX_REVISION_INVALID: '版本标识无效，无法重建索引',
+  KNOWLEDGE_INDEX_MANIFEST_INVALID: '版本清单标识无效，无法重建索引',
+  KNOWLEDGE_INDEX_REVISION_UNKNOWN: '该版本已不在本机记录中，列表已刷新',
+  KNOWLEDGE_INDEX_BUSY: '上一个操作还在进行，请稍候',
+  KNOWLEDGE_INDEX_TIMEOUT: '操作超时，结果以索引状态为准，请刷新核对',
+  KNOWLEDGE_INDEX_IDENTITY_CHANGED: '登录身份已变化，请重新打开文档库',
+  KNOWLEDGE_INDEX_FAILED: '索引重建未完成，请稍后重试',
   RUNTIME_UNAVAILABLE: '本机 Runtime 未运行，请先连接设备'
 }
 
@@ -45,7 +58,7 @@ export const explainDocLibraryError = (message: string): string => {
 export class DocLibraryController {
   private generation = 0
   private view = emptyDocLibraryView()
-  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport'>,
+  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport' | 'rebuildKnowledgeIndex' | 'cancelKnowledgeIndexRebuild'>,
               private readonly publish: (view: DocLibraryView) => void) {}
   snapshot(): DocLibraryView { return this.view }
   private update(change: Partial<DocLibraryView>): void { this.view = { ...this.view, ...change }; this.publish(this.view) }
@@ -87,6 +100,16 @@ export class DocLibraryController {
 
   cancelFolderImport(): Promise<void> {
     return this.run(() => this.api.knowledgeFolderCancel())
+  }
+
+  /** Issue 97: rebuild one registered revision's device BM25 index in the
+   * background; the honest outcome rides the snapshot's index facts. */
+  rebuildIndex(record: KnowledgeImportView): Promise<void> {
+    return this.run(() => this.api.rebuildKnowledgeIndex(record.kbId, record.revisionId, record.manifestHash))
+  }
+
+  cancelIndexRebuild(): Promise<void> {
+    return this.run(() => this.api.cancelKnowledgeIndexRebuild())
   }
 
   deleteRecords(ids: string[]): Promise<void> {

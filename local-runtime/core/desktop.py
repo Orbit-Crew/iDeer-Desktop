@@ -29,6 +29,7 @@ from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
 from .knowledge_import import (KnowledgeFolderImport, KnowledgeImportError, KnowledgeImportRegistry,
                                category_for)
+from .knowledge_index import KnowledgeIndexError, KnowledgeIndexRebuild, KnowledgeIndexStore
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
 from .project_binding import ProjectBindingError, ProjectBindingRegistry
 from .skill_import import SkillImportError, SkillImportRegistry
@@ -88,6 +89,10 @@ def main() -> int:
     # the batch management of the import records (delete/retry).
     knowledge_folder_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_folder_cancel_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 97: the doc library's background index rebuild (start/cancel),
+    # same one-job discipline as the folder import.
+    knowledge_index_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_index_cancel_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_manage_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -172,6 +177,24 @@ def main() -> int:
                         and command['type'] == 'knowledge-folder-import-cancel'
                         and isinstance(command['id'], str) and len(command['id']) <= 64):
                     knowledge_folder_cancel_commands.put_nowait(command)
+                    continue
+                # Issue 97: the index rebuild for one registered revision —
+                # the renderer names the frozen identity only; the workspace
+                # re-verification happens device-side on the job's own thread.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'manifestHash', 'scope'}
+                        and command['type'] == 'knowledge-index-rebuild' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and isinstance(command['manifestHash'], str)
+                        and re.fullmatch(r'[0-9a-f]{64}', command['manifestHash'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_index_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id'}
+                        and command['type'] == 'knowledge-index-rebuild-cancel'
+                        and isinstance(command['id'], str) and len(command['id']) <= 64):
+                    knowledge_index_cancel_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'ids', 'scope'}
                         and command['type'] == 'knowledge-imports-delete' and isinstance(command['id'], str)
@@ -541,6 +564,9 @@ def main() -> int:
         # Issue 112: explicit local imports keep the same discipline — the
         # registry stores device-local display facts, never file content.
         knowledge_imports = KnowledgeImportRegistry(args.config.with_name('knowledge-imports.db'))
+        # Issue 97: the device BM25 index behind the frozen revisions — the
+        # same binding-scoped identity discipline, device-local text only.
+        knowledge_index = KnowledgeIndexStore(args.config.with_name('knowledge-index.db'))
         # Issue 102: table dataset imports keep the same registry discipline —
         # device-local display facts (schema, counts, fingerprints), never row
         # data, and the original file stays on this machine.
@@ -579,12 +605,16 @@ def main() -> int:
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
             session_tiers=session_tiers, inline_scripts=inline_scripts,
-            project_bindings=project_bindings)
+            project_bindings=project_bindings, knowledge_index=knowledge_index)
         # Issue 96: the doc library's background folder import. One job at a
         # time on its own daemon thread; progress rides the status snapshot
         # and the cancel command lands at the next file or batch boundary.
         folder_imports = KnowledgeFolderImport(chat.register_import_entries, knowledge_files,
                                                knowledge_imports)
+        # Issue 97: the index rebuild job — same one-job discipline as the
+        # folder import; it re-verifies every manifest document against the
+        # live bytes and re-indexes what still hashes to its frozen digest.
+        index_rebuilds = KnowledgeIndexRebuild(knowledge_files, knowledge_imports, knowledge_index)
 
         def chat_control():
             while not stop.is_set():
@@ -763,6 +793,46 @@ def main() -> int:
                 # a cancel without a running job is silently a no-op.
                 folder_imports.cancel()
                 emit({'v': 1, 'type': 'knowledge-folder-import-cancel', 'id': folder_cancel['id'],
+                      'result': {'canceled': True}, 'error': ''})
+            try:
+                index_command = knowledge_index_commands.get_nowait()
+            except queue.Empty:
+                index_command = None
+            if index_command:
+                error = ''
+                result = None
+                try:
+                    if index_command['scope'] != workspace.scope():
+                        raise KnowledgeIndexError('KNOWLEDGE_INDEX_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) \
+                        if login.status()['state'] == 'authenticated' else None
+                    if owner is None:
+                        raise KnowledgeIndexError('KNOWLEDGE_INDEX_UNAUTHENTICATED')
+                    # Only a revision this identity registered on this device
+                    # can ever be re-indexed here, the same fail-closed lookup
+                    # the frozen retrieval performs.
+                    if knowledge_imports.find_registration(owner, index_command['revisionId'],
+                                                           index_command['manifestHash']) is None:
+                        raise KnowledgeIndexError('KNOWLEDGE_INDEX_REVISION_UNKNOWN')
+                    result = index_rebuilds.start(index_command['kbId'], index_command['revisionId'],
+                                                  index_command['manifestHash'])
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    message = str(exc)
+                    error = message if message.startswith(('KNOWLEDGE_INDEX_', 'IMPORT_STORAGE_UNAVAILABLE')) \
+                        else 'KNOWLEDGE_INDEX_FAILED'
+                emit({'v': 1, 'type': 'knowledge-index-rebuild', 'id': index_command['id'],
+                      'result': result, 'error': error})
+            try:
+                index_cancel = knowledge_index_cancel_commands.get_nowait()
+            except queue.Empty:
+                index_cancel = None
+            if index_cancel:
+                # The event lands at the worker's next document boundary; a
+                # cancel without a running job is silently a no-op.
+                index_rebuilds.cancel()
+                emit({'v': 1, 'type': 'knowledge-index-rebuild-cancel', 'id': index_cancel['id'],
                       'result': {'canceled': True}, 'error': ''})
             try:
                 manage_command = knowledge_manage_commands.get_nowait()
@@ -1191,6 +1261,20 @@ def main() -> int:
                 knowledge_rows = knowledge_imports.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgeImportError:
                 knowledge_rows = []
+            # Issue 97: each registered row carries its revision's index view
+            # (derived state, honest counts, observed drift) so the doc
+            # library can annotate 未建/重建中/已过期 without guessing.
+            if current_receipt_owner:
+                for row in knowledge_rows:
+                    if row.get('status') == 'registered' and row.get('revisionId'):
+                        try:
+                            row['index'] = knowledge_index.revision_view(current_receipt_owner,
+                                                                         row['revisionId'], row['manifestHash'])
+                        except KnowledgeIndexError:
+                            row['index'] = None
+                            break
+                    else:
+                        row['index'] = None
             try:
                 knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgePublishError:
@@ -1276,6 +1360,10 @@ def main() -> int:
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],
                       "knowledgeImportStorageError": knowledge_imports.error,
+                      # Issue 97: the rebuild job's own view and the index
+                      # store's storage error ride beside the import facts.
+                      "knowledgeIndexRebuild": index_rebuilds.status(),
+                      "knowledgeIndexStorageError": knowledge_index.error,
                       "knowledgeFolderImport": folder_imports.status(),
                       "datasets": dataset_rows[:20],
                       "datasetsStorageError": datasets_registry.error,

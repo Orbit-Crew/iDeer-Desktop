@@ -100,9 +100,9 @@ async function main() {
     // the action and the project association only; file picking and both
     // confirmations stay in the trusted main process.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'browser', 'cad', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'deleteKnowledgeImports', 'files', 'getStatus',
+      'beginLogin', 'browser', 'cad', 'cancelKnowledgeIndexRebuild', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'deleteKnowledgeImports', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
+      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'receipts', 'rebuildKnowledgeIndex', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')
