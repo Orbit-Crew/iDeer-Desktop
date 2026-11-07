@@ -85,13 +85,13 @@ the runtime test extras.
 
 - `npm run typecheck` — clean (both tsconfig.node.json and tsconfig.web.json).
 - Runtime pytest (`PYTHONPATH=local-runtime`, pytest 8.3.5): the affected
-  suites first (`test_knowledge_index.py` 22, `test_knowledge_search.py`,
+  suites first (`test_knowledge_index.py` 25 tests, `test_knowledge_search.py`,
   `test_knowledge_import.py`, `test_file_service.py`, `test_desktop_protocol.py`,
-  `test_desktop_files.py` — 88 passed), then the full `local-runtime/tests`
-  suite green.
+  `test_desktop_files.py` — 88+ passed), then the full `local-runtime/tests`
+  suite after the review fixes: **1023 passed, 10 skipped**.
 - vitest: `test/security.test.ts` (8, channel pins updated in sorted order)
-  and `test/doc-library-pane.test.tsx` (12) green; full `npm test` re-run
-  after `runtime:prepare` on the fresh worktree — see the honest note below.
+  and `test/doc-library-pane.test.tsx` (12) green; full `npm test` after the
+  review fixes: **651 passed (91 files)**.
 - PR gate: `npm run verify:provenance` (linz provenance f88141b) exit 0;
   `python scripts/verify-runtime-source.py` exit 0 (file_service.py's further
   divergence is covered by its existing `modified` migration record);
