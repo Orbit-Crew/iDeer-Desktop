@@ -388,8 +388,20 @@ export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[
 
 /** Issue 72: one platform thread as the sidebar shows it — identity facts and
  * the Server's own recency timestamp; no local roster is ever built. Issue 91:
- * `projectId` mirrors the Server's own membership stamp (empty = 散会话). */
-export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string; projectId: string }
+ * `projectId` mirrors the Server's own membership stamp (empty = 散会话).
+ * Issue 113: `branchedFrom` is the branch edge this device observed when the
+ * platform's branch endpoint answered with its own parent facts — the Runtime
+ * records it scope-bound and survives a restart. Absent means unknown: the
+ * session map renders the row unconnected, never guessing a parent from
+ * titles, ids or recency. */
+export interface ThreadRowView {
+  id: string
+  title: string
+  status: string
+  updatedAt: string
+  projectId: string
+  branchedFrom?: { threadId: string; messageId: string }
+}
 /** Issue 72: the account's own Thread capabilities as the Server states them. */
 export interface ThreadPermissionsView { canRename: boolean; canDelete: boolean }
 /** Issue 72: list/search/rename/delete/move share one wire shape. Every reply

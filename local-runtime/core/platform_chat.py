@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
+from .branch_edges import BranchEdgeLedger
 from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
@@ -589,6 +590,11 @@ class DesktopChat:
         self.scheduled_tasks = ScheduledTasksClient(
             self._session, self._json, ScheduleTaskLedger(config.with_name('schedules.db')),
             lambda: profile_binding(load_settings(config)))
+        # Issue 113: the device-observed branch edges behind the Synapse
+        # session map. The Server's own parent facts are recorded at the one
+        # moment a branch succeeds; rows are keyed by the chat scope and a
+        # failed record never fails the branch or the list projection.
+        self.branch_edges = BranchEdgeLedger(config.with_name('branch_edges.db'))
 
     def _mark_platform(self, ok: bool, detail: str = '') -> None:
         """Record one Server contact outcome; a failure pauses new Turns."""
@@ -1011,6 +1017,19 @@ class DesktopChat:
         if not isinstance(created, dict) or not isinstance(created.get('thread_id'), str):
             raise ChatError('CHAT_PROTOCOL_ERROR')
         new_id = self._id(created['thread_id'])
+        # Issue 113: the Server's own parent facts are the only edge source
+        # for the session map. The record is best-effort — the branch is
+        # already platform truth — and a reply without parent facts records
+        # nothing; the map renders both cases as unconnected sessions. The
+        # parent half is always the Server's; the turn half prefers the
+        # Server's echo and falls back to the command's own message id —
+        # a device fact — when the echo is missing or malformed.
+        parent_id = created.get('parent_thread_id')
+        if isinstance(parent_id, str) and self._is_id(parent_id):
+            branched_from = created.get('branched_from_message_id')
+            if not isinstance(branched_from, str) or not self._is_id(branched_from):
+                branched_from = message_id
+            self.branch_edges.record(session.scope, new_id, parent_id, branched_from)
         binding = inherited_binding(self._thread_bindings.get(source_id))
         if binding is not None:
             self._thread_bindings[new_id] = binding
@@ -2891,6 +2910,12 @@ class DesktopChat:
         rows = self._json(session, '/api/threads/search', {'limit': limit})
         if not isinstance(rows, list):
             raise ChatError('CHAT_PROTOCOL_ERROR')
+        # Issue 113: the map's edges come only from the device-observed
+        # ledger for this scope. A row without a recorded parent stays
+        # unconnected, and a parent outside this page renders without its
+        # edge — the projection never guesses a relation from titles or
+        # recency, and a ledger read failure is an honest empty set.
+        edges = self.branch_edges.edges_for_scope(session.scope)
         threads = []
         for row in rows[:200]:
             if not isinstance(row, dict) or not isinstance(row.get('thread_id'), str) or not row['thread_id']:
@@ -2907,10 +2932,14 @@ class DesktopChat:
                 project_id = ''
             if project_id and not self._is_id(project_id):
                 raise ChatError('CHAT_PROTOCOL_ERROR')
-            threads.append(dict(id=row['thread_id'], title=title,
-                                status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
-                                updatedAt=_bounded_text(row.get('updated_at', ''), 64),
-                                projectId=project_id))
+            entry = dict(id=row['thread_id'], title=title,
+                         status=_bounded_text(row.get('status', 'idle'), 32) or 'idle',
+                         updatedAt=_bounded_text(row.get('updated_at', ''), 64),
+                         projectId=project_id)
+            edge = edges.get(row['thread_id'])
+            if edge:
+                entry['branchedFrom'] = dict(threadId=edge['parent_id'], messageId=edge['message_id'])
+            threads.append(entry)
         threads.sort(key=lambda row: row['updatedAt'], reverse=True)
         return threads
 

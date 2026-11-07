@@ -1586,8 +1586,22 @@ export class RuntimeProcess {
               // session. An unknown shape is a protocol failure, never a
               // guessed grouping.
               if (typeof row.projectId !== 'string' || (row.projectId && !idPattern.test(row.projectId))) throw new Error('Invalid thread row')
+              // Issue 113: the branch edge this device observed when the
+              // branch succeeded — the Runtime's own scope-bound record of
+              // the Server's parent facts. Absent means unknown and passes
+              // through as such; a present edge must be well-formed or the
+              // reply is a protocol failure, never a guessed relation.
+              let branchedFrom: ThreadRowView['branchedFrom']
+              if (row.branchedFrom != null) {
+                const edge = row.branchedFrom as ThreadRowView['branchedFrom']
+                if (!edge || typeof edge !== 'object' || typeof edge.threadId !== 'string' ||
+                    !idPattern.test(edge.threadId) || typeof edge.messageId !== 'string' ||
+                    !idPattern.test(edge.messageId)) throw new Error('Invalid thread row')
+                branchedFrom = { threadId: edge.threadId, messageId: edge.messageId }
+              }
               threads.push({ id: row.id, title: row.title.slice(0, 256), status: row.status.slice(0, 32),
-                updatedAt: row.updatedAt.slice(0, 64), projectId: row.projectId })
+                updatedAt: row.updatedAt.slice(0, 64), projectId: row.projectId,
+                ...(branchedFrom ? { branchedFrom } : {}) })
             }
             const permissions: ThreadPermissionsView = { canRename: result.permissions.canRename, canDelete: result.permissions.canDelete }
             pending.resolve(pending.action === 'rename' ? { threads, permissions, renamed: true }
