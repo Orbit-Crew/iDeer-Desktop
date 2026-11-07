@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import secrets
 import socket
 import string
@@ -24,6 +25,7 @@ from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
 from .policy import PolicyDecision
+from .project_binding import MAX_DEVICE_NAME, ProjectBindingError
 from .receipt_ledger import profile_binding
 from .scheduled_tasks import SchedulesError, ScheduledTasksClient, ScheduleTaskLedger, map_platform_error
 from .secrets import SecretStore, SecretStoreError
@@ -512,7 +514,7 @@ class DesktopChat:
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
-                 inline_scripts=None):
+                 inline_scripts=None, project_bindings=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -532,6 +534,11 @@ class DesktopChat:
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
+        # Issue 92: the device-local project folder binding registry. Rows are
+        # keyed by the whole profile binding (project + device), so a binding
+        # never migrates across machines and binding never touches local files
+        # or directory grants.
+        self.project_bindings = project_bindings
         # Issue 74: the device's session-tier registry; every loaded session
         # starts at the lowest tier and a tier choice never outlives the
         # thread load that made it.
@@ -3063,6 +3070,14 @@ class DesktopChat:
         local state to a project here — deleting or archiving a project leaves
         this device's files and directory grants untouched, and the Server
         clears Thread membership itself.
+
+        Issue 92 adds the device-local folder binding actions to the same
+        family: `bind-folder` verifies the project on the Server's own list
+        and records the user-confirmed folder in the per-device registry
+        (keyed by the whole profile binding, so another device reads an empty
+        view), `unbind-folder` is idempotent local cleanup. Neither touches
+        local files or directory grants, and every reply also carries the
+        device's own binding rows.
         """
         with self._lock:
             session = self._session()
@@ -3084,6 +3099,15 @@ class DesktopChat:
                         raise ChatError('CHAT_COMMAND_INVALID')
                     expected = {'type', 'id', 'action', 'scope', 'projectId', 'name'}
                 elif action in {'archive', 'restore', 'delete'}:
+                    self._id(command.get('projectId'))
+                    expected = {'type', 'id', 'action', 'scope', 'projectId'}
+                elif action == 'bind-folder':
+                    self._id(command.get('projectId'))
+                    path = command.get('path')
+                    if not isinstance(path, str) or not 1 <= len(path) <= 1024 or not os.path.isabs(path):
+                        raise ChatError('CHAT_COMMAND_INVALID')
+                    expected = {'type', 'id', 'action', 'scope', 'projectId', 'path'}
+                elif action == 'unbind-folder':
                     self._id(command.get('projectId'))
                     expected = {'type', 'id', 'action', 'scope', 'projectId'}
                 else:
@@ -3108,7 +3132,30 @@ class DesktopChat:
                 if not permissions['canDelete']:
                     raise ChatError('CHAT_FORBIDDEN')
                 self._empty(session, f"/api/projects/{self._id(command['projectId'])}", None, method='DELETE')
-            result = dict(projects=self._project_rows(session), permissions=permissions)
+            elif action == 'bind-folder':
+                # The registry is keyed by the platform projectId, so a bind
+                # must reference a project that still exists on the Server's
+                # own list; the folder itself was confirmed in the trusted
+                # main process and is re-validated here before it is stored.
+                projects = self._project_rows(session)
+                if not any(row['id'] == command['projectId'] for row in projects):
+                    raise ChatError('CHAT_NOT_FOUND')
+                self._bind_project_folder(command['projectId'], command['path'])
+            if action == 'bind-folder':
+                # The bind reply reuses the one listing that verified the
+                # project; binding itself performs no platform write.
+                result = dict(projects=projects, permissions=permissions)
+            else:
+                result = dict(projects=self._project_rows(session), permissions=permissions)
+            if action == 'unbind-folder':
+                self._unbind_project_folder(command['projectId'])
+            # Every reply carries this device's own rows; on another device
+            # the view is empty and the surface shows 未绑定.
+            result['bindings'] = self._project_binding_rows()
+            if action == 'bind-folder':
+                result['bound'] = True
+            elif action == 'unbind-folder':
+                result['unbound'] = True
             if action == 'create':
                 result['created'] = True
             elif action == 'rename':
@@ -3120,6 +3167,49 @@ class DesktopChat:
             elif action == 'delete':
                 result['deleted'] = True
             return result
+
+    def _bind_project_folder(self, project_id: str, path: str) -> None:
+        """Store one device-local binding row for this profile (#92).
+
+        The folder must exist as a directory on this machine; the stored path
+        is normalized so the terminal start-dir chain and the workspace offer
+        see exactly the folder the dialog confirmed. A registry failure is a
+        local storage outage, surfaced as its own fixed category.
+        """
+        if self.project_bindings is None:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE')
+        resolved = os.path.abspath(path)
+        if not os.path.isdir(resolved):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        # The login surface allows a longer device name; the binding row is
+        # pinned to the runtime's 128-code-point grammar, so the display
+        # attribution truncates at the seam that stores it.
+        device_name = load_settings(self.config).device_name[:MAX_DEVICE_NAME]
+        try:
+            self.project_bindings.set(profile_binding(load_settings(self.config)),
+                                      project_id, resolved, device_name)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
+
+    def _unbind_project_folder(self, project_id: str) -> None:
+        if self.project_bindings is None:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE')
+        try:
+            self.project_bindings.clear(profile_binding(load_settings(self.config)), project_id)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
+
+    def _project_binding_rows(self) -> list:
+        """This device's own binding rows; an unbound profile sees none."""
+        if self.project_bindings is None:
+            return []
+        owner = profile_binding(load_settings(self.config))
+        if owner is None:
+            return []
+        try:
+            return self.project_bindings.view(owner)
+        except ProjectBindingError:
+            raise ChatError('CHAT_BINDING_STORE_UNAVAILABLE') from None
 
     # --- Scheduled-task management (issue 85) -------------------------------
 

@@ -233,3 +233,73 @@ describe('session sidebar project grouping (#91)', () => {
     await waitFor(() => expect(useSessionStore.getState().projectSelection).toEqual({ kind: 'all' }))
   }, 15000)
 })
+
+describe('project folder bindings (#92)', () => {
+  const openManage = async (): Promise<void> => {
+    render(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /项目管理/ }))
+  }
+
+  it('shows the bound path with device attribution next to the project', async () => {
+    stubIdeer(() => Promise.resolve(threadView()), {
+      ...projectDirectory(),
+      bindings: [{ projectId: 'proj-1', path: 'C:\\work\\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
+    })
+    await openManage()
+    expect(await screen.findByText(/已绑定：C:\\work\\proj/)).toBeTruthy()
+    expect(screen.getByText(/本设备：本机设备/)).toBeTruthy()
+    // A bound row is exactly this device's own record; the cross-device note
+    // only explains the unbound state.
+    expect(screen.queryByText('未绑定（原设备绑定不迁移）')).toBeNull()
+  })
+
+  it('shows the cross-device unbound note when this device has no binding row', async () => {
+    stubIdeer(() => Promise.resolve(threadView()), projectDirectory())
+    await openManage()
+    expect(await screen.findByText('未绑定（原设备绑定不迁移）')).toBeTruthy()
+    expect(screen.queryByText(/已绑定：/)).toBeNull()
+  })
+
+  it('binds through the main-side folder dialog by naming the project only', async () => {
+    const { projectCalls } = stubIdeer(() => Promise.resolve(threadView()), projectDirectory())
+    await openManage()
+    fireEvent.click(await screen.findByRole('button', { name: '绑定项目文件夹 工程项目' }))
+    await waitFor(() => expect(projectCalls.some((command) => (command as { action: string }).action === 'bind-folder')).toBe(true))
+    expect(projectCalls.find((command) => (command as { action: string }).action === 'bind-folder'))
+      .toEqual({ action: 'bind-folder', projectId: 'proj-1' })
+  })
+
+  it('unbinds through the same family round', async () => {
+    const { projectCalls } = stubIdeer(() => Promise.resolve(threadView()), {
+      ...projectDirectory(),
+      bindings: [{ projectId: 'proj-1', path: 'C:\\work\\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
+    })
+    await openManage()
+    fireEvent.click(await screen.findByRole('button', { name: '解除项目文件夹绑定 工程项目' }))
+    await waitFor(() => expect(projectCalls.some((command) => (command as { action: string }).action === 'unbind-folder')).toBe(true))
+    expect(projectCalls.find((command) => (command as { action: string }).action === 'unbind-folder'))
+      .toEqual({ action: 'unbind-folder', projectId: 'proj-1' })
+  })
+
+  it('explains the local binding store failure instead of a raw error', async () => {
+    const calls: unknown[] = []
+    const bound = {
+      ...projectDirectory(),
+      bindings: [{ projectId: 'proj-1', path: 'C:\\work\\proj', deviceName: '本机设备', createdAt: '2026-11-01T00:00:00+00:00' }]
+    }
+    ;(window as { ideer?: unknown }).ideer = {
+      threads: vi.fn(() => Promise.resolve(threadView())),
+      projects: vi.fn((command: unknown) => {
+        calls.push(command)
+        return (command as { action: string }).action === 'unbind-folder'
+          ? Promise.reject(new Error('CHAT_BINDING_STORE_UNAVAILABLE'))
+          : Promise.resolve(bound)
+      }),
+      quit: vi.fn(() => Promise.resolve())
+    }
+    await openManage()
+    fireEvent.click(await screen.findByRole('button', { name: '解除项目文件夹绑定 工程项目' }))
+    // The antd Alert renders its message node more than once in jsdom.
+    await waitFor(() => expect(screen.getAllByText('本机绑定记录存储不可用，请重启应用后重试').length).toBeGreaterThan(0))
+  })
+})

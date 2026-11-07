@@ -108,6 +108,10 @@ describe('bootstrap capability boundary', () => {
     // action rides the Server's own Project API behind the chat-session
     // fence, a delete is confirmed in the trusted main process first, and no
     // operation on the channel touches local files or directory grants.
+    // Issue 92 adds the device-local bind-folder/unbind-folder actions to the
+    // same desktop:projects channel — no new invoke or push channel. The
+    // renderer names the project only; the folder is chosen and confirmed in
+    // the trusted main process, and the binding rows stay device-local.
     // Issue 85 adds desktop:schedules for the platform scheduled-tasks
     // management surface: the renderer names the action and task fields only;
     // the platform owns timing, previews and execution records through the

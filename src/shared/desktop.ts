@@ -428,6 +428,11 @@ export interface ThreadView {
 /** Issue 91: one platform project as the management surface shows it —
  * identity facts only; instructions and presentation stay platform-side. */
 export interface ProjectView { id: string; name: string; status: 'active' | 'archived'; createdAt: string; updatedAt: string }
+/** Issue 92: one project folder binding — a device-local record keyed by the
+ * platform projectId and the whole profile binding, so it never migrates:
+ * another device reads an empty view and shows 未绑定（原设备绑定不迁移）.
+ * The path is the user-confirmed working folder on this machine only. */
+export interface ProjectBindingView { projectId: string; path: string; deviceName: string; createdAt: string }
 /** Issue 91: the account's own Project capabilities as the Server states them.
  * Create, rename and the archive/restore flip share `projects:write`; only
  * deletion carries its own `projects:delete`. */
@@ -438,7 +443,10 @@ export interface ProjectPermissionsView { canWrite: boolean; canDelete: boolean 
  * same round and no second project roster is ever kept on this device. The
  * Server-side permission and owner checks stay authoritative — the renderer
  * only grays out early. Deleting or archiving never touches local files or
- * directory grants; the Server clears Thread membership itself. */
+ * directory grants; the Server clears Thread membership itself. Issue 92:
+ * `bind-folder`/`unbind-folder` join the family; the folder path is resolved
+ * and confirmed in the trusted main process (the renderer names the project
+ * only), and every reply also carries this device's own binding rows. */
 export type ProjectCommand =
   | { action: 'list' }
   | { action: 'create'; name: string }
@@ -446,14 +454,25 @@ export type ProjectCommand =
   | { action: 'archive'; projectId: string }
   | { action: 'restore'; projectId: string }
   | { action: 'delete'; projectId: string }
+  | { action: 'bind-folder'; projectId: string }
+  | { action: 'unbind-folder'; projectId: string }
+/**
+ * Main-internal: the bind-folder wire command with the folder path that was
+ * chosen and confirmed in the trusted main process. Never accepted from the
+ * renderer — the bridge type above carries the project id only.
+ */
+export type ProjectBindCommand = { action: 'bind-folder'; projectId: string; path: string }
 export interface ProjectOperationView {
   projects: ProjectView[]
   permissions: ProjectPermissionsView
+  bindings?: ProjectBindingView[]
   created?: boolean
   renamed?: boolean
   archived?: boolean
   restored?: boolean
   deleted?: boolean
+  bound?: boolean
+  unbound?: boolean
 }
 
 /** Issue 102: one parsed sheet's recorded facts — schema summary, counts and
@@ -781,6 +800,10 @@ export interface RuntimeStatus {
   skillScriptStorageError?: string
   connectors?: ConnectorView[]
   connectorStorageError?: string
+  /** Issue 92: this device's own project folder bindings, refreshed with the
+   * same 0.5 s snapshot the surface reads; empty on any other device. */
+  projectBindings?: ProjectBindingView[]
+  projectBindingStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -833,9 +856,12 @@ export interface TerminalDataEvent { sessionId: string; data: string }
 export interface TerminalExitEvent { sessionId: string; exitCode: number }
 export interface TerminalBridge {
   /** Spawns one desktop-local PTY; the start dir is resolved in the trusted
-   * main process (project-bound folder, user home as fallback) — the renderer
-   * supplies no path, no command and receives no path back. */
-  spawn(): Promise<TerminalSpawnView>
+   * main process (the selected project's bound folder first, then the
+   * workspace, user home as fallback) — the renderer supplies no path, no
+   * command and receives no path back. Issue 92: the optional argument is an
+   * id selector for the selected project only; main resolves the path from
+   * the Runtime's own binding snapshot, never from the renderer. */
+  spawn(projectId?: string): Promise<TerminalSpawnView>
   write(sessionId: string, data: string): Promise<void>
   resize(sessionId: string, cols: number, rows: number): Promise<void>
   kill(sessionId: string): Promise<void>
