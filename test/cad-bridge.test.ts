@@ -31,9 +31,11 @@ afterAll(() => rmSync(workspace, { recursive: true, force: true }))
 function service(overrides: Partial<ConstructorParameters<typeof CadPaneService>[0]> = {}): CadPaneService {
   return new CadPaneService({
     locate: async (path) => {
-      // Mirror the Runtime's containment: only workspace-logical shapes.
+      // Mirror the Runtime's containment: only workspace-logical shapes, and
+      // the physical path is native to the OS the Runtime runs on — the
+      // logical separators stay for `join` to normalize per platform.
       if (!path.startsWith('/') || path.includes('..')) throw new Error('FILES_PATH_INVALID')
-      return { physical: join(workspace, path.replaceAll('/', '\\').slice(1)) }
+      return { physical: join(workspace, path.slice(1)) }
     },
     loadOcct: () => Promise.reject(new Error('未找到 occt-import-js（OpenCASCADE WASM 转换引擎未随包）')),
     ...overrides
