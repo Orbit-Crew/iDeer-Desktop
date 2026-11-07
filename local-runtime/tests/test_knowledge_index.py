@@ -219,6 +219,81 @@ def test_indexed_search_reports_drift_and_records_it(tmp_path) -> None:
     assert store.revision_view(BINDING, REVISION, MANIFEST)['driftedDocuments'] == 1
 
 
+def test_subset_search_never_erases_the_drift_annotation(tmp_path) -> None:
+    """Drift is tracked per document: a later subset search that does not
+    touch the drifted document must not reset 已过期 to zero, and a search
+    that verifies the file again (it was restored) clears its own mark."""
+    (tmp_path / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (tmp_path / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    store.index_revision(BINDING, REVISION, MANIFEST, _entries())
+    files = _store_for(tmp_path, tmp_path)
+    (tmp_path / 'notes.txt').write_text('release notes CHANGED\n', encoding='utf-8')
+
+    full = search_frozen_revision_indexed(_payload(''), files=files, logical_root='/workspace',
+                                          index=store, binding=BINDING)
+    assert full['index']['driftedDocuments'] == 1
+    # A subset that only asks about the intact document leaves the annotation.
+    subset = search_frozen_revision_indexed(
+        _payload('', documents=[_document('guide.txt', GUIDE)]), files=files,
+        logical_root='/workspace', index=store, binding=BINDING)
+    assert subset['missing'] == [] and subset['documentsMatched'] == 1
+    assert subset['index']['driftedDocuments'] == 1
+    # The file is restored: a search that verifies it clears its own mark.
+    (tmp_path / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+    restored = search_frozen_revision_indexed(_payload(''), files=files, logical_root='/workspace',
+                                              index=store, binding=BINDING)
+    assert restored['missing'] == [] and restored['index']['driftedDocuments'] == 0
+
+
+def test_verified_unparsable_document_is_not_searchable(tmp_path) -> None:
+    """A document whose bytes verify but that the index cannot honestly serve
+    (skipped legacy format) is structured missing — never a silent gap, and
+    never counted as matched."""
+    (tmp_path / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    legacy_bytes = b'legacy binary\x00'
+    legacy = dict(_entry('legacy.doc', '', status='skipped'),
+                  sha256=hashlib.sha256(legacy_bytes).hexdigest())
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    store.index_revision(BINDING, REVISION, MANIFEST, [_entry('guide.txt', GUIDE), legacy])
+    (tmp_path / 'legacy.doc').write_bytes(legacy_bytes)
+    payload = _payload('', documents=[_document('guide.txt', GUIDE),
+                                      {'document_id': str(uuid.uuid5(uuid.NAMESPACE_URL, 'legacy')),
+                                       'filename': 'legacy.doc', 'content_hash': legacy['sha256']}])
+    files = _store_for(tmp_path, tmp_path)
+
+    result = search_frozen_revision_indexed(payload, files=files, logical_root='/workspace',
+                                            index=store, binding=BINDING)
+    assert {'document_id': payload['documents'][1]['document_id'], 'reason': 'not_searchable'} in result['missing']
+    assert result['documentsMatched'] == 1
+    assert all(chunk['document_keyword'] != 'legacy.doc' for chunk in result['chunks'])
+
+
+def test_same_name_documents_are_served_separately(tmp_path) -> None:
+    """Two same-name documents with different digests (a folder import only
+    dedups by content) must never merge in the index: both are ranked and
+    served with their own lines and pages."""
+    (tmp_path / 'first').mkdir()
+    (tmp_path / 'second').mkdir()
+    first, second = 'alpha report FIRST\n', 'alpha report SECOND\n'
+    (tmp_path / 'first' / 'report.txt').write_bytes(first.encode('utf-8'))
+    (tmp_path / 'second' / 'report.txt').write_bytes(second.encode('utf-8'))
+    entries = [_entry('report.txt', first), _entry('report.txt', second)]
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    store.index_revision(BINDING, REVISION, MANIFEST, entries)
+    files = _store_for(tmp_path, tmp_path)
+
+    result = search_frozen_revision_indexed(
+        _payload('', query='alpha',
+                 documents=[_document('report.txt', first), _document('report.txt', second)]),
+        files=files, logical_root='/workspace', index=store, binding=BINDING)
+    served = {(chunk['document_keyword'], chunk['position']['logical_path'], chunk['content'])
+              for chunk in result['chunks']}
+    assert ('report.txt', '/workspace/first/report.txt', 'alpha report FIRST') in served
+    assert ('report.txt', '/workspace/second/report.txt', 'alpha report SECOND') in served
+    assert result['documentsMatched'] == 2
+
+
 def test_untokenized_query_answers_no_chunks_from_the_index(tmp_path) -> None:
     """A punctuation-only query has no indexable terms: the index honestly
     answers nothing; the service seam routes such queries to the literal

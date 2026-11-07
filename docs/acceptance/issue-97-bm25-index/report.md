@@ -101,10 +101,19 @@ the runtime test extras.
 
 - The first full `npm test` run on the fresh worktree failed 29 live-bridge
   tests across 22 files: the worktree had no `.runtime` yet (every failing
-  test spawns the bundled Runtime). After `npm run runtime:prepare` the suite
-  was re-run in full; the result is recorded in the final commit message and
-  the PR description. No failure was attributed to this diff without being
-  re-verified.
+  test spawns the bundled Runtime). After `npm run runtime:prepare` the full
+  suite was re-run — the only remaining failures were environment/flake items
+  unrelated to this diff (the NSIS guard test needs the `.cache` electron-
+  builder toolchain a fresh worktree lacks; `receipt-history` login-wire
+  timing under parallel load), each re-verified passing solo or after the
+  cache junction. The full Python suite (1020 tests) and `npm test` were then
+  green; any failure attributed to this diff was first reproduced and fixed.
+- Drift annotation is discovered when a search or rebuild observes it — there
+  is no always-on digest prober (the literal engine always discovered drift
+  per search too). The per-document marks mean a subset search can neither
+  erase another document's 已过期 nor keep a restored file's stale mark: each
+  search updates exactly the documents it verified or saw drift; the doc
+  library's 重建索引 button re-verifies every document on demand.
 - The rebuild's derived state after a canceled rebuild is `partial`, and a
   partial index degrades retrieval to the literal scan with
   `fallbackReason: 'index-partial'` — canceling a rebuild on a previously
@@ -114,3 +123,8 @@ the runtime test extras.
 - `_text` doubles the transient memory of a batch's manifest entries (bounded
   by the parse caps: 200 documents × 400k chars per batch) and is released per
   folder batch and after each explicit import.
+- A review pass (two axes, see `dev-log/review.md`) found three real defects
+  before push — a subset search could erase the drift annotation, same-name
+  documents merged in the index search, and verified-but-unparsable documents
+  vanished instead of reporting `not_searchable` — all fixed and pinned by
+  new tests before this report was finalized.

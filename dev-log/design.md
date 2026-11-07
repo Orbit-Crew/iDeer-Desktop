@@ -35,17 +35,29 @@ documents from the index, which was built from those same hash-verified frozen b
 time. A drifted or gone document is structured `missing` exactly as before — the index is never a
 license to answer from stale text.
 
-## D4 — Rebuild re-verifies; it never fakes drifted content
+## D4 — Drift is a per-document mark, never an overwriting count
+
+The documents table carries a `drift` flag; `revision_view` derives
+`driftedDocuments` from `SUM(drift)`. A search marks the documents it actually
+observed — drifted marks are added, and a document the search verified (its
+bytes matched the frozen digest at that moment) has its mark cleared. A later
+subset search can therefore never erase the 已过期 annotation for documents it
+did not look at, and a restored file's mark clears exactly when a search
+re-verifies it. The rebuild rewrites every row with its recomputed truth.
+(This replaced an earlier whole-revision overwrite that a subset search could
+reset to zero — review finding, fixed before push.)
+
+## D5 — Rebuild re-verifies; it never fakes drifted content
 
 `KnowledgeIndexRebuild` (the `KnowledgeFolderImport` job idiom: one daemon thread, one slot,
 `threading.Event` cancel checked per document, honest terminal states) re-reads every manifest
 document, re-hashes it against the frozen digest, and re-indexes only what still verifies. A
-drifted document keeps a non-servable row with `note='content_drift'` and increments
-`drifted_documents`; the frozen content it once had is gone and is NOT re-taken from current
+drifted document keeps a non-servable row with `note='content_drift'` and its drift mark; the
+frozen content it once had is gone and is NOT re-taken from current
 bytes. Cancel keeps the rows written so far (each is self-consistent frozen content) and the
 derived state shows `partial`.
 
-## D5 — Import-time indexing via the transient `_text` field
+## D6 — Import-time indexing via the transient `_text` field
 
 `build_manifest`/`build_folder_entries` already parse every document; `_entry_with_text` keeps the
 extracted text under `_text` on the manifest entry. `_register_frozen_entries` indexes the revision
@@ -55,7 +67,7 @@ registry rows (`DOCUMENT_FIELDS`) never see it. The folder job releases each bat
 registers, bounding memory to one batch. An index failure never fails the registration (it is
 recorded via `mark_build_error` and the store's storage error; retrieval falls back visibly).
 
-## D6 — Tokenizer and BM25, stdlib-only and deterministic
+## D7 — Tokenizer and BM25, stdlib-only and deterministic
 
 ASCII `\w` runs stay whole casefolded words; contiguous non-ASCII word characters become
 overlapping character bigrams (lone characters stay unigrams) — the recall/precision compromise
@@ -66,7 +78,17 @@ lines of the ranked documents, each carrying the line number and the page resolv
 frozen parse's layout anchors (`line_page_marks`). A query that tokenizes to nothing routes to the
 literal scan (`fallbackReason: 'index-untokenized'`) so punctuation queries keep their capability.
 
-## D7 — Wire: result annotations, not shape changes
+## D8 — Index keying and the verified-but-unservable classification
+
+Every per-document structure is keyed by the full `(filename, content_hash)` identity: a folder
+import dedups by content digest only, so one revision can hold two same-name documents, and their
+term rows, lengths, and BM25 scores must never merge (review finding, pinned by
+`test_same_name_documents_are_served_separately`). A verified document the index cannot honestly
+serve text for (it parsed as skipped or failed at import) is structured missing `not_searchable`
+in the indexed path — the same answer the literal engine gives, never a silent gap and never
+counted as matched (`test_verified_unparsable_document_is_not_searchable`).
+
+## D9 — Wire: result annotations, not shape changes
 
 `local.knowledge.search`'s result gains `engine` ('bm25' | 'literal'), `index` (the revision's
 derived view), and — on the degraded path — `fallbackReason`. The receipt is content-hash based,
@@ -74,7 +96,7 @@ so additive keys are safe. No new capability name, no compat.ts change; the two 
 commands (`knowledge-index-rebuild`, `-cancel`) follow the exact-shape gate + single-slot queue +
 scope fence idiom and required the sorted security-test channel pins plus the smoke bridge keys.
 
-## D8 — Renderer: annotation on the doc library records
+## D10 — Renderer: annotation on the doc library records
 
 The per-row `index` view rides the snapshot's `knowledgeImports` rows; the one rebuild job rides as
 `knowledgeIndexRebuild` (the folder-job pattern). The pane derives 重建中 (running job matching the

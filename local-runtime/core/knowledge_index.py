@@ -199,7 +199,7 @@ class KnowledgeIndexStore:
             with self._db() as db:
                 db.execute("""CREATE TABLE IF NOT EXISTS knowledge_index_revisions (
                     binding TEXT NOT NULL, revision_id TEXT NOT NULL, manifest_hash TEXT NOT NULL,
-                    document_count INTEGER NOT NULL DEFAULT 0, drifted_documents INTEGER NOT NULL DEFAULT 0,
+                    document_count INTEGER NOT NULL DEFAULT 0,
                     built_at TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '',
                     PRIMARY KEY (binding, revision_id, manifest_hash))""")
                 db.execute("""CREATE TABLE IF NOT EXISTS knowledge_index_documents (
@@ -207,6 +207,7 @@ class KnowledgeIndexStore:
                     filename TEXT NOT NULL, content_hash TEXT NOT NULL,
                     servable INTEGER NOT NULL DEFAULT 0, char_count INTEGER NOT NULL DEFAULT 0,
                     note TEXT NOT NULL DEFAULT '', text TEXT NOT NULL DEFAULT '', layout TEXT NOT NULL DEFAULT '[]',
+                    drift INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (binding, revision_id, manifest_hash, filename, content_hash))""")
                 db.execute("""CREATE TABLE IF NOT EXISTS knowledge_index_terms (
                     binding TEXT NOT NULL, revision_id TEXT NOT NULL, manifest_hash TEXT NOT NULL,
@@ -297,14 +298,14 @@ class KnowledgeIndexStore:
             db.execute("DELETE FROM knowledge_index_documents WHERE binding=? AND revision_id=? AND manifest_hash=?",
                        (encoded, revision, digest))
             db.execute("""INSERT INTO knowledge_index_revisions
-                (binding, revision_id, manifest_hash, document_count, drifted_documents, built_at, error)
-                VALUES (?,?,?,?,0,?,'')
+                (binding, revision_id, manifest_hash, document_count, built_at, error)
+                VALUES (?,?,?,?,?,'')
                 ON CONFLICT(binding, revision_id, manifest_hash) DO UPDATE SET
-                document_count=excluded.document_count, drifted_documents=0, built_at=excluded.built_at, error=''""",
+                document_count=excluded.document_count, built_at=excluded.built_at, error=''""",
                 (encoded, revision, digest, len(entries), built_at))
             db.executemany("""INSERT OR REPLACE INTO knowledge_index_documents
-                (binding, revision_id, manifest_hash, filename, content_hash, servable, char_count, note, text, layout)
-                VALUES (?,?,?,?,?,?,?,?,?,?)""", documents)
+                (binding, revision_id, manifest_hash, filename, content_hash, servable, char_count, note, text, layout, drift)
+                VALUES (?,?,?,?,?,?,?,?,?,?,0)""", documents)
             db.executemany("""INSERT OR REPLACE INTO knowledge_index_terms
                 (binding, revision_id, manifest_hash, filename, content_hash, term, tf, lines)
                 VALUES (?,?,?,?,?,?,?,?)""", terms)
@@ -319,9 +320,9 @@ class KnowledgeIndexStore:
 
         def write(db):
             db.execute("""INSERT OR IGNORE INTO knowledge_index_revisions
-                (binding, revision_id, manifest_hash, document_count, drifted_documents, built_at, error)
-                VALUES (?,?,?,?,0,'','')""", (*self._key(binding, revision_id, manifest_hash),
-                                              max(0, int(document_count))))
+                (binding, revision_id, manifest_hash, document_count, built_at, error)
+                VALUES (?,?,?,?,'','')""", (*self._key(binding, revision_id, manifest_hash),
+                                            max(0, int(document_count))))
 
         self._execute(write)
 
@@ -331,8 +332,8 @@ class KnowledgeIndexStore:
 
         def write(db):
             db.execute("""INSERT INTO knowledge_index_revisions
-                (binding, revision_id, manifest_hash, document_count, drifted_documents, built_at, error)
-                VALUES (?,?,?,0,0,'',?)
+                (binding, revision_id, manifest_hash, document_count, built_at, error)
+                VALUES (?,?,?,0,'',?)
                 ON CONFLICT(binding, revision_id, manifest_hash) DO UPDATE SET error=excluded.error""",
                 (*self._key(binding, revision_id, manifest_hash), str(error)[:128]))
 
@@ -343,7 +344,7 @@ class KnowledgeIndexStore:
 
     def update_document(self, binding, revision_id: str, manifest_hash: str, *, filename: str,
                         content_hash: str, servable: bool, text: str, layout: Any,
-                        note: str = "", parse_error: str = "") -> None:
+                        note: str = "", parse_error: str = "", drift: bool = False) -> None:
         """One rebuilt document row (rebuild path); the revision's totals and
         built_at are refreshed by ``finish_revision`` when the walk ends."""
         encoded, revision, digest = self._key(binding, revision_id, manifest_hash)
@@ -359,10 +360,11 @@ class KnowledgeIndexStore:
 
         def write(db):
             db.execute("""INSERT OR REPLACE INTO knowledge_index_documents
-                (binding, revision_id, manifest_hash, filename, content_hash, servable, char_count, note, text, layout)
-                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (binding, revision_id, manifest_hash, filename, content_hash, servable, char_count, note, text, layout, drift)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
                 (encoded, revision, digest, str(filename)[:255], str(content_hash)[:64],
-                 1 if servable else 0, char_count, note_value or parse_error_value, text, layout_json))
+                 1 if servable else 0, char_count, note_value or parse_error_value, text, layout_json,
+                 1 if drift else 0))
             db.execute("""DELETE FROM knowledge_index_terms
                 WHERE binding=? AND revision_id=? AND manifest_hash=? AND filename=? AND content_hash=?""",
                 (encoded, revision, digest, str(filename)[:255], str(content_hash)[:64]))
@@ -375,34 +377,63 @@ class KnowledgeIndexStore:
 
         self._execute(write)
 
-    def observe_drift(self, binding, revision_id: str, manifest_hash: str, drifted: int) -> None:
-        """Record the drift a search observed, only over an existing revision
-        row: an index that was never built has no baseline to be stale from,
-        and its 未建索引 display is the honest one."""
+    def observe_documents(self, binding, revision_id: str, manifest_hash: str, *,
+                          verified: list[tuple[str, str]], drifted: list[tuple[str, str]]) -> None:
+        """Record the per-document facts one search observed (#97).
+
+        Drift is tracked per document row, never as one overwriting count: a
+        later subset search must not erase the 已过期 annotation for documents
+        it did not look at. Verification is authoritative for the documents it
+        actually verified (their bytes matched the frozen digest at that
+        moment), so their marks clear; drifted marks are added for the rest.
+        Only rows that exist are touched — an index that was never built has
+        no baseline to be stale from, and its 未建索引 display is the honest
+        one."""
+        encoded, revision, digest = self._key(binding, revision_id, manifest_hash)
+        verified_pairs = [(str(name)[:255], str(content)[:64]) for name, content in verified]
+        drifted_pairs = [(str(name)[:255], str(content)[:64]) for name, content in drifted]
 
         def write(db):
-            db.execute("""UPDATE knowledge_index_revisions SET drifted_documents=?
-                WHERE binding=? AND revision_id=? AND manifest_hash=?""",
-                (max(0, int(drifted)), *self._key(binding, revision_id, manifest_hash)))
+            for name, content in verified_pairs:
+                db.execute("""UPDATE knowledge_index_documents SET drift=0
+                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND filename=? AND content_hash=?""",
+                    (encoded, revision, digest, name, content))
+            for name, content in drifted_pairs:
+                db.execute("""UPDATE knowledge_index_documents SET drift=1
+                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND filename=? AND content_hash=?""",
+                    (encoded, revision, digest, name, content))
 
         try:
             self._execute(write)
         except KnowledgeIndexError:
             pass
 
+    def servable_identities(self, binding, revision_id: str, manifest_hash: str) -> set[tuple[str, str]]:
+        """The (filename, content_hash) pairs this index can honestly serve
+        text for — the indexed search's classification of verified-but-
+        unparsable documents (the literal engine's not_searchable)."""
+
+        def read(db):
+            return {(row["filename"], row["content_hash"]) for row in db.execute(
+                """SELECT filename, content_hash FROM knowledge_index_documents
+                   WHERE binding=? AND revision_id=? AND manifest_hash=? AND servable=1""",
+                self._key(binding, revision_id, manifest_hash))}
+
+        return self._execute(read)
+
     def finish_revision(self, binding, revision_id: str, manifest_hash: str,
-                        document_count: int, drifted: int) -> None:
-        """Close one rebuild: refresh totals and the observed drift fact."""
+                        document_count: int) -> None:
+        """Close one rebuild: refresh the totals. The drift fact stays on the
+        per-document rows the rebuild just rewrote."""
 
         def write(db):
             db.execute("""INSERT INTO knowledge_index_revisions
-                (binding, revision_id, manifest_hash, document_count, drifted_documents, built_at, error)
-                VALUES (?,?,?,?,?,?,'')
+                (binding, revision_id, manifest_hash, document_count, built_at, error)
+                VALUES (?,?,?,?,?,'')
                 ON CONFLICT(binding, revision_id, manifest_hash) DO UPDATE SET
-                document_count=excluded.document_count, drifted_documents=excluded.drifted_documents,
-                built_at=excluded.built_at, error=''""",
+                document_count=excluded.document_count, built_at=excluded.built_at, error=''""",
                 (*self._key(binding, revision_id, manifest_hash),
-                 max(0, int(document_count)), max(0, int(drifted)), _now()))
+                 max(0, int(document_count)), _now()))
 
         self._execute(write)
 
@@ -414,14 +445,15 @@ class KnowledgeIndexStore:
 
         def read(db):
             row = db.execute(
-                """SELECT document_count, drifted_documents, built_at, error FROM knowledge_index_revisions
+                """SELECT document_count, built_at, error FROM knowledge_index_revisions
                    WHERE binding=? AND revision_id=? AND manifest_hash=?""",
                 self._key(binding, revision_id, manifest_hash)).fetchone()
             if row is None:
                 return {"state": "missing", "documents": 0, "indexedDocuments": 0,
                         "servableDocuments": 0, "driftedDocuments": 0, "builtAt": "", "error": ""}
             counts = db.execute(
-                """SELECT COUNT(*) AS rows, COALESCE(SUM(servable), 0) AS servable FROM knowledge_index_documents
+                """SELECT COUNT(*) AS rows, COALESCE(SUM(servable), 0) AS servable,
+                          COALESCE(SUM(drift), 0) AS drifted FROM knowledge_index_documents
                    WHERE binding=? AND revision_id=? AND manifest_hash=?""",
                 self._key(binding, revision_id, manifest_hash)).fetchone()
             total = int(row["document_count"])
@@ -436,7 +468,7 @@ class KnowledgeIndexStore:
                 state = "missing"
             return {"state": state, "documents": total, "indexedDocuments": indexed,
                     "servableDocuments": int(counts["servable"]),
-                    "driftedDocuments": int(row["drifted_documents"]),
+                    "driftedDocuments": int(counts["drifted"]),
                     "builtAt": row["built_at"], "error": row["error"]}
 
         return self._execute(read)
@@ -476,7 +508,7 @@ class KnowledgeIndexStore:
                     hits[row["term"]] = int(row["df"])
             if not hits:
                 return {"documents": [], "moreAvailable": False, "documentCount": count}
-            weights: dict[str, dict[str, dict[str, Any]]] = {}
+            weights: dict[tuple[str, str], dict[str, dict[str, Any]]] = {}
             for start in range(0, len(terms), 200):
                 chunk = terms[start:start + 200]
                 marks = ",".join("?" * len(chunk))
@@ -484,16 +516,19 @@ class KnowledgeIndexStore:
                         f"""SELECT filename, content_hash, term, tf, lines FROM knowledge_index_terms
                             WHERE binding=? AND revision_id=? AND manifest_hash=? AND term IN ({marks})""",
                         (encoded, revision, digest, *chunk)):
-                    weights.setdefault(row["filename"], {})[row["term"]] = {
-                        "hash": row["content_hash"], "tf": int(row["tf"]),
+                    # Keyed by the full (filename, content_hash) identity: a
+                    # revision may hold two same-name documents with different
+                    # digests, and they must never merge (review finding).
+                    weights.setdefault((row["filename"], row["content_hash"]), {})[row["term"]] = {
+                        "tf": int(row["tf"]),
                         "lines": json.loads(row["lines"]) if row["lines"] else []}
-            lengths = {row["filename"]: int(row["char_count"]) for row in db.execute(
-                """SELECT filename, char_count FROM knowledge_index_documents
+            lengths = {(row["filename"], row["content_hash"]): int(row["char_count"]) for row in db.execute(
+                """SELECT filename, content_hash, char_count FROM knowledge_index_documents
                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND servable=1""",
                 (encoded, revision, digest))}
             scored: list[dict[str, Any]] = []
-            for filename, by_term in weights.items():
-                length = lengths.get(filename, 0)
+            for identity, by_term in weights.items():
+                length = lengths.get(identity, 0)
                 score = 0.0
                 for term, facts in by_term.items():
                     df = hits.get(term, 0)
@@ -502,13 +537,11 @@ class KnowledgeIndexStore:
                     idf = math.log(1 + (count - df + 0.5) / (df + 0.5))
                     tf = facts["tf"]
                     score += idf * (tf * (BM25_K1 + 1)) / (tf + BM25_K1 * (1 - BM25_B + BM25_B * length / averages))
-                scored.append({"filename": filename, "contentHash": by_term[next(iter(by_term))]["hash"],
+                scored.append({"filename": identity[0], "contentHash": identity[1],
                                "score": score, "terms": by_term, "charCount": length})
-            scored.sort(key=lambda item: (-item["score"], item["filename"]))
+            scored.sort(key=lambda item: (-item["score"], item["filename"], item["contentHash"]))
             ranked = scored[:limit]
             more = len(scored) > len(ranked)
-            for document in scored[:limit]:
-                document.pop("terms", None)
             # Re-read the served rows once with text and layout for assembly.
             documents: list[dict[str, Any]] = []
             for document in ranked:
@@ -520,7 +553,7 @@ class KnowledgeIndexStore:
                     continue
                 documents.append({"filename": document["filename"], "contentHash": document["contentHash"],
                                   "score": document["score"],
-                                  "termLines": {term: facts["lines"] for term, facts in weights[document["filename"]].items()},
+                                  "termLines": {term: facts["lines"] for term, facts in document["terms"].items()},
                                   "text": row["text"], "layout": json.loads(row["layout"])})
             return {"documents": documents, "moreAvailable": more, "documentCount": count}
 
@@ -600,7 +633,6 @@ class KnowledgeIndexRebuild:
                 self._job.update(fields)
 
     def _run(self, kb_id: str, revision_id: str, manifest_hash: str) -> None:
-        from .knowledge_import import category_for
         from .knowledge_search import locate_frozen_files
         from .receipt_ledger import profile_binding
         try:
@@ -635,12 +667,13 @@ class KnowledgeIndexRebuild:
                     unavailable += 1
                 self._index.update_document(binding, revision_id, manifest_hash,
                                             filename=document['filename'], content_hash=document['sha256'],
-                                            servable=outcome == 'indexed', text=text, layout=layout, note=note)
+                                            servable=outcome == 'indexed', text=text, layout=layout, note=note,
+                                            drift=outcome == 'drift')
                 self._update(processedDocuments=processed,
                              indexedDocuments=indexed, driftedDocuments=drifted,
                              unavailableDocuments=unavailable)
             self._index.finish_revision(binding, revision_id, manifest_hash,
-                                        document_count=len(documents), drifted=drifted)
+                                        document_count=len(documents))
             self._update(state='completed', indexedDocuments=indexed, driftedDocuments=drifted,
                          unavailableDocuments=unavailable)
         except KnowledgeIndexError as exc:

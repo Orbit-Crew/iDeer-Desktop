@@ -178,7 +178,8 @@ export default function DocLibraryPane({ instanceId, panelType }: {
                       disabled={view.busy}
                       onClick={() => run(() => controller.current!.rebuildIndex(record))}>重建索引</Button>
                   )}
-                  {rebuildRunning && indexRebuild.revisionId === record.revisionId && (
+                  {rebuildRunning && indexRebuild.revisionId === record.revisionId &&
+                    indexRebuild.manifestHash === record.manifestHash && (
                     <Button size="small" type="link" aria-label="取消索引重建"
                       disabled={view.busy}
                       onClick={() => run(() => controller.current!.cancelIndexRebuild())}>取消重建</Button>

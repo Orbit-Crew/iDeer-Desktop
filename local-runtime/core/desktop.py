@@ -1263,18 +1263,19 @@ def main() -> int:
                 knowledge_rows = []
             # Issue 97: each registered row carries its revision's index view
             # (derived state, honest counts, observed drift) so the doc
-            # library can annotate 未建/重建中/已过期 without guessing.
-            if current_receipt_owner:
-                for row in knowledge_rows:
-                    if row.get('status') == 'registered' and row.get('revisionId'):
-                        try:
-                            row['index'] = knowledge_index.revision_view(current_receipt_owner,
-                                                                         row['revisionId'], row['manifestHash'])
-                        except KnowledgeIndexError:
-                            row['index'] = None
-                            break
-                    else:
+            # library can annotate 未建/重建中/已过期 without guessing. The
+            # join runs over the slice the snapshot actually sends, and a
+            # store failure reads as absent per row instead of silently
+            # dropping the facts from the tail.
+            for row in knowledge_rows[:20]:
+                if row.get('status') == 'registered' and row.get('revisionId'):
+                    try:
+                        row['index'] = knowledge_index.revision_view(current_receipt_owner,
+                                                                     row['revisionId'], row['manifestHash'])
+                    except KnowledgeIndexError:
                         row['index'] = None
+                else:
+                    row['index'] = None
             try:
                 knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgePublishError:

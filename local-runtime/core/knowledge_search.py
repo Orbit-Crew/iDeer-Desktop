@@ -228,15 +228,34 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
     changes is the answering itself: intact documents are ranked by BM25
     over the index that was built from their hash-verified frozen bytes,
     and each hit carries the line and the page anchor of the frozen parse.
+    A verified document the index cannot honestly serve text for (it parsed
+    as skipped or failed at import) is reported ``not_searchable`` — the
+    same structured missing the literal engine answers, never a silent gap.
 
-    The observed drift is recorded on the index store so the doc library
-    can annotate 已过期 instead of pretending the index is current.
+    The per-document facts the search observed (verified or drifted) are
+    recorded on the index store so the doc library can annotate 已过期
+    instead of pretending the index is current.
     """
     from .knowledge_index import line_page_marks, page_for_line
 
     frozen = payload["documents"]
     candidates, truncated = locate_frozen_files(files, logical_root)
     verified, missing = revalidate_frozen_documents(payload, files=files, candidates=candidates)
+    by_id = {document["document_id"]: document for document in frozen}
+    # Verified bytes the index cannot serve text for are not_searchable —
+    # the honest structured missing, exactly what the literal scan reports.
+    try:
+        servable = index.servable_identities(binding, payload["revision_id"], payload["manifest_hash"])
+    except Exception:
+        servable = None
+    unservable: list[dict[str, Any]] = []
+    if servable is not None:
+        for document_id, _logical_path in list(verified.items()):
+            document = by_id[document_id]
+            if (document["filename"], document["content_hash"]) not in servable:
+                verified.pop(document_id)
+                unservable.append({"document_id": document_id, "reason": "not_searchable"})
+    missing.extend(unservable)
     chunks: list[dict[str, Any]] = []
     if verified:
         matches = index.search(binding, payload["revision_id"], payload["manifest_hash"],
@@ -268,9 +287,13 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
                     break
             if len(chunks) >= MAX_MATCHES:
                 break
-    drifted = sum(1 for entry in missing if entry["reason"] == "content_drift")
+    verified_pairs = [(by_id[document_id]["filename"], by_id[document_id]["content_hash"])
+                      for document_id in verified]
+    drifted_pairs = [(by_id[entry["document_id"]]["filename"], by_id[entry["document_id"]]["content_hash"])
+                     for entry in missing if entry["reason"] == "content_drift"]
     try:
-        index.observe_drift(binding, payload["revision_id"], payload["manifest_hash"], drifted)
+        index.observe_documents(binding, payload["revision_id"], payload["manifest_hash"],
+                                verified=verified_pairs, drifted=drifted_pairs)
         view = index.revision_view(binding, payload["revision_id"], payload["manifest_hash"])
     except Exception:
         view = None
