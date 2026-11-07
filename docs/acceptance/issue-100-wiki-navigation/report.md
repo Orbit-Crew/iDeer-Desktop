@@ -40,7 +40,9 @@ belongs to the iDeer repo issue of the same number (same convention as
   Segmented switch, status legend, canvas, and the selected node's frozen
   source line. Clicking a node selects it; a completed page is read through
   the existing per-page read seam; a skipped or failed page only becomes
-  the selection and keeps its status visible — never a body.
+  the selection and keeps its status visible — never a body. When the
+  60-node neighborhood bound truncates the closure, the panel says so on
+  screen and points at the page index below.
 - `src/renderer/src/components/WikiSection.tsx`: embeds the panel above the
   page index; both page lists annotate the frozen source position;
   清空展示状态 (Popconfirm) clears only this device's derived display state
@@ -69,13 +71,14 @@ bridge cases.
   completed) center; a skipped page inside the closure keeps its status;
   the closure stays ≤ 60 nodes under a 120-page hub; `wikiSourceLine`
   pins the position annotation.
-- `npx vitest run test/wiki.test.tsx` — 17 tests, the pre-existing #118/#119
+- `npx vitest run test/wiki.test.tsx` — 18 tests, the pre-existing #118/#119
   describes kept green plus the new #100 describe: the overview canvas
   renders every page node with the status legend and frozen source
   positions; a completed node click issues exactly
   `{action:'read', kbId, revisionId, documentId}`; a skipped node click
   issues nothing; switching to 邻域 drops the unrelated page while keeping
-  the selected page and its linked page; 清空展示状态 fires `onClear` only
+  the selected page and its linked page; a closure truncated by the 60-node
+  bound is announced on screen; 清空展示状态 fires `onClear` only
   after the explicit 确认清空 confirm; a displayed revision offers
   重新生成 while an unshown one offers 生成Wiki.
 - `npm run typecheck` — clean (node + web tsconfig).

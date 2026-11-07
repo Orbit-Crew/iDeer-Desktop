@@ -333,6 +333,20 @@ describe('wiki graph navigation with overview, neighborhood, clear, and rebuild 
     expect(screen.getByLabelText('页面节点 甲零件与乙组件')).toBeTruthy()
   })
 
+  it('says so on screen when the neighborhood bound truncates the closure', () => {
+    const hub = pageA()
+    const many: WikiNavigationPage[] = Array.from({ length: 70 }, (_, index) => ({
+      documentId: `bbbbbbbb-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      filename: `f${index}.txt`, title: `页${index}`, contentHash: 'a'.repeat(64), status: 'completed', errorCode: '',
+      links: [], missingLinks: [], backlinks: []
+    }))
+    for (const row of many) hub.links.push({ documentId: row.documentId, title: row.title, status: 'completed' })
+    renderLive({ navigation: graphNavigation([hub, ...many]) })
+    expect(screen.queryByText(/邻域已达 60 页上限/)).toBeNull()
+    fireEvent.click(screen.getByText('邻域'))
+    expect(screen.getByText(/邻域已达 60 页上限/)).toBeTruthy()
+  })
+
   it('clears the derived wiki surface only behind an explicit confirm', async () => {
     const onClear = vi.fn()
     renderLive({ wiki: wikiView, onClear })

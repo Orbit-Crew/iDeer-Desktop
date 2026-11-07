@@ -1,93 +1,69 @@
-# Issue #92 two-axis review (before final commit)
+# Issue #100 two-axis review (before final commit)
 
-Diff reviewed file by file: `git diff` over 14 modified + 3 new source/test
-files, re-read against the acceptance criteria and the neighboring
-implementations (ConnectorRegistry, the #91 projects family, the
-#110/#94 terminal and file seams).
+Diff reviewed file by file: `git diff 29df1e2...HEAD` over 3 modified + 4 new
+source/test files (commit 4705f25), re-read against the acceptance criteria,
+the neighboring implementations (KnowledgeGraphSection, the doc library pane),
+the gap-analysis K05 line, and the original linz wiki components. Two
+independent agents reviewed Standards and Spec in parallel; their findings and
+the dispositions applied before the final commit follow. After the fixes:
+typecheck clean, wiki tests 27/27.
 
-## Axis (a) — correctness
+## Standards
 
-Chased error paths and cancellation; findings and dispositions:
+No documented-standard violations. Baseline smells (all judgement calls) and
+dispositions:
 
-1. **Canceled dialogs** — folder dialog canceled, confirm refused, and the
-   post-bind workspace offer refused all end as user decisions: the first two
-   throw `PROJECTS_CANCELED` (the renderer controller treats it as quiet), the
-   third simply skips the optional offer and returns the successful bind
-   reply. A failed `selectWorkspace` inside the offer is swallowed (the
-   workspace chooser stays authoritative); the binding is never undone by it.
-2. **Unknown project** — `bind-folder` re-reads the Server's own list and
-   refuses `CHAT_NOT_FOUND` before any registry write; the listing it fetches
-   is reused for the reply (exactly one GET /api/projects, pinned by
-   `test_bind_folder_records_device_local_row_without_platform_writes`).
-3. **Identity change** — the chat-session scope fence runs first in
-   `projects_manage` for every action including the new two; pinned by
-   `test_bind_and_unbind_stay_behind_the_session_fence`. The main-side bind
-   dialog flow also re-checks nothing identity-related before the Runtime
-   call — the Runtime stays the fence (same shape as delete).
-4. **Renderer path injection** — the bridge `ProjectCommand` carries the
-   project id only; the path variant (`ProjectBindCommand`) is main-internal
-   (the `ConnectorInstallCommand` idiom), and the handler builds the wire
-   command fresh from `chosen.filePaths[0]`, so a renderer-supplied `path`
-   field can never reach the Runtime. `unbind-folder` passes the renderer
-   command through, where the exact 2-key shape check rejects extras.
-5. **Terminal start dir** — the selector is sanitized to
-   `[A-Za-z0-9_-]{1,128}` (malformed → no selection), a bound folder missing
-   on disk falls through (`existsSync`), and the resolver's refusal falls
-   through to the user home; no physical path reaches the renderer (pinned by
-   the existing "never hands the renderer a start dir" test plus the new
-   selector test).
-6. **Storage failure** — registry errors surface as the single fixed category
-   `PROJECT_BINDING_STORAGE_UNAVAILABLE` (status snapshot) and
-   `CHAT_BINDING_STORE_UNAVAILABLE` (chat round-trips); the status loop reads
-   rows best-effort like every other registry (error field alongside).
-7. **Snapshot parse** — `projectBindings` rows are strictly shape-checked in
-   `runtime.ts` (bounded 20, id pattern, path cap 1024); a violation kills
-   the child like every other status family. An absent field (older runtime)
-   parses as absent — optional.
+1. **Comment claims nonexistent behavior (must-fix, fixed).** The canvas
+   comment promised hover highlighting that does not exist, and the local
+   `highlight` set named nothing it did. Comment rewritten to what the canvas
+   does; the set is now `relations` and only feeds the honest per-node
+   relation-count tooltip.
+2. **Duplicated edge-extraction shape (fixed).** `buildOverview` and
+   `buildNeighborhood` shared the rows→links→included→dedup walk; extracted
+   as `extractEdges(rows, included)`, one shape, both callers.
+3. **Duplicated status color map (fixed).** `STATUS_COLORS` (canvas) and
+   `STATUS_DOT` (panel) collapsed into one exported
+   `WIKI_STATUS_COLORS: Record<WikiPageSummary['status'], string>` in the
+   model module; the panel derives its legend dots from it. The test-fixture
+   duplication across the two wiki test files stays: each file keeps its own
+   small fixtures for isolation, matching the repo's test idiom.
+4. **Weak typing of the status maps (fixed).** The panel's maps are now
+   `Record<WikiPageSummary['status'], string>`; the read command the panel
+   issues is typed `WikiReadCommand = WikiCommand & { action: 'read' }`.
+   (An `Extract<WikiCommand, …>` variant compiled to `never` — `WikiCommand`
+   is a single interface, not a discriminated union.)
+5. **`depth` field overload (fixed).** Overview entries no longer fake
+   `depth: 0` to center a single page; placement decides the center
+   explicitly (`entry.depth === 0 || (mode === 'overview' && pages.length === 1)`),
+   and the unreachable `radius === 0` guard is gone (`ringPosition` documents
+   its `count >= 1` precondition).
+6. **Overview scale (noted, not changed).** The navigation projection itself
+   caps the payload at 200 pages; the radius formula saturates at 300, so a
+   200-page overview is crowded but usable and deterministic. The model
+   comment now states the 200-page source bound; a denser layout is a
+   display preference, not part of this ticket.
 
-Findings fixed during review:
+## Spec
 
-- F1: the first draft of `projects_manage` fetched the platform list twice
-  for bind (check + reply); rewrote to reuse the one listing.
-- F2: `test/terminal-bridge.test.ts` selector test originally built a harness
-  and replaced its manager; rewrote to construct the one manager directly.
-- F3: the store-failure jsdom test originally clicked bind first, which can
-  never produce a bound row with the stub; rewritten to start bound and
-  unbind into the rejection. Also switched `getByText` → `getAllByText`
-  (antd Alert renders its message node twice in jsdom).
+The reviewer judged 清空 (display-state-only clear behind an explicit confirm
+with honest copy) compliant given the verified no-DELETE gateway, and 位置
+(manifest position) compliant given the payload carries no in-document
+locator. Findings and dispositions:
 
-Pre-existing quirk observed, NOT changed (out of scope, behavior preserved):
-the projects reply resolver builds `{ [pending.action]: true }`, so mutation
-flags land under keys like `create`/`rename` rather than `created`/`renamed`
-hidden by the `as ProjectOperationView` cast. No consumer reads the flags
-(the controller re-reads the authoritative list), and #92's `bound`/
-`unbound` flags follow the same shape, so #92 does not deepen it.
+1. **Truncated closure was silent (fixed).** The 60-node neighborhood bound
+   cut pages without saying so. The panel now shows 邻域已达 60 页上限…
+   完整范围见下方页面索引 whenever the bound applies, pinned by a test.
+2. **生成Wiki label after 清空 (accepted, documented).** After a clear the
+   button reads 生成Wiki again although Server pages persist. The label
+   describes the action, never claims prior state; the confirm copy carries
+   the honest Server-side sentence. Changing the label would require the
+   renderer to remember cleared state, exactly what 清空 removes.
+3. **冻结位置 assumes manifest order (accepted, inherited contract).** The
+   Server builds both page lists from `manifest_entries(revision)` in order;
+   the ordering is pinned by `local-runtime/tests/test_platform_wiki.py`
+   (unchanged here). The model doc comment states the assumption.
+4. No scope creep of substance: no bridge/IPC/shared-type/dependency change,
+   `test/security.test.ts` channel lists untouched.
 
-## Axis (b) — idiom
-
-Diffed against the neighboring implementations:
-
-- Registry: `ProjectBindingRegistry` mirrors `ConnectorRegistry` (sqlite next
-  to the settings, `identity` hash of `(binding, key)`, `_db`/`_execute`,
-  RLock, single error category, `_view` camelCase projection).
-- Wire family: the new actions extend the existing `desktop:projects` channel
-  — no new invoke/push channel, so the sorted arrays in `test/security.test.ts`
-  are byte-identical; an `// Issue 92:` comment documents that in the array's
-  comment block (per the ticket's instruction).
-- Comments: `// Issue 92:` on every touched surface (TS) and `(#92)` in the
-  Python docstrings; the `desktop:projects` handler, the terminal resolver,
-  the preload spawn entry, the pane, the store and the modal all carry the
-  rationale.
-- Test idioms: pytest reuses `test_platform_projects.py`'s `platform()` /
-  `make_chat` / `wire` fixtures via import (the established cross-test
-  import convention, cf. `test_chat_attachments.py`); vitest follows the
-  harness/stubIdeer patterns of `terminal-bridge.test.ts` /
-  `session-sidebar.test.tsx`; the bridge test follows the #91 shape-matrix +
-  live unauthenticated fence structure.
-- UI: the row follows the #91 row (title tooltips, aria-labels naming the
-  project, `disabled={busy}`, Popconfirm only for the destructive delete);
-  unbind stays a plain button because it is reversible local cleanup.
-- Scope discipline: `local-runtime/core/file_service.py`, `settings.py`,
-  `transport.py`, `tray.py` (pinned upstream files) are untouched — verified
-  by `scripts/verify-runtime-source.py` (exit 0). The Issue-78
-  `inherited_binding` contract is unchanged; no second inheritance path.
+Standards: 1 must-fix + 4 actionable smells, all fixed. Spec: 2 findings
+fixed, 2 accepted with written dispositions, 0 unresolved.

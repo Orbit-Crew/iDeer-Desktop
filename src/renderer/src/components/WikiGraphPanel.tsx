@@ -1,35 +1,28 @@
 import { Segmented, Typography } from 'antd'
 import { ApartmentOutlined, NodeIndexOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import type { WikiNavigation } from '../../../shared/desktop'
+import type { WikiNavigation, WikiPageSummary } from '../../../shared/desktop'
 import { WikiGraphCanvas } from './WikiGraphCanvas'
-import { buildWikiGraph, wikiSourceLine, type WikiGraphMode } from './wikiGraphModel'
+import { WIKI_STATUS_COLORS, wikiSourceLine, buildWikiGraph, type WikiGraphMode, type WikiReadCommand } from './wikiGraphModel'
 
-const statusNames: Record<string, string> = {
+const statusNames: Record<WikiPageSummary['status'], string> = {
   completed: '可阅读',
   skipped: '已跳过',
   failed: '生成失败',
   not_generated: '未生成'
 }
 
-const LEGEND: Array<[string, string]> = [
+const LEGEND: Array<[WikiPageSummary['status'], string]> = [
   ['completed', '可阅读'],
   ['skipped', '已跳过'],
   ['failed', '生成失败'],
   ['not_generated', '未生成']
 ]
 
-const STATUS_DOT: Record<string, string> = {
-  completed: '#1E6FCC',
-  skipped: '#FA8C16',
-  failed: '#CF1322',
-  not_generated: '#8C8C8C'
-}
-
 export interface WikiGraphPanelProps {
   navigation: WikiNavigation
   busy: boolean
-  onCommand: (command: { action: 'read'; kbId: string; revisionId: string; documentId: string }) => void
+  onCommand: (command: WikiReadCommand) => void
 }
 
 /**
@@ -51,7 +44,9 @@ export function WikiGraphPanel({ navigation, busy, onCommand }: WikiGraphPanelPr
   const readNode = (documentId: string) => {
     setSelectedId(documentId)
     const row = navigation.pages.find(candidate => candidate.documentId === documentId)
-    if (row?.status === 'completed') onCommand({ action: 'read', kbId: navigation.kbId, revisionId: navigation.revisionId, documentId })
+    if (row?.status !== 'completed') return
+    const command: WikiReadCommand = { action: 'read', kbId: navigation.kbId, revisionId: navigation.revisionId, documentId }
+    onCommand(command)
   }
   return <div className="mt-3">
     <div className="flex flex-wrap items-center gap-3">
@@ -69,10 +64,12 @@ export function WikiGraphPanel({ navigation, busy, onCommand }: WikiGraphPanelPr
         {mode === 'neighborhood' ? '邻域：以选中页面为中心的两跳页面。' : '概览：本冻结版本的全部页面。'}
         点击节点选中页面；可阅读的页面同时打开正文。缺失目标在下方页面索引如实标注，图中不画。
       </Typography.Text>
+      {mode === 'neighborhood' && navigation.pages.length > graph.nodes.length &&
+        <Typography.Text type="warning">邻域已达 60 页上限，其余页面未画出；完整范围见下方页面索引。</Typography.Text>}
     </div>
     <div className="mt-2 flex flex-wrap items-center gap-3" aria-label="wiki 图例">
       {LEGEND.map(([status, name]) => <span key={status} className="inline-flex items-center gap-1">
-        <span className="inline-block h-3 w-3 rounded-full" style={{ background: STATUS_DOT[status] }} />
+        <span className="inline-block h-3 w-3 rounded-full" style={{ background: WIKI_STATUS_COLORS[status] }} />
         <Typography.Text type="secondary">{name}</Typography.Text>
       </span>)}
       <Typography.Text type="secondary">节点大小 = 图中可见关系数</Typography.Text>

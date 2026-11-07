@@ -1,13 +1,5 @@
 import type { WikiGraph, WikiGraphNode } from './wikiGraphModel'
-
-/** One node color per honest page status; the graph never invents a look
- * for a state the Server did not state. */
-const STATUS_COLORS: Record<WikiGraphNode['status'], string> = {
-  completed: '#1E6FCC',
-  skipped: '#FA8C16',
-  failed: '#CF1322',
-  not_generated: '#8C8C8C'
-}
+import { WIKI_STATUS_COLORS } from './wikiGraphModel'
 
 export interface WikiGraphCanvasProps {
   graph: WikiGraph
@@ -18,15 +10,15 @@ export interface WikiGraphCanvasProps {
 /**
  * Issue #100: the wiki navigation canvas. A fixed, deterministic SVG
  * projection of the graph model — nodes colored by their honest page
- * status, sized by their visible relations, joined by directed link edges.
- * Hovering a node highlights its edges and neighbors; every node is
- * clickable and the panel decides what a click means for that page's
- * status. No physics engine and no random layout: the same index always
- * draws the same picture.
+ * status, sized by their visible relations, joined by directed link edges,
+ * the selected node ringed. Every node is clickable and the panel decides
+ * what a click means for that page's status; each node's tooltip names its
+ * visible relation count. No physics engine and no random layout: the same
+ * index always draws the same picture.
  */
 export function WikiGraphCanvas({ graph, selectedId, onNodeClick }: WikiGraphCanvasProps): JSX.Element {
   const byId = new Map(graph.nodes.map(node => [node.id, node]))
-  const neighbors = (id: string): Set<string> => {
+  const relations = (id: string): Set<string> => {
     const set = new Set<string>([id])
     for (const edge of graph.edges) {
       if (edge.source === id) set.add(edge.target)
@@ -58,9 +50,8 @@ export function WikiGraphCanvas({ graph, selectedId, onNodeClick }: WikiGraphCan
           markerEnd="url(#wiki-graph-arrow)"
         />
       })}
-      {graph.nodes.map(node => {
-        const highlight = neighbors(node.id)
-        return <g
+      {graph.nodes.map(node => (
+        <g
           key={node.id}
           role="button"
           aria-label={`页面节点 ${node.label}`}
@@ -68,13 +59,13 @@ export function WikiGraphCanvas({ graph, selectedId, onNodeClick }: WikiGraphCan
           onClick={() => onNodeClick(node.id)}
         >
           {selectedId === node.id && <circle cx={node.x} cy={node.y} r={node.radius + 5} fill="none" stroke="#1E6FCC" strokeWidth={2} />}
-          <circle cx={node.x} cy={node.y} r={node.radius} fill={STATUS_COLORS[node.status]} stroke="#FFFFFF" strokeWidth={2} />
+          <circle cx={node.x} cy={node.y} r={node.radius} fill={WIKI_STATUS_COLORS[node.status]} stroke="#FFFFFF" strokeWidth={2} />
           <text x={node.x} y={node.y + node.radius + 14} textAnchor="middle" fontSize={12} fill="#333333">
             {node.label}
           </text>
-          <title>{`${node.label} · ${highlight.size - 1} 条可见关系`}</title>
+          <title>{`${node.label} · ${relations(node.id).size - 1} 条可见关系`}</title>
         </g>
-      })}
+      ))}
     </svg>
   )
 }

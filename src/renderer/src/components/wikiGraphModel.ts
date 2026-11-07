@@ -1,4 +1,4 @@
-import type { WikiNavigation, WikiNavigationPage, WikiPageSummary } from '../../../shared/desktop'
+import type { WikiCommand, WikiNavigation, WikiNavigationPage, WikiPageSummary } from '../../../shared/desktop'
 
 /**
  * Issue #100: the deterministic wiki graph model. The Server's navigation
@@ -45,7 +45,37 @@ const NEIGHBORHOOD_HOPS = 2
 export const WIKI_GRAPH_WIDTH = 1000
 export const WIKI_GRAPH_HEIGHT = 700
 
+/** One fill color per honest page status; the graph never invents a look
+ * for a state the Server did not state. */
+export const WIKI_STATUS_COLORS: Record<WikiPageSummary['status'], string> = {
+  completed: '#1E6FCC',
+  skipped: '#FA8C16',
+  failed: '#CF1322',
+  not_generated: '#8C8C8C'
+}
+
 const pageLabel = (row: WikiNavigationPage): string => row.title || row.filename || row.documentId.slice(0, 8)
+
+/**
+ * The directed link edges among exactly the included pages, in manifest
+ * order, deduplicated per direction. Backlinks are their exact inverse and
+ * are never redrawn; a target outside the included set (unknown, missing,
+ * or cut by the neighborhood bound) contributes no edge.
+ */
+const extractEdges = (rows: WikiNavigationPage[], included: Set<string>): WikiGraphEdge[] => {
+  const edges: WikiGraphEdge[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    for (const link of row.links) {
+      if (!included.has(link.documentId)) continue
+      const key = `${row.documentId}->${link.documentId}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      edges.push({ source: row.documentId, target: link.documentId })
+    }
+  }
+  return edges
+}
 
 /**
  * The neighborhood of one page: the page itself plus every page within two
@@ -78,8 +108,9 @@ const neighborhoodClosure = (pages: WikiNavigationPage[], centerId: string | nul
   return order
 }
 
+/** One point on a circle of the given radius, first node at the top,
+ * clockwise in the given order. The caller guarantees count >= 1. */
 const ringPosition = (index: number, count: number, radius: number): { x: number; y: number } => {
-  if (count <= 0 || radius === 0) return { x: WIKI_GRAPH_WIDTH / 2, y: WIKI_GRAPH_HEIGHT / 2 }
   const angle = (-90 + (360 * index) / count) * (Math.PI / 180)
   return {
     x: WIKI_GRAPH_WIDTH / 2 + radius * Math.cos(angle),
@@ -87,55 +118,22 @@ const ringPosition = (index: number, count: number, radius: number): { x: number
   }
 }
 
-const buildOverview = (pages: WikiNavigationPage[]): { entries: Array<{ id: string; depth: number }>; edges: WikiGraphEdge[] } => {
-  const included = new Set(pages.map(row => row.documentId))
-  const edges: WikiGraphEdge[] = []
-  const seen = new Set<string>()
-  for (const row of pages) {
-    for (const link of row.links) {
-      if (!included.has(link.documentId)) continue
-      const key = `${row.documentId}->${link.documentId}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      edges.push({ source: row.documentId, target: link.documentId })
-    }
-  }
-  return { entries: pages.map((row, index) => ({ id: row.documentId, depth: index === 0 && pages.length === 1 ? 0 : 1 })), edges }
-}
-
-const buildNeighborhood = (pages: WikiNavigationPage[], centerId: string | null): { entries: Array<{ id: string; depth: number }>; edges: WikiGraphEdge[] } => {
-  const entries = neighborhoodClosure(pages, centerId)
-  const included = new Set(entries.map(entry => entry.id))
-  const byId = new Map(pages.map(row => [row.documentId, row]))
-  const edges: WikiGraphEdge[] = []
-  const seen = new Set<string>()
-  for (const entry of entries) {
-    const row = byId.get(entry.id)
-    if (!row) continue
-    for (const link of row.links) {
-      if (!included.has(link.documentId)) continue
-      const key = `${entry.id}->${link.documentId}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      edges.push({ source: entry.id, target: link.documentId })
-    }
-  }
-  return { entries, edges }
-}
-
 /**
- * The canvas model for one navigation index: overview lays every page on
- * one circle in manifest order; the neighborhood centers the selected page
- * and rings its one-hop and two-hop pages. Degrees come from the rendered
- * edges only, so a node's size always names its visible relations.
+ * The canvas model for one navigation index. Overview lays every page on
+ * one circle in manifest order (the projection itself caps the payload at
+ * 200 pages); the neighborhood centers the selected page and rings its
+ * one-hop and two-hop pages. Degrees come from the rendered edges only,
+ * so a node's size always names its visible relations.
  */
 export const buildWikiGraph = (navigation: WikiNavigation, mode: WikiGraphMode, centerId: string | null): WikiGraph => {
   const pages = navigation.pages
   const sourceTotal = pages.length
-  const { entries, edges } = mode === 'neighborhood'
-    ? buildNeighborhood(pages, centerId)
-    : buildOverview(pages)
-  const byId = new Map(pages.map(row => [row.documentId, row]))
+  const entries = mode === 'neighborhood'
+    ? neighborhoodClosure(pages, centerId)
+    : pages.map(row => ({ id: row.documentId, depth: 1 }))
+  const included = new Set(entries.map(entry => entry.id))
+  const rowsById = new Map(pages.map(row => [row.documentId, row]))
+  const edges = extractEdges(pages, included)
   const degrees = new Map<string, number>()
   for (const edge of edges) {
     degrees.set(edge.source, (degrees.get(edge.source) ?? 0) + 1)
@@ -148,20 +146,20 @@ export const buildWikiGraph = (navigation: WikiNavigation, mode: WikiGraphMode, 
     rings.set(entry.depth, ring)
   }
   const nodes = entries.map(entry => {
-    const row = byId.get(entry.id)
+    const row = rowsById.get(entry.id)
     const degree = degrees.get(entry.id) ?? 0
-    let position: { x: number; y: number }
-    if (entry.depth === 0) {
-      position = { x: WIKI_GRAPH_WIDTH / 2, y: WIKI_GRAPH_HEIGHT / 2 }
-    } else {
-      const ring = rings.get(entry.depth) ?? []
-      const radius = mode === 'neighborhood' ? (entry.depth === 1 ? 170 : 300) : Math.min(300, 90 + 22 * pages.length)
-      position = ringPosition(ring.indexOf(entry.id), ring.length, radius)
-    }
+    // The neighborhood's depth 0 is the center; a one-page overview sits
+    // at the center for the same reason — there is nothing to spread out.
+    const isCenter = entry.depth === 0 || (mode === 'overview' && pages.length === 1)
+    const ring = rings.get(entry.depth) ?? []
+    const radius = mode === 'neighborhood' ? (entry.depth === 1 ? 170 : 300) : Math.min(300, 90 + 22 * pages.length)
+    const position = isCenter
+      ? { x: WIKI_GRAPH_WIDTH / 2, y: WIKI_GRAPH_HEIGHT / 2 }
+      : ringPosition(ring.indexOf(entry.id), ring.length, radius)
     return {
       id: entry.id,
       label: row ? pageLabel(row) : entry.id,
-      status: (row?.status ?? 'not_generated') as WikiPageSummary['status'],
+      status: row ? row.status : 'not_generated',
       position: pages.findIndex(row => row.documentId === entry.id) + 1,
       sourceTotal,
       degree,
@@ -180,3 +178,6 @@ export const buildWikiGraph = (navigation: WikiNavigation, mode: WikiGraphMode, 
  */
 export const wikiSourceLine = (row: Pick<WikiNavigationPage, 'filename' | 'contentHash'>, index: number, total: number): string =>
   `来源 ${row.filename} · 冻结位置 ${index + 1}/${total} · 文档指纹：${row.contentHash}`
+
+/** The read command shape the graph panel issues for a completed page. */
+export type WikiReadCommand = WikiCommand & { action: 'read' }
