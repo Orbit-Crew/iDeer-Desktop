@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { DatasetSection } from '../src/renderer/src/components/DatasetSection'
 import { useSessionStore } from '../src/renderer/src/stores/sessionStore'
-import type { DatasetCommand, DatasetView, RuntimeStatus } from '../src/shared/desktop'
+import type { DatasetCommand, DatasetView, KnowledgeImportView, RuntimeStatus } from '../src/shared/desktop'
 
 afterEach(cleanup)
 
@@ -12,8 +12,8 @@ const datasetRow = (overrides: Partial<DatasetView> = {}): DatasetView => ({
   fileSha256: 'b'.repeat(64),
   sheets: [{ name: 'Q1', fingerprint: 'c'.repeat(64), schema: '编号:number、名称:string',
     rowCount: 2, colCount: 2, truncated: false, columnsTruncated: false }],
-  rowCount: 2, projectId: 'proj-1', deviceId: 'device-102', status: 'ready', errorCode: '',
-  createdAt: '2026-11-06T00:00:00Z', ...overrides
+  rowCount: 2, projectId: 'proj-1', deviceId: 'device-102', status: 'ready',
+  revision: null, errorCode: '', createdAt: '2026-11-06T00:00:00Z', ...overrides
 })
 
 const runtimeStatus = (overrides: Partial<RuntimeStatus> = {}): RuntimeStatus =>
@@ -98,5 +98,38 @@ describe('table dataset import surface (#102)', () => {
     renderSection({ runtime: runtimeStatus({ datasets: [] }) })
     expect(screen.getByText(/尚无数据集登记/)).toBeTruthy()
     expect(screen.queryByText(/sales\.xlsx/)).toBeNull()
+  })
+})
+
+describe('dataset revision binding (#101)', () => {
+  const importRow: KnowledgeImportView = {
+    id: 'import-1', kbId: '33333333-3333-4333-8333-333333333333', revisionId: '7'.repeat(64),
+    revisionNo: 3, manifestHash: 'c'.repeat(64), documentCount: 2, status: 'registered',
+    errorCode: '', createdAt: '2026-11-07T00:00:00Z', projectId: '', source: null, documents: []
+  }
+
+  it('shows a bound row with its revision and an unbound row without one', () => {
+    renderSection({ runtime: runtimeStatus({
+      datasets: [datasetRow({ revision: { kbId: '33333333-3333-4333-8333-333333333333', revisionId: '7'.repeat(64), revisionNo: 3 } })] }) })
+    expect(screen.getByText(/绑定版本 R3（77777777…）/)).toBeTruthy()
+    cleanup()
+    renderSection()
+    expect(screen.queryByText(/绑定版本/)).toBeNull()
+  })
+
+  it('carries an explicitly chosen revision binding into the import command', async () => {
+    const onCommand = vi.fn()
+    // The session store leaks the earlier test's project selection; pin this
+    // test's own state so the binding is the only variable.
+    useSessionStore.setState({ projectSelection: { kind: 'all' } })
+    renderSection({ onCommand, runtime: runtimeStatus({ knowledgeImports: [importRow] }) })
+    // The optional selector lists the registered revisions; antd's Select
+    // opens on mousedown and the option click commits the choice.
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '绑定知识版本' }))
+    fireEvent.click(await screen.findByText('R3 · 77777777…（2 个文件）'))
+    screen.getByText('导入表格数据集…').click()
+    await waitFor(() => expect(onCommand).toHaveBeenCalledWith({
+      action: 'import', projectId: '',
+      revision: { kbId: '33333333-3333-4333-8333-333333333333', revisionId: '7'.repeat(64), revisionNo: 3 } }))
   })
 })

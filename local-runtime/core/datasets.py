@@ -385,6 +385,17 @@ class DatasetRegistry:
                     project_id TEXT NOT NULL DEFAULT '', device_id TEXT NOT NULL DEFAULT '',
                     status TEXT NOT NULL, error_code TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+                # Issue 101: the optional knowledge revision binding — 一套版本
+                # 规矩 (决议 62) unifies the five families on Revision. An
+                # import may name the doc-library revision it accompanies;
+                # older databases gain the columns with empty defaults.
+                for column in ("kb_id TEXT NOT NULL DEFAULT ''",
+                               "revision_id TEXT NOT NULL DEFAULT ''",
+                               "revision_no INTEGER NOT NULL DEFAULT 0"):
+                    try:
+                        db.execute(f"ALTER TABLE datasets ADD COLUMN {column}")
+                    except sqlite3.OperationalError:
+                        pass
         except (sqlite3.Error, OSError):
             self._error = DATASETS_STORAGE_UNAVAILABLE
 
@@ -442,6 +453,11 @@ class DatasetRegistry:
             "row_count": int(row.get("row_count", 0) or 0),
             "project_id": str(row.get("project_id", ""))[:128],
             "device_id": str(row.get("device_id", ""))[:128],
+            # Issue 101: the optional knowledge revision binding — display
+            # facts only; an unknown/foreign revision simply stays unbound.
+            "kb_id": str(row.get("kb_id", ""))[:128],
+            "revision_id": str(row.get("revision_id", ""))[:128],
+            "revision_no": int(row.get("revision_no", 0) or 0),
             "status": status,
             "error_code": str(row.get("error_code", ""))[:128],
         }
@@ -450,11 +466,14 @@ class DatasetRegistry:
         def write(db):
             cursor = db.execute(
                 "INSERT OR IGNORE INTO datasets (id, binding, source_path, filename, format,"
-                " file_sha256, sheets, row_count, project_id, device_id, status, error_code)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                " file_sha256, sheets, row_count, project_id, device_id,"
+                " kb_id, revision_id, revision_no, status, error_code)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (identity, self._encoded(binding), fields["source_path"], fields["filename"],
                  fields["format"], fields["file_sha256"], fields["sheets"], fields["row_count"],
-                 fields["project_id"], fields["device_id"], fields["status"], fields["error_code"]))
+                 fields["project_id"], fields["device_id"], fields["kb_id"],
+                 fields["revision_id"], fields["revision_no"], fields["status"],
+                 fields["error_code"]))
             return cursor.rowcount == 1
 
         return identity, self._execute(write)
@@ -480,6 +499,12 @@ class DatasetRegistry:
             sheets = json.loads(row["sheets"])
         except (ValueError, TypeError):
             sheets = []
+        # Issue 101: the revision binding surfaces exactly when it was
+        # recorded; an empty or partial binding reads as unbound, never as a
+        # made-up identity.
+        kb_id = row["kb_id"] if "kb_id" in row.keys() else ""
+        revision_id = row["revision_id"] if "revision_id" in row.keys() else ""
+        revision_no = row["revision_no"] if "revision_no" in row.keys() else 0
         return {
             "id": row["id"], "filename": row["filename"], "sourcePath": row["source_path"],
             "format": row["format"], "fileSha256": row["file_sha256"],
@@ -488,6 +513,8 @@ class DatasetRegistry:
                        if projected is not None],
             "rowCount": row["row_count"], "projectId": row["project_id"],
             "deviceId": row["device_id"], "status": row["status"],
+            "revision": {"kbId": kb_id, "revisionId": revision_id, "revisionNo": revision_no}
+                if kb_id and revision_id else None,
             "errorCode": row["error_code"], "createdAt": row["created_at"],
         }
 
@@ -559,8 +586,18 @@ def datasets_manage(command: dict, *, registry: DatasetRegistry, owner) -> dict[
             raise DatasetError(DATASETS_UNAUTHENTICATED)
         source_path = command.get("path")
         project_id = command.get("projectId", "")
+        # Issue 101: the optional knowledge revision binding rides the same
+        # command; absent fields mean unbound, a malformed one is refused
+        # instead of silently recorded as an identity it never had.
+        kb_id = command.get("kbId", "")
+        revision_id = command.get("revisionId", "")
+        revision_no = command.get("revisionNo", 0)
         if (not isinstance(source_path, str) or not source_path or len(source_path) > 32768
-                or not isinstance(project_id, str) or len(project_id) > 128):
+                or not isinstance(project_id, str) or len(project_id) > 128
+                or not isinstance(kb_id, str) or len(kb_id) > 128
+                or not isinstance(revision_id, str) or len(revision_id) > 128
+                or type(revision_no) is not int or not 0 <= revision_no <= 1000000
+                or (bool(kb_id) != bool(revision_id))):
             raise DatasetError(DATASETS_COMMAND_INVALID)
         raw = _read_source(source_path)
         digest = hashlib.sha256(raw).hexdigest()
@@ -576,14 +613,16 @@ def datasets_manage(command: dict, *, registry: DatasetRegistry, owner) -> dict[
                 # ('' only when the suffix named no supported format).
                 "format": parsed.get("format", ""), "file_sha256": digest,
                 "error_code": parsed["reason"],
-                "project_id": project_id, "device_id": owner.get("device_id", "")})
+                "project_id": project_id, "device_id": owner.get("device_id", ""),
+                "kb_id": kb_id, "revision_id": revision_id, "revision_no": revision_no})
             return _reply(registry, owner, failed=True, datasetId=identity,
                           errorCode=parsed["reason"])
         identity, inserted = registry.record(owner, {
             "status": "ready", "source_path": source_path, "filename": filename,
             "format": parsed["format"], "file_sha256": digest, "sheets": parsed["sheets"],
             "row_count": parsed["rowCount"], "project_id": project_id,
-            "device_id": owner.get("device_id", "")})
+            "device_id": owner.get("device_id", ""),
+            "kb_id": kb_id, "revision_id": revision_id, "revision_no": revision_no})
         if not inserted:
             # A concurrent identical import won the race: answer duplicate.
             return _reply(registry, owner, duplicate=True, duplicateOf=identity)

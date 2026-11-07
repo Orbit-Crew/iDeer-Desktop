@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -44,12 +44,24 @@ export const toDatasetView = (input: unknown): DatasetView => {
       typeof row.deviceId !== 'string' ||
       (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false) ||
       typeof row.createdAt !== 'string') throw new Error('Invalid dataset row')
+  // Issue 101: the optional knowledge revision binding reads exactly when it
+  // was recorded; a partial one reads as unbound, never as a made-up identity.
+  let revision: DatasetView['revision'] = null
+  if (row.revision && typeof row.revision === 'object') {
+    const bound = row.revision as Record<string, unknown>
+    if (typeof bound.kbId === 'string' && bound.kbId && typeof bound.revisionId === 'string' &&
+        bound.revisionId && Number.isSafeInteger(bound.revisionNo)) {
+      revision = { kbId: bound.kbId.slice(0, 128), revisionId: bound.revisionId.slice(0, 128),
+        revisionNo: bound.revisionNo as number }
+    }
+  }
   return { id: row.id, filename: row.filename.slice(0, 256), sourcePath: row.sourcePath.slice(0, 4096),
     format: row.format === 'xlsx' ? 'xlsx' : row.format === 'csv' ? 'csv' : '',
     fileSha256: row.fileSha256,
     sheets: row.sheets.slice(0, 32).map(toDatasetSheet),
     rowCount: row.rowCount as number, projectId: row.projectId, deviceId: row.deviceId.slice(0, 128),
     status: row.status === 'failed' ? 'failed' : 'ready',
+    revision,
     errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt }
 }
 
@@ -79,6 +91,10 @@ export class RuntimeProcess {
   private knowledgeIndexCancelRequests = new Map<string, { resolve: (result: { canceled: boolean }) => void; reject: (error: Error) => void }>()
   private knowledgeDeleteRequests = new Map<string, { resolve: (result: { deleted: number }) => void; reject: (error: Error) => void }>()
   private knowledgeRetryRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
+  // Issue 101: 删除=库新版本 (the successor revision a document-level delete
+  // registered) and the separate physical cleanup (purge + 原件已不在).
+  private knowledgeRevisionDeleteRequests = new Map<string, { resolve: (outcome: KnowledgeDeleteOutcome) => void; reject: (error: Error) => void }>()
+  private knowledgeCleanupRequests = new Map<string, { resolve: (outcome: KnowledgeCleanupOutcome) => void; reject: (error: Error) => void }>()
   private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
@@ -419,6 +435,52 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.knowledgeRetryRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import-retry', id, recordId, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 101: 删除=库新版本 — drop documents from one registered revision
+   * (named by their frozen content hashes) by registering the surviving
+   * frozen documents as the successor revision. The reply carries the new
+   * revision identity and the historical record it supersedes; progress
+   * facts ride the status snapshot as usual. */
+  async deleteKnowledgeDocuments(kbId: string, revisionId: string, contentHashes: string[]): Promise<KnowledgeDeleteOutcome> {
+    if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+    if (typeof revisionId !== 'string' || !revisionId || revisionId.length > 64) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+    if (!Array.isArray(contentHashes) || contentHashes.length < 1 || contentHashes.length > 200 ||
+        contentHashes.some((hash) => typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash))) throw new Error('KNOWLEDGE_DELETE_DOCUMENTS_INVALID')
+    if (this.knowledgeRevisionDeleteRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeRevisionDeleteRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 60000)
+      this.knowledgeRevisionDeleteRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.knowledgeRevisionDeleteRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeRevisionDeleteRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-revision-delete-documents', id, kbId, revisionId,
+        contentHashes, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 101: the user's separate physical cleanup — purge one revision's
+   * device index rows and offline snapshots and mark its references 原件已不
+   * 在. The renderer names the frozen identity only; the confirmation stays
+   * in the trusted main process. */
+  async cleanupKnowledgeRevision(kbId: string, revisionId: string, manifestHash: string): Promise<KnowledgeCleanupOutcome> {
+    if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+    if (typeof revisionId !== 'string' || !revisionId || revisionId.length > 64) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+    if (typeof manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(manifestHash)) throw new Error('KNOWLEDGE_INDEX_MANIFEST_INVALID')
+    if (this.knowledgeCleanupRequests.size) throw new Error('KNOWLEDGE_IMPORT_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeCleanupRequests.delete(id); reject(new Error('KNOWLEDGE_IMPORT_TIMEOUT')) }, 30000)
+      this.knowledgeCleanupRequests.set(id, {
+        resolve: (outcome) => { clearTimeout(timer); this.knowledgeCleanupRequests.delete(id); resolve(outcome) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeCleanupRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-revision-cleanup', id, kbId, revisionId,
+        manifestHash, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -835,14 +897,28 @@ export class RuntimeProcess {
       // The renderer-facing import command carries no path; only the
       // main-internal DatasetImportCommand reaches this far. The union is
       // not action-discriminable here, so the import shape is asserted and
-      // every field is re-validated below.
+      // every field is re-validated below. Issue 101: the optional knowledge
+      // revision binding (three more keys) rides along — kb and revision
+      // stand or fall together and the number is a bounded display fact.
       const picked = command as DatasetImportCommand
+      const keyCount = Object.keys(command).length
       if (typeof picked.path !== 'string' || !picked.path || picked.path.length > 32768 ||
           typeof picked.projectId !== 'string' || picked.projectId.length > 128 ||
           (picked.projectId && !/^[A-Za-z0-9_-]{1,128}$/.test(picked.projectId)) ||
-          Object.keys(command).length !== 3) throw new Error('DATASETS_COMMAND_INVALID')
+          (keyCount !== 3 && keyCount !== 6)) throw new Error('DATASETS_COMMAND_INVALID')
+      if (keyCount === 6 && (typeof picked.kbId !== 'string' || !picked.kbId ||
+          picked.kbId.length > 128 || typeof picked.revisionId !== 'string' || !picked.revisionId ||
+          picked.revisionId.length > 128 || !Number.isSafeInteger(picked.revisionNo) ||
+          (picked.revisionNo as number) < 0 || (picked.revisionNo as number) > 1000000)) {
+        throw new Error('DATASETS_COMMAND_INVALID')
+      }
       wire.path = picked.path
       wire.projectId = picked.projectId
+      if (keyCount === 6) {
+        wire.kbId = picked.kbId
+        wire.revisionId = picked.revisionId
+        wire.revisionNo = picked.revisionNo
+      }
     } else {
       if (typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId) ||
           Object.keys(command).length !== 2) throw new Error('DATASETS_COMMAND_INVALID')
@@ -1434,6 +1510,48 @@ export class RuntimeProcess {
               manifestHash: outcome.manifestHash, documentCount: outcome.documentCount })
             continue
           }
+          if (value.v === 1 && value.type === 'knowledge-revision-delete-documents') {
+            const pending = this.knowledgeRevisionDeleteRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeRevisionDeleteRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            // Issue 101: the successor revision must be a complete frozen
+            // identity, or the delete never happened and nothing may
+            // impersonate it.
+            const revision = outcome?.revision
+            if (!outcome || typeof outcome.kbId !== 'string' ||
+                !Number.isSafeInteger(outcome.removedDocuments) || outcome.removedDocuments < 0 ||
+                !revision || typeof revision.kbId !== 'string' || typeof revision.revisionId !== 'string' ||
+                !Number.isSafeInteger(revision.revisionNo) || typeof revision.manifestHash !== 'string' ||
+                !/^[0-9a-f]{64}$/.test(revision.manifestHash) || !Number.isSafeInteger(revision.documentCount) ||
+                typeof outcome.supersededRecordId !== 'string' ||
+                !/^[0-9a-f]{64}$/.test(outcome.supersededRecordId)) {
+              this.knowledgeRevisionDeleteRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
+              continue
+            }
+            pending.resolve({ kbId: outcome.kbId, removedDocuments: outcome.removedDocuments,
+              revision: { kbId: revision.kbId, revisionId: revision.revisionId, revisionNo: revision.revisionNo,
+                manifestHash: revision.manifestHash, documentCount: revision.documentCount },
+              supersededRecordId: outcome.supersededRecordId })
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-revision-cleanup') {
+            const pending = this.knowledgeCleanupRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeCleanupRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                (outcome.indexPurged !== true && outcome.indexPurged !== false) ||
+                !Number.isSafeInteger(outcome.snapshotsPurged) || outcome.snapshotsPurged < 0) {
+              this.knowledgeCleanupRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_IMPORT_FAILED'))
+              continue
+            }
+            pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId,
+              indexPurged: outcome.indexPurged === true, snapshotsPurged: outcome.snapshotsPurged })
+            continue
+          }
           if (value.v === 1 && value.type === 'knowledge-publish') {
             const pending = this.knowledgePublishRequests.get(value.id)
             if (!pending) continue
@@ -1563,6 +1681,10 @@ export class RuntimeProcess {
               kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, status: outcome.status,
               generated: outcome.generated, failed: outcome.failed,
+              // Issue 101: the 离线快照 annotation rides only when the Runtime
+              // served the cached copy; a live view never claims it.
+              offline: outcome.offline === true ? true : undefined,
+              capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined,
               entities: outcome.entities.slice(0, 200).map((row: Record<string, unknown>) => ({
                 name: text(row?.name, 200), type: text(row?.type, 64),
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255) })),
@@ -1611,7 +1733,10 @@ export class RuntimeProcess {
                 manifestHash: outcome.manifestHash, documentId: outcome.documentId,
                 filename: text(outcome.filename, 255), title: text(outcome.title, 200),
                 contentHash: text(outcome.contentHash, 64), status: outcome.status,
-                errorCode: text(outcome.errorCode, 64), body })
+                errorCode: text(outcome.errorCode, 64), body,
+                // Issue 101: the cached page read keeps its 离线快照 annotation.
+                offline: outcome.offline === true ? true : undefined,
+                capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined })
               continue
             }
             // Wiki page list: only the Server's own page/progress/source facts.
@@ -1625,6 +1750,8 @@ export class RuntimeProcess {
             pending.resolve({ kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, status: outcome.status,
               generated: outcome.generated, failed: outcome.failed, skipped: outcome.skipped,
+              offline: outcome.offline === true ? true : undefined,
+              capturedAt: typeof outcome.capturedAt === 'string' ? outcome.capturedAt : undefined,
               pages: outcome.pages.slice(0, 200).map((row: Record<string, unknown>) => ({
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
                 title: text(row?.title, 200), contentHash: text(row?.contentHash, 64),
@@ -2343,6 +2470,12 @@ export class RuntimeProcess {
                 documentCount: row.documentCount, status: row.status === 'registered' ? 'registered' : 'failed',
                 errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt,
                 projectId: typeof row.projectId === 'string' ? row.projectId : '',
+                // Issue 101: the version-semantics display facts — the
+                // user-confirmed cleanup marker, the successor pointer, and
+                // the derived historical flag; all optional, never invented.
+                originalsMissing: row.originalsMissing === true ? true : undefined,
+                supersededBy: typeof row.supersededBy === 'string' ? row.supersededBy : undefined,
+                historical: row.historical === true ? true : undefined,
                 source: row.source && typeof row.source === 'object' && typeof (row.source as { folder?: unknown }).folder === 'string'
                   ? { kind: typeof (row.source as { kind?: unknown }).kind === 'string' ? String((row.source as { kind?: unknown }).kind) : '',
                       folder: String((row.source as { folder?: unknown }).folder),

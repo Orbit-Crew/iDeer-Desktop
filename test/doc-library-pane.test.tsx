@@ -84,6 +84,19 @@ const stubIdeer = (impl: { reject?: string; outcomeOverrides?: Record<string, un
     cancelKnowledgeIndexRebuild: vi.fn(() => {
       calls.push({ method: 'cancelKnowledgeIndexRebuild', args: [] })
       return Promise.resolve({ canceled: true })
+    }),
+    // Issue 101: 删除=库新版本 and the separate physical cleanup.
+    deleteKnowledgeDocuments: vi.fn((kbId: string, revisionId: string, contentHashes: string[]) => {
+      calls.push({ method: 'deleteKnowledgeDocuments', args: [kbId, revisionId, contentHashes] })
+      return impl.reject ? Promise.reject(new Error(impl.reject)) : Promise.resolve({
+        kbId, removedDocuments: contentHashes.length,
+        revision: { kbId, revisionId: 'e'.repeat(64), revisionNo: 3, manifestHash: 'e'.repeat(64), documentCount: 1 },
+        supersededRecordId: 'a'.repeat(64) })
+    }),
+    cleanupKnowledgeRevision: vi.fn((kbId: string, revisionId: string, manifestHash: string) => {
+      calls.push({ method: 'cleanupKnowledgeRevision', args: [kbId, revisionId, manifestHash] })
+      return impl.reject ? Promise.reject(new Error(impl.reject))
+        : Promise.resolve({ kbId, revisionId, indexPurged: true, snapshotsPurged: 1 })
     })
   }
   return { calls }
@@ -274,5 +287,57 @@ describe('doc library pane (issue 97 index facts)', () => {
     const statuses = await screen.findAllByTestId('doc-library-index-status')
     expect(statuses[0].textContent).toContain('检索索引失败：KNOWLEDGE_INDEX_FAILED')
     expect(statuses[1].textContent).toContain('检索索引：状态未知')
+  })
+})
+
+describe('doc library pane (issue 101 version semantics)', () => {
+  it('marks historical versions and the user-confirmed 原件已不在 on the record', async () => {
+    stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [
+      importRow({ historical: true, supersededBy: 'e'.repeat(64) }),
+      importRow({ id: '9'.repeat(64), revisionNo: 3, originalsMissing: true })
+    ] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    const list = await screen.findByRole('list', { name: '导入记录列表' })
+    expect(list.textContent).toContain('已完成：已登记版本 R2 · 2 个文件（历史版本）')
+    expect(list.textContent).toContain('已完成：已登记版本 R3 · 2 个文件（原件已不在）')
+  })
+
+  it('expands the document list and deletes the selection through the trusted bridge', async () => {
+    const { calls } = stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow({ index: indexView() })] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.click(await screen.findByRole('button', { name: '管理文档 ffffffff' }))
+    const documents = await screen.findByTestId('doc-library-documents')
+    expect(documents.textContent).toContain('guide.md')
+    expect(documents.textContent).toContain('notes.txt')
+    expect(documents.textContent).toContain('删除=库新版本')
+    // Refusing to select everything is honest: an empty successor library is
+    // not a delete, it is dropping the record (the Runtime refuses it too).
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择文档 guide.md' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择文档 notes.txt' }))
+    expect((screen.getByRole('button', { name: '删除所选文档' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择文档 notes.txt' }))
+    fireEvent.click(screen.getByRole('button', { name: '删除所选文档' }))
+    await waitFor(() => expect(calls.some((call) => call.method === 'deleteKnowledgeDocuments'), { timeout: 5000 }).toBe(true))
+    // guide.md stays selected (notes.txt was toggled back off): the delete
+    // names exactly the frozen hash of the document that leaves the library.
+    expect(calls.find((call) => call.method === 'deleteKnowledgeDocuments')?.args)
+      .toEqual([KB, 'f'.repeat(64), ['c'.repeat(64)]])
+  })
+
+  it('offers the separate cleanup with the frozen identity and hides it once cleaned', async () => {
+    const { calls } = stubIdeer()
+    statusFixture = runtimeStatus({ knowledgeImports: [
+      importRow({ index: indexView() }),
+      importRow({ id: '9'.repeat(64), revisionNo: 3, originalsMissing: true })
+    ] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.click(await screen.findByRole('button', { name: '清理本机索引 ffffffff' }))
+    await waitFor(() => expect(calls.some((call) => call.method === 'cleanupKnowledgeRevision'), { timeout: 5000 }).toBe(true))
+    expect(calls.find((call) => call.method === 'cleanupKnowledgeRevision')?.args)
+      .toEqual([KB, 'f'.repeat(64), 'b'.repeat(64)])
+    // A cleaned revision offers no second cleanup — the marker is the fact.
+    expect(screen.queryByRole('button', { name: '清理本机索引 99999999' })).toBeNull()
   })
 })

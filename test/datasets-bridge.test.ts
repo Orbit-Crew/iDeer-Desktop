@@ -17,6 +17,12 @@ describe('datasets bridge contract (#102)', () => {
       { action: 'import', path: 'C:/t.csv', projectId: 'p'.repeat(129) },
       { action: 'import', path: 'C:/t.csv', projectId: 'bad id!' },
       { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', extra: true },
+      // Issue 101: the optional revision binding's malformed shapes refuse.
+      { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', kbId: '', revisionId: 'r', revisionNo: 1 },
+      { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', kbId: 'kb', revisionId: '', revisionNo: 1 },
+      { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', kbId: 'kb', revisionId: 'r', revisionNo: -1 },
+      { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', kbId: 'kb', revisionId: 'r', revisionNo: 1000001 },
+      { action: 'import', path: 'C:/t.csv', projectId: 'proj-1', kbId: 'kb', revisionId: 'r' },
       { action: 'delete' },
       { action: 'delete', datasetId: '' },
       { action: 'delete', datasetId: 'not-hex' },
@@ -64,7 +70,9 @@ describe('datasets bridge contract (#102)', () => {
       errorCode: 'DATASETS_PARSE_FAILED', createdAt: '2026-11-07T00:00:00'
     }
     expect(toDatasetView(recognizedFormat)).toEqual({
-      ...recognizedFormat, format: 'xlsx', sheets: [], errorCode: 'DATASETS_PARSE_FAILED'
+      ...recognizedFormat, format: 'xlsx', sheets: [], errorCode: 'DATASETS_PARSE_FAILED',
+      // Issue 101: an unbound row reads as exactly null, never a made-up identity.
+      revision: null
     })
     // A suffix that named no supported format is an honest '' — on failed rows only.
     const unknownFormat = { ...recognizedFormat, filename: 'legacy.xls', format: '',
@@ -86,5 +94,17 @@ describe('datasets bridge contract (#102)', () => {
     expect(() => toDatasetView({ ...readyRow, sheets: [
       { name: 'wide', fingerprint: 'e'.repeat(64), schema: '', rowCount: 1, colCount: 128,
         truncated: false }] })).toThrow('Invalid dataset sheet')
+    // Issue 101: the revision binding parses exactly as recorded, and a
+    // partial one degrades to unbound instead of inventing an identity.
+    const bound = {
+      ...readyRow,
+      revision: { kbId: '33333333-3333-4333-8333-333333333333',
+        revisionId: '77777777-7777-4777-8777-777777777777', revisionNo: 3 }
+    }
+    expect(toDatasetView(bound).revision).toEqual({
+      kbId: '33333333-3333-4333-8333-333333333333',
+      revisionId: '77777777-7777-4777-8777-777777777777', revisionNo: 3 })
+    expect(toDatasetView({ ...bound, revision: { kbId: '', revisionId: 'r', revisionNo: 1 } }).revision).toBeNull()
+    expect(toDatasetView({ ...bound, revision: 'not-an-object' }).revision).toBeNull()
   })
 })

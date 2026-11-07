@@ -31,6 +31,7 @@ from .knowledge_import import (KnowledgeFolderImport, KnowledgeImportError, Know
                                category_for)
 from .knowledge_index import KnowledgeIndexError, KnowledgeIndexRebuild, KnowledgeIndexStore
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
+from .knowledge_snapshots import KnowledgeSnapshotStore
 from .project_binding import ProjectBindingError, ProjectBindingRegistry
 from .skill_import import SkillImportError, SkillImportRegistry
 from .skill_script import SkillScriptError
@@ -212,6 +213,35 @@ def main() -> int:
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_manage_commands.put_nowait(command)
                     continue
+                # Issue 101: 删除=库新版本 — the renderer names the frozen
+                # revision and the documents to drop, identified by their own
+                # frozen content hashes (the device-side document identity;
+                # the platform's document ids never appear in a record).
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'contentHashes', 'scope'}
+                        and command['type'] == 'knowledge-revision-delete-documents' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64 and isinstance(command['contentHashes'], list)
+                        and 1 <= len(command['contentHashes']) <= 200
+                        and all(isinstance(item, str) and re.fullmatch(r'[0-9a-f]{64}', item)
+                                for item in command['contentHashes'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
+                    continue
+                # Issue 101: the separate physical cleanup — purge one
+                # revision's device index rows and offline snapshots and mark
+                # its references 原件已不在. The renderer names the frozen
+                # identity only; the marker is user-confirmed in main.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'manifestHash', 'scope'}
+                        and command['type'] == 'knowledge-revision-cleanup' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and isinstance(command['manifestHash'], str)
+                        and re.fullmatch(r'[0-9a-f]{64}', command['manifestHash'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'paths', 'confirmed', 'scope'}
                         and command['type'] == 'knowledge-publish' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
@@ -334,13 +364,17 @@ def main() -> int:
                 # Issue 102: the table dataset family. A fixed per-action key
                 # set only: import names the main-process-picked file and the
                 # selected platform project (empty = unassociated), delete
-                # names the registry row. The path never reaches a renderer.
+                # names the registry row. Issue 101: the import may carry the
+                # optional knowledge revision binding (一套版本规矩) — kbId and
+                # revisionId stand or fall together and the revision number is
+                # a bounded display fact. The path never reaches a renderer.
                 # The per-action fields are read with .get so a cross-action
                 # key set can never raise inside this reader (the loop guard
                 # only catches ValueError/queue.Full), matching the
                 # knowledge-graph/skill-scripts gate idiom.
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'path', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'path', 'projectId', 'kbId', 'revisionId', 'revisionNo', 'scope'},
                         {'type', 'id', 'action', 'datasetId', 'scope'})
                         and command.get('type') == 'datasets' and isinstance(command.get('id'), str)
                         and len(command['id']) <= 64
@@ -349,7 +383,14 @@ def main() -> int:
                         and (command['action'] != 'import' or (
                             isinstance(command.get('path'), str) and 0 < len(command['path']) <= 32768
                             and isinstance(command.get('projectId'), str)
-                            and len(command['projectId']) <= 128))
+                            and len(command['projectId']) <= 128
+                            and isinstance(command.get('kbId', ''), str)
+                            and len(command.get('kbId', '')) <= 128
+                            and isinstance(command.get('revisionId', ''), str)
+                            and len(command.get('revisionId', '')) <= 128
+                            and type(command.get('revisionNo', 0)) is int
+                            and 0 <= command.get('revisionNo', 0) <= 1000000
+                            and bool(command.get('kbId', '')) == bool(command.get('revisionId', ''))))
                         and (command['action'] != 'delete' or (
                             isinstance(command.get('datasetId'), str)
                             and 0 < len(command['datasetId']) <= 128))):
@@ -567,6 +608,10 @@ def main() -> int:
         # Issue 97: the device BM25 index behind the frozen revisions — the
         # same binding-scoped identity discipline, device-local text only.
         knowledge_index = KnowledgeIndexStore(args.config.with_name('knowledge-index.db'))
+        # Issue 101: the offline snapshot cache for the graph/wiki views —
+        # display fact only, so an unreadable store degrades to "no offline
+        # copy" instead of ever failing a successful view.
+        knowledge_snapshots = KnowledgeSnapshotStore(args.config.with_name('knowledge-snapshots.db'))
         # Issue 102: table dataset imports keep the same registry discipline —
         # device-local display facts (schema, counts, fingerprints), never row
         # data, and the original file stays on this machine.
@@ -605,7 +650,8 @@ def main() -> int:
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
             session_tiers=session_tiers, inline_scripts=inline_scripts,
-            project_bindings=project_bindings, knowledge_index=knowledge_index)
+            project_bindings=project_bindings, knowledge_index=knowledge_index,
+            knowledge_snapshots=knowledge_snapshots)
         # Issue 96: the doc library's background folder import. One job at a
         # time on its own daemon thread; progress rides the status snapshot
         # and the cancel command lands at the next file or batch boundary.
@@ -850,6 +896,41 @@ def main() -> int:
                         owner = profile_binding(load_settings(args.config)) \
                             if login.status()['state'] == 'authenticated' else None
                         result = {'deleted': knowledge_imports.delete(owner, manage_command['ids'])}
+                    elif manage_command['type'] == 'knowledge-revision-delete-documents':
+                        # Issue 101: 删除=库新版本. The authenticated binding is
+                        # the fence — only a revision this identity registered
+                        # on this device can re-register its surviving
+                        # documents as the successor revision; no original is
+                        # read or touched.
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            raise KnowledgeImportError('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+                        result = chat.delete_revision_documents(manage_command['kbId'],
+                                                                manage_command['revisionId'],
+                                                                manage_command['contentHashes'])
+                    elif manage_command['type'] == 'knowledge-revision-cleanup':
+                        # Issue 101: the user's separate physical cleanup. The
+                        # registration lookup is the same fail-closed fence the
+                        # rebuild uses. Each step is atomic; the display marker
+                        # lands last, so a failed step leaves an honest
+                        # incomplete state the user can retry — 本机原件文件
+                        # themselves are never touched by this device.
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            raise KnowledgeImportError('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+                        if knowledge_imports.find_registration(owner, manage_command['revisionId'],
+                                                               manage_command['manifestHash']) is None:
+                            raise KnowledgeImportError('KNOWLEDGE_CLEANUP_REVISION_UNKNOWN')
+                        purged = knowledge_index.purge_revision(owner, manage_command['revisionId'],
+                                                                manage_command['manifestHash'])
+                        snapshots_purged = knowledge_snapshots.purge(owner, manage_command['kbId'],
+                                                                     manage_command['revisionId'])
+                        knowledge_imports.mark_originals_missing(owner, manage_command['kbId'],
+                                                                 manage_command['revisionId'], True)
+                        result = {'kbId': manage_command['kbId'], 'revisionId': manage_command['revisionId'],
+                                  'indexPurged': purged > 0, 'snapshotsPurged': snapshots_purged}
                     else:
                         result = chat.retry_import_record(manage_command['recordId'])
                 except Exception as exc:
@@ -1276,6 +1357,21 @@ def main() -> int:
                         row['index'] = None
                 else:
                     row['index'] = None
+            # Issue 101: 历史版本 — within one KB, every registered revision
+            # below the highest registered revision on this device is a
+            # historical version (删除=库新版本 and 重导入 coexist with it
+            # until the user cleans up). Derived from the rows, never stored:
+            # the marker cannot outlive the facts it summarizes.
+            latest_revision_by_kb: dict = {}
+            for row in knowledge_rows[:20]:
+                if row.get('status') == 'registered':
+                    kb_id = row.get('kbId')
+                    revision_no = row.get('revisionNo') or 0
+                    if isinstance(kb_id, str) and revision_no > latest_revision_by_kb.get(kb_id, 0):
+                        latest_revision_by_kb[kb_id] = revision_no
+            for row in knowledge_rows[:20]:
+                row['historical'] = row.get('status') == 'registered' and \
+                    (row.get('revisionNo') or 0) < latest_revision_by_kb.get(row.get('kbId'), 0)
             try:
                 knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgePublishError:
