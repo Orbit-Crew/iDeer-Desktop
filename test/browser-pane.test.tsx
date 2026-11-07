@@ -281,3 +281,14 @@ describe('browser pane facts (issue 107)', () => {
     expect(container.textContent).not.toContain('已拒绝「通知」权限请求')
   })
 })
+
+describe('agent control announce lines (issue 108)', () => {
+  it('announces each agent action on the pane as 正在控制本机浏览器', () => {
+    const { emit } = harness()
+    const { container } = render(<BrowserPane instanceId="inst-1" panelType="browser" />)
+    emit({ kind: 'agent-control', intent: 'input', action: 'navigate', url: 'https://example.com/report' })
+    emit({ kind: 'agent-control', intent: 'observe', action: 'observe', url: '' })
+    expect(container.textContent).toContain('Agent 正在控制本机浏览器：导航到 https://example.com/report')
+    expect(container.textContent).toContain('Agent 正在控制本机浏览器：观察页签列表')
+  })
+})

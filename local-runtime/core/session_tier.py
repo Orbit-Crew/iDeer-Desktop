@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .audit import AuditKind
+from .browser_control import BROWSER_CONTROL_CAPABILITY, browser_intent_of
 from .compat import StrEnum
 
 
@@ -75,6 +76,25 @@ def payload_anchor(payload: dict[str, Any], capability: str) -> str:
     return ""
 
 
+def browser_tier_decision(tier: SessionTier, payload: dict[str, Any]) -> GateDecision:
+    """#108: the browser pane's own tier rule, applied after ASK_FIRST.
+
+    观察 is a read of the pane's state and may auto-run in the upgraded
+    tiers; input, submit and download mutate live pages or produce files,
+    so only ``full`` stands answer for them. An intent the rule cannot
+    name falls back to asking in every tier - the tier never widens what
+    it cannot classify, and the ordinary consent flow renders the ask.
+    """
+    intent = browser_intent_of(payload)
+    if not intent:
+        return GateDecision.ASK
+    if tier is SessionTier.FULL:
+        return GateDecision.ALLOW
+    if intent == "observe":
+        return GateDecision.ALLOW
+    return GateDecision.ASK
+
+
 def tier_gate_decision(
     tier: SessionTier,
     capability: str,
@@ -92,6 +112,10 @@ def tier_gate_decision(
     """
     if tier is SessionTier.ASK_FIRST:
         return GateDecision.ASK
+    if capability == BROWSER_CONTROL_CAPABILITY:
+        # #108: the pane is not folder-anchored, so the workspace classifier
+        # cannot reach it; its own intent rule answers instead.
+        return browser_tier_decision(tier, payload)
     if capability not in TIER_FULL_CAPABILITIES:
         return GateDecision.ASK
     anchor = payload_anchor(payload, capability)

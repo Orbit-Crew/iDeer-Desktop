@@ -90,6 +90,14 @@ def render_consent_summary(
         summary["arguments"] = text(
             json.dumps(payload.get("arguments", {}), ensure_ascii=False)
         )
+    elif capability == "local.browser.control":
+        # Issue 108: the ask names the intent and the page target before the
+        # agent touches the pane; page content itself never rides the summary.
+        from .browser_control import browser_intent_of
+
+        summary["action"] = "drive the local browser pane on this device"
+        summary["intent"] = text(browser_intent_of(payload))
+        summary["target"] = text(payload.get("url", ""))
     elif "path" in payload:
         summary["target"] = text(payload["path"])
         summary["size"] = text(len(str(payload.get("content", "")))) + " characters"

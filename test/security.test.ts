@@ -115,6 +115,13 @@ describe('bootstrap capability boundary', () => {
     // the platform owns timing, previews and execution records through the
     // Runtime's pinned contract client, a delete is confirmed in the trusted
     // main process, and 补跑/跳过 facts are device-local display truth.
+    // Issue 102 adds desktop:datasets for 表格数据集导入: the renderer names
+    // the action and the project association only; the file is picked and
+    // both import and delete are confirmed in the trusted main process, the
+    // device parses XLSX/CSV into a real registry row (multi-sheet, inferred
+    // column types, content fingerprints), duplicate content answers an
+    // explicit duplicate instead of a second row, and the original file
+    // never leaves the machine — a delete removes the registry row only.
     // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
     // resize and kill on desktop-local PTY sessions — a separate minimal
     // bridge that never rides the trusted desktop:* channel.
@@ -124,7 +131,7 @@ describe('bootstrap capability boundary', () => {
     // and triangle caps run in the trusted main process, and the reply is one
     // bounded mesh payload — never a physical path or raw file bytes.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:cad', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:cad', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events

@@ -87,8 +87,11 @@ async function main() {
     // the templates family's one pinned channel (the channel inventory in
     // test/security.test.ts stays one desktop:templates entry).
     // Issue 115 adds the CAD viewer's one read entry (`cad`).
+    // Issue 102 adds the datasets entry: 表格数据集导入 — the renderer names
+    // the action and the project association only; file picking and both
+    // confirmations stay in the trusted main process.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'browser', 'cad', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'files', 'getStatus',
+      'beginLogin', 'browser', 'cad', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
       'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
