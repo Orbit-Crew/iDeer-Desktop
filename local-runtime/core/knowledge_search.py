@@ -8,13 +8,20 @@ drifted, missing, or unreadable document is reported as structured missing
 and never substituted with current content. Results reference documents by
 platform identity and workspace logical paths only; physical paths never
 leave the device.
+
+Since #97 the answering itself has two engines. The device BM25 index
+(``search_frozen_revision_indexed``) ranks the hash-verified frozen content
+and locates hits by line and page anchor; the original literal line scan
+(``search_frozen_revision``) stays as the visible degraded fallback for a
+revision whose index is missing, incomplete, or failed, and the result
+always names the engine that answered.
 """
 from __future__ import annotations
 
 import hashlib
 import re
 import uuid
-from typing import Any
+from typing import Any, Callable
 
 from .files import FileAccessError
 
@@ -83,18 +90,14 @@ def parse_search_payload(args: Any) -> dict[str, Any]:
     return {"query": query, "revision_id": revision_id, "manifest_hash": manifest_hash, "documents": parsed}
 
 
-def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root: str) -> dict[str, Any]:
-    """Re-validate every frozen document against live bytes, then search.
+def locate_frozen_files(files: Any, logical_root: str) -> tuple[dict[str, list[str]], bool]:
+    """The bounded workspace walk shared by retrieval and index rebuild (#97).
 
-    The workspace store boundary performs every read, so links, junctions,
-    protected paths, and out-of-root files fail closed exactly as for
-    ``local.files.search``. A document whose bytes no longer hash to the
-    frozen digest contributes nothing: the answer is never impersonated with
-    current content.
+    Maps lowercase file names to their workspace-logical paths, bounded by
+    ``MAX_SEARCH_FILES``; ``truncated`` reports honestly when the bound cut
+    the walk. Every read goes through the workspace store boundary, so
+    links, junctions, protected paths, and out-of-root files fail closed.
     """
-
-    query = payload["query"]
-    frozen = payload["documents"]
     candidates: dict[str, list[str]] = {}
     scanned = 0
     truncated = False
@@ -121,11 +124,28 @@ def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root:
             continue
         name = current.rstrip("/").rsplit("/", 1)[-1].lower()
         candidates.setdefault(name, []).append(current)
+    return candidates, truncated
 
-    chunks: list[dict[str, Any]] = []
+
+def revalidate_frozen_documents(payload: dict[str, Any], *, files: Any, candidates: dict[str, list[str]],
+                                serve: Callable[[dict[str, Any], str, bytes], bool] | None = None
+                                ) -> tuple[dict[str, str], list[dict[str, Any]]]:
+    """Content-addressed revalidation of every frozen manifest document.
+
+    Each document must still live at a name-matched workspace path and hash
+    to its frozen digest before it can contribute anything. The digest and
+    the served content always come from the same single read, so there is no
+    window where a line is answered from bytes the digest does not describe.
+    ``serve`` (when given) is called once per verified document with those
+    exact bytes and returns False to mark it not_searchable — content that
+    verifies but offers no honest line model. Returns the verified
+    ``{document_id: logical_path}`` mapping and the structured ``missing``
+    list (content_drift / not_searchable / file_unavailable) for the rest.
+    """
+    verified: dict[str, str] = {}
     missing: list[dict[str, Any]] = []
     reasons = {"drift": "content_drift", "not_searchable": "not_searchable"}
-    for document in frozen:
+    for document in payload["documents"]:
         outcome = "unavailable"
         for logical_path in candidates.get(document["filename"].lower(), []):
             try:
@@ -137,33 +157,151 @@ def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root:
                 if outcome == "unavailable":
                     outcome = "drift"
                 continue
-            try:
-                text = raw.decode("utf-8")
-                if "\x00" in text:
-                    raise UnicodeError()
-            except UnicodeError:
-                # Frozen bytes verified, but no line model exists for the
-                # content: report it instead of pretending to search it.
+            if serve is not None and not serve(document, logical_path, raw):
                 outcome = "not_searchable"
                 break
+            verified[document["document_id"]] = logical_path
             outcome = "matched"
-            for number, line in enumerate(text.splitlines(), 1):
-                if query in line:
-                    chunks.append({
-                        "document_id": document["document_id"],
-                        "document_keyword": document["filename"],
-                        "content": line[:MAX_LINE_CHARS],
-                        "position": {"logical_path": logical_path, "line": number},
-                    })
-                    if len(chunks) >= MAX_MATCHES:
-                        truncated = True
-                        break
             break
         if outcome != "matched":
-            missing.append({"document_id": document["document_id"], "reason": reasons.get(outcome, "file_unavailable")})
+            missing.append({"document_id": document["document_id"],
+                            "reason": reasons.get(outcome, "file_unavailable")})
+    return verified, missing
+
+
+def search_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root: str) -> dict[str, Any]:
+    """Re-validate every frozen document against live bytes, then scan.
+
+    The degraded literal-scan path (#97): kept as the visible fallback for a
+    revision whose index is missing, incomplete, or failed, and for queries
+    that tokenize to nothing. A document whose bytes no longer hash to the
+    frozen digest contributes nothing: the answer is never impersonated with
+    current content.
+    """
+
+    query = payload["query"]
+    frozen = payload["documents"]
+    candidates, truncated = locate_frozen_files(files, logical_root)
+    chunks: list[dict[str, Any]] = []
+    overflow = [False]
+
+    def scan(document: dict[str, Any], logical_path: str, raw: bytes) -> bool:
+        try:
+            text = raw.decode("utf-8")
+            if "\x00" in text:
+                raise UnicodeError()
+        except UnicodeError:
+            # Frozen bytes verified, but no line model exists for the
+            # content: report it instead of pretending to search it.
+            return False
+        for number, line in enumerate(text.splitlines(), 1):
+            if query in line:
+                chunks.append({
+                    "document_id": document["document_id"],
+                    "document_keyword": document["filename"],
+                    "content": line[:MAX_LINE_CHARS],
+                    "position": {"logical_path": logical_path, "line": number},
+                })
+                if len(chunks) >= MAX_MATCHES:
+                    overflow[0] = True
+                    break
+        return True
+
+    verified, missing = revalidate_frozen_documents(payload, files=files, candidates=candidates, serve=scan)
+    return {
+        "chunks": chunks,
+        "missing": missing,
+        "truncated": truncated or overflow[0],
+        "documentsMatched": len(frozen) - len(missing),
+        "engine": "literal",
+    }
+
+
+def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logical_root: str,
+                                   index: Any, binding: Any) -> dict[str, Any]:
+    """Answer a frozen revision's retrieval from the device BM25 index (#97).
+
+    The #113 contract holds unchanged: every document is re-validated
+    content-addressed before anything is served — the walk and the digest
+    comparison still run per search, so a drifted or missing document is
+    reported as structured missing and never answered from the index. What
+    changes is the answering itself: intact documents are ranked by BM25
+    over the index that was built from their hash-verified frozen bytes,
+    and each hit carries the line and the page anchor of the frozen parse.
+    A verified document the index cannot honestly serve text for (it parsed
+    as skipped or failed at import) is reported ``not_searchable`` — the
+    same structured missing the literal engine answers, never a silent gap.
+
+    The per-document facts the search observed (verified or drifted) are
+    recorded on the index store so the doc library can annotate 已过期
+    instead of pretending the index is current.
+    """
+    from .knowledge_index import line_page_marks, page_for_line
+
+    frozen = payload["documents"]
+    candidates, truncated = locate_frozen_files(files, logical_root)
+    verified, missing = revalidate_frozen_documents(payload, files=files, candidates=candidates)
+    by_id = {document["document_id"]: document for document in frozen}
+    # Verified bytes the index cannot serve text for are not_searchable —
+    # the honest structured missing, exactly what the literal scan reports.
+    try:
+        servable = index.servable_identities(binding, payload["revision_id"], payload["manifest_hash"])
+    except Exception:
+        servable = None
+    unservable: list[dict[str, Any]] = []
+    if servable is not None:
+        for document_id, _logical_path in list(verified.items()):
+            document = by_id[document_id]
+            if (document["filename"], document["content_hash"]) not in servable:
+                verified.pop(document_id)
+                unservable.append({"document_id": document_id, "reason": "not_searchable"})
+    missing.extend(unservable)
+    chunks: list[dict[str, Any]] = []
+    if verified:
+        matches = index.search(binding, payload["revision_id"], payload["manifest_hash"],
+                               payload["query"], limit=MAX_MATCHES)
+        by_name = {(document["filename"], document["contentHash"]): document for document in matches["documents"]}
+        truncated = truncated or bool(matches.get("moreAvailable"))
+        for document in frozen:
+            logical_path = verified.get(document["document_id"])
+            if logical_path is None:
+                continue
+            ranked = by_name.get((document["filename"], document["content_hash"]))
+            if ranked is None:
+                continue
+            lines = ranked["text"].splitlines()
+            marks = line_page_marks(ranked["layout"])
+            hit_lines = sorted({line for positions in ranked["termLines"].values() for line in positions})
+            for number in hit_lines:
+                if not 1 <= number <= len(lines):
+                    continue
+                chunks.append({
+                    "document_id": document["document_id"],
+                    "document_keyword": document["filename"],
+                    "content": lines[number - 1][:MAX_LINE_CHARS],
+                    "position": {"logical_path": logical_path, "line": number,
+                                 "page": page_for_line(marks, number)},
+                })
+                if len(chunks) >= MAX_MATCHES:
+                    truncated = True
+                    break
+            if len(chunks) >= MAX_MATCHES:
+                break
+    verified_pairs = [(by_id[document_id]["filename"], by_id[document_id]["content_hash"])
+                      for document_id in verified]
+    drifted_pairs = [(by_id[entry["document_id"]]["filename"], by_id[entry["document_id"]]["content_hash"])
+                     for entry in missing if entry["reason"] == "content_drift"]
+    try:
+        index.observe_documents(binding, payload["revision_id"], payload["manifest_hash"],
+                                verified=verified_pairs, drifted=drifted_pairs)
+        view = index.revision_view(binding, payload["revision_id"], payload["manifest_hash"])
+    except Exception:
+        view = None
     return {
         "chunks": chunks,
         "missing": missing,
         "truncated": truncated,
         "documentsMatched": len(frozen) - len(missing),
+        "engine": "bm25",
+        "index": view,
     }

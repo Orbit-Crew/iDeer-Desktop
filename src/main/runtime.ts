@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -74,9 +74,12 @@ export class RuntimeProcess {
   // batch management of the import records (delete, retry).
   private knowledgeFolderRequests = new Map<string, { resolve: (job: KnowledgeFolderJobView) => void; reject: (error: Error) => void }>()
   private knowledgeFolderCancelRequests = new Map<string, { resolve: (result: { canceled: boolean }) => void; reject: (error: Error) => void }>()
+  // Issue 97: the index rebuild's single-slot request maps.
+  private knowledgeIndexRequests = new Map<string, { resolve: (job: KnowledgeIndexJobView) => void; reject: (error: Error) => void }>()
+  private knowledgeIndexCancelRequests = new Map<string, { resolve: (result: { canceled: boolean }) => void; reject: (error: Error) => void }>()
   private knowledgeDeleteRequests = new Map<string, { resolve: (result: { deleted: number }) => void; reject: (error: Error) => void }>()
   private knowledgeRetryRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
-  private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
+  private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
@@ -351,6 +354,40 @@ export class RuntimeProcess {
     })
   }
 
+  /** Issue 97: start one registered revision's background index rebuild. The
+   * reply is the job's running view; progress and the honest outcome ride the
+   * status snapshot, and the Runtime re-verifies every frozen digest. */
+  async rebuildKnowledgeIndex(kbId: string, revisionId: string, manifestHash: string): Promise<KnowledgeIndexJobView> {
+    if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+    if (typeof revisionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(revisionId)) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+    if (typeof manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(manifestHash)) throw new Error('KNOWLEDGE_INDEX_MANIFEST_INVALID')
+    if (this.knowledgeIndexRequests.size) throw new Error('KNOWLEDGE_INDEX_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running' || !this.selectionScope) throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeIndexRequests.delete(id); reject(new Error('KNOWLEDGE_INDEX_TIMEOUT')) }, 30000)
+      this.knowledgeIndexRequests.set(id, {
+        resolve: (job) => { clearTimeout(timer); this.knowledgeIndexRequests.delete(id); resolve(job) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeIndexRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-index-rebuild', id, kbId, revisionId, manifestHash, scope: this.selectionScope }) + '\n')
+    })
+  }
+
+  /** Issue 97: cancel the running index rebuild at the next document. */
+  async cancelKnowledgeIndexRebuild(): Promise<{ canceled: boolean }> {
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeIndexCancelRequests.delete(id); reject(new Error('KNOWLEDGE_INDEX_TIMEOUT')) }, 15000)
+      this.knowledgeIndexCancelRequests.set(id, {
+        resolve: (result) => { clearTimeout(timer); this.knowledgeIndexCancelRequests.delete(id); resolve(result) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeIndexCancelRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-index-rebuild-cancel', id }) + '\n')
+    })
+  }
+
   /** Issue 96: batch-delete selected import records (device-local rows only). */
   async deleteKnowledgeImports(ids: string[]): Promise<{ deleted: number }> {
     if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 ||
@@ -410,6 +447,41 @@ export class RuntimeProcess {
     }
   }
 
+  /** Issue 97: the bounded display view of the one background index rebuild
+   * job; anything malformed reads as absent instead of impersonating a state. */
+  private parseKnowledgeIndexJob(raw: unknown): KnowledgeIndexJobView | null {
+    if (!raw || typeof raw !== 'object') return null
+    const job = raw as Record<string, unknown>
+    if (!['running', 'completed', 'canceled', 'failed'].includes(job.state as string)) return null
+    const count = (field: unknown): number => Number.isSafeInteger(field) && (field as number) >= 0 ? field as number : 0
+    return {
+      state: job.state as KnowledgeIndexJobView['state'],
+      kbId: typeof job.kbId === 'string' ? job.kbId : '',
+      revisionId: typeof job.revisionId === 'string' ? job.revisionId : '',
+      manifestHash: typeof job.manifestHash === 'string' ? job.manifestHash : '',
+      totalDocuments: count(job.totalDocuments), processedDocuments: count(job.processedDocuments),
+      indexedDocuments: count(job.indexedDocuments), driftedDocuments: count(job.driftedDocuments),
+      unavailableDocuments: count(job.unavailableDocuments),
+      error: typeof job.error === 'string' ? job.error : ''
+    }
+  }
+
+  /** Issue 97: one revision's derived index facts on an import record; a
+   * malformed view reads as absent instead of impersonating a state. */
+  private parseKnowledgeIndexView(raw: unknown): KnowledgeIndexView | null {
+    if (!raw || typeof raw !== 'object') return null
+    const view = raw as Record<string, unknown>
+    if (!['ready', 'partial', 'missing', 'failed'].includes(view.state as string)) return null
+    const count = (field: unknown): number => Number.isSafeInteger(field) && (field as number) >= 0 ? field as number : 0
+    return {
+      state: view.state as KnowledgeIndexView['state'],
+      documents: count(view.documents), indexedDocuments: count(view.indexedDocuments),
+      servableDocuments: count(view.servableDocuments), driftedDocuments: count(view.driftedDocuments),
+      builtAt: typeof view.builtAt === 'string' ? view.builtAt : '',
+      error: typeof view.error === 'string' ? view.error : ''
+    }
+  }
+
   /** Issue 115: one explicit server publication step (preview or confirmed upload). */
   async publishKnowledge(kbId: string, revisionId: string, paths: string[], confirmed: boolean):
       Promise<KnowledgePublishPreview | KnowledgePublishOutcome> {
@@ -431,10 +503,10 @@ export class RuntimeProcess {
     })
   }
 
-  /** Issue 116/117: one controlled-graph step (view / generate / source locate / scoped search / scoped ask). */
-  async knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult> {
+  /** Issue 116/117/99: one controlled-graph step (view / generate / source locate / scoped search / scoped ask / device similarity). */
+  async knowledgeGraph(command: KnowledgeGraphCommand): Promise<KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView> {
     if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('KNOWLEDGE_GRAPH_COMMAND_INVALID')
-    if (!['view', 'generate', 'locate', 'search', 'ask'].includes(command.action)) throw new Error('KNOWLEDGE_GRAPH_ACTION_INVALID')
+    if (!['view', 'generate', 'locate', 'search', 'ask', 'similarity'].includes(command.action)) throw new Error('KNOWLEDGE_GRAPH_ACTION_INVALID')
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
     if (typeof command.kbId !== 'string' || !uuid.test(command.kbId)) throw new Error('KNOWLEDGE_GRAPH_KB_INVALID')
     if (typeof command.revisionId !== 'string' || !uuid.test(command.revisionId)) throw new Error('KNOWLEDGE_GRAPH_REVISION_INVALID')
@@ -1313,6 +1385,24 @@ export class RuntimeProcess {
             const pending = this.knowledgeFolderCancelRequests.get(value.id)
             if (!pending) continue
             if (value.error) { this.knowledgeFolderCancelRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            pending.resolve({ canceled: value.result?.canceled === true })
+            continue
+          }
+          // Issue 97: the index rebuild's start/cancel replies; the job's own
+          // progress and outcome ride the status snapshot.
+          if (value.v === 1 && value.type === 'knowledge-index-rebuild') {
+            const pending = this.knowledgeIndexRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeIndexRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const job = this.parseKnowledgeIndexJob(value.result)
+            if (!job) { this.knowledgeIndexRequests.delete(value.id); pending.reject(new Error('KNOWLEDGE_INDEX_FAILED')); continue }
+            pending.resolve(job)
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-index-rebuild-cancel') {
+            const pending = this.knowledgeIndexCancelRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeIndexCancelRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
             pending.resolve({ canceled: value.result?.canceled === true })
             continue
           }
@@ -2262,7 +2352,10 @@ export class RuntimeProcess {
                   filename: typeof document?.filename === 'string' ? document.filename : '',
                   sha256: typeof document?.sha256 === 'string' ? document.sha256 : '',
                   bytes: Number.isSafeInteger(document?.bytes) ? document.bytes : 0,
-                  mime: typeof document?.mime === 'string' ? document.mime : '' })) : [] })
+                  mime: typeof document?.mime === 'string' ? document.mime : '' })) : [],
+                // Issue 97: the revision's derived BM25 index facts; a
+                // malformed view reads as absent, never as a readiness claim.
+                index: this.parseKnowledgeIndexView(row.index) })
             }
           }
           lastStatus = Date.now()
@@ -2382,6 +2475,8 @@ export class RuntimeProcess {
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
             knowledgeFolderImport: this.parseKnowledgeFolderJob(value.knowledgeFolderImport),
+            knowledgeIndexRebuild: this.parseKnowledgeIndexJob(value.knowledgeIndexRebuild),
+            knowledgeIndexStorageError: value.knowledgeIndexStorageError === 'KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE' ? value.knowledgeIndexStorageError : '',
             datasets: datasetRows,
             datasetsStorageError: value.datasetsStorageError === 'DATASETS_STORAGE_UNAVAILABLE' ? value.datasetsStorageError : '',
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',

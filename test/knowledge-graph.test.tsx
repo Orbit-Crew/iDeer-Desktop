@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { RuntimeProcess } from '../src/main/runtime'
 import { KnowledgeGraphSection, selectedScope } from '../src/renderer/src/components/KnowledgeGraphSection'
-import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportView, RuntimeStatus } from '../src/shared/desktop'
+import type { KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportView, KnowledgeSimilarityView, RuntimeStatus } from '../src/shared/desktop'
 
 const KB = '33333333-3333-4333-8333-333333333333'
 const REVISION = '77777777-7777-4777-8777-777777777777'
@@ -55,11 +55,27 @@ const registeredImport: KnowledgeImportView = {
   documentCount: 1, status: 'registered', errorCode: '', createdAt: '2026-10-27T00:00:00Z', documents: []
 }
 
+const similarityView: KnowledgeSimilarityView = {
+  kbId: KB,
+  revisionId: REVISION,
+  revisionNo: 1,
+  manifestHash: 'c'.repeat(64),
+  status: 'partial',
+  threshold: 0.05,
+  truncated: false,
+  documents: [
+    { id: 'guide.txt', filename: 'guide.txt', contentHash: GUIDE_HASH, status: 'matched', tokenCount: 30 },
+    { id: 'lost.txt', filename: 'lost.txt', contentHash: 'e'.repeat(64), status: 'content_drift', tokenCount: 0 }
+  ],
+  edges: []
+}
+
 const runtimeStatus = (overrides: Partial<RuntimeStatus> = {}): RuntimeStatus =>
   ({ process: 'running', connection: 'connected', tasks: [], knowledgeImports: [registeredImport], ...overrides })
 
 const renderSection = (overrides: {
   graph?: KnowledgeGraphView | null
+  similarity?: KnowledgeSimilarityView | null
   queryResult?: KnowledgeGraphQueryResult | null
   askResult?: KnowledgeGraphAskResult | null
   selection?: Record<string, boolean>
@@ -73,6 +89,7 @@ const renderSection = (overrides: {
     <KnowledgeGraphSection
       runtime={overrides.runtime ?? runtimeStatus()}
       graph={overrides.graph === undefined ? view : overrides.graph}
+      similarity={overrides.similarity === undefined ? null : overrides.similarity}
       located={overrides.located ?? {}}
       queryResult={overrides.queryResult === undefined ? null : overrides.queryResult}
       askResult={overrides.askResult === undefined ? null : overrides.askResult}
@@ -234,5 +251,56 @@ describe('scoped graph QA and relation retrieval (#117)', () => {
     expect(html).toContain('未能给出有依据的回答：所选资料不完整或服务未完成')
     expect(html).toContain('来源 policy.txt · 失败：GRAPH_CONTENT_DRIFTED')
     expect(html).not.toContain('依据 guide.txt：甲零件属于乙组件。')
+  })
+})
+
+describe('device similarity layer and interactive canvas (#99)', () => {
+  it('validates the similarity command before the owned Runtime', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-99/unused')
+    for (const kbId of ['', 'not-a-uuid']) {
+      await expect(runtime.knowledgeGraph({ action: 'similarity', kbId, revisionId: REVISION })).rejects.toThrow('KNOWLEDGE_GRAPH_KB_INVALID')
+    }
+    for (const revisionId of ['', 'not-a-uuid']) {
+      await expect(runtime.knowledgeGraph({ action: 'similarity', kbId: KB, revisionId })).rejects.toThrow('KNOWLEDGE_GRAPH_REVISION_INVALID')
+    }
+    // A well-formed similarity command still needs the owned Runtime process.
+    await expect(runtime.knowledgeGraph({ action: 'similarity', kbId: KB, revisionId: REVISION })).rejects.toThrow('RUNTIME_UNAVAILABLE')
+  })
+
+  it('offers the similarity entry next to the platform graph actions', () => {
+    const html = renderSection()
+    expect(html).toContain('aria-label="生成相似图 R1"')
+    expect(html).toContain('生成相似图')
+  })
+
+  it('draws the entity graph canvas with its nodes and relation labels', () => {
+    const html = renderSection()
+    expect(html).toContain('aria-label="实体关系图画布"')
+    expect(html).toContain('甲零件')
+    expect(html).toContain('乙组件')
+    expect(html).toContain('属于')
+    expect(html).toContain('aria-label="导出当前图 JSON"')
+    expect(html).toContain('aria-label="重置布局"')
+  })
+
+  it('shows the device similarity layer with honest per-document statuses', () => {
+    const html = renderSection({ graph: null, similarity: similarityView })
+    // The similarity canvas is mode-switched into view even without a platform graph.
+    expect(html).toContain('aria-label="文档相似图画布"')
+    expect(html).toContain('部分可算')
+    expect(html).toContain('已核验 1/2')
+    // The drifted document stays visible with its own device-side status.
+    expect(html).toContain('guide.txt')
+    expect(html).toContain('lost.txt')
+    expect(html).toContain('内容漂移')
+    expect(html).toContain('部分文档无法参与相似计算：缺失的文档不代表完整相似图')
+    // The revision binding is displayed next to the layer.
+    expect(html).toContain(`版本 R1 · `)
+  })
+
+  it('hides the canvas when neither layer has data', () => {
+    const html = renderSection({ graph: null })
+    expect(html).not.toContain('aria-label="实体关系图画布"')
+    expect(html).not.toContain('aria-label="文档相似图画布"')
   })
 })

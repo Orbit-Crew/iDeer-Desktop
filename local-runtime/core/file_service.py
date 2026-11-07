@@ -391,12 +391,18 @@ class WorkspaceFileService(LocalFileService):
         Only a revision this identity registered on this device is ever
         searched; the manifest hash in the task must match the registry, and
         every document must still hash to its frozen digest at read time.
+        Since #97 the answering runs on the device BM25 index when that index
+        covers the whole revision; otherwise the original literal scan
+        answers and the result says so (``engine``/``fallbackReason``) —
+        the degraded path stays visible, never silent.
         """
         from pathlib import Path
 
         from .files import RootConfig
         from .knowledge_import import KnowledgeImportRegistry
-        from .knowledge_search import KnowledgeSearchError, parse_search_payload, search_frozen_revision
+        from .knowledge_index import KnowledgeIndexError, KnowledgeIndexStore, tokenize
+        from .knowledge_search import (KnowledgeSearchError, parse_search_payload, search_frozen_revision,
+                                       search_frozen_revision_indexed)
         from .receipt_ledger import profile_binding
 
         binding = profile_binding(settings)
@@ -411,7 +417,28 @@ class WorkspaceFileService(LocalFileService):
             raise KnowledgeSearchError('KNOWLEDGE_SEARCH_REVISION_UNKNOWN')
         files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
             identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(self.selection.config.parent,))
-        return FileTaskResult(PolicyDecision.ALLOW, search_frozen_revision(parsed, files=files, logical_root=grant['logical_root']))
+        index = KnowledgeIndexStore(self.selection.config.with_name('knowledge-index.db'))
+        try:
+            view = index.revision_view(binding, parsed['revision_id'], parsed['manifest_hash'])
+        except KnowledgeIndexError:
+            view = {"state": "missing", "documents": 0, "indexedDocuments": 0, "servableDocuments": 0,
+                    "driftedDocuments": 0, "builtAt": "",
+                    "error": "KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE"}
+        if view["state"] == "ready" and tokenize(parsed["query"]):
+            return FileTaskResult(PolicyDecision.ALLOW,
+                search_frozen_revision_indexed(parsed, files=files, logical_root=grant['logical_root'],
+                                               index=index, binding=binding))
+        result = search_frozen_revision(parsed, files=files, logical_root=grant['logical_root'])
+        result["index"] = view
+        if not tokenize(parsed["query"]):
+            # The query has no indexable terms (punctuation-only): the scan
+            # is the only honest answer, and the result says why.
+            result["fallbackReason"] = "index-untokenized"
+        elif view["error"] == "KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE":
+            result["fallbackReason"] = "index-storage"
+        else:
+            result["fallbackReason"] = f"index-{view['state']}"
+        return FileTaskResult(PolicyDecision.ALLOW, result)
 
     def _material_knowledge(self, args, settings, grant):
         """Return one frozen document's text for graph generation (#116).
