@@ -6,6 +6,7 @@ import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
+import SynapsePane from '../src/renderer/src/dock/panels/synapsePane'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -175,10 +176,13 @@ describe('dock pane security seam (issue 71)', () => {
     // terminal is a desktop-local native-hosted pane (xterm.js over its own
     // minimal terminal bridge, decision #59) — it leaves the external-content
     // seam and is pinned to its own component plus a trusted-bridge-free
-    // module graph below. The remaining webview/webgl slots keep the
-    // placeholder; the browser slot hosts the explicit 本机/远端 choice.
+    // module graph below. Issue 113 moves the `synapse` map the same way: it
+    // is a read-only projection of the platform's own Thread rows and this
+    // device's observed branch edges — it never hosts external content. The
+    // remaining webview/webgl slots keep the placeholder; the browser slot
+    // hosts the explicit 本机/远端 choice.
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'synapse', 'viewer3d'])
+    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field', 'viewer3d'])
     for (const def of external) {
       expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
     }
@@ -202,12 +206,17 @@ describe('dock pane security seam (issue 71)', () => {
     // Issue 112 wires the native `office` pane the same way — a read-only
     // observer on the existing chat state read, with zero own IPC surface
     // (pinned in test/office-bridge.test.ts).
+    // Issue 113 wires the native `synapse` pane the same way — the map uses
+    // the trusted bridge for the Server's own thread rows and the read-only
+    // state read, and its open/branch actions ride the session store into
+    // the conversation's serialized command path.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'synapse'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office']) {
+    expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'synapse']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
