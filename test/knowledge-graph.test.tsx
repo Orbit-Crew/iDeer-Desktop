@@ -304,3 +304,14 @@ describe('device similarity layer and interactive canvas (#99)', () => {
     expect(html).not.toContain('aria-label="文档相似图画布"')
   })
 })
+
+describe('offline snapshot annotation (#101)', () => {
+  it('labels the cached graph view as 离线快照 while a live view stays unlabeled', () => {
+    const offline: KnowledgeGraphView = { ...view, offline: true, capturedAt: '2026-11-07T01:00:00Z' }
+    const html = renderSection({ graph: offline })
+    expect(html).toContain('离线快照')
+    expect(html).toContain('2026-11-07T01:00:00Z 生成')
+    expect(html).toContain('平台当前不可达')
+    expect(renderSection({ graph: view })).not.toContain('离线快照')
+  })
+})

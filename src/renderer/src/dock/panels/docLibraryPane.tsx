@@ -9,16 +9,25 @@
 // canceled at the next document — the honest annotation, never a silent gap.
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Empty, Input, Space, Typography } from 'antd'
+// Issue 101: 删除=库新版本 — document-level delete forms a successor
+// revision; the separate 清理 purges the device index + snapshots and marks
+// 原件已不在. Both are confirmed in the trusted main process.
 import type { KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView } from '../../../../shared/desktop'
 import { DocLibraryController, emptyDocLibraryView, explainDocLibraryError, type DocLibraryView } from '../../stores/docLibrary'
 import type { PanelTypeId } from '../types'
 
 /** One honest sentence per record: 已完成 with its frozen revision, or 失败
- * with the real fixed category. */
+ * with the real fixed category. Issue 101: a record below its KB's newest
+ * revision reads as 历史版本, and a user-confirmed cleanup reads as 原件已
+ * 不在 — the annotation, never a silent gap. */
 export function describeRecordStatus(record: KnowledgeImportView): string {
-  return record.status === 'registered'
-    ? `已完成：已登记版本 R${record.revisionNo} · ${record.documentCount} 个文件`
-    : `失败：${record.errorCode}`
+  if (record.status !== 'registered') return `失败：${record.errorCode}`
+  const base = `已完成：已登记版本 R${record.revisionNo} · ${record.documentCount} 个文件`
+  const markers = [
+    record.historical ? '历史版本' : '',
+    record.originalsMissing ? '原件已不在' : ''
+  ].filter(Boolean).join(' · ')
+  return markers ? `${base}（${markers}）` : base
 }
 
 const JOB_STATE: Record<KnowledgeFolderJobView['state'], string> = {
@@ -27,7 +36,8 @@ const JOB_STATE: Record<KnowledgeFolderJobView['state'], string> = {
 
 /** Issue 97: the honest per-revision index annotation. A revision whose
  * documents drifted says so (已过期) on top of its ready state; the display
- * never merges 未建 and 失败 into one vague word. */
+ * never merges 未建 and 失败 into one vague word. Issue 101: a historical
+ * revision's kept cache says it survives only until the user's cleanup. */
 export function describeIndexStatus(record: KnowledgeImportView, rebuild: KnowledgeIndexJobView | null): string {
   if (record.status !== 'registered' || !record.revisionId) return ''
   const index = record.index ?? null
@@ -37,12 +47,13 @@ export function describeIndexStatus(record: KnowledgeImportView, rebuild: Knowle
     return `检索索引重建中：已核对 ${rebuild.processedDocuments} / ${rebuild.totalDocuments} 个文件`
   }
   if (!index) return '检索索引：状态未知'
+  const kept = record.historical === true ? '（历史版本缓存，保留至用户清理）' : ''
   const drift = index.driftedDocuments > 0 ? ` · 已过期：${index.driftedDocuments} 个文件已变更，重建后可恢复检索` : ''
   switch (index.state) {
     case 'ready':
-      return `检索索引就绪：${index.servableDocuments} 个文件可全文检索${drift}`
+      return `检索索引就绪：${index.servableDocuments} 个文件可全文检索${drift}${kept}`
     case 'partial':
-      return `检索索引未完成：${index.indexedDocuments} / ${index.documents} 个文件${drift}`
+      return `检索索引未完成：${index.indexedDocuments} / ${index.documents} 个文件${drift}${kept}`
     case 'failed':
       return `检索索引失败：${index.error || 'KNOWLEDGE_INDEX_FAILED'}${drift}`
     default:
@@ -108,6 +119,13 @@ export default function DocLibraryPane({ instanceId, panelType }: {
   const selectedFailed = selectedRows.filter(record => record.status === 'failed')
   const toggle = (recordId: string, checked: boolean): void =>
     setSelected(current => checked ? [...current, recordId] : current.filter(id => id !== recordId))
+  // Issue 101: the one record whose document list is expanded for a
+  // document-level delete (删除=库新版本), plus its selected frozen hashes.
+  const [managingRecord, setManagingRecord] = useState<string | null>(null)
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
+  const managedRecord = records.find(record => record.id === managingRecord) ?? null
+  const toggleDocument = (hash: string, checked: boolean): void =>
+    setSelectedDocuments(current => checked ? [...current, hash] : current.filter(item => item !== hash))
   const run = (action: () => Promise<void>, after?: () => void): void => {
     void action().then(after).catch(() => {})
   }
@@ -184,7 +202,44 @@ export default function DocLibraryPane({ instanceId, panelType }: {
                       disabled={view.busy}
                       onClick={() => run(() => controller.current!.cancelIndexRebuild())}>取消重建</Button>
                   )}
+                  {/* Issue 101: 删除=库新版本与独立的物理清理。 */}
+                  {ready && (
+                    <Button size="small" type="link" aria-label={`管理文档 ${record.revisionId.slice(0, 8)}`}
+                      disabled={view.busy}
+                      onClick={() => {
+                        setSelectedDocuments([])
+                        setManagingRecord(current => current === record.id ? null : record.id)
+                      }}>{managingRecord === record.id ? '收起文档' : '删除文档…'}</Button>
+                  )}
+                  {ready && !record.originalsMissing && (
+                    <Button size="small" type="link" aria-label={`清理本机索引 ${record.revisionId.slice(0, 8)}`}
+                      disabled={view.busy}
+                      onClick={() => run(() => controller.current!.cleanupRevision(record))}>清理本机索引…</Button>
+                  )}
                 </Typography.Paragraph>}
+                {managedRecord !== null && managedRecord.id === record.id && (
+                  <div data-testid="doc-library-documents" className="mt-2 w-full">
+                    <Typography.Paragraph type="secondary" className="mb-1">
+                      勾选要删除的文档后确认：设备将把剩余文档登记为库新版本（删除=库新版本），
+                      旧版本与历史引用保留可追溯；本机文件不会被删除或修改。
+                    </Typography.Paragraph>
+                    {managedRecord.documents.map(document => (
+                      <Checkbox key={document.sha256} className="mr-4" disabled={view.busy}
+                        aria-label={`选择文档 ${document.filename}`}
+                        checked={selectedDocuments.includes(document.sha256)}
+                        onChange={(event) => toggleDocument(document.sha256, event.target.checked)}>
+                        {document.filename}
+                      </Checkbox>))}
+                    <Button danger size="small" className="mt-2" aria-label="删除所选文档"
+                      loading={view.busy}
+                      disabled={!selectedDocuments.length ||
+                        selectedDocuments.length >= managedRecord.documents.length || view.busy}
+                      onClick={() => run(() => controller.current!.deleteDocuments(managedRecord, selectedDocuments),
+                        () => { setManagingRecord(null); setSelectedDocuments([]) })}>
+                      删除所选文档（形成新版本）…
+                    </Button>
+                  </div>
+                )}
               </div>
             </Space>
           </Card>

@@ -66,6 +66,35 @@ describe('doc library folder import and record management bridge (#96)', () => {
     await expect(runtime.retryKnowledgeImport('a'.repeat(64))).rejects.toThrow('RUNTIME_UNAVAILABLE')
   })
 
+  it('validates the version-semantics commands (删除=库新版本, 清理) before the Runtime (#101)', async () => {
+    const runtime = new RuntimeProcess('.runtime', 'artifacts/issue-101/unused')
+    const HASH = 'a'.repeat(64)
+    // The document-level delete names a bounded kb/revision and a bounded
+    // list of frozen content hashes — anything else refuses before the wire.
+    for (const kbId of ['', `C:/${'x'.repeat(33000)}`]) {
+      await expect(runtime.deleteKnowledgeDocuments(kbId as never, 'rev', [HASH])).rejects.toThrow('KNOWLEDGE_INDEX_KB_INVALID')
+    }
+    for (const revisionId of ['', 'x'.repeat(65), 7]) {
+      await expect(runtime.deleteKnowledgeDocuments(KB, revisionId as never, [HASH])).rejects.toThrow('KNOWLEDGE_INDEX_REVISION_INVALID')
+    }
+    for (const hashes of [[], new Array(201).fill(HASH), [''], ['not-a-hash'], [7]]) {
+      await expect(runtime.deleteKnowledgeDocuments(KB, 'rev', hashes as never)).rejects.toThrow('KNOWLEDGE_DELETE_DOCUMENTS_INVALID')
+    }
+    await expect(runtime.deleteKnowledgeDocuments(KB, 'rev', [HASH])).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    // The cleanup names the frozen triple; a malformed manifest refuses.
+    for (const kbId of ['', 'x'.repeat(65)]) {
+      await expect(runtime.cleanupKnowledgeRevision(kbId as never, 'rev', HASH)).rejects.toThrow('KNOWLEDGE_INDEX_KB_INVALID')
+    }
+    for (const revisionId of ['', 'x'.repeat(65), 7]) {
+      await expect(runtime.cleanupKnowledgeRevision(KB, revisionId as never, HASH)).rejects.toThrow('KNOWLEDGE_INDEX_REVISION_INVALID')
+    }
+    for (const manifestHash of ['', 'short', `${'a'.repeat(64)}x`, 7]) {
+      await expect(runtime.cleanupKnowledgeRevision(KB, 'rev', manifestHash as never)).rejects.toThrow('KNOWLEDGE_INDEX_MANIFEST_INVALID')
+    }
+    await expect(runtime.cleanupKnowledgeRevision(KB, 'rev', HASH)).rejects.toThrow('RUNTIME_UNAVAILABLE')
+    expect(runtime.status().process).toBe('stopped')
+  })
+
   it.skipIf(process.platform !== 'win32')('delivers folder import and record management through the actual bundled Runtime', async () => {
     const profile = mkdtempSync(join(tmpdir(), 'ideer-folder-bridge-'))
     const runtime = new RuntimeProcess(resolve('.runtime'), profile)
