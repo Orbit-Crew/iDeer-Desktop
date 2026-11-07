@@ -8,6 +8,7 @@ import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
+import FieldPane from '../src/renderer/src/dock/panels/fieldPane'
 import SynapsePane from '../src/renderer/src/dock/panels/synapsePane'
 
 describe('bootstrap capability boundary', () => {
@@ -205,15 +206,19 @@ describe('dock pane security seam (issue 71)', () => {
     // test/cad-bridge.test.ts. Issue 113 moves the `synapse` map the same
     // way: it is a read-only projection of the platform's own Thread rows
     // and this device's observed branch edges — it never hosts external
-    // content. The remaining webview/webgl slots keep the placeholder; the
-    // browser slot hosts the explicit 本机/远端 choice.
+    // content. Issue 116 moves `field` the same way: the Tecplot pane
+    // renders desktop-local results over the #94 guarded read seam on a
+    // software 2D canvas — no webview, no WebGL, no external content. No
+    // external-content slot remains; the browser slot hosts the explicit
+    // 本机/远端 choice.
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'field'])
+    expect(external.map((p) => p.id).sort()).toEqual(['browser'])
     for (const def of external) {
       expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
     }
     expect(PANEL_REGISTRY.find((p) => p.id === 'terminal')!.component).toBe(TerminalPane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'viewer3d')!.component).toBe(CadPane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'field')!.component).toBe(FieldPane)
 
     // Issue 107: the browser pane is the one non-native pane with its own
     // component — never the placeholder, never the unwired native pane.
@@ -242,14 +247,16 @@ describe('dock pane security seam (issue 71)', () => {
     // the trusted bridge for the Server's own thread rows and the read-only
     // state read, and its open/branch actions ride the session store into
     // the conversation's serialized command path.
+    // Issue 116 wires the native `field` pane the same way — it reads over
+    // the guarded files seam and renders desktop-local results only.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse', 'field'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
 
     expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'viewer3d', 'kb', 'synapse']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'viewer3d', 'kb', 'synapse', 'field']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

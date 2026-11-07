@@ -4,10 +4,10 @@
 // no embedded content. test/security.test.ts pins this: the registry must map
 // every external-content panel type to this exact component, and this module's
 // bundle graph must stay free of the bridge surface. Issue 110 wired the
-// `terminal` slot, Issue 113 wired the `synapse` map, and issue 115 wired the
-// `viewer3d` slot as native-hosted panes (desktop-local geometry, no external
-// content); the Agent terminal (#111) is the remaining future seam in this
-// family.
+// `terminal` slot, Issue 113 wired the `synapse` map, issue 115 wired the
+// `viewer3d` slot, and issue 116 wired `field` as native-hosted panes
+// (desktop-local geometry and results, no external content); the Agent
+// terminal (#111) is the remaining future seam in this family.
 import type { PanelTypeId } from '../types'
 
 interface PaneStatus {
@@ -20,12 +20,7 @@ interface PaneStatus {
 // issue 107 之后 browser 不再是占位：它映射到自己的 webview 窗格组件，
 // 由主进程附加守卫与本文件之外的隔离不变量约束。issue 113 之后 synapse
 // 同样不再是占位：会话地图是原生窗格上的平台 Thread 只读投影。
-const EXTERNAL_PANE_STATUS: Partial<Record<PanelTypeId, PaneStatus>> = {
-  field: {
-    headline: '仿真结果查看器未接入',
-    detail: 'Tecplot 结果查看在工程阶段接入。'
-  }
-}
+const EXTERNAL_PANE_STATUS: Partial<Record<PanelTypeId, PaneStatus>> = {}
 
 // instanceId 保持未用：占位窗格无实例状态，签名与面板注册表保持一致。
 export function ExternalPanePlaceholder({ panelType }: {

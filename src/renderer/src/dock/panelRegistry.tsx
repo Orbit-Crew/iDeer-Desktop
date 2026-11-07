@@ -31,6 +31,7 @@ import SynapsePane from './panels/synapsePane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 import OfficePane from './panels/officePane'
+import FieldPane from './panels/fieldPane'
 import Viewer3dPane from './panels/viewer3dPane'
 
 /** chat 锚点内容：桌面平台聊天（无路由，锚点窗格直接承载） */
@@ -70,7 +71,10 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // workspace (OCCT for STEP, local readers for STL/OBJ) rendered by its own
   // honest engines (three.js WebGL with a software 2D fallback).
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: Viewer3dPane },
-  { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
+  // Issue 116: the field pane — the Tecplot structured IJK ASCII subset on
+  // the #94 guarded read seam, rendered on the CAD pane's software canvas
+  // idiom; desktop-local results, never external content.
+  { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: FieldPane },
   // Issue 113: the session map — the platform's own Thread rows as nodes,
   // this device's observed branch edges as links; open/branch ride the
   // conversation's serialized command path through the session store.
