@@ -2,10 +2,55 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { parseRemoteBrowserStreamWire, validateRemoteBrowserInput, type RemoteBrowserStreamAck, type RemoteBrowserStreamMessage, type RemoteBrowserWireCommand } from './remoteBrowser'
+
+/** Issue 102: one dataset sheet's bounded wire facts, shared by the status
+ * snapshot and the family reply so a drift can never split the two. Exported
+ * for the regression test that pins the registry's real wire shapes. */
+export const toDatasetSheet = (input: unknown): DatasetSheetView => {
+  const sheet = input as Record<string, unknown>
+  if (!sheet || typeof sheet.name !== 'string' || typeof sheet.fingerprint !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(sheet.fingerprint) || typeof sheet.schema !== 'string' ||
+      !Number.isSafeInteger(sheet.rowCount) || !Number.isSafeInteger(sheet.colCount) ||
+      typeof sheet.truncated !== 'boolean' || typeof sheet.columnsTruncated !== 'boolean') {
+    throw new Error('Invalid dataset sheet')
+  }
+  return { name: sheet.name.slice(0, 128), fingerprint: sheet.fingerprint,
+    schema: sheet.schema.slice(0, 500), rowCount: sheet.rowCount as number,
+    colCount: sheet.colCount as number, truncated: sheet.truncated as boolean,
+    columnsTruncated: sheet.columnsTruncated as boolean }
+}
+/** Issue 102: one device-local dataset row as the registry records it —
+ * identity, schema and fingerprints only; a failed row always names its
+ * fixed reason. Exported for the regression test that pins the registry's
+ * real wire shapes. */
+export const toDatasetView = (input: unknown): DatasetView => {
+  const row = input as Record<string, unknown>
+  const projectIdPattern = /^[A-Za-z0-9_-]{1,128}$/
+  if (!row || typeof row.id !== 'string' || !/^[0-9a-f]{64}$/.test(row.id) ||
+      typeof row.filename !== 'string' || typeof row.sourcePath !== 'string' ||
+      typeof row.status !== 'string' || !['ready', 'failed'].includes(row.status) ||
+      // A failed row that never recognized a supported format has no format:
+      // '' is an honest fact for failed rows only (review finding, #102).
+      ((row.format !== 'xlsx' && row.format !== 'csv') &&
+        !(row.status === 'failed' && row.format === '')) ||
+      typeof row.fileSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(row.fileSha256) ||
+      !Array.isArray(row.sheets) || !Number.isSafeInteger(row.rowCount) ||
+      typeof row.projectId !== 'string' || (row.projectId && !projectIdPattern.test(row.projectId)) ||
+      typeof row.deviceId !== 'string' ||
+      (row.status === 'failed' ? typeof row.errorCode !== 'string' || !row.errorCode : false) ||
+      typeof row.createdAt !== 'string') throw new Error('Invalid dataset row')
+  return { id: row.id, filename: row.filename.slice(0, 256), sourcePath: row.sourcePath.slice(0, 4096),
+    format: row.format === 'xlsx' ? 'xlsx' : row.format === 'csv' ? 'csv' : '',
+    fileSha256: row.fileSha256,
+    sheets: row.sheets.slice(0, 32).map(toDatasetSheet),
+    rowCount: row.rowCount as number, projectId: row.projectId, deviceId: row.deviceId.slice(0, 128),
+    status: row.status === 'failed' ? 'failed' : 'ready',
+    errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt }
+}
 
 /** Owns one fixed, bundled executable. No renderer-supplied paths or commands. */
 export class RuntimeProcess {
@@ -33,6 +78,8 @@ export class RuntimeProcess {
   private modelRequests = new Map<string, { resolve: (view: ModelSettingsView) => void; reject: (error: Error) => void }>()
   private threadRequests = new Map<string, { resolve: (view: ThreadView) => void; reject: (error: Error) => void; action: ThreadCommand['action'] }>()
   private projectRequests = new Map<string, { resolve: (view: ProjectOperationView) => void; reject: (error: Error) => void; action: ProjectCommand['action'] }>()
+  /** Issue 102: the device-local dataset family's single in-flight round. */
+  private datasetRequests = new Map<string, { resolve: (view: DatasetOperationView) => void; reject: (error: Error) => void; action: (DatasetCommand | DatasetImportCommand)['action'] }>()
   /** Issue 85: bounded in-flight management round-trips; the card drives
    * list + runs + preview concurrently, so it caps instead of serializing. */
   private schedulesRequests = new Map<string, { resolve: (view: SchedulesOutcome) => void; reject: (error: Error) => void; action: ScheduleCommand['action'] }>()
@@ -571,6 +618,52 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.projectRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.projectRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 102: 表格数据集导入. The wire command is a fixed per-action key set
+   * that only reaches the owned Runtime and its device-local registry: import
+   * names the main-process-picked file plus the renderer's selected project
+   * (empty = unassociated), delete names the registry row. The scope rides
+   * the workspace identity the Runtime itself last reported — the same fence
+   * the other device-local families use — and the original file is only ever
+   * read, never moved or removed.
+   */
+  async datasets(command: DatasetCommand | DatasetImportCommand): Promise<DatasetOperationView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('DATASETS_COMMAND_INVALID')
+    if (!['import', 'delete'].includes(command.action)) throw new Error('DATASETS_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'datasets', id: '', action: command.action }
+    if (command.action === 'import') {
+      // The renderer-facing import command carries no path; only the
+      // main-internal DatasetImportCommand reaches this far. The union is
+      // not action-discriminable here, so the import shape is asserted and
+      // every field is re-validated below.
+      const picked = command as DatasetImportCommand
+      if (typeof picked.path !== 'string' || !picked.path || picked.path.length > 32768 ||
+          typeof picked.projectId !== 'string' || picked.projectId.length > 128 ||
+          (picked.projectId && !/^[A-Za-z0-9_-]{1,128}$/.test(picked.projectId)) ||
+          Object.keys(command).length !== 3) throw new Error('DATASETS_COMMAND_INVALID')
+      wire.path = picked.path
+      wire.projectId = picked.projectId
+    } else {
+      if (typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId) ||
+          Object.keys(command).length !== 2) throw new Error('DATASETS_COMMAND_INVALID')
+      wire.datasetId = command.datasetId
+    }
+    if (this.datasetRequests.size) throw new Error('DATASETS_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.datasetRequests.delete(id); reject(new Error('DATASETS_TIMEOUT')) }, 60000)
+      this.datasetRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.datasetRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.datasetRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -1514,6 +1607,40 @@ export class RuntimeProcess {
               : { projects, permissions })
             continue
           }
+          if (value.v === 1 && value.type === 'datasets') {
+            // Issue 102: the registry's own post-action list plus the honest
+            // outcome flag. A duplicate import is an answer, never a silent
+            // second row, and a failed import names the fixed reason its row
+            // records — the renderer can never misread either as success.
+            const pending = this.datasetRequests.get(value.id)
+            if (!pending) continue
+            const result = value.result
+            if (value.error || !result || !Array.isArray(result.datasets) ||
+                (pending.action === 'import' &&
+                  !(result.imported === true || result.duplicate === true || result.failed === true)) ||
+                (pending.action === 'delete' && result.deleted !== true)) {
+              this.datasetRequests.delete(value.id)
+              pending.reject(new Error(value.error || 'DATASETS_FAILED'))
+              continue
+            }
+            // Map before settling: a malformed row is a protocol failure that
+            // kills the child while the pending entry stays registered, so
+            // the close handler rejects the importer instead of hanging it
+            // until the timeout (review finding, #102).
+            const datasets = result.datasets.slice(0, 20).map(toDatasetView)
+            this.datasetRequests.delete(value.id)
+            pending.resolve({
+              datasets,
+              imported: result.imported === true ? true : undefined,
+              duplicate: result.duplicate === true ? true : undefined,
+              failed: result.failed === true ? true : undefined,
+              deleted: result.deleted === true ? true : undefined,
+              datasetId: typeof result.datasetId === 'string' ? result.datasetId : undefined,
+              duplicateOf: typeof result.duplicateOf === 'string' ? result.duplicateOf : undefined,
+              errorCode: typeof result.errorCode === 'string' ? result.errorCode : undefined
+            })
+            continue
+          }
           if (value.v === 1 && value.type === 'schedules') {
             // Issue 85: the platform's own post-action rows plus the device's
             // 补跑 marks, bounded before they reach the renderer. A shape
@@ -1997,6 +2124,15 @@ export class RuntimeProcess {
                 serverConnectorId: connectorText(row.serverConnectorId, 64), state: 'installed', createdAt: row.createdAt })
             }
           }
+          const datasetRows: DatasetView[] = []
+          if (Array.isArray(value.datasets)) {
+            for (const row of value.datasets.slice(0, 20)) {
+              // Issue 102: device-local dataset rows are display facts for
+              // this identity's own imports; schema and fingerprints only,
+              // never row data. A malformed row is a protocol failure.
+              datasetRows.push(toDatasetView(row))
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           // Issue 77: the bounded background-run summary; identity facts the
@@ -2017,6 +2153,8 @@ export class RuntimeProcess {
             backgroundRuns,
             directoryGrants: Array.isArray(value.directoryGrants) ? value.directoryGrants : [],
             knowledgeImports, knowledgeImportStorageError: value.knowledgeImportStorageError === 'IMPORT_STORAGE_UNAVAILABLE' ? value.knowledgeImportStorageError : '',
+            datasets: datasetRows,
+            datasetsStorageError: value.datasetsStorageError === 'DATASETS_STORAGE_UNAVAILABLE' ? value.datasetsStorageError : '',
             knowledgePublications, knowledgePublishStorageError: value.knowledgePublishStorageError === 'PUBLISH_STORAGE_UNAVAILABLE' ? value.knowledgePublishStorageError : '',
             skillImports, skillImportStorageError: value.skillImportStorageError === 'SKILL_IMPORT_STORAGE_UNAVAILABLE' ? value.skillImportStorageError : '',
             skillScriptAuthorizations: scriptAuthorizations,
@@ -2056,6 +2194,7 @@ export class RuntimeProcess {
       for (const pending of this.skillScriptRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.datasetRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.schedulesRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       // Issue 109: a dead child ends the remote browser's pending lifecycle
       // request and every in-flight input forward immediately.
