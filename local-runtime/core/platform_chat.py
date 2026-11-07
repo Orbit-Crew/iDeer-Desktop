@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
+from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
 from .document_parse import MAX_PARSE_FILE_BYTES, parse_document, parse_summary
 from .local_results import LocalResultError
@@ -40,6 +41,7 @@ CONSENT_KIND_BY_CAPABILITY = {
     'local.skill.dependencies': 'skill-dependencies',
     'local.knowledge.material': 'knowledge-material',
     'local.python': 'inline-code',
+    'local.browser.control': 'browser-control',
 }
 # The workspace write boundary already caps a single result at MAX_TEXT_BYTES;
 # the explicit upload path enforces the same bound before staging anything.
@@ -687,6 +689,18 @@ class DesktopChat:
                     requestHash=pending.request_hash, kind='inline-code',
                     language=language_of(payload),
                     workingRoot=payload['working_root'], script=payload['script'])
+            elif kind == 'browser-control':
+                # Issue 108: the ask announces the control before it starts -
+                # intent and page target only; page content never rides the
+                # card, and there is no remember option to widen.
+                intent = browser_intent_of(payload)
+                if not intent:
+                    continue
+                url = payload.get('url')
+                row = dict(taskId=pending.task_id, runId=run['id'], threadId=thread['id'],
+                    requestHash=pending.request_hash, kind='browser-control',
+                    intent=intent, action=str(payload['action'])[:64],
+                    url=str(url)[:2048] if isinstance(url, str) else '')
             else:
                 continue
             # The credential scrubber must remain active, but a scrubbed card

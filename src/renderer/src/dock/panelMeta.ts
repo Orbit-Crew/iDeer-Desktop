@@ -35,7 +35,12 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   notifications: { id: 'notifications', title: '通知中心', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 84: the prompt-template plaza — account-scoped CRUD and the
   // prefill-only click, over the Server's own template rows.
-  templates: { id: 'templates', title: '模板广场', multiInstance: false, closable: true, runtime: 'native' }
+  templates: { id: 'templates', title: '模板广场', multiInstance: false, closable: true, runtime: 'native' },
+  // Issue 112: the office returns as a read-only visualization of the
+  // platform's Run/subagent events — the #95 office exclusion narrows to
+  // exactly this surface: figures render only what the platform pushed,
+  // with no control operations and no local orchestration channel.
+  office: { id: 'office', title: '办公室', multiInstance: false, closable: true, runtime: 'native' }
 }
 
 export function getPanelMeta(id: PanelTypeId): PanelMeta {

@@ -110,7 +110,8 @@ const PANEL_COLOR: Record<PanelTypeId, string> = {
   sql: '#CF1322',
   synapse: '#531dAB',
   notifications: '#D46B08',
-  templates: '#C41D7F'
+  templates: '#C41D7F',
+  office: '#D48806'
 }
 
 // —— 布局构建 ——

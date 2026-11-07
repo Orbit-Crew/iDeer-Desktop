@@ -17,6 +17,9 @@ export type PanelTypeId =
   | 'synapse'
   | 'notifications'
   | 'templates'
+  // Issue 112: the office returns as a read-only visualization of the
+  // platform's Run/subagent events — the narrowed #95 office exclusion.
+  | 'office'
 
 export type PanelRuntime = 'native' | 'webview' | 'pty' | 'webgl'
 

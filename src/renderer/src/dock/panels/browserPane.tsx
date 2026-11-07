@@ -46,6 +46,14 @@ const newTab = (): BrowserTab => {
 }
 const nowLabel = (): string => new Date().toLocaleTimeString()
 
+/** Issue 108: the fixed Chinese wording per agent action; an unmatched
+ * action falls back to the raw wire value like the permission labels. */
+const AGENT_CONTROL_ACTION_LABELS: Record<string, string> = {
+  observe: '观察页签列表', 'observe-text': '读取页面文本', navigate: '导航到',
+  back: '后退', forward: '前进', reload: '刷新', key: '按键', text: '输入文本',
+  click: '点击', submit: '提交页面', download: '下载'
+}
+
 /** One honest line per device-side fact; unmatched permission names fall
  * back to the raw wire value instead of a guessed label. */
 function noticeLine(event: BrowserPaneEvent): string {
@@ -70,6 +78,10 @@ function noticeLine(event: BrowserPaneEvent): string {
       break
     case 'navigation-blocked':
       return `已阻止非 http(s) 导航：${event.url}`
+    case 'agent-control':
+      // Issue 108: the pane announces each consented agent action before it
+      // runs (开工前标示); the action names itself, nothing is invented.
+      return `Agent 正在控制本机浏览器：${AGENT_CONTROL_ACTION_LABELS[event.action] || event.action}${event.url ? ` ${event.url}` : ''}`
     case 'cleared':
       return '浏览器分区已清空，页签已回到起始页'
     case 'window-open':

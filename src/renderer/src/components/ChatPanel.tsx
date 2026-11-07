@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Tag, Typography } from 'antd'
 import type { ChatAttachmentStatus, ChatCommand, ChatSnapshot, ChatSubagent, ChatAttachmentView, HumanInputRequest, LocalConsentView, SessionTierValue } from '../../../shared/desktop'
-import { messageRoleLabel, SESSION_TIERS } from '../../../shared/desktop'
+import { messageRoleLabel, SESSION_TIERS, SUBAGENT_STATUS_VIEWS } from '../../../shared/desktop'
 import { ChatComposer } from './ChatComposer'
 import { WelcomeSection } from './WelcomeSection'
 import { useSessionStore } from '../stores/sessionStore'
@@ -13,12 +13,10 @@ const taskStates: Record<string, string> = { unknown: '结果待核实', result_
   cancel_requested: '已请求停止，结果待核实', completed: '已完成', cancelled: '已停止', denied: '已拒绝', failed: '失败' }
 
 // Issue 76: the labels mirror the platform's own task_* event vocabulary one
-// to one — a state the platform never pushed has no label to borrow.
-const subagentStates: Record<ChatSubagent['status'], { label: string; color: string }> = {
-  running: { label: '执行中', color: 'processing' }, completed: { label: '已完成', color: 'success' },
-  failed: { label: '失败', color: 'error' }, cancelled: { label: '已取消', color: 'warning' },
-  timed_out: { label: '已超时', color: 'warning' }
-}
+// to one — a state the platform never pushed has no view to borrow. Since
+// issue 112 the whole view map (labels + tag colors) lives in
+// shared/desktop.ts (SUBAGENT_STATUS_VIEWS) so the office pane renders the
+// same vocabulary with no room for drift.
 
 // Issue 74: the three session tiers, always shown in the chat area. A loaded
 // session starts at the lowest tier; switching to the full tier is confirmed
@@ -243,6 +241,32 @@ function InlineCodeConsentCard({ request, state, threadId, busy, blocked, onComm
   </Card>
 }
 
+/** Issue 108: the agent's ask to drive the local browser pane. The card is
+ * the 开工前标示 itself — intent and page target only, page content never
+ * rides it — and approval is per action, never rememberable: live pages
+ * change under any standing grant, so the ask stays fresh every time. */
+const BROWSER_INTENT_LABELS: Record<string, string> = {
+  observe: '观察页签列表与页面状态', input: '输入与导航', submit: '提交页面表单', download: '下载文件到授权文件夹'
+}
+function BrowserControlConsentCard({ request, state, threadId, busy, blocked, onCommand }: ConsentCardProps): JSX.Element {
+  const intent = BROWSER_INTENT_LABELS[request.intent ?? ''] ?? request.intent
+  return <Card size="small" title="本机浏览器控制审批">
+    <Typography.Paragraph>Agent 正在控制本机浏览器：{intent}</Typography.Paragraph>
+    {request.url ? <Typography.Paragraph style={{ overflowWrap: 'anywhere' }}>目标：{request.url}</Typography.Paragraph> : null}
+    <Typography.Paragraph>Run：{request.runId} · 任务：{request.taskId}</Typography.Paragraph>
+    <Typography.Paragraph copyable>请求 SHA-256：{request.requestHash}</Typography.Paragraph>
+    <Typography.Paragraph type="secondary">
+      操作经会话权限档位审批：变更前询问档逐次询问；完全模式不再询问。观察、输入、提交、下载都走受控通道，浏览器分区与授权文件夹边界不变。
+    </Typography.Paragraph>
+    <Space className="mt-3">
+      <Button type="primary" disabled={busy || blocked('local.browser.control')}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'allow'))}>允许本次操作</Button>
+      <Button danger disabled={busy}
+        onClick={() => void onCommand(consentCommand(request, state, threadId, 'deny'))}>拒绝本次操作</Button>
+    </Space>
+  </Card>
+}
+
 /** Issue 76: the collab mode's per-sub-agent progress. Every row is the
  * platform's own task_* event vocabulary rendered as-is — who is doing what,
  * how far it got, and what it finished with. No intermediate state is
@@ -259,8 +283,8 @@ function SubagentProgress({ subagents }: { subagents: ChatSubagent[] }): JSX.Ele
     {ordered.map((row) => <Card size="small" key={row.taskId} type="inner"
       title={<span style={{ overflowWrap: 'anywhere' }}>{row.description || '（平台未提供描述）'}</span>}>
       <Space wrap>
-        <Tag aria-label={`子代理状态 ${subagentStates[row.status].label}`} color={subagentStates[row.status].color}>
-          {subagentStates[row.status].label}</Tag>
+        <Tag aria-label={`子代理状态 ${SUBAGENT_STATUS_VIEWS[row.status].label}`} color={SUBAGENT_STATUS_VIEWS[row.status].color}>
+          {SUBAGENT_STATUS_VIEWS[row.status].label}</Tag>
         {row.agent && <Typography.Text>类型：{row.agent}</Typography.Text>}
         {row.model && <Typography.Text>模型：{row.model}</Typography.Text>}
         {row.step != null && row.totalSteps != null && <Typography.Text>步骤：{row.step}/{row.totalSteps}</Typography.Text>}
@@ -428,7 +452,10 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
           <Typography.Paragraph>{task.capability} · {task.logical_target}</Typography.Paragraph>
           <Typography.Paragraph>Server 任务：{taskStates[task.status] || task.status}{task.stop_requested ? ' · 已请求停止' : ''}</Typography.Paragraph>
           {task.receipt && <Typography.Paragraph>Server 回执：{taskStates[task.receipt.status || 'unknown'] || task.receipt.status}</Typography.Paragraph>}
-          <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执'}</Typography.Paragraph>
+          {/* Issue 95: a Server task row with no local artifact on this
+              device keeps the cross-device history honest — whatever local
+              result exists lives only on the device that generated it. */}
+          <Typography.Paragraph>本机回执：{task.local ? `${taskStates[task.local.status] || task.local.status} · ${deliveryStates[task.local.delivery_state] || task.local.delivery_state}` : '本机无可核实回执 · 本地结果仅原设备可用'}</Typography.Paragraph>
           {task.localResult && <Card type="inner" size="small" title="本地生成结果（仅原设备可用）">
             <Typography.Paragraph>文件：{task.localResult.name} · {task.localResult.bytes} 字节</Typography.Paragraph>
             <Typography.Paragraph copyable style={{ overflowWrap: 'anywhere' }}>SHA-256：{task.localResult.sha256}</Typography.Paragraph>
@@ -457,6 +484,8 @@ function ChatContents({ state, busy, attachmentView, onCommand }: {
         if (request.kind === 'knowledge-material') return <MaterialConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         if (request.kind === 'inline-code') return <InlineCodeConsentCard key={`${request.taskId}-${request.requestHash}`}
+          request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
+        if (request.kind === 'browser-control') return <BrowserControlConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />
         return <FileWriteConsentCard key={`${request.taskId}-${request.requestHash}`}
           request={request} state={state} threadId={threadId} busy={busy} blocked={blocked} onCommand={onCommand} />

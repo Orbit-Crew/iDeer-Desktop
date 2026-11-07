@@ -116,11 +116,18 @@ describe('bootstrap capability boundary', () => {
     // the platform owns timing, previews and execution records through the
     // Runtime's pinned contract client, a delete is confirmed in the trusted
     // main process, and 补跑/跳过 facts are device-local display truth.
+    // Issue 102 adds desktop:datasets for 表格数据集导入: the renderer names
+    // the action and the project association only; the file is picked and
+    // both import and delete are confirmed in the trusted main process, the
+    // device parses XLSX/CSV into a real registry row (multi-sheet, inferred
+    // column types, content fingerprints), duplicate content answers an
+    // explicit duplicate instead of a second row, and the original file
+    // never leaves the machine — a delete removes the registry row only.
     // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
     // resize and kill on desktop-local PTY sessions — a separate minimal
     // bridge that never rides the trusted desktop:* channel.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -192,12 +199,15 @@ describe('dock pane security seam (issue 71)', () => {
     // the separate minimal terminal bridge (pinned in its own graph test).
     // Issue 84 wires the native `templates` pane the same way — the plaza
     // uses the trusted bridge for the Server's own template rows only.
+    // Issue 112 wires the native `office` pane the same way — a read-only
+    // observer on the existing chat state read, with zero own IPC surface
+    // (pinned in test/office-bridge.test.ts).
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
