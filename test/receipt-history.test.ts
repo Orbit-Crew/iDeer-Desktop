@@ -57,4 +57,36 @@ describe.skipIf(process.platform !== 'win32')('Desktop receipt history IPC', () 
       rmSync(profile, { recursive: true, force: true })
     }
   }, 30000)
+  it('carries the bound device id through the login status wire (#95)', async () => {
+    const profile = mkdtempSync(join(tmpdir(), 'ideer device id 95 '))
+    const platform = createServer((request, response) => {
+      request.resume()
+      response.setHeader('Content-Type', 'application/json')
+      response.end(JSON.stringify(request.url === '/api/devices/login/start'
+        ? { login_id: 'device-95', expires_in: 300 }
+        : { account: { id: 'A', name: 'Synthetic A' }, device: { id: 'D', name: 'Synthetic D', owner_id: 'A' },
+          business_token: 'synthetic-business-95', session_token: 'synthetic-device-95', session_id: 'session-D',
+          server_public_key: 'public-broker', business_expires_at: '2099-01-01T00:00:00+00:00' }))
+    })
+    await new Promise<void>(done => platform.listen(0, '127.0.0.1', done))
+    const address = platform.address()
+    if (!address || typeof address === 'string') throw new Error('No fixture listener')
+    const runtime = new RuntimeProcess(resolve('.runtime'), profile)
+    try {
+      await runtime.start()
+      await runtime.beginLogin(`http://127.0.0.1:${address.port}`, 'Synthetic D')
+      // Issue 95: the bundled Runtime's authenticated status names the bound
+      // device id; the strict main-process parser keeps exactly that fact so
+      // history views can mark foreign-device records as 仅原设备.
+      await vi.waitFor(() => expect(runtime.status().login?.deviceId).toBe('D'), { timeout: 10000 })
+      expect(runtime.status().login?.device).toBe('Synthetic D')
+    } finally {
+      await runtime.stop()
+      execFileSync(resolve('.runtime/python.exe'), ['-I', '-c',
+        "import sys;from core.settings import load_settings;from core.secrets import create_default_secret_store;s=load_settings(sys.argv[1]);store=create_default_secret_store();[store.delete(r) for r in [s.business_token_ref,s.session_token_ref,s.device_key_ref] if r.startswith('desktop-')]",
+        join(profile, 'settings.json')], { windowsHide: true })
+      await new Promise<void>(done => platform.close(() => done()))
+      rmSync(profile, { recursive: true, force: true })
+    }
+  }, 30000)
 })
