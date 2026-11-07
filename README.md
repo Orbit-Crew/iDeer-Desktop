@@ -52,7 +52,10 @@ npm run dist:win
 ```
 
 Electron is pinned to 22.3.27 with software rendering. Installation identity and
-`%APPDATA%/iDeer Desktop` are independent of linz. Closing the window exits.
+`%APPDATA%/iDeer Desktop` are independent of linz. Closing the window hides to
+the tray while tasks, approvals and notifications keep running; the tray menu's
+退出 (and, once enabled in 设置 → 通用, the 关窗即退出 close) performs the real
+exit, draining in-flight tasks before the teardown.
 No old installation, data, credentials or workspace is imported or deleted.
 
 See [porting and ownership](docs/porting.md), [validation and Win7 gates](docs/validation.md),

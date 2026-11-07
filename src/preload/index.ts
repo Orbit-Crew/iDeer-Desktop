@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 // Issue 106: the official selection rides the templates family's one pinned
 // channel, so the channel inventory stays one entry per channel.
@@ -70,6 +70,10 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 107: the browser pane's clear entry; the confirmation stays in the
   // trusted main process.
   browser: (command: BrowserCommand) => ipcRenderer.invoke('desktop:browser', command),
+  // Issue 86: the shell's device-local window-lifecycle preference. The
+  // renderer names the action and the one boolean; the store itself lives in
+  // the trusted main process's userData because main needs it at close time.
+  preferences: (command: PreferenceCommand) => ipcRenderer.invoke('desktop:preferences', command),
   onNotifications: (listener: (view: NotificationCenterView) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, view: NotificationCenterView): void => listener(view)
     ipcRenderer.on('desktop:notifications', wrapped)

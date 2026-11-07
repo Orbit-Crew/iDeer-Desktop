@@ -3,12 +3,17 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { CadPaneService } from './cadPane'
 import { loadOcctFromDirs } from './cad/stepToMesh'
 import { AgentBrowserHub, type AgentBrowserPort } from './agentBrowser'
+// Issue 86: the window lifecycle's decision layer (close-to-tray vs true
+// exit) and the shell's device-local preference store.
+import { drainForExit, EXIT_DRAIN_NOTES, shouldExitOnClose, shouldInterceptClose } from './lifecycle'
+import { parsePreferenceCommand, ShellPreferenceStore } from './preferences'
+import { createAppTray } from './tray'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
 import { TerminalSessions } from './terminal'
@@ -45,6 +50,34 @@ if (!app.requestSingleInstanceLock()) {
     join(userData, 'Runtime'), Boolean(maintenanceId), app.getVersion()
   )
   let quitting = false
+  // Issue 86: the shell's device-local window-lifecycle preference, owned by
+  // main (a small userData JSON) because main alone decides at close time.
+  const shellPreferences = new ShellPreferenceStore(join(userData, 'preferences.json'))
+  let tray: Electron.Tray | null = null
+  // Issue 86: the one true-exit entry. Tray 退出, the app menu's 退出应用, the
+  // renderer's 退出应用 and a 关窗即退出 close all land here: stop admitting new
+  // tasks on the owned Runtime, wait for the in-flight set within the same
+  // bounded predicate the installer uses (aborting the drain on a timeout or
+  // on blocked records, with an honest note), then hand to the existing
+  // before-quit teardown. The hide-to-tray close never reaches this path, so
+  // a resident window can never kill the Runtime.
+  let exitRequested = false
+  const requestExit = (): void => {
+    if (exitRequested) return
+    exitRequested = true
+    void drainForExit({
+      status: () => runtime.status(),
+      drain: (action) => runtime.installDrain(action),
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      now: Date.now
+    })
+      .then((outcome) => {
+        if (outcome === 'drained' || !Notification.isSupported()) return
+        new Notification({ title: 'iDeer Desktop 退出', body: EXIT_DRAIN_NOTES[outcome] }).show()
+      })
+      .catch(() => {})
+      .finally(() => app.quit())
+  }
   // Issue 110: the human terminal's desktop-local PTY sessions. They live in
   // memory only — a restart opens new sessions and never pretends old ones
   // survived — and every exit path kills them.
@@ -55,6 +88,8 @@ if (!app.requestSingleInstanceLock()) {
     if (quitting) return
     event.preventDefault()
     quitting = true
+    tray?.destroy()
+    tray = null
     terminalSessions?.killAll()
     void runtime.stop().finally(() => app.quit())
   })
@@ -76,8 +111,10 @@ if (!app.requestSingleInstanceLock()) {
     }
     initializeDataFormat(userData)
     app.setAppUserModelId('com.orbitcrew.ideer.desktop')
+    // Issue 86: the menu exit is a true exit, so it rides the same drain
+    // coordinator as the tray and renderer exits instead of a bare quit.
     Menu.setApplicationMenu(Menu.buildFromTemplate([
-      { label: '文件', submenu: [{ label: '退出应用', role: 'quit' }] },
+      { label: '文件', submenu: [{ label: '退出应用', click: () => requestExit() }] },
       { label: '编辑', submenu: [{ role: 'copy' }, { role: 'selectAll' }] }
     ]))
     await runtime.start()
@@ -219,6 +256,35 @@ if (!app.requestSingleInstanceLock()) {
         runtime.agentBrowserReply(id, outcome.result, outcome.error))
     })
     mainWindow = createMainWindow()
+    // Issue 86: the tray-resident presence. A window close never quits by
+    // itself: the resident default (and an in-flight exit) hides to the tray
+    // with the Runtime, tasks, approvals and notifications untouched; with
+    // 关窗即退出 the close IS the exit request and routes through the same
+    // drain coordinator, so a close can never skip the drain. The teardown's
+    // own closes (quitting) take the natural path — and so does the whole
+    // update-maintenance helper instance: it has no tray icon, so a hide
+    // there would be an unrestorable zombie window (review finding).
+    mainWindow.on('close', (event) => {
+      if (!shouldInterceptClose(Boolean(maintenanceId), quitting)) return
+      event.preventDefault()
+      mainWindow?.hide()
+      if (shouldExitOnClose(shellPreferences.load().closeToTray, exitRequested)) requestExit()
+    })
+    // Issue 86: the tray. Click or 显示主窗口 restores and focuses the hidden
+    // window (the same surface notifications jump back to); only the menu's
+    // 退出 performs the true exit. The update-maintenance helper instance
+    // stays tray-free — it is not a user-facing session.
+    if (!maintenanceId) {
+      tray = await createAppTray({
+        onShow: () => {
+          if (!mainWindow || mainWindow.isDestroyed()) return
+          if (mainWindow.isMinimized()) mainWindow.restore()
+          mainWindow.show()
+          mainWindow.focus()
+        },
+        onExit: () => requestExit()
+      })
+    }
     // Issue 77: the Desktop's notification center. The owned Runtime reports
     // background-session facts; the trusted main process owns the ledger, the
     // OS toasts and the one push channel back to the renderer. Records made
@@ -330,6 +396,15 @@ if (!app.requestSingleInstanceLock()) {
       return browserPane.clear()
     })
 
+    // Issue 86: the shell preference family. The renderer reads and writes
+    // the device-local window-lifecycle boolean only; the store lives in
+    // this trusted process's userData and every reply re-reads it.
+    ipcMain.handle('desktop:preferences', (event, command: PreferenceCommand): PreferencesView => {
+      requireMainFrame(event)
+      const parsed = parsePreferenceCommand(command)
+      if (parsed.action === 'set') shellPreferences.save({ closeToTray: parsed.closeToTray })
+      return { closeToTray: shellPreferences.load().closeToTray }
+    })
     ipcMain.handle('desktop:status', (event): DesktopStatus => {
       requireMainFrame(event)
       const status = runtime.status()
@@ -975,8 +1050,10 @@ if (!app.requestSingleInstanceLock()) {
     })
     ipcMain.handle('desktop:quit', (event) => {
       requireMainFrame(event)
-      // Let invoke resolve before destroying its renderer.
-      setImmediate(() => app.quit())
+      // Let invoke resolve before the exit flow touches its renderer.
+      // Issue 86: the renderer's 退出应用 is a true exit and rides the same
+      // drain coordinator as the tray and menu exits.
+      setImmediate(() => requestExit())
     })
   }).catch((error: unknown) => {
     if (maintenanceId) {
