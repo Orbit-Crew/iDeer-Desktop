@@ -27,8 +27,10 @@ from .settings import load_settings
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
-from .knowledge_import import KnowledgeImportError, KnowledgeImportRegistry, category_for
+from .knowledge_import import (KnowledgeFolderImport, KnowledgeImportError, KnowledgeImportRegistry,
+                               category_for)
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
+from .project_binding import ProjectBindingError, ProjectBindingRegistry
 from .skill_import import SkillImportError, SkillImportRegistry
 from .skill_script import SkillScriptError
 from .secrets import SecretStoreError, create_default_secret_store
@@ -82,6 +84,11 @@ def main() -> int:
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_publish_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 96: the doc library's background folder import (start/cancel) and
+    # the batch management of the import records (delete/retry).
+    knowledge_folder_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_folder_cancel_commands: queue.Queue = queue.Queue(maxsize=1)
+    knowledge_manage_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_graph_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_wiki_commands: queue.Queue = queue.Queue(maxsize=1)
     skill_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -152,6 +159,35 @@ def main() -> int:
                         and all(isinstance(path, str) and 0 < len(path) <= 32768 for path in command['paths'])
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'path', 'scope'}
+                        and command['type'] == 'knowledge-folder-import' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['path'], str)
+                        and 0 < len(command['path']) <= 32768
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_folder_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id'}
+                        and command['type'] == 'knowledge-folder-import-cancel'
+                        and isinstance(command['id'], str) and len(command['id']) <= 64):
+                    knowledge_folder_cancel_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'ids', 'scope'}
+                        and command['type'] == 'knowledge-imports-delete' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['ids'], list)
+                        and 1 <= len(command['ids']) <= 100
+                        and all(isinstance(item, str) and re.fullmatch(r'[0-9a-f]{64}', item)
+                                for item in command['ids'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'recordId', 'scope'}
+                        and command['type'] == 'knowledge-import-retry' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['recordId'], str)
+                        and re.fullmatch(r'[0-9a-f]{64}', command['recordId'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'paths', 'confirmed', 'scope'}
                         and command['type'] == 'knowledge-publish' and isinstance(command['id'], str)
@@ -253,10 +289,12 @@ def main() -> int:
                         {'type', 'id', 'action', 'scope'},
                         {'type', 'id', 'action', 'name', 'scope'},
                         {'type', 'id', 'action', 'projectId', 'name', 'scope'},
-                        {'type', 'id', 'action', 'projectId', 'scope'})
+                        {'type', 'id', 'action', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'projectId', 'path', 'scope'})
                         and command['type'] == 'projects' and isinstance(command['id'], str)
                         and len(command['id']) <= 64
-                        and command['action'] in {'list', 'create', 'rename', 'archive', 'restore', 'delete'}
+                        and command['action'] in {'list', 'create', 'rename', 'archive', 'restore', 'delete',
+                                                  'bind-folder', 'unbind-folder'}
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128
                         and (command['action'] != 'create' or (
                             isinstance(command['name'], str) and 0 < len(command['name'].strip()) <= 128))
@@ -264,8 +302,10 @@ def main() -> int:
                             isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128
                             and isinstance(command['name'], str)
                             and 0 < len(command['name'].strip()) <= 128))
-                        and (command['action'] not in {'archive', 'restore', 'delete'} or (
-                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))):
+                        and (command['action'] not in {'archive', 'restore', 'delete', 'bind-folder', 'unbind-folder'} or (
+                            isinstance(command['projectId'], str) and 0 < len(command['projectId']) <= 128))
+                        and (command['action'] != 'bind-folder' or (
+                            isinstance(command['path'], str) and 0 < len(command['path']) <= 1024))):
                     project_commands.put_nowait(command)
                     continue
                 # Issue 102: the table dataset family. A fixed per-action key
@@ -511,6 +551,9 @@ def main() -> int:
         # Issue 120: explicit skill package imports keep the same registry
         # discipline — device-local display facts, never package content.
         skill_imports = SkillImportRegistry(args.config.with_name('skill-imports.db'))
+        # Issue 92: one device-local row per platform project+device; the
+        # binding never migrates and never touches local files or grants.
+        project_bindings = ProjectBindingRegistry(args.config.with_name('project-bindings.db'))
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -535,7 +578,13 @@ def main() -> int:
             local_results=local_results, compatibility_gate=compatibility,
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
-            session_tiers=session_tiers, inline_scripts=inline_scripts)
+            session_tiers=session_tiers, inline_scripts=inline_scripts,
+            project_bindings=project_bindings)
+        # Issue 96: the doc library's background folder import. One job at a
+        # time on its own daemon thread; progress rides the status snapshot
+        # and the cancel command lands at the next file or batch boundary.
+        folder_imports = KnowledgeFolderImport(chat.register_import_entries, knowledge_files,
+                                               knowledge_imports)
 
         def chat_control():
             while not stop.is_set():
@@ -685,6 +734,59 @@ def main() -> int:
                     if error == 'KNOWLEDGE_IMPORT_FAILED' and str(exc).startswith('CHAT_'):
                         error = str(exc)
                 emit({'v': 1, 'type': 'knowledge-import', 'id': knowledge_command['id'],
+                      'result': result, 'error': error})
+            try:
+                folder_command = knowledge_folder_commands.get_nowait()
+            except queue.Empty:
+                folder_command = None
+            if folder_command:
+                error = ''
+                result = None
+                try:
+                    if folder_command['scope'] != workspace.scope():
+                        raise KnowledgeImportError('KNOWLEDGE_IMPORT_IDENTITY_CHANGED')
+                    result = folder_imports.start(folder_command['kbId'], folder_command['path'])
+                except Exception as exc:
+                    # Only fixed categories cross the Desktop boundary; an
+                    # unexpected failure never leaks paths or content.
+                    error = category_for(exc)
+                    if error == 'KNOWLEDGE_IMPORT_FAILED' and str(exc).startswith('CHAT_'):
+                        error = str(exc)
+                emit({'v': 1, 'type': 'knowledge-folder-import', 'id': folder_command['id'],
+                      'result': result, 'error': error})
+            try:
+                folder_cancel = knowledge_folder_cancel_commands.get_nowait()
+            except queue.Empty:
+                folder_cancel = None
+            if folder_cancel:
+                # The event lands at the worker's next file or batch boundary;
+                # a cancel without a running job is silently a no-op.
+                folder_imports.cancel()
+                emit({'v': 1, 'type': 'knowledge-folder-import-cancel', 'id': folder_cancel['id'],
+                      'result': {'canceled': True}, 'error': ''})
+            try:
+                manage_command = knowledge_manage_commands.get_nowait()
+            except queue.Empty:
+                manage_command = None
+            if manage_command:
+                error = ''
+                result = None
+                try:
+                    if manage_command['scope'] != workspace.scope():
+                        raise KnowledgeImportError('KNOWLEDGE_IMPORT_IDENTITY_CHANGED')
+                    if manage_command['type'] == 'knowledge-imports-delete':
+                        # A delete removes device-local display rows only; the
+                        # platform keeps every registered revision.
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        result = {'deleted': knowledge_imports.delete(owner, manage_command['ids'])}
+                    else:
+                        result = chat.retry_import_record(manage_command['recordId'])
+                except Exception as exc:
+                    error = category_for(exc)
+                    if error == 'KNOWLEDGE_IMPORT_FAILED' and str(exc).startswith(('CHAT_', 'KNOWLEDGE_')):
+                        error = str(exc)
+                emit({'v': 1, 'type': manage_command['type'], 'id': manage_command['id'],
                       'result': result, 'error': error})
             try:
                 publish_command = knowledge_publish_commands.get_nowait()
@@ -1112,6 +1214,13 @@ def main() -> int:
                 connector_rows = connector_service.view(current_receipt_owner) if current_receipt_owner and connector_service is not None else []
             except ConnectorInstallError:
                 connector_rows = []
+            # Issue 92: this device's own project folder bindings ride the
+            # same snapshot; a different device's rows are keyed away by the
+            # profile binding, so the view is empty there by construction.
+            try:
+                binding_rows = project_bindings.view(current_receipt_owner) if current_receipt_owner else []
+            except ProjectBindingError:
+                binding_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -1167,6 +1276,7 @@ def main() -> int:
                       "receiptScope": content_hash(current_receipt_owner) if current_receipt_owner else '',
                       "knowledgeImports": knowledge_rows[:20],
                       "knowledgeImportStorageError": knowledge_imports.error,
+                      "knowledgeFolderImport": folder_imports.status(),
                       "datasets": dataset_rows[:20],
                       "datasetsStorageError": datasets_registry.error,
                       "knowledgePublications": knowledge_publication_rows[:20],
@@ -1177,6 +1287,8 @@ def main() -> int:
                       "skillScriptStorageError": script_registry_error,
                       "connectors": connector_rows[:20],
                       "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
+                      "projectBindings": binding_rows[:20],
+                      "projectBindingStorageError": project_bindings.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])

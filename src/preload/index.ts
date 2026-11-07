@@ -19,6 +19,14 @@ const bridge: DesktopBridge = Object.freeze({
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
   importKnowledge: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:import', kbId),
+  // Issue 96: the doc library's recursive folder import (directory pick and
+  // confirmation in main, background job in the Runtime), its cancel command,
+  // and the batch management of the import records (delete/retry, both
+  // confirmed in the trusted main process).
+  knowledgeFolderImport: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:folder', kbId),
+  knowledgeFolderCancel: () => ipcRenderer.invoke('desktop:knowledge:folder-cancel'),
+  deleteKnowledgeImports: (ids: string[]) => ipcRenderer.invoke('desktop:knowledge:delete', ids),
+  retryKnowledgeImport: (recordId: string) => ipcRenderer.invoke('desktop:knowledge:retry', recordId),
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),
   knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   knowledgeWiki: (command: WikiCommand) => ipcRenderer.invoke('desktop:knowledge:wiki', command),
@@ -105,7 +113,9 @@ const bridge: DesktopBridge = Object.freeze({
 // kill plus the two fixed main-owned push channels — no filesystem, no shell
 // wrapper, nothing else.
 const terminalBridge: TerminalBridge = Object.freeze({
-  spawn: () => ipcRenderer.invoke('terminal:spawn'),
+  // Issue 92: the optional project id selector rides the same invoke entry;
+  // the start dir itself is resolved in the trusted main process.
+  spawn: (projectId?: string) => ipcRenderer.invoke('terminal:spawn', ...(projectId === undefined ? [] : [projectId])),
   write: (sessionId: string, data: string) => ipcRenderer.invoke('terminal:write', sessionId, data),
   resize: (sessionId: string, cols: number, rows: number) => ipcRenderer.invoke('terminal:resize', sessionId, cols, rows),
   kill: (sessionId: string) => ipcRenderer.invoke('terminal:kill', sessionId),

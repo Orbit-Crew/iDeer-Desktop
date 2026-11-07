@@ -23,9 +23,11 @@ import ChatPanel from '../components/ChatPanel'
 import RuntimePane from './panels/runtimePane'
 import NotificationsPane from './panels/notificationsPane'
 import FilePane from './panels/filePane'
+import DocLibraryPane from './panels/docLibraryPane'
 import BrowserSlotPane from './panels/browserSlotPane'
 import TemplatesPane from './panels/templatesPane'
 import TerminalPane from './panels/terminalPane'
+import SynapsePane from './panels/synapsePane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 import OfficePane from './panels/officePane'
@@ -38,7 +40,7 @@ export function ChatAnchorContent(): JSX.Element {
 
 /**
  * 面板注册表：加载到 dock 里的可组合组件。
- * chat/runtime/files/templates/terminal 已接线；browser 槽位自 #107/#109 起在同一个
+ * chat/runtime/files/templates/terminal/synapse 已接线；browser 槽位自 #107/#109 起在同一个
  * 显式 本机/远端 选择后承载两种浏览器：本机为固定分区 webview（主进程附加守卫），远端为
  * 平台像素流（无 webview、屏面组件不进可信桥），二者绝不静默互切；terminal 由主进程承载
  * 的 PTY 窗格（issue 110，自带最小桥，不经可信 desktop:* 通道）；其余按原栏目位置注册为
@@ -60,13 +62,19 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // rendering, its own minimal bridge (never the trusted desktop:* one).
   { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: TerminalPane },
   { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
-  { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: UnwiredNativePane },
+  // Issue 96: the doc library — the `kb` pane is wired as the 项目文档库管理页
+  // (recursive folder import, fingerprint dedup, batch management, background
+  // import with cancel). It rides the trusted desktop:knowledge:* family only.
+  { ...getPanelMeta('kb'), icon: <SearchOutlined />, component: DocLibraryPane },
   // Issue 115: the CAD viewer — one bounded mesh read of the Runtime-guarded
   // workspace (OCCT for STEP, local readers for STL/OBJ) rendered by its own
   // honest engines (three.js WebGL with a software 2D fallback).
   { ...getPanelMeta('viewer3d'), icon: <DeploymentUnitOutlined />, component: Viewer3dPane },
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: ExternalPanePlaceholder },
-  { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: ExternalPanePlaceholder },
+  // Issue 113: the session map — the platform's own Thread rows as nodes,
+  // this device's observed branch edges as links; open/branch ride the
+  // conversation's serialized command path through the session store.
+  { ...getPanelMeta('synapse'), icon: <ApartmentOutlined />, component: SynapsePane },
   { ...getPanelMeta('notifications'), icon: <BellOutlined />, component: NotificationsPane },
   { ...getPanelMeta('templates'), icon: <SnippetsOutlined />, component: TemplatesPane },
   // Issue 112: the office pane — a read-only observer of the platform's

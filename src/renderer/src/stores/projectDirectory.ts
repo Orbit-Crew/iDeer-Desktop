@@ -4,18 +4,21 @@
 // view belongs to one current user operation; stale replies are fenced by
 // generation, and deleting or archiving a project never touches local files
 // or directory grants.
-import type { DesktopBridge, ProjectOperationView } from '../../../shared/desktop'
+import type { DesktopBridge, ProjectBindingView, ProjectOperationView } from '../../../shared/desktop'
 
 export interface ProjectDirectoryView {
   projects: ProjectOperationView['projects']
   permissions: { canWrite: boolean; canDelete: boolean }
+  /** Issue 92: this device's own folder bindings, one row per bound project;
+   * another device's rows never appear here (绑定不迁移). */
+  bindings: ProjectBindingView[]
   busy: boolean
   failed: boolean
   error: string
 }
 
 export const emptyProjectDirectoryView = (): ProjectDirectoryView => ({
-  projects: [], permissions: { canWrite: false, canDelete: false }, busy: false, failed: false, error: ''
+  projects: [], permissions: { canWrite: false, canDelete: false }, bindings: [], busy: false, failed: false, error: ''
 })
 
 /** Fixed wire categories the project surface can explain in Chinese; anything
@@ -31,6 +34,7 @@ const errorExplanations: Record<string, string> = {
   CHAT_COMMAND_INVALID: '请求被拒绝：项目操作参数无效',
   CHAT_SERVER_UNAVAILABLE: '平台暂时不可用，请检查网络或稍后重试',
   CHAT_SERVER_ERROR: '平台处理该操作时出错，请稍后重试',
+  CHAT_BINDING_STORE_UNAVAILABLE: '本机绑定记录存储不可用，请重启应用后重试',
   PROJECTS_BUSY: '上一个项目操作还在进行，请稍候',
   PROJECTS_TIMEOUT: '项目操作超时，结果以平台状态为准，请刷新核对',
   RUNTIME_UNAVAILABLE: '本机 Runtime 未运行，请先连接设备'
@@ -59,7 +63,8 @@ export class ProjectDirectoryController {
     try {
       const next: ProjectOperationView = await this.api.projects(command)
       if (generation !== this.generation) return
-      this.update({ projects: next.projects, permissions: next.permissions, busy: false, failed: false, error: '' })
+      this.update({ projects: next.projects, permissions: next.permissions, bindings: next.bindings ?? [],
+        busy: false, failed: false, error: '' })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (generation !== this.generation) return
@@ -100,5 +105,19 @@ export class ProjectDirectoryController {
   async remove(projectId: string): Promise<void> {
     if (!this.view.permissions.canDelete) return
     await this.run({ action: 'delete', projectId })
+  }
+
+  /** Issue 92: the device-local folder binding. The renderer names the
+   * project only — the folder is chosen and confirmed in the trusted main
+   * process — and a canceled dialog is a user decision, not a failure.
+   * Binding is an optional per-device accessory, so it is not gated on the
+   * account's platform write permission; the Runtime's session fence and the
+   * project-existence check stay authoritative. */
+  async bindFolder(projectId: string): Promise<void> {
+    await this.run({ action: 'bind-folder', projectId })
+  }
+
+  async unbindFolder(projectId: string): Promise<void> {
+    await this.run({ action: 'unbind-folder', projectId })
   }
 }
