@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import mimetypes
+import shutil
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -962,6 +963,44 @@ def test_folder_job_reports_a_walk_refusal_as_a_failed_job(tmp_path):
         assert status['error'] == 'KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS'
         assert import_posts(records) == []
         assert registry.view(binding) == []
+
+
+def test_walk_refuses_a_vanished_workspace_root_by_category(tmp_path):
+    """T96-01: a workspace root that vanished (unmount, external wipe) is
+    refused by its own category, never by an escaping FileNotFoundError —
+    the worker must be able to turn it into an honest failed state."""
+    grant = dict(logical_root='/workspace/lib', physical_root=str(tmp_path / 'gone'),
+                 identity=[12345, 67890])
+    with pytest.raises(KnowledgeImportError) as refused:
+        walk_import_folder(grant, str(tmp_path))
+    assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+
+
+def test_folder_job_survives_a_workspace_root_that_vanishes_midflight(tmp_path, monkeypatch):
+    """T96-03: the workspace root disappearing while the worker runs fails
+    the job by category instead of killing the worker into a running phantom
+    that BUSY-refuses every later start."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        (folder / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+
+        serve = job._knowledge_files
+
+        def vanish_then_serve():
+            shutil.rmtree(space, ignore_errors=True)
+            return serve()
+
+        monkeypatch.setattr(job, '_knowledge_files', vanish_then_serve)
+        job.start(KB, str(folder))
+        status = wait_terminal(job)
+        assert status['state'] == 'failed'
+        assert status['error'] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+        # No phantom happened: the slot is free, so the very next start is
+        # accepted and settles honestly instead of refusing with BUSY.
+        job.start(KB, str(folder))
+        assert wait_terminal(job)['state'] == 'failed'
 
 
 def test_folder_job_start_failure_never_leaves_a_phantom_job(tmp_path, monkeypatch):

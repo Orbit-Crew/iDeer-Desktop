@@ -157,7 +157,13 @@ def walk_import_folder(grant: dict[str, Any], physical_folder: str) -> dict[str,
     """
     from .file_service import WorkspaceFileStore
     root = Path(grant["physical_root"])
-    identity = [root.stat().st_dev, root.stat().st_ino]
+    try:
+        identity = [root.stat().st_dev, root.stat().st_ino]
+    except OSError as exc:
+        # The root vanished after confirmation (unmount, external wipe): an
+        # honest category keeps the worker alive to fail the job instead of
+        # an escaping FileNotFoundError leaving a stuck running job.
+        raise KnowledgeImportError("KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE") from exc
     if list(grant.get("identity") or []) != identity:
         raise KnowledgeImportError("KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE")
     if not isinstance(physical_folder, str) or not physical_folder \

@@ -324,4 +324,16 @@ describe('dock pane security seam (issue 71)', () => {
     expect(csp).toContain("connect-src 'none'")
     expect(csp).toMatch(/default-src 'none'/)
   })
+
+  it('keeps every trusted invoke handler behind the main-frame sender check', () => {
+    // The trusted-channel convention: every registered invoke handler
+    // verifies the invoking frame before it touches the Runtime or local
+    // state — one unchecked registration leaves that command family open to
+    // a rogue-frame sender, so the counts can never drift apart.
+    const wiring = readFileSync('src/main/index.ts', 'utf8')
+    const registrations = wiring.match(/ipcMain\.handle\(/g) ?? []
+    const senderChecks = wiring.match(/requireMainFrame\(event\)/g) ?? []
+    expect(registrations.length).toBeGreaterThan(30)
+    expect(senderChecks.length).toBe(registrations.length)
+  })
 })

@@ -446,7 +446,10 @@ if (!app.requestSingleInstanceLock()) {
     })
     // Issue 96: the folder import cancel command; a cancel without a running
     // job is an honest no-op.
-    ipcMain.handle('desktop:knowledge:folder-cancel', (event) => runtime.cancelKnowledgeFolder())
+    ipcMain.handle('desktop:knowledge:folder-cancel', (event) => {
+      requireMainFrame(event)
+      return runtime.cancelKnowledgeFolder()
+    })
     // Issue 96: batch delete of import records. The confirmation stays in the
     // trusted main process; a delete only removes device-local display rows.
     ipcMain.handle('desktop:knowledge:delete', async (event, ids: string[]): Promise<{ deleted: number }> => {
