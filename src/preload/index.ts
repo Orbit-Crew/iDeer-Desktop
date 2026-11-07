@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 // Issue 106: the official selection rides the templates family's one pinned
 // channel, so the channel inventory stays one entry per channel.
@@ -19,6 +19,14 @@ const bridge: DesktopBridge = Object.freeze({
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
   importKnowledge: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:import', kbId),
+  // Issue 96: the doc library's recursive folder import (directory pick and
+  // confirmation in main, background job in the Runtime), its cancel command,
+  // and the batch management of the import records (delete/retry, both
+  // confirmed in the trusted main process).
+  knowledgeFolderImport: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:folder', kbId),
+  knowledgeFolderCancel: () => ipcRenderer.invoke('desktop:knowledge:folder-cancel'),
+  deleteKnowledgeImports: (ids: string[]) => ipcRenderer.invoke('desktop:knowledge:delete', ids),
+  retryKnowledgeImport: (recordId: string) => ipcRenderer.invoke('desktop:knowledge:retry', recordId),
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),
   knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   knowledgeWiki: (command: WikiCommand) => ipcRenderer.invoke('desktop:knowledge:wiki', command),
@@ -57,6 +65,12 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 94: the human file-browsing seam — logical workspace paths only;
   // open/reveal resolve to physical paths inside the trusted main process.
   files: (command: FilesCommand) => ipcRenderer.invoke('desktop:files', command),
+  // Issue 115: the CAD viewer's one invoke entry — the renderer names a
+  // workspace-logical model file; containment rides the Runtime's own locate
+  // gate and the conversion (plus its honest caps) happens in the trusted
+  // main process, which returns one bounded mesh payload and never a
+  // physical path or raw file bytes.
+  cad: (command: CadCommand) => ipcRenderer.invoke('desktop:cad', command),
   // Issue 109: the remote browser entry — stream lifecycle, input forwarding
   // and the explicit remote-file retrieval; the screen itself arrives on the
   // one push channel below as pixels and can never send anything back.
@@ -99,7 +113,9 @@ const bridge: DesktopBridge = Object.freeze({
 // kill plus the two fixed main-owned push channels — no filesystem, no shell
 // wrapper, nothing else.
 const terminalBridge: TerminalBridge = Object.freeze({
-  spawn: () => ipcRenderer.invoke('terminal:spawn'),
+  // Issue 92: the optional project id selector rides the same invoke entry;
+  // the start dir itself is resolved in the trusted main process.
+  spawn: (projectId?: string) => ipcRenderer.invoke('terminal:spawn', ...(projectId === undefined ? [] : [projectId])),
   write: (sessionId: string, data: string) => ipcRenderer.invoke('terminal:write', sessionId, data),
   resize: (sessionId: string, cols: number, rows: number) => ipcRenderer.invoke('terminal:resize', sessionId, cols, rows),
   kill: (sessionId: string) => ipcRenderer.invoke('terminal:kill', sessionId),

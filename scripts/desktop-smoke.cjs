@@ -90,13 +90,19 @@ async function main() {
     // Issue 106 adds the officialTemplates door: a second typed entry over
     // the templates family's one pinned channel (the channel inventory in
     // test/security.test.ts stays one desktop:templates entry).
+    // Issue 115 adds the CAD viewer's one read entry (`cad`).
+    // Issue 96 adds the doc library's four bridge keys: the folder import
+    // (directory pick and confirmation stay in the trusted main process, the
+    // Runtime runs the job in background), its cancel command, and the
+    // record-management doors deleteKnowledgeImports + retryKnowledgeImport
+    // (both confirmed in the trusted main process).
     // Issue 102 adds the datasets entry: 表格数据集导入 — the renderer names
     // the action and the project association only; file picking and both
     // confirmations stay in the trusted main process.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'browser', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'files', 'getStatus',
-      'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
+      'beginLogin', 'browser', 'cad', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'deleteKnowledgeImports', 'files', 'getStatus',
+      'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
+      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

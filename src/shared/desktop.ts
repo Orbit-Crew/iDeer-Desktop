@@ -77,6 +77,12 @@ export interface KnowledgeImportView {
   status: 'registered' | 'failed'
   errorCode: string
   createdAt: string
+  /** Issue 96: the platform project identity when the registration response
+   * carried one; the library identity stays kbId/revisionId. */
+  projectId: string
+  /** Issue 96: where a folder batch came from — the workspace-logical folder
+   * and how many files it held. The stored paths never cross the bridge. */
+  source: { kind: string; folder: string; pathCount: number } | null
   documents: KnowledgeImportDocumentView[]
 }
 export interface KnowledgeImportOutcome {
@@ -85,6 +91,24 @@ export interface KnowledgeImportOutcome {
   revisionNo: number
   manifestHash: string
   documentCount: number
+}
+/** Issue 96: the doc library's one background folder import job. */
+export interface KnowledgeFolderFailureView { filename: string; errorCode: string }
+export interface KnowledgeFolderJobView {
+  state: 'running' | 'completed' | 'canceled' | 'failed'
+  kbId: string
+  folder: string
+  totalFiles: number
+  processedFiles: number
+  registeredBatches: number
+  registeredDocuments: number
+  failedBatches: number
+  skippedDuplicates: number
+  skippedUnsupported: number
+  skippedLinks: number
+  truncated: boolean
+  error: string
+  failures: KnowledgeFolderFailureView[]
 }
 /** Issue 115: device-local display fact for one explicit server publication. */
 export interface KnowledgePublicationView {
@@ -388,8 +412,20 @@ export interface SkillScriptView { authorizations: SkillScriptAuthorizationView[
 
 /** Issue 72: one platform thread as the sidebar shows it — identity facts and
  * the Server's own recency timestamp; no local roster is ever built. Issue 91:
- * `projectId` mirrors the Server's own membership stamp (empty = 散会话). */
-export interface ThreadRowView { id: string; title: string; status: string; updatedAt: string; projectId: string }
+ * `projectId` mirrors the Server's own membership stamp (empty = 散会话).
+ * Issue 113: `branchedFrom` is the branch edge this device observed when the
+ * platform's branch endpoint answered with its own parent facts — the Runtime
+ * records it scope-bound and survives a restart. Absent means unknown: the
+ * session map renders the row unconnected, never guessing a parent from
+ * titles, ids or recency. */
+export interface ThreadRowView {
+  id: string
+  title: string
+  status: string
+  updatedAt: string
+  projectId: string
+  branchedFrom?: { threadId: string; messageId: string }
+}
 /** Issue 72: the account's own Thread capabilities as the Server states them. */
 export interface ThreadPermissionsView { canRename: boolean; canDelete: boolean }
 /** Issue 72: list/search/rename/delete/move share one wire shape. Every reply
@@ -416,6 +452,11 @@ export interface ThreadView {
 /** Issue 91: one platform project as the management surface shows it —
  * identity facts only; instructions and presentation stay platform-side. */
 export interface ProjectView { id: string; name: string; status: 'active' | 'archived'; createdAt: string; updatedAt: string }
+/** Issue 92: one project folder binding — a device-local record keyed by the
+ * platform projectId and the whole profile binding, so it never migrates:
+ * another device reads an empty view and shows 未绑定（原设备绑定不迁移）.
+ * The path is the user-confirmed working folder on this machine only. */
+export interface ProjectBindingView { projectId: string; path: string; deviceName: string; createdAt: string }
 /** Issue 91: the account's own Project capabilities as the Server states them.
  * Create, rename and the archive/restore flip share `projects:write`; only
  * deletion carries its own `projects:delete`. */
@@ -426,7 +467,10 @@ export interface ProjectPermissionsView { canWrite: boolean; canDelete: boolean 
  * same round and no second project roster is ever kept on this device. The
  * Server-side permission and owner checks stay authoritative — the renderer
  * only grays out early. Deleting or archiving never touches local files or
- * directory grants; the Server clears Thread membership itself. */
+ * directory grants; the Server clears Thread membership itself. Issue 92:
+ * `bind-folder`/`unbind-folder` join the family; the folder path is resolved
+ * and confirmed in the trusted main process (the renderer names the project
+ * only), and every reply also carries this device's own binding rows. */
 export type ProjectCommand =
   | { action: 'list' }
   | { action: 'create'; name: string }
@@ -434,14 +478,25 @@ export type ProjectCommand =
   | { action: 'archive'; projectId: string }
   | { action: 'restore'; projectId: string }
   | { action: 'delete'; projectId: string }
+  | { action: 'bind-folder'; projectId: string }
+  | { action: 'unbind-folder'; projectId: string }
+/**
+ * Main-internal: the bind-folder wire command with the folder path that was
+ * chosen and confirmed in the trusted main process. Never accepted from the
+ * renderer — the bridge type above carries the project id only.
+ */
+export type ProjectBindCommand = { action: 'bind-folder'; projectId: string; path: string }
 export interface ProjectOperationView {
   projects: ProjectView[]
   permissions: ProjectPermissionsView
+  bindings?: ProjectBindingView[]
   created?: boolean
   renamed?: boolean
   archived?: boolean
   restored?: boolean
   deleted?: boolean
+  bound?: boolean
+  unbound?: boolean
 }
 
 /** Issue 102: one parsed sheet's recorded facts — schema summary, counts and
@@ -757,6 +812,8 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   knowledgeImports?: KnowledgeImportView[]
   knowledgeImportStorageError?: string
+  /** Issue 96: the doc library's one background folder import job, or null. */
+  knowledgeFolderImport?: KnowledgeFolderJobView | null
   /** Issue 102: this identity's own dataset registry rows (bounded) plus the
    * honest storage error; the rows ride the same 0.5 s status snapshot. */
   datasets?: DatasetView[]
@@ -769,6 +826,10 @@ export interface RuntimeStatus {
   skillScriptStorageError?: string
   connectors?: ConnectorView[]
   connectorStorageError?: string
+  /** Issue 92: this device's own project folder bindings, refreshed with the
+   * same 0.5 s snapshot the surface reads; empty on any other device. */
+  projectBindings?: ProjectBindingView[]
+  projectBindingStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -821,9 +882,12 @@ export interface TerminalDataEvent { sessionId: string; data: string }
 export interface TerminalExitEvent { sessionId: string; exitCode: number }
 export interface TerminalBridge {
   /** Spawns one desktop-local PTY; the start dir is resolved in the trusted
-   * main process (project-bound folder, user home as fallback) — the renderer
-   * supplies no path, no command and receives no path back. */
-  spawn(): Promise<TerminalSpawnView>
+   * main process (the selected project's bound folder first, then the
+   * workspace, user home as fallback) — the renderer supplies no path, no
+   * command and receives no path back. Issue 92: the optional argument is an
+   * id selector for the selected project only; main resolves the path from
+   * the Runtime's own binding snapshot, never from the renderer. */
+  spawn(projectId?: string): Promise<TerminalSpawnView>
   write(sessionId: string, data: string): Promise<void>
   resize(sessionId: string, cols: number, rows: number): Promise<void>
   kill(sessionId: string): Promise<void>
@@ -848,6 +912,17 @@ export interface DesktopBridge {
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
   /** Issue 112: explicit local import; the main process picks files and confirms. */
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
+  /** Issue 96: the doc library's recursive folder import; the main process
+   * picks the directory and confirms, the Runtime runs the job in background. */
+  knowledgeFolderImport(kbId: string): Promise<KnowledgeFolderJobView>
+  /** Issue 96: cancel the running folder import at the next file or batch. */
+  knowledgeFolderCancel(): Promise<{ canceled: boolean }>
+  /** Issue 96: batch-delete selected import records (device-local display rows
+   * only); the confirmation stays in the trusted main process. */
+  deleteKnowledgeImports(ids: string[]): Promise<{ deleted: number }>
+  /** Issue 96: re-import one failed record's stored files through the
+   * ordinary import seam; the confirmation stays in the trusted main process. */
+  retryKnowledgeImport(recordId: string): Promise<KnowledgeImportOutcome>
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
@@ -915,6 +990,11 @@ export interface DesktopBridge {
    * of the confirmed workspace; open/reveal resolve the physical path only in
    * the trusted main process and return nothing to the renderer. */
   files(command: FilesCommand): Promise<FilesListView | FilesPreview | void>
+  /** Issue 115: the CAD viewer's read entry. The renderer names a
+   * workspace-logical model file; the mesh conversion (OCCT for STEP, local
+   * parsers for STL/OBJ) happens in the trusted main process and returns one
+   * bounded geometry payload — never the file bytes or a physical path. */
+  cad(command: CadCommand): Promise<CadMeshView>
   /** Issue 107: the browser pane's partition clear; the confirmation dialog
    * stays in the trusted main process, so an accidental click never wipes
    * login state on its own. */
@@ -1034,6 +1114,49 @@ export interface FilesListView { entries: FilesEntry[]; truncated: boolean }
 export type FilesPreview =
   | { kind: 'text'; content: string; truncated: boolean }
   | { kind: 'image'; mime: string; data: string }
+
+/**
+ * Issue 115: the CAD viewer's one invoke entry. The renderer names a
+ * workspace-logical model file plus the fixed `read-mesh` action; the
+ * workspace containment stays the Runtime's own guarded `locate` resolution,
+ * the physical path and file bytes never reach the renderer, and the honest
+ * caps (file size, triangle budget) are enforced in the trusted main process
+ * — an over-cap model is refused with explicit counts, never silently
+ * degraded. Geometry editing is out of scope by issue: the channel only reads.
+ */
+export type CadCommand = { action: 'read-mesh'; path: string }
+
+/** Issue 115: which local parser produced the mesh (the original's format
+ * subset: STL and OBJ parse directly, STEP triangulates through OCCT). */
+export type CadMeshFormat = 'stl' | 'obj' | 'step'
+
+/**
+ * Issue 115: one converted mesh payload. `positions` is the flat xyz vertex
+ * array and `indices` the triangle list; `stats` reports the loaded facts
+ * (parts, vertices, triangles) so the pane can show the real size instead of
+ * inventing one. Typed arrays ride the structured clone intact.
+ */
+export interface CadMeshView {
+  format: CadMeshFormat
+  positions: Float32Array
+  indices: Uint32Array
+  stats: CadMeshStats
+}
+
+/** Issue 115: the honest size facts of one loaded model. `meshes` counts the
+ * parts the converter produced (1 for direct STL/OBJ parses). */
+export interface CadMeshStats { meshes: number; vertices: number; triangles: number }
+
+/**
+ * Issue 115: the CAD viewer's caps, shared by the trusted main service that
+ * enforces them and the pane whose refusal texts state them — one vocabulary,
+ * so the enforced number and the displayed number can never drift.
+ * The file cap is the original viewer's STEP limit, now covering every
+ * format; the triangle budget is the software-render policy on the
+ * disabled-GPU baseline (docs/porting.md, 2026-11-07).
+ */
+export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
+export const CAD_MAX_TRIANGLES = 1_000_000
 
 /**
  * Issue 107: the local browser pane's one fixed session partition. Login

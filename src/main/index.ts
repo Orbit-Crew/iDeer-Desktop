@@ -3,9 +3,11 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
+import { CadPaneService } from './cadPane'
+import { loadOcctFromDirs } from './cad/stepToMesh'
 import { AgentBrowserHub, type AgentBrowserPort } from './agentBrowser'
 // Issue 86: the window lifecycle's decision layer (close-to-tray vs true
 // exit) and the shell's device-local preference store.
@@ -14,7 +16,7 @@ import { parsePreferenceCommand, ShellPreferenceStore } from './preferences'
 import { createAppTray } from './tray'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
-import { TerminalSessions } from './terminal'
+import { TerminalSessions, startDirForProject } from './terminal'
 import { formatDeclarationSummary } from './skillDeclaration'
 import { NotificationRegistry, describeNotification } from './notifications'
 import { downloadThreadArtifact } from './artifact-download'
@@ -450,6 +452,30 @@ if (!app.requestSingleInstanceLock()) {
       }
       throw new Error('FILES_COMMAND_INVALID')
     })
+    // Issue 115: the CAD viewer's read entry. The renderer names a
+    // workspace-logical model file; containment rides the Runtime's own
+    // `locate` gate, and the conversion (OCCT WASM for STEP, local readers
+    // for STL/OBJ) with its honest caps runs here in the trusted process —
+    // the physical path and the file bytes never reach the renderer, and an
+    // over-cap model is refused by code instead of silently degraded.
+    const cadPane = new CadPaneService({
+      locate: (path) => runtime.files('locate', path) as Promise<{ physical: string }>,
+      // Packaged: <install>/resources/occt (extraResources, outside the asar).
+      // Development: the checkout's own resources/occt — the converter is a
+      // pinned repository resource, never an npm-resolved copy.
+      loadOcct: () => loadOcctFromDirs([
+        join(process.resourcesPath, 'occt'),
+        join(app.getAppPath(), 'resources', 'occt')
+      ])
+    })
+    ipcMain.handle('desktop:cad', async (event, command: CadCommand) => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object') throw new Error('CAD_COMMAND_INVALID')
+      const keys = Object.keys(command).length
+      if (command.action !== 'read-mesh' || typeof command.path !== 'string' ||
+          command.path.length === 0 || keys !== 2) throw new Error('CAD_COMMAND_INVALID')
+      return cadPane.readMesh(command.path)
+    })
     // Issue 110: the human terminal seam (decision #59). Desktop-local PTY
     // sessions owned by the main frame only; the start dir resolves here from
     // the bound workspace (convenience, not a boundary) and falls back to the
@@ -463,18 +489,26 @@ if (!app.requestSingleInstanceLock()) {
       onExit: (payload) => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('terminal:exit', payload)
       }
-    }, async () => {
+    }, async (projectId: string) => {
+      // Issue 92: the selected project's bound folder is the preferred start
+      // dir, resolved from the Runtime's own binding snapshot; the workspace
+      // locate and the user home stay the fallback chain. The renderer names
+      // a project id only — never a path.
       const status = runtime.status()
-      if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready') throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
-      const located = await runtime.files('locate', '/')
-      const physical = (located as { physical: string }).physical
-      if (typeof physical !== 'string' || !physical) throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
-      return physical
+      return startDirForProject(projectId, status.projectBindings, async () => {
+        if (status.login?.state !== 'authenticated' || status.workspace?.state !== 'ready') throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+        const located = await runtime.files('locate', '/')
+        const physical = (located as { physical: string }).physical
+        if (typeof physical !== 'string' || !physical) throw new Error('TERMINAL_START_DIR_UNAVAILABLE')
+        return physical
+      })
     })
     terminalSessions = terminals
-    ipcMain.handle('terminal:spawn', async (event) => {
+    ipcMain.handle('terminal:spawn', async (event, projectId?: unknown) => {
       requireMainFrame(event)
-      return terminals.spawn(event.sender.id)
+      // Issue 92: the optional argument is the selected project's id — an id
+      // selector the manager sanitizes; a path can never ride this argument.
+      return terminals.spawn(event.sender.id, typeof projectId === 'string' ? projectId : undefined)
     })
     ipcMain.handle('terminal:write', (event, sessionId: string, data: string) => {
       requireMainFrame(event)
@@ -582,6 +616,66 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
       return runtime.importKnowledge(kbId, chosen.filePaths)
+    })
+    // Issue 96: the doc library's recursive folder import. The renderer only
+    // names the platform KB identity; the directory picking and the content
+    // boundary confirmation stay in the trusted main process, and the Runtime
+    // runs the walk/dedup/registration job in background with cancel.
+    ipcMain.handle('desktop:knowledge:folder', async (event, kbId: string): Promise<unknown> => {
+      requireMainFrame(event)
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      if (typeof kbId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(kbId)) throw new Error('KNOWLEDGE_IMPORT_KB_INVALID')
+      const chosen = await dialog.showOpenDialog(mainWindow!, {
+        title: '选择要导入的文件夹', properties: ['openDirectory'] })
+      if (chosen.canceled || !chosen.filePaths.length) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认整文件夹导入',
+        message: '递归导入所选文件夹及其子文件夹到平台知识库？',
+        detail: '设备侧将递归读取文件夹内支持的文档（PDF/DOCX/XLSX/CSV 与文本），按内容指纹自动去重：与已导入内容相同的文件会被跳过并在进度中提示。导入在后台进行，可随时取消；每批最多 200 个文件，每个批次生成一个新的不可变版本。平台仅登记文件名、大小、类型与 SHA-256 指纹清单，原文件不会上传。文件夹必须位于已确认的工作目录内。',
+        buttons: ['取消', '开始后台导入'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.importKnowledgeFolder(kbId, chosen.filePaths[0])
+    })
+    // Issue 96: the folder import cancel command; a cancel without a running
+    // job is an honest no-op.
+    ipcMain.handle('desktop:knowledge:folder-cancel', (event) => {
+      requireMainFrame(event)
+      return runtime.cancelKnowledgeFolder()
+    })
+    // Issue 96: batch delete of import records. The confirmation stays in the
+    // trusted main process; a delete only removes device-local display rows.
+    ipcMain.handle('desktop:knowledge:delete', async (event, ids: string[]): Promise<{ deleted: number }> => {
+      requireMainFrame(event)
+      if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 ||
+          ids.some((id) => typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id))) throw new Error('KNOWLEDGE_IMPORT_IDS_INVALID')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '删除导入记录',
+        message: `删除所选 ${ids.length} 条导入记录？`,
+        detail: '仅删除本机的导入记录（显示事实），不影响平台知识库与已登记的版本。',
+        buttons: ['取消', '删除所选记录'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.deleteKnowledgeImports(ids)
+    })
+    // Issue 96: retry one failed import record from its stored workspace
+    // source; the confirmation stays in the trusted main process.
+    ipcMain.handle('desktop:knowledge:retry', async (event, recordId: string): Promise<KnowledgeImportOutcome> => {
+      requireMainFrame(event)
+      if (typeof recordId !== 'string' || !/^[0-9a-f]{64}$/.test(recordId)) throw new Error('KNOWLEDGE_IMPORT_ID_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '重新导入失败的记录',
+        message: '重新导入该失败记录的原始文件？',
+        detail: '设备侧会按记录中保存的工作目录来源重新读取这些文件，并重新执行全部目录校验与解析；重试生成新的导入记录，原失败记录保留。',
+        buttons: ['取消', '重新导入'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.retryKnowledgeImport(recordId)
     })
     // Issue 115: the explicit server publication flow. The preview step is
     // read-only; content leaves the device only after the owner has seen the
@@ -747,10 +841,15 @@ if (!app.requestSingleInstanceLock()) {
     // touches local files or directory grants — deleting or archiving a
     // project is platform-side organization only, and the Server clears
     // Thread membership itself.
+    // Issue 92: the device-local folder binding actions join the family. The
+    // renderer names the project only; the folder is chosen in the native
+    // dialog here and confirmed with the boundary explanation before the
+    // Runtime records it — a path supplied by the renderer never reaches the
+    // wire, and a canceled dialog is a user decision, not a failure.
     ipcMain.handle('desktop:projects', async (event, command: ProjectCommand): Promise<ProjectOperationView> => {
       requireMainFrame(event)
       if (!command || typeof command !== 'object' ||
-          !['list', 'create', 'rename', 'archive', 'restore', 'delete'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
+          !['list', 'create', 'rename', 'archive', 'restore', 'delete', 'bind-folder', 'unbind-folder'].includes(command.action)) throw new Error('PROJECTS_COMMAND_INVALID')
       const status = runtime.status()
       if (status.login?.state !== 'authenticated') throw new Error('PROJECTS_UNAUTHENTICATED')
       if (command.action === 'delete') {
@@ -762,6 +861,42 @@ if (!app.requestSingleInstanceLock()) {
           buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
         })
         if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
+      }
+      if (command.action === 'bind-folder' || command.action === 'unbind-folder') {
+        if (typeof command.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId)) throw new Error('PROJECTS_COMMAND_INVALID')
+      }
+      if (command.action === 'bind-folder') {
+        const chosen = await dialog.showOpenDialog(mainWindow!, { title: '选择项目文件夹', properties: ['openDirectory'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('PROJECTS_CANCELED')
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认绑定项目文件夹',
+          message: '将该文件夹绑定为这个项目在本机的工作文件夹？',
+          detail: `${chosen.filePaths[0]}\n\n绑定按“项目+设备”记录，仅保存在本机：换设备登录时该项目显示未绑定（原设备绑定不迁移）。受控终端将以该文件夹为起始目录；也可在未选择工作目录时将其设为文件工具的工作目录。删除项目或解绑都不会删除本机文件。`,
+          buttons: ['取消', '确认绑定'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
+        const bound = await runtime.projects({ action: 'bind-folder', projectId: command.projectId, path: chosen.filePaths[0] })
+        // Issue 92: the file tools' boundary input is the confirmed device
+        // workspace. When none is selected yet, the bound folder may become
+        // it through the same explicit confirmation the workspace chooser
+        // uses; an existing workspace is never touched, and a failed offer
+        // never undoes the binding.
+        if (runtime.status().workspace?.state !== 'ready') {
+          const offer = await dialog.showMessageBox(mainWindow!, {
+            type: 'question', title: '设为工作目录',
+            message: '本机还没有工作目录。将绑定的文件夹同时设为工作目录？',
+            detail: '文件工具（列举/读取/写入）以确认的工作目录为边界。可以稍后在文件面板中另行选择或更换。',
+            buttons: ['暂不', '设为工作目录'], defaultId: 0, cancelId: 0, noLink: true
+          })
+          // Re-read after the modal: a workspace may have become ready while
+          // it was open (another chooser round, a reconnect) — an accepted
+          // offer must never overwrite it. Failures stay swallowed: the bind
+          // is already committed and the chooser remains authoritative.
+          if (offer.response === 1 && runtime.status().workspace?.state !== 'ready') {
+            try { await runtime.selectWorkspace(chosen.filePaths[0], runtime.workspaceScope()) } catch { /* optional offer; the chooser stays authoritative */ }
+          }
+        }
+        return bound
       }
       return runtime.projects(command)
     })

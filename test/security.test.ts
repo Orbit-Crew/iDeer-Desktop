@@ -3,10 +3,13 @@ import { build } from 'esbuild'
 import { describe, expect, it } from 'vitest'
 import { PANEL_REGISTRY } from '../src/renderer/src/dock/panelRegistry'
 import BrowserSlotPane from '../src/renderer/src/dock/panels/browserSlotPane'
+import CadPane from '../src/renderer/src/dock/panels/viewer3dPane'
+import DocLibraryPane from '../src/renderer/src/dock/panels/docLibraryPane'
 import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPanes'
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
 import FieldPane from '../src/renderer/src/dock/panels/fieldPane'
+import SynapsePane from '../src/renderer/src/dock/panels/synapsePane'
 
 describe('bootstrap capability boundary', () => {
   it('has no executable model, MCP, terminal or tool dependency in the shipped graph', async () => {
@@ -47,8 +50,10 @@ describe('bootstrap capability boundary', () => {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
     // Issue 110: node-pty hosts the desktop-local PTY in main; @xterm/xterm
     // and @xterm/addon-fit render the terminal content in the renderer.
+    // Issue 115: three.js renders the CAD pane's desktop-local WebGL geometry
+    // (with the software 2D canvas as its honest fallback) in the renderer.
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
-      '@ant-design/icons', '@xterm/addon-fit', '@xterm/xterm', 'antd', 'node-pty', 'react', 'react-dom', 'zustand'
+      '@ant-design/icons', '@xterm/addon-fit', '@xterm/xterm', 'antd', 'node-pty', 'react', 'react-dom', 'three', 'zustand'
     ])
     const preload = result.outputFiles.find((file) => file.path.replace(/\\/g, '/').endsWith('preload/index.js'))!.text
     // Issue 112 adds desktop:knowledge:import; issue 115 adds desktop:knowledge:publish.
@@ -108,6 +113,10 @@ describe('bootstrap capability boundary', () => {
     // action rides the Server's own Project API behind the chat-session
     // fence, a delete is confirmed in the trusted main process first, and no
     // operation on the channel touches local files or directory grants.
+    // Issue 92 adds the device-local bind-folder/unbind-folder actions to the
+    // same desktop:projects channel — no new invoke or push channel. The
+    // renderer names the project only; the folder is chosen and confirmed in
+    // the trusted main process, and the binding rows stay device-local.
     // Issue 85 adds desktop:schedules for the platform scheduled-tasks
     // management surface: the renderer names the action and task fields only;
     // the platform owns timing, previews and execution records through the
@@ -123,12 +132,27 @@ describe('bootstrap capability boundary', () => {
     // Issue 110 adds the terminal bridge's four invoke entries: spawn, write,
     // resize and kill on desktop-local PTY sessions — a separate minimal
     // bridge that never rides the trusted desktop:* channel.
+    // Issue 115 adds desktop:cad for the CAD viewer's one read entry: the
+    // renderer names a workspace-logical model file; the Runtime's own locate
+    // gate stays authoritative, the OCCT/local conversion and its honest size
+    // and triangle caps run in the trusted main process, and the reply is one
+    // bounded mesh payload — never a physical path or raw file bytes.
+    // Issue 96 adds desktop:knowledge:folder + desktop:knowledge:folder-cancel
+    // for the doc library's recursive folder import: the renderer names the
+    // platform KB identity only, the directory picking and confirmation stay
+    // in the trusted main process, and the Runtime runs the walk/dedup/
+    // registration job in background with cancel. It also adds
+    // desktop:knowledge:delete + desktop:knowledge:retry for the batch
+    // management of the import records: deletes and retries are confirmed in
+    // the trusted main process, a delete only removes device-local display
+    // rows, and the retry's stored workspace-logical sources are re-verified
+    // by the Runtime against the grant of this moment.
     // Issue 86 adds desktop:preferences for the shell's device-local
     // window-lifecycle preference (close-to-tray vs 关窗即退出): the renderer
     // reads and writes the one boolean; the store itself lives in the trusted
     // main process because main needs it at close time.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:cad', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:delete', 'desktop:knowledge:folder', 'desktop:knowledge:folder-cancel', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:publish', 'desktop:knowledge:retry', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -176,17 +200,24 @@ describe('dock pane security seam (issue 71)', () => {
     // terminal is a desktop-local native-hosted pane (xterm.js over its own
     // minimal terminal bridge, decision #59) — it leaves the external-content
     // seam and is pinned to its own component plus a trusted-bridge-free
-    // module graph below. Issue 116 moves `field` the same way: the Tecplot
-    // pane renders desktop-local results over the #94 guarded read seam on a
-    // software 2D canvas — no webview, no WebGL, no external content. The
-    // remaining webview/webgl slots keep the placeholder; the browser slot
-    // hosts the explicit 本机/远端 choice.
+    // module graph below. Issue 115 wires the `viewer3d` slot the same way:
+    // the CAD pane renders desktop-local converted geometry (no external
+    // content) and is pinned to its own component and graph constraints in
+    // test/cad-bridge.test.ts. Issue 113 moves the `synapse` map the same
+    // way: it is a read-only projection of the platform's own Thread rows
+    // and this device's observed branch edges — it never hosts external
+    // content. Issue 116 moves `field` the same way: the Tecplot pane
+    // renders desktop-local results over the #94 guarded read seam on a
+    // software 2D canvas — no webview, no WebGL, no external content. No
+    // external-content slot remains; the browser slot hosts the explicit
+    // 本机/远端 choice.
     const external = PANEL_REGISTRY.filter((p) => p.runtime !== 'native')
-    expect(external.map((p) => p.id).sort()).toEqual(['browser', 'synapse', 'viewer3d'])
+    expect(external.map((p) => p.id).sort()).toEqual(['browser'])
     for (const def of external) {
       expect(def.component).toBe(def.id === 'browser' ? BrowserSlotPane : ExternalPanePlaceholder)
     }
     expect(PANEL_REGISTRY.find((p) => p.id === 'terminal')!.component).toBe(TerminalPane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'viewer3d')!.component).toBe(CadPane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'field')!.component).toBe(FieldPane)
 
     // Issue 107: the browser pane is the one non-native pane with its own
@@ -206,15 +237,26 @@ describe('dock pane security seam (issue 71)', () => {
     // uses the trusted bridge for the Server's own template rows only.
     // Issue 112 wires the native `office` pane the same way — a read-only
     // observer on the existing chat state read, with zero own IPC surface
-    // (pinned in test/office-bridge.test.ts).
+    // (pinned in test/office-bridge.test.ts). Issue 115 wires the native
+    // `viewer3d` pane the same way — one bounded CAD mesh read on its own
+    // channel (pinned in test/cad-bridge.test.ts).
+    // Issue 96 wires the native `kb` pane the same way — the doc library uses
+    // the trusted desktop:knowledge:* family only (folder import with cancel,
+    // batch delete/retry), pinned in its own pane test.
+    // Issue 113 wires the native `synapse` pane the same way — the map uses
+    // the trusted bridge for the Server's own thread rows and the read-only
+    // state read, and its open/branch actions ride the session store into
+    // the conversation's serialized command path.
     // Issue 116 wires the native `field` pane the same way — it reads over
     // the guarded files seam and renders desktop-local results only.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'field'].includes(p.id))
-    expect(unwiredNative.map((p) => p.id).sort()).toEqual(['kb'])
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse', 'field'].includes(p.id))
+    expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
 
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'field']) {
+    expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'viewer3d', 'kb', 'synapse', 'field']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)
@@ -326,5 +368,17 @@ describe('dock pane security seam (issue 71)', () => {
     expect(csp).toContain("frame-src http: https:")
     expect(csp).toContain("connect-src 'none'")
     expect(csp).toMatch(/default-src 'none'/)
+  })
+
+  it('keeps every trusted invoke handler behind the main-frame sender check', () => {
+    // The trusted-channel convention: every registered invoke handler
+    // verifies the invoking frame before it touches the Runtime or local
+    // state — one unchecked registration leaves that command family open to
+    // a rogue-frame sender, so the counts can never drift apart.
+    const wiring = readFileSync('src/main/index.ts', 'utf8')
+    const registrations = wiring.match(/ipcMain\.handle\(/g) ?? []
+    const senderChecks = wiring.match(/requireMainFrame\(event\)/g) ?? []
+    expect(registrations.length).toBeGreaterThan(30)
+    expect(senderChecks.length).toBe(registrations.length)
   })
 })

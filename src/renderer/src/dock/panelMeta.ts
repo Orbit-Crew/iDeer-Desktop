@@ -25,14 +25,21 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   terminal: { id: 'terminal', title: '终端', multiInstance: true, closable: true, runtime: 'native' },
   files: { id: 'files', title: '文件', multiInstance: false, closable: true, runtime: 'native' },
   kb: { id: 'kb', title: '知识库', multiInstance: false, closable: true, runtime: 'native' },
-  viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'webgl' },
+  // Issue 115: the CAD viewer is native-hosted like the terminal — it renders
+  // the device's own converted geometry (three.js WebGL, or its software 2D
+  // engine) over the Runtime-guarded workspace read. No external content is
+  // ever embedded, so it leaves the external-content seam.
+  viewer3d: { id: 'viewer3d', title: '三维模型', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 116: the field pane returns as a native-hosted pane — desktop-local
   // simulation results, not external content (decision #59 family). It reads
   // over the #94 guarded desktop:files seam and renders on a software 2D
   // canvas, the same reclassification the terminal got.
   field: { id: 'field', title: '仿真结果', multiInstance: false, closable: true, runtime: 'native' },
   sql: { id: 'sql', title: '数据', multiInstance: false, closable: true, runtime: 'native' },
-  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'webview' },
+  // Issue 113: the session map is a native pane — a read-only projection of
+  // the platform's own Thread rows plus this device's observed branch edges.
+  // It never hosts external content, so it leaves the webview seam.
+  synapse: { id: 'synapse', title: '会话地图', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 77: the reusable notification center — one native pane over the
   // main-process ledger; later tickets (tray badge, installs, updates) record
   // into the same surface instead of rebuilding it.

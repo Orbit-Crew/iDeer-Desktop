@@ -111,12 +111,37 @@ describe('terminal session lifecycle (issue 110)', () => {
   })
 
   it('falls back to the user home without a bound project and never supplies a cwd from the renderer', async () => {
-    // spawn() takes no path argument at all: the start dir is resolved in the
-    // trusted main process only.
-    expect(h.manager.spawn.length).toBe(1)
+    // Issue 92: spawn takes the owner plus an optional project id selector —
+    // never a path: the start dir is resolved in the trusted main process
+    // only, from the Runtime's own binding snapshot.
+    expect(h.manager.spawn.length).toBe(2)
     const fallback = harness(null, true)
     await fallback.manager.spawn(1)
     expect(fallback.spawns[0].cwd).toBe(homedir())
+  })
+
+  it('prefers the selected project\'s bound folder via the id selector and sanitizes the selector (#92)', async () => {
+    // The harness resolver records the selector it was called with; a bound
+    // project resolves through the injected chain, a malformed selector is
+    // treated as no selection.
+    const seen: string[] = []
+    const spawns: { cwd: string; cols: number; rows: number }[] = []
+    const manager = new TerminalSessions(
+      { onData: () => {}, onExit: () => {} },
+      async (projectId) => {
+        seen.push(projectId)
+        return projectId === 'proj-1' ? 'C:\\bound\\proj-1' : ''
+      },
+      (options) => {
+        spawns.push({ cwd: options.cwd, cols: options.cols, rows: options.rows })
+        return new FakePty() as unknown as IPty
+      }
+    )
+    await manager.spawn(7, 'proj-1')
+    await manager.spawn(7, 'bad id!')
+    await manager.spawn(7, '../escape')
+    expect(seen).toEqual(['proj-1', '', ''])
+    expect(spawns.map((spawn) => spawn.cwd)).toEqual(['C:\\bound\\proj-1', homedir(), homedir()])
   })
 
   it('treats an unusable start dir answer as no binding and uses the user home', async () => {

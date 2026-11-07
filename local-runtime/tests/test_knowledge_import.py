@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import mimetypes
+import shutil
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -47,8 +48,10 @@ def revision_payload(path, body, serial):
 
 
 @contextmanager
-def platform(local_import_status=201):
+def platform(local_import_status=201, project_id='proj-77', local_import_delay=0):
     records = []
+    # A list means a queue: the first POSTs are refused, the last status holds.
+    statuses = local_import_status if isinstance(local_import_status, list) else None
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -66,8 +69,13 @@ def platform(local_import_status=201):
             if self.path == '/api/v1/auth/me':
                 data = {'id': 'A', 'email': 'a@test.invalid', 'system_role': 'user', 'permissions': ['runs:create']}
             elif self.path.endswith('/knowledge-revisions/local-imports'):
-                data = revision_payload(self.path, body, len(records)) if local_import_status == 201 else {}
-                status = local_import_status
+                if local_import_delay:
+                    time.sleep(local_import_delay)
+                status = statuses.pop(0) if statuses and len(statuses) > 1 else \
+                    statuses[0] if statuses else local_import_status
+                data = revision_payload(self.path, body, len(records)) if status == 201 else {}
+                if data and project_id:
+                    data['project_id'] = project_id
             else:
                 status, data = 404, {}
             payload = json.dumps(data).encode()
@@ -434,3 +442,630 @@ def test_import_survives_a_failed_parse_and_records_the_reason(tmp_path):
         assert parse_by_name['guide.md']['status'] == 'parsed'
         assert parse_by_name['guide.md']['errorCode'] == ''
         assert parse_by_name['guide.md']['layout'] == []
+
+
+# --- Issue 96: the document library's recursive folder import ----------------
+
+import os
+
+from core.knowledge_import import (
+    MAX_FOLDER_IMPORT_FILES,
+    build_folder_entries,
+    physical_paths_for,
+    walk_import_folder,
+)
+from core.file_service import WorkspaceFileStore
+
+
+def folder_grant(space: Path) -> dict:
+    return dict(logical_root='/workspace/lib', physical_root=str(space),
+                identity=[space.stat().st_dev, space.stat().st_ino])
+
+
+def folder_store(space: Path, *protected):
+    grant = folder_grant(space)
+    files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+        identity=tuple(grant['identity']), resolve_root=False)], protected_roots=tuple(protected))
+    return grant, files
+
+
+def test_folder_walk_recurses_and_filters(tmp_path):
+    """T96-01: one confirmed folder walks recursively; the extension whitelist
+    and protected directory names keep non-documents out of the candidates."""
+    space = tmp_path / 'work'
+    deep = space / 'reports' / '2024'
+    deep.mkdir(parents=True)
+    (deep / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+    (deep / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+    (space / 'data.csv').write_bytes(b'a,b\n1,2\n')
+    (space / 'top.md').write_bytes(GUIDE.encode('utf-8'))
+    (deep / 'skip.exe').write_bytes(b'MZ')
+    (deep / 'README').write_bytes(GUIDE.encode('utf-8'))
+    node_modules = space / 'node_modules'
+    node_modules.mkdir()
+    (node_modules / 'inside.md').write_bytes(GUIDE.encode('utf-8'))
+
+    walked = walk_import_folder(folder_grant(space), str(space))
+
+    assert walked['folder'] == '/workspace/lib'
+    assert walked['logical_paths'] == [
+        '/workspace/lib/data.csv', '/workspace/lib/top.md',
+        '/workspace/lib/reports/2024/guide.md', '/workspace/lib/reports/2024/notes.txt']
+    assert walked['truncated'] is False
+    assert walked['skippedUnsupported'] == 2
+    assert walked['skippedLinks'] == 0
+
+
+def test_folder_walk_prunes_symlinks(tmp_path):
+    """T96-01: a linked file is never a candidate; the real files still are."""
+    space = tmp_path / 'work'
+    space.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'secret.md').write_bytes(GUIDE.encode('utf-8'))
+    (space / 'real.md').write_bytes(GUIDE.encode('utf-8'))
+    link = space / 'link.md'
+    try:
+        link.symlink_to(outside / 'secret.md')
+    except (OSError, NotImplementedError):
+        pytest.skip('symlinks are unavailable on this platform')
+
+    walked = walk_import_folder(folder_grant(space), str(space))
+
+    assert walked['logical_paths'] == ['/workspace/lib/real.md']
+    assert walked['skippedLinks'] == 1
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='requires Windows junctions')
+def test_folder_walk_never_descends_a_junction(tmp_path):
+    """T96-01: a junctioned subtree is pruned, exactly like the store's own reads."""
+    space = tmp_path / 'work'
+    space.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    (outside / 'secret.md').write_bytes(GUIDE.encode('utf-8'))
+    (space / 'real.md').write_bytes(GUIDE.encode('utf-8'))
+    junction = space / 'linked'
+    if os.system(f'cmd /c mklink /J "{junction}" "{outside}" >NUL') != 0:
+        pytest.skip('junction creation is unavailable')
+
+    walked = walk_import_folder(folder_grant(space), str(space))
+
+    assert walked['logical_paths'] == ['/workspace/lib/real.md']
+    assert walked['skippedLinks'] == 1
+
+
+def test_folder_walk_refuses_outside_and_drifted_roots(tmp_path):
+    """T96-01: the walk inherits the confirmed-workspace boundary, unconditionally."""
+    space = tmp_path / 'work'
+    space.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    grant = folder_grant(space)
+    with pytest.raises(KnowledgeImportError) as refused:
+        walk_import_folder(grant, str(outside))
+    assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS'
+    with pytest.raises(KnowledgeImportError) as missing:
+        walk_import_folder(grant, str(space / 'gone'))
+    assert missing.value.args[0] == 'KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS'
+    drifted = dict(grant, identity=[12345, 67890])
+    with pytest.raises(KnowledgeImportError) as stale:
+        walk_import_folder(drifted, str(space))
+    assert stale.value.args[0] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+
+
+def test_folder_walk_caps_candidates_and_says_so(tmp_path):
+    """T96-01: the walk stops at the job cap instead of never finishing."""
+    space = tmp_path / 'work'
+    space.mkdir()
+    for index in range(MAX_FOLDER_IMPORT_FILES + 1):
+        (space / f'file{index:05}.md').write_bytes(GUIDE.encode('utf-8'))
+
+    walked = walk_import_folder(folder_grant(space), str(space))
+
+    assert len(walked['logical_paths']) == MAX_FOLDER_IMPORT_FILES
+    assert walked['truncated'] is True
+
+
+def test_folder_entries_fail_alone_and_dedup_by_fingerprint(tmp_path):
+    """T96-02: one bad file fails alone; fingerprints dedup within the folder
+    and against the already-registered rows of the same KB."""
+    space = tmp_path / 'work'
+    (space / 'sub').mkdir(parents=True)
+    (space / 'vault').mkdir()
+    (space / 'a.md').write_bytes(GUIDE.encode('utf-8'))
+    (space / 'sub' / 'copy.md').write_bytes(GUIDE.encode('utf-8'))
+    (space / 'known.md').write_bytes(NOTES.encode('utf-8'))
+    (space / 'vault' / 'locked.md').write_bytes(GUIDE.encode('utf-8'))
+    grant, files = folder_store(space, space / 'vault')
+
+    result = build_folder_entries(files, [
+        '/workspace/lib/a.md', '/workspace/lib/sub/copy.md', '/workspace/lib/known.md',
+        '/workspace/lib/vault/locked.md', '/workspace/lib/gone.md',
+    ], known_hashes={hashlib.sha256(NOTES.encode()).hexdigest()})
+
+    # copy.md repeats a.md's bytes inside the folder; known.md repeats an
+    # already-registered fingerprint. Both are skipped, never fatal.
+    assert [entry['filename'] for entry in result['entries']] == ['a.md']
+    assert result['paths'] == ['/workspace/lib/a.md']
+    assert result['duplicates'] == 2
+    assert {tuple(failure.items()) for failure in result['failures']} == {
+        (('filename', 'locked.md'), ('errorCode', 'KNOWLEDGE_IMPORT_PROTECTED_PATH')),
+        (('filename', 'gone.md'), ('errorCode', 'KNOWLEDGE_IMPORT_FILE_UNAVAILABLE')),
+    }
+    assert result['canceled'] is False
+    assert result['entries'][0]['sha256'] == hashlib.sha256(GUIDE.encode()).hexdigest()
+
+
+class _FakeFolderFiles:
+    def __init__(self, payloads):
+        self.payloads = payloads
+
+    def read_bytes(self, path, *, max_bytes=-1):
+        payload = self.payloads[path]
+        if isinstance(payload, Exception):
+            raise payload
+        return payload
+
+
+def test_folder_entries_record_oversize_as_a_per_file_failure():
+    """T96-02: an oversized file is an honest per-file failure, not a batch abort."""
+    files = _FakeFolderFiles({
+        '/workspace/lib/big.md': b'x' * (MAX_IMPORT_FILE_BYTES + 1),
+        '/workspace/lib/a.md': GUIDE.encode('utf-8'),
+    })
+
+    result = build_folder_entries(files, ['/workspace/lib/big.md', '/workspace/lib/a.md'], set())
+
+    assert [entry['filename'] for entry in result['entries']] == ['a.md']
+    assert result['failures'] == [{'filename': 'big.md', 'errorCode': 'KNOWLEDGE_IMPORT_FILE_TOO_LARGE'}]
+
+
+def test_folder_entries_honor_a_canceled_job():
+    """T96-02: a canceled job reads nothing further and says so."""
+    files = _FakeFolderFiles({'/workspace/lib/a.md': GUIDE.encode('utf-8')})
+
+    result = build_folder_entries(files, ['/workspace/lib/a.md', '/workspace/lib/b.md'], set(),
+                                  canceled=lambda: True)
+
+    assert result['entries'] == [] and result['canceled'] is True
+
+
+def test_retry_maps_stored_logical_paths_back_to_physical(tmp_path):
+    """T96-05: a failed record's stored display paths map back onto the
+    confirmed workspace for the ordinary re-import seam; anything else refuses."""
+    space = tmp_path / 'work'
+    (space / 'sub').mkdir(parents=True)
+    grant = folder_grant(space)
+    expected = str(Path(space) / 'sub' / 'a.md')
+    assert physical_paths_for(grant, ['/workspace/lib/sub/a.md']) == [expected]
+    for bad in ([], ['C:/abs/a.md'], ['/workspace/other/a.md'], ['/workspace/lib'],
+                ['/workspace/lib/sub/../..//a.md'], ['/workspace/lib/sub/./a.md'],
+                ['/workspace/lib/sub\\a.md'], [7]):
+        with pytest.raises(KnowledgeImportError) as refused:
+            physical_paths_for(grant, bad)
+        assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_NO_SOURCE'
+
+
+def folder_entry(name, body):
+    return dict(filename=name, sha256=hashlib.sha256(body).hexdigest(), bytes=len(body),
+                mime='text/plain', parse={'status': 'parsed', 'parser': 'text-utf8',
+                                          'parserVersion': '1', 'pages': 0, 'tables': 0,
+                                          'truncated': False, 'errorCode': '', 'layout': []})
+
+
+FOLDER_SOURCE = dict(kind='folder', folder='/workspace/lib', paths=['/workspace/lib/guide.md'])
+
+
+def test_folder_batch_registration_keeps_platform_and_library_identity(tmp_path):
+    """T96-03: a folder batch rides the same frozen registration seam; the row
+    keeps the KB identity, the platform project when the platform sends one,
+    and the source folder display. The wire stays identity-only."""
+    with platform() as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        entries = [folder_entry('guide.md', GUIDE.encode('utf-8'))]
+
+        outcome = chat.register_import_entries(KB, entries, source=FOLDER_SOURCE)
+
+        posts = import_posts(records)
+        assert len(posts) == 1
+        path, body = posts[0]
+        assert path == f'/api/resources/{KB}/knowledge-revisions/local-imports'
+        assert set(body) == {'documents', 'device_id'} and body['device_id'] == 'D1'
+        assert outcome == dict(kbId=KB, revisionId='rev-1', revisionNo=1,
+                               manifestHash=hashlib.sha256(
+                                   json.dumps([entries[0]['sha256']]).encode()).hexdigest(),
+                               documentCount=1)
+        row = registry.view(binding)[0]
+        assert row['status'] == 'registered' and row['kbId'] == KB
+        assert row['revisionId'] == 'rev-1' and row['revisionNo'] == 1
+        # Criterion 5: the platform project rides the registration response and
+        # stays queryable on the record next to the library identity.
+        assert row['projectId'] == 'proj-77'
+        assert row['source'] == dict(kind='folder', folder='/workspace/lib', pathCount=1)
+        # Display facts only: the wire view never carries the stored paths.
+        assert 'paths' not in row['source']
+        # An identical second attempt registers a fresh platform revision (the
+        # platform's own contract) but stays the same display fact: one row.
+        chat.register_import_entries(KB, entries, source=FOLDER_SOURCE)
+        assert len(registry.view(binding)) == 1
+
+
+def test_folder_batch_row_carries_no_project_when_platform_sends_none(tmp_path):
+    """T96-03: an absent platform project identity stays honestly empty."""
+    with platform(project_id=None) as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        chat.register_import_entries(KB, [folder_entry('guide.md', GUIDE.encode('utf-8'))],
+                                     source=FOLDER_SOURCE)
+        assert registry.view(binding)[0]['projectId'] == ''
+
+
+def test_failed_folder_batch_keeps_intended_documents_for_retry(tmp_path):
+    """T96-05: a refused batch records the intended manifest and source paths,
+    so 重试 can re-run exactly those files; nothing impersonates a revision."""
+    with platform(local_import_status=500) as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        entries = [folder_entry('guide.md', GUIDE.encode('utf-8'))]
+        with pytest.raises(KnowledgeImportError) as failed:
+            chat.register_import_entries(KB, entries, source=FOLDER_SOURCE)
+        assert failed.value.args[0] == 'CHAT_SERVER_ERROR'
+        row = registry.view(binding)[0]
+        assert row['status'] == 'failed' and row['errorCode'] == 'CHAT_SERVER_ERROR'
+        assert row['revisionId'] == '' and row['manifestHash'] == ''
+        assert [document['filename'] for document in row['documents']] == ['guide.md']
+        assert row['source'] == dict(kind='folder', folder='/workspace/lib', pathCount=1)
+        # The retry seam reads the full stored paths device-side only.
+        stored = registry.fetch(binding, [row['id']])
+        assert stored[0]['source']['paths'] == ['/workspace/lib/guide.md']
+
+
+def test_registered_hashes_scope_to_one_binding_and_kb(tmp_path):
+    """T96-02: folder dedup compares against registered fingerprints of the
+    same account and the same KB; nothing else inherits them."""
+    with platform() as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        (space / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+        chat.register_local_import(KB, [str(space / 'guide.md')])
+        other_kb = '44444444-4444-4444-8444-444444444444'
+        chat.register_local_import(other_kb, [str(space / 'guide.md')])
+
+        assert registry.registered_hashes(binding, KB) == {hashlib.sha256(GUIDE.encode()).hexdigest()}
+        assert registry.registered_hashes(binding, '55555555-5555-5555-8555-555555555555') == set()
+        switched = load_settings(config)
+        switched.user_id = 'B'
+        switched.save(config)
+        assert registry.registered_hashes(profile_binding(load_settings(config)), KB) == set()
+
+
+def test_delete_and_fetch_manage_records_for_one_binding_only(tmp_path):
+    """T96-04: batch delete removes selected display rows of this identity
+    only, never platform revisions; fetch finds rows for the retry seam."""
+    with platform() as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        (space / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+        chat.register_local_import(KB, [str(space / 'guide.md')])
+        (space / 'guide.md').write_bytes(CHANGED.encode('utf-8'))
+        chat.register_local_import(KB, [str(space / 'guide.md')])
+        rows = registry.view(binding)
+        assert len(rows) == 2
+        posts_before = len(import_posts(records))
+
+        assert registry.fetch(binding, [rows[0]['id']])[0]['kbId'] == KB
+        assert registry.fetch(binding, ['unknown']) == []
+        switched = load_settings(config)
+        switched.user_id = 'B'
+        switched.save(config)
+        other = profile_binding(load_settings(config))
+        assert registry.fetch(other, [rows[0]['id']]) == []
+        assert registry.delete(other, [rows[0]['id']]) == 0
+        assert registry.delete(binding, [rows[0]['id']]) == 1
+        assert [row['id'] for row in registry.view(binding)] == [rows[1]['id']]
+        # A delete is a local display-fact change: zero platform calls.
+        assert len(import_posts(records)) == posts_before
+        assert registry.delete(binding, [rows[0]['id']]) == 0
+
+
+# --- Issue 96: the background folder import job ------------------------------
+
+import time
+
+from core.knowledge_import import KnowledgeFolderImport
+
+
+def job_chat(tmp_path, origin, *, work=True):
+    """The coordinator wired exactly like desktop.py: one chat seam, one
+    registry, one confirmed-workspace factory."""
+    chat, registry, settings, config, space, binding = prepare(tmp_path, origin, work=work)
+
+    def knowledge_files():
+        current, grant = WorkspaceSelection(config).current()
+        files = WorkspaceFileStore([RootConfig(grant['logical_root'], Path(grant['physical_root']),
+            identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(config.parent,))
+        return current, grant, files
+
+    return KnowledgeFolderImport(chat.register_import_entries, knowledge_files, registry), \
+        chat, registry, settings, config, space, binding
+
+
+def wait_terminal(job, timeout=10.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        status = job.status()
+        if status and status['state'] != 'running':
+            return status
+        time.sleep(0.02)
+    raise AssertionError('folder import job did not settle')
+
+
+def wait_batches(job, count, timeout=10.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        status = job.status()
+        if status and status.get('registeredBatches', 0) >= count:
+            return status
+        time.sleep(0.02)
+    raise AssertionError(f'folder import job never registered {count} batches')
+
+
+def test_folder_job_imports_a_folder_in_background_batches(tmp_path):
+    """T96-01/T96-03: one folder import runs in the background, registers
+    batched revisions, and reports honest progress and counts."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        for index in range(250):
+            (folder / f'doc{index:04}.md').write_bytes(f'document {index}\n'.encode('utf-8'))
+        (folder / 'debug.log').write_bytes(NOTES.encode('utf-8'))
+
+        started = job.start(KB, str(folder))
+        assert started['state'] == 'running' and started['kbId'] == KB
+
+        status = wait_terminal(job)
+        assert status['state'] == 'completed'
+        assert status['folder'] == f"{settings_workspace_logical(config)}/library"
+        assert status['totalFiles'] == 250 and status['processedFiles'] == 250
+        assert status['registeredBatches'] == 2 and status['registeredDocuments'] == 250
+        assert status['skippedDuplicates'] == 0 and status['skippedUnsupported'] == 1
+        assert status['failures'] == [] and status['error'] == ''
+        # The frozen per-import cap holds on every batch POST.
+        posts = import_posts(records)
+        assert len(posts) == 2
+        assert [len(body['documents']) for _, body in posts] == [200, 50]
+        rows = registry.view(binding)
+        assert len(rows) == 2
+        assert all(row['status'] == 'registered' and row['source']['kind'] == 'folder' for row in rows)
+        # The finished job stays visible for the doc library page until the
+        # next import replaces it.
+        assert job.status()['state'] == 'completed'
+
+
+def settings_workspace_logical(config):
+    grant = WorkspaceSelection(config).current()[1]
+    return str(grant['logical_root']).rstrip('/')
+
+
+def test_folder_job_dedups_against_registered_fingerprints(tmp_path):
+    """T96-02: files whose fingerprints are already registered for this KB are
+    skipped and counted, never uploaded twice."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        (space / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+        chat.register_local_import(KB, [str(space / 'guide.md')])
+        assert len(import_posts(records)) == 1
+        folder = space / 'library'
+        folder.mkdir()
+        (folder / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+        (folder / 'fresh.md').write_bytes(b'fresh bytes\n')
+
+        job.start(KB, str(folder))
+        status = wait_terminal(job)
+
+        assert status['state'] == 'completed'
+        assert status['totalFiles'] == 2 and status['registeredDocuments'] == 1
+        assert status['skippedDuplicates'] == 1
+        # Only the genuinely new document reached the platform.
+        posts = import_posts(records)
+        assert len(posts) == 2 and [document['filename'] for document in posts[1][1]['documents']] == ['fresh.md']
+
+
+def test_folder_job_cancel_stops_before_the_next_batch(tmp_path):
+    """T96-03: cancel lands between batches; the finished batches stay
+    registered and the job reports honestly that it was canceled."""
+    with platform(local_import_delay=0.3) as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        for index in range(401):
+            (folder / f'doc{index:04}.md').write_bytes(f'document {index}\n'.encode('utf-8'))
+
+        job.start(KB, str(folder))
+        # Cancel while the second batch POST is in flight: the event must land
+        # before the next batch boundary.
+        wait_batches(job, 1)
+        deadline = time.time() + 10.0
+        while time.time() < deadline and len(import_posts(records)) < 2:
+            time.sleep(0.02)
+        assert job.cancel() is True
+        status = wait_terminal(job)
+
+        assert status['state'] == 'canceled'
+        assert status['registeredBatches'] == 2 and status['registeredDocuments'] == 400
+        # The third batch never reached the platform.
+        assert len(import_posts(records)) == 2
+        rows = registry.view(binding)
+        assert len(rows) == 2 and all(row['status'] == 'registered' for row in rows)
+        # Cancel is idempotent-safe: no running job, no effect.
+        assert job.cancel() is False
+
+
+def test_folder_job_start_refuses_busy_and_unready_boundaries(tmp_path):
+    """T96-03: one job at a time; no confirmed workspace, no job; a malformed
+    KB identity refuses before anything runs."""
+    with platform(local_import_delay=0.3) as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        for index in range(250):
+            (folder / f'doc{index:04}.md').write_bytes(f'document {index}\n'.encode('utf-8'))
+
+        job.start(KB, str(folder))
+        with pytest.raises(KnowledgeImportError) as busy:
+            job.start(KB, str(folder))
+        assert busy.value.args[0] == 'KNOWLEDGE_IMPORT_BUSY'
+        assert job.cancel() is True
+        wait_terminal(job)
+
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin, work=False)
+        with pytest.raises(KnowledgeImportError) as refused:
+            job.start(KB, str(tmp_path))
+        assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+        assert job.status() is None
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        with pytest.raises(KnowledgeImportError) as invalid:
+            job.start('not-a-uuid', str(space))
+        assert invalid.value.args[0] == 'KNOWLEDGE_IMPORT_KB_INVALID'
+        assert job.status() is None
+        assert import_posts(records) == []
+
+
+def test_folder_job_reports_refused_batches_and_job_failure(tmp_path):
+    """T96-03: a platform refusal fails the job with its fixed category; the
+    failed batch row keeps its intended documents for 重试."""
+    with platform(local_import_status=500) as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        (folder / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+
+        job.start(KB, str(folder))
+        status = wait_terminal(job)
+
+        assert status['state'] == 'failed' and status['error'] == 'CHAT_SERVER_ERROR'
+        assert status['failedBatches'] == 1 and status['registeredDocuments'] == 0
+        row = registry.view(binding)[0]
+        assert row['status'] == 'failed' and row['errorCode'] == 'CHAT_SERVER_ERROR'
+        assert row['source']['folder'].endswith('/library')
+        assert [document['filename'] for document in row['documents']] == ['guide.md']
+
+
+def test_folder_job_reports_a_walk_refusal_as_a_failed_job(tmp_path):
+    """T96-01: a folder outside the confirmed workspace never starts reading."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        outside = tmp_path / 'outside'
+        outside.mkdir()
+        job.start(KB, str(outside))
+        status = wait_terminal(job)
+        assert status['state'] == 'failed'
+        assert status['error'] == 'KNOWLEDGE_IMPORT_OUTSIDE_ALLOWED_ROOTS'
+        assert import_posts(records) == []
+        assert registry.view(binding) == []
+
+
+def test_walk_refuses_a_vanished_workspace_root_by_category(tmp_path):
+    """T96-01: a workspace root that vanished (unmount, external wipe) is
+    refused by its own category, never by an escaping FileNotFoundError —
+    the worker must be able to turn it into an honest failed state."""
+    grant = dict(logical_root='/workspace/lib', physical_root=str(tmp_path / 'gone'),
+                 identity=[12345, 67890])
+    with pytest.raises(KnowledgeImportError) as refused:
+        walk_import_folder(grant, str(tmp_path))
+    assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+
+
+def test_folder_job_survives_a_workspace_root_that_vanishes_midflight(tmp_path, monkeypatch):
+    """T96-03: the workspace root disappearing while the worker runs fails
+    the job by category instead of killing the worker into a running phantom
+    that BUSY-refuses every later start."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        (folder / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+
+        serve = job._knowledge_files
+
+        def vanish_then_serve():
+            shutil.rmtree(space, ignore_errors=True)
+            return serve()
+
+        monkeypatch.setattr(job, '_knowledge_files', vanish_then_serve)
+        job.start(KB, str(folder))
+        status = wait_terminal(job)
+        assert status['state'] == 'failed'
+        assert status['error'] == 'KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE'
+        # No phantom happened: the slot is free, so the very next start is
+        # accepted and settles honestly instead of refusing with BUSY.
+        job.start(KB, str(folder))
+        assert wait_terminal(job)['state'] == 'failed'
+
+
+def test_folder_job_start_failure_never_leaves_a_phantom_job(tmp_path, monkeypatch):
+    """T96-03: a worker thread that cannot start leaves no running phantom —
+    the slot frees, nothing shows as an uncancelable import, and the very next
+    start is accepted instead of refused with BUSY."""
+    with platform() as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        (space / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+
+        def refuse_thread_start(self):
+            raise RuntimeError('cannot start a new thread')
+
+        monkeypatch.setattr(threading.Thread, 'start', refuse_thread_start)
+        with pytest.raises(RuntimeError):
+            job.start(KB, str(space))
+        monkeypatch.undo()
+        assert job.status() is None
+        # The same coordinator accepts a fresh start immediately.
+        job.start(KB, str(space))
+        assert wait_terminal(job)['state'] == 'completed'
+
+
+def test_retry_reimports_a_failed_record_through_the_ordinary_seam(tmp_path):
+    """T96-05: one failed folder record re-imports exactly its stored files;
+    the failed record stays and the retry becomes its own honest row."""
+    with platform(local_import_status=[500, 201]) as (origin, records):
+        job, chat, registry, settings, config, space, binding = job_chat(tmp_path, origin)
+        folder = space / 'library'
+        folder.mkdir()
+        (folder / 'guide.md').write_bytes(GUIDE.encode('utf-8'))
+        (folder / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+        job.start(KB, str(folder))
+        assert wait_terminal(job)['state'] == 'failed'
+        row = registry.view(binding)[0]
+
+        # The platform accepts again after the transient refusal: the retry
+        # re-imports exactly the stored files through the ordinary seam.
+        outcome = chat.retry_import_record(row['id'])
+        assert outcome['documentCount'] == 2
+        rows = registry.view(binding)
+        assert [r['status'] for r in rows] == ['registered', 'failed']
+        assert rows[0]['source']['folder'] == rows[1]['source']['folder']
+        assert len(import_posts(records)) == 2
+
+        # Only failed records retry; unknown identities refuse honestly.
+        with pytest.raises(KnowledgeImportError) as not_failed:
+            chat.retry_import_record(rows[0]['id'])
+        assert not_failed.value.args[0] == 'KNOWLEDGE_IMPORT_RETRY_NOT_FAILED'
+        with pytest.raises(KnowledgeImportError) as missing:
+            chat.retry_import_record('a' * 64)
+        assert missing.value.args[0] == 'KNOWLEDGE_IMPORT_RECORD_NOT_FOUND'
+
+
+def test_retry_refuses_records_without_stored_sources(tmp_path):
+    """T96-05: a failed explicit import carries no source paths; retry says so
+    instead of guessing."""
+    with platform(local_import_status=500) as (origin, records):
+        chat, registry, settings, config, space, binding = prepare(tmp_path, origin)
+        target = space / 'guide.md'
+        target.write_bytes(GUIDE.encode('utf-8'))
+        with pytest.raises(KnowledgeImportError):
+            chat.register_local_import(KB, [str(target)])
+        row = registry.view(binding)[0]
+        assert row['status'] == 'failed' and row['source'] is None
+        with pytest.raises(KnowledgeImportError) as refused:
+            chat.retry_import_record(row['id'])
+        assert refused.value.args[0] == 'KNOWLEDGE_IMPORT_NO_SOURCE'

@@ -54,7 +54,7 @@ Desktop 的 package metadata 暂标 UNLICENSED，来源包原始 MIT 声明原�
 | resources/compat/node16-banner.cjs | 从上游 Vite banner 提取，构建时在 main bundle 顶部注入。保留 stream/web、Blob、structuredClone、文本流兼容。使用 v8 保留循环引用与 Date，无法克隆时抛错；文本流使用 TransformStream 保留背压和 decoder flush。避免上游 JSON 克隆失败返回原对象及手工 writable 的缺陷。test/compat.test.ts 验证；桌面 smoke 在真实 Electron Node 16 上复验 | Desktop 维护；Electron/Node 基线升级并完成 Win7 重新决议后才移除 |
 | disableHardwareAcceleration / disable-gpu | ready 前设置，沿用软渲染策略。桌面 smoke 核对，真实 Win7 验证黑屏、窗口和退出 | Desktop 构建维护；真实支持矩阵改变后评审 |
 | renderer sandbox、contextIsolation | 不沿用全局 no-sandbox 和 webview。最小 preload 只依赖 Electron 允许的 API，无旧模块必须退出沙箱；真实 Electron smoke 和 Win7 专项验证，若不兼容须阻断，不能静默关闭 | Desktop 维护；任何调整都需安全和 Win7 专项 |
-| 原生资源与路径 | 当前无 native module、worker、Python 或 WASM；未机械携带 better-sqlite3/node-pty/asarUnpack。恢复能力时须重新加入准确的 asarUnpack、extraResources、开发/安装资源定位和 ABI 验证 | 各能力实施负责人；能力交付前必须补齐 |
+| 原生资源与路径 | 随能力交付逐步补齐：node-pty 原生模块（#110，主进程 PTY）、随包 Python Runtime（runtime-migration）、occt-import-js WASM（#115，`extraResources resources/occt → occt`，装在 asar 之外由 glue 用 fs 读取，无需 asarUnpack）。仍无 worker；未机械携带 better-sqlite3。新增原生/WASM 资源时须补准确的 extraResources/资源定位与验证 | 各能力实施负责人；能力交付前必须补齐 |
 
 这些补丁不修改 node_modules，`npm ci && npm run build` 会重新应用。
 pi-tui 补丁随旧 Agent 依赖排除，不遗留无目标的 postinstall。
@@ -134,6 +134,49 @@ provenance 条目，来源以本提交固定引用；不新增任何依赖。实
 [docs/acceptance/issue-116-tecplot-panel/report.md](acceptance/issue-116-tecplot-panel/report.md)
 （目录带后缀，避开同仓旧编号 #116 知识图谱票的既有记录）。
 
+## 2026-11-07 CAD 三维查看器恢复（iDeer-Desktop #115）
+
+六期·40 恢复原版 Viewer3D 能力：STEP/STL/OBJ 本机加载与三维显示。随包组件按前置
+决议完成来源与许可核验后进入本包：
+
+- **occt-import-js（OpenCASCADE WASM）**：glue `.js` 与 `.wasm` 二进制逐字节取自来源
+  提交 [Neowyh/linz f88141b](https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13)
+  的 `resources/occt/`，SHA-256 登记进 `resources/provenance/linz-source.json`
+  （`npm run verify:provenance` 可核验），经 `electron-builder.yml` `extraResources`
+  以 `resources/occt → occt` 随包（asar 之外）。上游为 occt-import-js（MIT，glue/wasm
+  构建产物）与 Open CASCADE Technology（LGPL-2.1-with-OCCT-exception），登记于
+  THIRD_PARTY_NOTICES.md；STEP 只读转换在可信主进程完成。
+- **three.js 0.185.1**（MIT，npm 精确锁定）：渲染进程 WebGL 引擎；`@types/three`
+  为开发依赖。依赖清单钉死测试同步更新。
+- 实现与原版同构而走 Desktop 自己的缝：渲染端只提交工作区逻辑路径；主进程经
+  Runtime 既有 `files locate` 守卫解析物理路径并读取字节（物理路径与文件字节不出主进程），
+  STL/OBJ 由本地纯解析器转三角网格，STEP 经 occt-import-js 三角化，唯一 IPC 通道
+  `desktop:cad` 单动作 `read-mesh`，回复为一份有界网格负载（TypedArray + 如实统计）。
+- **大模型策略如实**：文件 100 MB 上限（原版 STEP 上限沿用并覆盖全部格式）、
+  1,000,000 三角面软渲染预算（二进制 STL 由 84 字节头部在读正文前预检）；超限、
+  空几何、坏索引、引擎缺失均按稳定错误码显式拒绝，不静默降级。
+- **2D 回退**：three.js WebGL（软渲染基线）失败时自动切软件 2D canvas 引擎并明确提示；
+  两种引擎均拖拽旋转/滚轮缩放，支持实体/线框/点云。
+- 与原版的既声明分歧：入口为工作区逻辑路径（无工作区即显式待就绪态）；对话→面板
+  自动开窗命令不在本票（#117 结果自动开窗）；几何编辑不做（原版也没有）；IGES 等
+  新增格式不做，白名单外后缀按码拒绝。安全缝：viewer3d 与 terminal 同判——桌面本地
+  内容，非外部内容，离开 external 占位缝，钉死测试与模块图断言见
+  test/security.test.ts 与 test/cad-bridge.test.ts。Win7 真机渲染（SwiftShader 性能
+  与 2D 回退可用性）留待 #131 收尾专项。
+
+## 2026-11-07 Synapse 会话地图恢复（iDeer-Desktop #113）
+
+五期·39 恢复原版会话地图（SynapsePanel）。**全新实现而非受管复制**：未复制
+linz 的 DSH shim、SynapsePanel 源码或其 IPC 路径，无 provenance 条目。地图是
+平台 Thread 数据的只读投影：节点来自侧栏同一条平台会话 list 投影（无第二份本地
+名册），连线只来自本机发起分支那一刻平台应答自带的父子事实——Runtime 按聊天
+scope 记入设备本地 `branch_edges.db`，重启后照常重建，记录/读取失败或父会话
+不在当页一律渲染为独立节点，绝不推测关系。点节点打开会话、当前会话节点发起
+「从此分支」均复用 #78 的分支语义与同款权限门，动作经对话面板的单一序列化命令
+路径执行。零新 IPC 通道、零推送订阅、无第二引擎、无本地编排。分歧清单：不恢复
+DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径；边数据不回写
+平台；跨设备分支边不同步（另一台设备发起的分支只以节点出现）。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。
@@ -144,11 +187,11 @@ provenance 条目，来源以本提交固定引用；不新增任何依赖。实
 | main/window、renderer/Layout、React/antd/zustand | 本票保留最小 UI，显示未连接，关闭即退出 | 静态、状态/能力合同、Windows 安装/退出及 Win7 专项 | Desktop |
 | ipc/chat、llm、pi、agents、scheduler、OfficePage、office 资源 | 排除自行驱动模型、Agent/多 Agent 和独立平台演进；办公室经范围决议（[Desktop #112](https://github.com/Orbit-Crew/iDeer-Desktop/issues/112)）收窄恢复为平台 Run/子代理事件只读可视化，无控制操作、无本地消息总线、无第二引擎 | 其余不列为后期承诺；办公室只读窗格按 #112 验收（纯只读、无事件不伪造、桥契约测试覆盖事件映射） | iDeer 规格维护者 |
 | ipc/approval、security、tools、mcp、terminal、browser、file-workspace | 暂缓旧本地执行链，防止旁路；任意 shell 排除 | 一期按 Runtime 任务、目录授权和审批合同适配；接续安全、拒绝、身份、链接逃逸和真实跨仓验证 | Desktop Runtime / Server 各自维护者 |
-| workspace、ChatPage、conversation、Agent/Skill 选择及 settings | 暂缓业务接线，无本地离线兜底 | 一期登录、设备、Server 资源及 Thread/Run/Turn 接入；用户/设备隔离和真实跨仓检查 | Desktop UI / Server |
+| workspace、ChatPage、conversation、Agent/Skill 选择及 settings | 暂缓业务接线，无本地离线兜底；会话地图（SynapsePanel）经 #113 恢复为平台 Thread 只读投影（本机观察的分支边），见上方分期记录 | 一期登录、设备、Server 资源及 Thread/Run/Turn 接入；用户/设备隔离和真实跨仓检查 | Desktop UI / Server |
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |
 | kb、parsers、database、knowledgeGraph、wiki、sql.js、better-sqlite3 | 暂缓，尚未适配平台身份、Revision 和 Runtime | 知识与技能阶段；原文件重导入，图谱/Wiki 重建，权限/引用/失败及 Win7 native ABI 验证；图片占位不作为 OCR 交付 | Desktop 知识 / Server 治理 |
 | agent-skills、skills、脚本、pandoc、便携 Python | 暂缓，不能直接运行旧技能脚本 | 知识与技能阶段；完整包确认上传 private、固定版本、环境和脚本授权；随包二进制许可证/Win7 验证 | Desktop 技能 / 工具维护者 |
-| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D、CATIA、Abaqus 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
+| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D 已按 #115 恢复（见 2026-11-07 段）；CATIA、Abaqus 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
 | catia-smart | 暂缓安装分发 | 先核验 SDK/插件权利、依赖和 Win7，再决定阶段，不自动列入下一期 | 工具维护者 |
 | updater、gen-manifest、gen-patch | 暂缓旧未签名更新，不注册补丁文件关联或 CLI 执行 | 一期安全更新；签名、排空、组合恢复和数据保护专项 | Desktop 构建发布 |
 | 旧会话、配置、密钥、自动迁移、macOS/Linux | 排除当前交付范围 | 人工迁移说明由退役阶段提供；不得自动读取或删除旧数据 | 迁移维护者 |
