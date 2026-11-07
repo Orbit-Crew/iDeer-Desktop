@@ -513,6 +513,35 @@ export interface ProjectView { id: string; name: string; status: 'active' | 'arc
  * another device reads an empty view and shows 未绑定（原设备绑定不迁移）.
  * The path is the user-confirmed working folder on this machine only. */
 export interface ProjectBindingView { projectId: string; path: string; deviceName: string; createdAt: string }
+/** Issue 111: one Agent-controlled terminal command — the device's own
+ * display record of what the platform Agent asked this machine to run, with
+ * its honest end state. Tails are bounded display facts; the content hashes
+ * stay the verifiable full-output facts. `effectsUncertain` marks the
+ * end states nobody observed to the end (stopped/timed out/interrupted):
+ * they render 结果待核实 and nothing ever re-runs them. */
+export interface AgentTerminalEntryView {
+  threadId: string
+  runId: string
+  taskId: string
+  toolCallId: string
+  command: string
+  workingRoot: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out' | 'interrupted' | 'refused'
+  exitCode: number | null
+  stdoutTail: string
+  stderrTail: string
+  stdoutHash: string
+  stderrHash: string
+  effectsUncertain: boolean
+  authorizationBasis: string
+  startedAt: string
+  finishedAt: string | null
+}
+/** Issue 111: the bounded history the pane reads for this identity. */
+export interface AgentTerminalHistoryView {
+  commands: AgentTerminalEntryView[]
+  storageError: string
+}
 /** Issue 91: the account's own Project capabilities as the Server states them.
  * Create, rename and the archive/restore flip share `projects:write`; only
  * deletion carries its own `projects:delete`. */
@@ -889,6 +918,10 @@ export interface RuntimeStatus {
    * same 0.5 s snapshot the surface reads; empty on any other device. */
   projectBindings?: ProjectBindingView[]
   projectBindingStorageError?: string
+  /** Issue 111: the Agent terminal's in-flight commands (bounded live tails)
+   * and the history store's honest storage state, riding the same snapshot. */
+  agentTerminal?: { running: AgentTerminalEntryView[] }
+  agentTerminalStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -969,6 +1002,14 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
+  /** Issue 111: the Agent terminal's own history for this identity (scope
+   * comes from the snapshot the renderer already holds), optionally narrowed
+   * to one chat thread; the Runtime answers with bounded display rows. */
+  terminalHistory(threadId?: string): Promise<AgentTerminalHistoryView>
+  /** Issue 111: request a stop for one Run through the same durable fence
+   * the chat surface uses; the answer is only "requested" — never a claim
+   * that effects stopped at a knowable boundary. */
+  terminalStop(runId: string): Promise<{ requested: boolean }>
   /** Issue 112: explicit local import; the main process picks files and confirms. */
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
   /** Issue 96: the doc library's recursive folder import; the main process

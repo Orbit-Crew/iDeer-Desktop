@@ -13,6 +13,7 @@ import {
   GlobalOutlined,
   LineChartOutlined,
   MessageOutlined,
+  RobotOutlined,
   SearchOutlined,
   SnippetsOutlined,
   TeamOutlined
@@ -27,6 +28,7 @@ import DocLibraryPane from './panels/docLibraryPane'
 import BrowserSlotPane from './panels/browserSlotPane'
 import TemplatesPane from './panels/templatesPane'
 import TerminalPane from './panels/terminalPane'
+import AgentTerminalPane from './panels/agentTerminalPane'
 import SynapsePane from './panels/synapsePane'
 import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
@@ -62,6 +64,9 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // Issue 110: the human terminal — desktop-local PTY in main, xterm.js
   // rendering, its own minimal bridge (never the trusted desktop:* one).
   { ...getPanelMeta('terminal'), icon: <CodeOutlined />, component: TerminalPane },
+  // Issue 111: the Agent-controlled terminal — a read-only projection of the
+  // Runtime's own recorded command history on the trusted desktop bridge.
+  { ...getPanelMeta('agentTerminal'), icon: <RobotOutlined />, component: AgentTerminalPane },
   { ...getPanelMeta('files'), icon: <FolderOpenOutlined />, component: FilePane },
   // Issue 96: the doc library — the `kb` pane is wired as the 项目文档库管理页
   // (recursive folder import, fingerprint dedup, batch management, background
@@ -103,6 +108,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <GlobalOutlined />
     case 'terminal':
       return <CodeOutlined />
+    case 'agentTerminal':
+      return <RobotOutlined />
     case 'files':
       return <FolderOpenOutlined />
     case 'kb':

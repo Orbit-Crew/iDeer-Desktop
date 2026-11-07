@@ -9,6 +9,7 @@ export type PanelTypeId =
   | 'runtime'
   | 'browser'
   | 'terminal'
+  | 'agentTerminal'
   | 'files'
   | 'kb'
   | 'viewer3d'

@@ -591,6 +591,22 @@ if (!app.requestSingleInstanceLock()) {
       }
       return runtime.receipts(action, offset, receiptScope)
     })
+    // Issue 111: the Agent terminal pane reads this identity's own command
+    // history and stops Runs through the same durable fence as chat; the
+    // workspace scope travels from the main-side selection, never the
+    // renderer.
+    ipcMain.handle('desktop:terminal:history', (event, threadId?: string) => {
+      requireMainFrame(event)
+      if (threadId !== undefined && (typeof threadId !== 'string' || !threadId || threadId.length > 128)) {
+        throw new Error('TERMINAL_THREAD_INVALID')
+      }
+      return runtime.terminalHistory(threadId)
+    })
+    ipcMain.handle('desktop:terminal:stop', (event, runId: string) => {
+      requireMainFrame(event)
+      if (typeof runId !== 'string' || !runId || runId.length > 256) throw new Error('TERMINAL_RUN_INVALID')
+      return runtime.terminalStop(runId)
+    })
     ipcMain.handle('desktop:runtime:start', (event) => {
       requireMainFrame(event)
       if (maintenanceBusy()) throw new Error('UPDATE_INSTALL_BUSY')

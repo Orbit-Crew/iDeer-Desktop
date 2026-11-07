@@ -20,9 +20,16 @@ export const PANEL_META: Record<PanelTypeId, PanelMeta> = {
   // Issue 110: the human terminal is native-hosted — a desktop-local PTY in
   // main with xterm.js rendering and its own minimal bridge; its output is
   // content, not embedded external content (decision #59), so it leaves the
-  // external-content seam. The 'pty' runtime value stays reserved for the
-  // Agent-controlled terminal (#111).
+  // external-content seam. The 'pty' runtime value stays reserved: #111's
+  // Agent-controlled terminal never hosts a live PTY — it is a read-only
+  // projection of the Runtime's own recorded history and in-flight tails
+  // (escaped text, honest end states), so it is native-hosted like the
+  // office pane, and the trusted desktop:* family carries its data.
   terminal: { id: 'terminal', title: '终端', multiInstance: true, closable: true, runtime: 'native' },
+  // Issue 111: the Agent-controlled terminal — read-only observation of the
+  // Runtime-carried command history; the platform Agent addresses it, the
+  // human watches and may stop a Run.
+  agentTerminal: { id: 'agentTerminal', title: '受控终端', multiInstance: false, closable: true, runtime: 'native' },
   files: { id: 'files', title: '文件', multiInstance: false, closable: true, runtime: 'native' },
   kb: { id: 'kb', title: '知识库', multiInstance: false, closable: true, runtime: 'native' },
   // Issue 115: the CAD viewer is native-hosted like the terminal — it renders

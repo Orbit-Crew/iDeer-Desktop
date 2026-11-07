@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from .python import LocalPythonService
 
 from .audit import AuditKind
+from .agent_terminal import TERMINAL_CAPABILITY, TerminalResult
 from .browser_control import BROWSER_CONTROL_CAPABILITY, BrowserControlError, BrowserControlResult
 from .consent import ConsentExchange, ConsentRequest, ConsentStore, PendingConsent, render_consent_summary
 from .mcp import MCPExecution
@@ -603,6 +604,12 @@ class LocalConsentCoordinator:
         # always-allow row would authorize work nobody actually approved.
         if request.capability == BROWSER_CONTROL_CAPABILITY:
             always = False
+        # Issue 111: a terminal command is never rememberable either. Every
+        # command line differs, so a capability-wide always-allow row would
+        # authorize commands nobody has seen; the full tier remains the only
+        # standing answer, and it is its own confirmed upgrade (#74).
+        if request.capability == TERMINAL_CAPABILITY:
+            always = False
         # A session-tier resolution names its own basis (#74); a human
         # decision starts from the plain approval and may only upgrade it
         # into a content- or directory-bound grant below.
@@ -889,6 +896,28 @@ class LocalConsentCoordinator:
                     # tier-resolved run is auditable as ``tier:<tier>`` the
                     # same way folder writes are; a human decision records
                     # the same "approved" value it always did.
+                    receipt = replace(receipt, task_id=task_id, consent_decision=consent_decision)
+        elif request.capability == TERMINAL_CAPABILITY:
+            # Issue 111: the consented (or full-tier) terminal command rides
+            # the same controlled executor; the settle basis rides the
+            # receipt exactly like the folder writes and the Python channel.
+            assert wire.terminal_service is not None
+            terminal_result = await wire.terminal_service.execute(
+                request.payload,
+                consent=True,
+                on_output=lambda stream, output: self._send_python_output(
+                    task_id, stream, output
+                ),
+                ledger_binding=wire.receipt_binding(),
+            )
+            if not isinstance(terminal_result, TerminalResult):
+                decision = terminal_result
+                value = None
+            else:
+                decision = PolicyDecision.ALLOW
+                value = wire._terminal_result_value(terminal_result)
+                receipt = terminal_result.receipt
+                if receipt is not None:
                     receipt = replace(receipt, task_id=task_id, consent_decision=consent_decision)
         elif self._skill_script(request.capability):
             # Issue 122: the consented Skill script run; the receipt binds

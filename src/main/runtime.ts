@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -68,6 +68,9 @@ export class RuntimeProcess {
   private chatRequests = new Map<string, { resolve: (state: ChatSnapshot) => void; reject: (error: Error) => void }>()
   private receiptRequests = new Map<string, { resolve: (state: ReceiptHistory) => void; reject: (error: Error) => void }>()
   private receiptScope = ''
+  // Issue 111: the Agent terminal pane's history read and Run stop request.
+  private terminalHistoryRequests = new Map<string, { resolve: (view: AgentTerminalHistoryView) => void; reject: (error: Error) => void }>()
+  private terminalStopRequests = new Map<string, { resolve: (result: { requested: boolean }) => void; reject: (error: Error) => void }>()
   private knowledgeRequests = new Map<string, { resolve: (outcome: KnowledgeImportOutcome) => void; reject: (error: Error) => void }>()
   private knowledgePublishRequests = new Map<string, { resolve: (outcome: KnowledgePublishPreview | KnowledgePublishOutcome) => void; reject: (error: Error) => void }>()
   // Issue 96: the doc library's folder import (one background job) and the
@@ -194,6 +197,43 @@ export class RuntimeProcess {
         reject: (error) => { clearTimeout(timer); this.receiptRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify({ type: 'receipts', id, action, offset, scope: expectedScope }) + '\n')
+    })
+  }
+
+  /** Issue 111: the pane's history read; the workspace scope travels with
+   * the request from the main-side selection, so a stale renderer can never
+   * read another identity's rows. */
+  async terminalHistory(threadId?: string): Promise<AgentTerminalHistoryView> {
+    if (!this.selectionScope || this.selectionScope.length > 128) throw new Error('WORKSPACE_BINDING_CHANGED')
+    if (threadId !== undefined && (!threadId || threadId.length > 128)) throw new Error('TERMINAL_THREAD_INVALID')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    if (this.terminalHistoryRequests.size) throw new Error('TERMINAL_HISTORY_BUSY')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.terminalHistoryRequests.delete(id); reject(new Error('TERMINAL_HISTORY_TIMEOUT')) }, 15000)
+      this.terminalHistoryRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.terminalHistoryRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.terminalHistoryRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'terminal-history', id, scope: this.selectionScope, ...(threadId !== undefined ? { threadId } : {}) }) + '\n')
+    })
+  }
+
+  /** Issue 111: one Run's stop request through the durable fence; the reply
+   * only ever says the request landed. */
+  async terminalStop(runId: string): Promise<{ requested: boolean }> {
+    if (!this.selectionScope || this.selectionScope.length > 128) throw new Error('WORKSPACE_BINDING_CHANGED')
+    if (!runId || runId.length > 256) throw new Error('TERMINAL_RUN_INVALID')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    if (this.terminalStopRequests.size) throw new Error('TERMINAL_STOP_BUSY')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.terminalStopRequests.delete(id); reject(new Error('TERMINAL_STOP_TIMEOUT')) }, 15000)
+      this.terminalStopRequests.set(id, {
+        resolve: (result) => { clearTimeout(timer); this.terminalStopRequests.delete(id); resolve(result) },
+        reject: (error) => { clearTimeout(timer); this.terminalStopRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'terminal-stop', id, scope: this.selectionScope, runId }) + '\n')
     })
   }
 
@@ -420,6 +460,49 @@ export class RuntimeProcess {
       })
       this.child!.stdin.write(JSON.stringify({ type: 'knowledge-import-retry', id, recordId, scope: this.selectionScope }) + '\n')
     })
+  }
+
+  /** Issue 111: one bounded terminal history row; every field is a display
+   * fact with a fixed shape, and a malformed row is a protocol failure. */
+  private parseAgentTerminalEntry(raw: unknown): AgentTerminalEntryView {
+    if (!raw || typeof raw !== 'object') throw new Error('Invalid terminal history')
+    const row = raw as Record<string, unknown>
+    if (typeof row.threadId !== 'string' || row.threadId.length > 128 ||
+        typeof row.runId !== 'string' || !row.runId || row.runId.length > 256 ||
+        typeof row.taskId !== 'string' || !row.taskId || row.taskId.length > 256 ||
+        typeof row.toolCallId !== 'string' || row.toolCallId.length > 256 ||
+        typeof row.command !== 'string' || !row.command || row.command.length > 4000 ||
+        typeof row.workingRoot !== 'string' || row.workingRoot.length > 1024 ||
+        !['running', 'completed', 'failed', 'cancelled', 'timed_out', 'interrupted', 'refused'].includes(row.status as string) ||
+        (row.exitCode !== null && !Number.isSafeInteger(row.exitCode)) ||
+        typeof row.stdoutTail !== 'string' || row.stdoutTail.length > 16000 ||
+        typeof row.stderrTail !== 'string' || row.stderrTail.length > 16000 ||
+        (row.stdoutHash !== null && typeof row.stdoutHash !== 'string') ||
+        (row.stderrHash !== null && typeof row.stderrHash !== 'string') ||
+        typeof row.effectsUncertain !== 'boolean' ||
+        typeof row.authorizationBasis !== 'string' || row.authorizationBasis.length > 64 ||
+        typeof row.startedAt !== 'string' || !row.startedAt ||
+        (row.finishedAt !== null && typeof row.finishedAt !== 'string')) throw new Error('Invalid terminal history')
+    return {
+      threadId: row.threadId, runId: row.runId, taskId: row.taskId,
+      toolCallId: row.toolCallId, command: row.command, workingRoot: row.workingRoot,
+      status: row.status as AgentTerminalEntryView['status'],
+      exitCode: row.exitCode as number | null,
+      stdoutTail: row.stdoutTail, stderrTail: row.stderrTail,
+      stdoutHash: row.stdoutHash ?? '', stderrHash: row.stderrHash ?? '',
+      effectsUncertain: row.effectsUncertain,
+      authorizationBasis: row.authorizationBasis,
+      startedAt: row.startedAt, finishedAt: row.finishedAt
+    }
+  }
+
+  private parseAgentTerminalHistory(raw: unknown): AgentTerminalHistoryView {
+    const commands: AgentTerminalEntryView[] = []
+    if (!raw || typeof raw !== 'object') throw new Error('Invalid terminal history')
+    const body = raw as Record<string, unknown>
+    if (!Array.isArray(body.commands)) throw new Error('Invalid terminal history')
+    for (const row of body.commands.slice(0, 200)) commands.push(this.parseAgentTerminalEntry(row))
+    return { commands, storageError: body.storageError === 'TERMINAL_STORAGE_UNAVAILABLE' ? body.storageError : '' }
   }
 
   /** Issue 96: the bounded display view of the one background folder job;
@@ -1344,6 +1427,21 @@ export class RuntimeProcess {
               else pending.resolve()
             }
             continue
+          }
+          if (value.v === 1 && value.type === 'terminal-history') {
+            const pending = this.terminalHistoryRequests.get(value.id)
+            if (pending) {
+              if (value.error) pending.reject(new Error(value.error))
+              else pending.resolve(this.parseAgentTerminalHistory(value.result))
+            }
+          }
+          if (value.v === 1 && value.type === 'terminal-stop') {
+            const pending = this.terminalStopRequests.get(value.id)
+            if (pending) {
+              if (value.error) pending.reject(new Error(value.error))
+              else if (value.result && value.result.requested === true) pending.resolve({ requested: true })
+              else pending.reject(new Error('Invalid terminal stop reply'))
+            }
           }
           if (value.v === 1 && value.type === 'receipts') {
             if (value.error) this.receiptRequests.get(value.id)?.reject(new Error(value.error === 'RECEIPT_BINDING_CHANGED' ? value.error : 'RECEIPT_STORAGE_UNAVAILABLE'))
@@ -2454,6 +2552,17 @@ export class RuntimeProcess {
               datasetRows.push(toDatasetView(row))
             }
           }
+          // Issue 111: the Agent terminal's in-flight commands ride the same
+          // snapshot so the pane's live tail stays honest about what runs.
+          const agentTerminalRunning: AgentTerminalEntryView[] = []
+          if (value.agentTerminal !== undefined) {
+            const agentTerminal = value.agentTerminal as Record<string, unknown> | null
+            if (!agentTerminal || typeof agentTerminal !== 'object' ||
+                !Array.isArray(agentTerminal.running)) throw new Error('Invalid status')
+            for (const row of agentTerminal.running.slice(0, 8)) {
+              agentTerminalRunning.push(this.parseAgentTerminalEntry(row))
+            }
+          }
           if (typeof value.installDrain !== 'boolean' || !Number.isSafeInteger(value.activeTasks) ||
               !Number.isSafeInteger(value.unknownWriteEffects) || value.unknownWriteEffects < 0) throw new Error('Invalid status')
           // Issue 77: the bounded background-run summary; identity facts the
@@ -2487,6 +2596,8 @@ export class RuntimeProcess {
             connectorStorageError: value.connectorStorageError === 'CONNECTOR_STORAGE_UNAVAILABLE' ? value.connectorStorageError : '',
             projectBindings,
             projectBindingStorageError: value.projectBindingStorageError === 'PROJECT_BINDING_STORAGE_UNAVAILABLE' ? value.projectBindingStorageError : '',
+            agentTerminal: { running: agentTerminalRunning },
+            agentTerminalStorageError: value.agentTerminalStorageError === 'TERMINAL_STORAGE_UNAVAILABLE' ? value.agentTerminalStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
         } catch { child.kill() }
       }
