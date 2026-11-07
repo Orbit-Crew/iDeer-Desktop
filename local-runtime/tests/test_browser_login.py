@@ -170,6 +170,29 @@ def test_restore_requires_an_active_server_device_binding(tmp_path, device_statu
             assert reopened.status()['state'] != 'authenticated'
 
 
+def test_authenticated_status_carries_the_bound_device_identity(tmp_path):
+    """#95: the authenticated login status names the bound device id so the
+    renderer can mark cross-device history as 仅原设备; unauthenticated states
+    carry no device identity at all."""
+    config, secure = tmp_path / 'settings.json', InMemorySecretStore()
+    with platform() as (origin, _):
+        login = BrowserLogin(config, secure)
+        login.begin(origin, 'Desktop D1')
+        login.poll()
+        status = login.status()
+        assert status['state'] == 'authenticated'
+        assert status['deviceId'] == 'D1'
+        assert load_settings(config).device_id == 'D1'
+        # The restored session re-reads the same binding and stays honest.
+        reopened = BrowserLogin(config, secure)
+        reopened.restore()
+        assert reopened.status()['state'] == 'authenticated'
+        assert reopened.status()['deviceId'] == 'D1'
+        login.logout()
+        assert login.status()['state'] == 'unauthenticated'
+        assert login.status().get('deviceId', '') == ''
+
+
 @pytest.mark.parametrize('business_ref,state', [('missing-business', 'expired'), ('', 'unauthenticated')])
 @pytest.mark.skipif(sys.platform != 'win32', reason='Uses the real Windows Credential Manager')
 def test_unauthenticated_profile_never_starts_executable_device_connection(tmp_path, business_ref, state):

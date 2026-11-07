@@ -3,9 +3,10 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
+import { AgentBrowserHub, type AgentBrowserPort } from './agentBrowser'
 import { RuntimeProcess } from './runtime'
 import { RemoteBrowserHub } from './remoteBrowser'
 import { TerminalSessions } from './terminal'
@@ -129,6 +130,91 @@ if (!app.requestSingleInstanceLock()) {
     browserPane.attachPartition()
     app.on('web-contents-created', (_event, contents) => {
       if (contents.getType() === 'webview') browserPane.hardenGuest(contents)
+    })
+    // Issue 108: the agent's controlled channel into the pane. The Runtime
+    // forwards one consented, tier-resolved action at a time; the hub
+    // announces each action on the pane's fact channel before it runs and
+    // bounds every fact on the way back. The port below is the only place
+    // where the channel touches a real webContents, and every operation is
+    // a fixed gesture — the channel can never run invented page code.
+    const paneGuests = () => webContents.getAllWebContents().filter((contents) =>
+      contents.session === browserSession && contents.getType() === 'webview' && !contents.isDestroyed())
+    const paneGuest = (tabId: number | null) => {
+      const guests = paneGuests()
+      if (tabId !== null) {
+        const named = guests.find((contents) => contents.id === tabId)
+        if (!named) throw new Error('AGENT_BROWSER_NO_TAB')
+        return named
+      }
+      if (guests.length !== 1) throw new Error('AGENT_BROWSER_NO_TAB')
+      return guests[0]
+    }
+    const agentBrowserPort: AgentBrowserPort = {
+      observe: async () => ({
+        tabs: paneGuests().map((contents) => ({ id: contents.id, url: contents.getURL(), title: contents.getTitle() }))
+      }),
+      observeText: async (tabId) => {
+        const contents = paneGuest(tabId)
+        // One fixed read expression — never a caller-supplied script.
+        const text = await contents.executeJavaScript('document.body ? document.body.innerText : ""', false)
+        return { url: contents.getURL(), title: contents.getTitle(), text: typeof text === 'string' ? text : '' }
+      },
+      navigate: async (tabId, url) => {
+        const contents = paneGuest(tabId)
+        await contents.loadURL(url)
+        return { url: contents.getURL() }
+      },
+      goBack: async (tabId) => {
+        paneGuest(tabId).goBack()
+        return {}
+      },
+      goForward: async (tabId) => {
+        paneGuest(tabId).goForward()
+        return {}
+      },
+      reload: async (tabId) => {
+        paneGuest(tabId).reload()
+        return {}
+      },
+      pressKey: async (key, tabId) => {
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'rawKeyDown', keyCode: key })
+        contents.sendInputEvent({ type: 'keyUp', keyCode: key })
+        return {}
+      },
+      typeText: async (text, tabId) => {
+        paneGuest(tabId).insertText(text)
+        return {}
+      },
+      click: async (x, y, tabId) => {
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
+        contents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+        return {}
+      },
+      submit: async (tabId) => {
+        // 提交 means the focused form's own submit: an Enter keystroke on
+        // the guest's focused element — no synthesized page script. Whether
+        // a form actually submitted is unconfirmable from here, so the
+        // result carries no submitted fact (效果待核实: no invented success).
+        const contents = paneGuest(tabId)
+        contents.sendInputEvent({ type: 'rawKeyDown', keyCode: 'Enter' })
+        contents.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' })
+        return {}
+      },
+      download: async (url) => {
+        // The pane session's will-download gate routes this into the
+        // confirmed workspace exactly like a human-started download.
+        browserSession.downloadURL(url)
+        return { queued: true }
+      }
+    }
+    const agentBrowserHub = new AgentBrowserHub(agentBrowserPort, (event) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:browser:events', event)
+    })
+    runtime.onAgentBrowserCommand((id, command) => {
+      void agentBrowserHub.handle(id, command).then((outcome) =>
+        runtime.agentBrowserReply(id, outcome.result, outcome.error))
     })
     mainWindow = createMainWindow()
     // Issue 77: the Desktop's notification center. The owned Runtime reports
@@ -603,6 +689,45 @@ if (!app.requestSingleInstanceLock()) {
         if (confirmation.response !== 1) throw new Error('PROJECTS_CANCELED')
       }
       return runtime.projects(command)
+    })
+    // Issue 102: 表格数据集导入. The renderer names the action and the
+    // project association only; the file is located by the native dialog
+    // here and the import/delete are confirmed in this trusted process.
+    // The device parses XLSX/CSV into a real registry row (multi-sheet,
+    // inferred column types, content fingerprints) and dedups identical
+    // content into an explicit duplicate outcome; the original file stays
+    // on this machine and a delete removes the registry row only.
+    ipcMain.handle('desktop:datasets', async (event, command: DatasetCommand): Promise<DatasetOperationView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['import', 'delete'].includes(command.action)) throw new Error('DATASETS_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('DATASETS_UNAUTHENTICATED')
+      if (command.action === 'import') {
+        if (typeof command.projectId !== 'string' || command.projectId.length > 128 ||
+            (command.projectId && !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId))) throw new Error('DATASETS_COMMAND_INVALID')
+        const chosen = await dialog.showOpenDialog(mainWindow!, {
+          title: '选择要导入的表格数据文件',
+          filters: [{ name: '表格数据 (XLSX/CSV)', extensions: ['xlsx', 'csv'] }], properties: ['openFile'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('DATASETS_CANCELED')
+        const association = command.projectId ? `平台项目 ${command.projectId}` : '未关联平台项目'
+        const confirmation = await dialog.showMessageBox(mainWindow!, {
+          type: 'question', title: '确认表格数据集导入',
+          message: '解析所选表格文件并在本机登记为数据集？',
+          detail: `设备侧将真实解析 XLSX 的全部工作表与 CSV，逐列识别类型（数字/布尔/日期时间/文本），并按文件内容指纹去重：重复导入相同内容只会得到一条“内容重复”提示，不会产生第二条记录。\n\n数据集登记关联：${association}。原文件留在本机不会上传，登记内容仅含文件名、位置、内容指纹、表结构与行数等元数据。\n\n来源：${chosen.filePaths[0]}`,
+          buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
+        return runtime.datasets({ action: 'import', path: chosen.filePaths[0], projectId: command.projectId })
+      }
+      if (typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId)) throw new Error('DATASETS_COMMAND_INVALID')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认删除数据集登记',
+        message: '删除这条数据集登记记录？',
+        detail: '仅删除本机的登记记录（表结构、指纹等元数据）；原文件不会被删除或修改，平台侧也没有任何数据集记录需要移除。',
+        buttons: ['取消', '确认删除'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
+      return runtime.datasets({ action: 'delete', datasetId: command.datasetId })
     })
     // Issue 85: the platform scheduled-tasks management surface. The renderer
     // names the action and the task fields only; the platform owns timing,

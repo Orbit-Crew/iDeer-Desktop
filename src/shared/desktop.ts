@@ -22,6 +22,9 @@ export interface LoginStatus {
   device: string
   error: string
   verification?: string
+  /** Issue 95: the bound device id while authenticated — lets history views
+   * mark records from another device as 仅原设备. Identity fact only. */
+  deviceId?: string
 }
 export interface LocalResultView {
   task_id: string
@@ -453,6 +456,71 @@ export interface ProjectOperationView {
   deleted?: boolean
 }
 
+/** Issue 102: one parsed sheet's recorded facts — schema summary, counts and
+ * a content fingerprint. Row data never rides this surface. */
+export interface DatasetSheetView {
+  name: string
+  fingerprint: string
+  /** The inferred schema summary (`列名:类型` pairs, bounded display fact). */
+  schema: string
+  rowCount: number
+  colCount: number
+  truncated: boolean
+  /** Honest marker for sheets that held more columns than the recorded cap. */
+  columnsTruncated: boolean
+}
+/** Issue 102: one imported table dataset as this device records it — a
+ * device-local display fact bound to the importing identity. The original
+ * file stays on this machine (`sourcePath` names the 原件); the record keeps
+ * identity, schema, counts and content fingerprints only, never row data.
+ * `format` is '' exactly when the row is a failure that never recognized a
+ * supported format — an unknown format is stated, never guessed.
+ * `projectId` mirrors the renderer's current project selection at import
+ * time; the platform has no dataset endpoint, so the association is recorded
+ * on the device with the row and the platform-side directory record remains
+ * an explicit platform dependency. */
+export interface DatasetView {
+  id: string
+  filename: string
+  sourcePath: string
+  format: 'xlsx' | 'csv' | ''
+  fileSha256: string
+  sheets: DatasetSheetView[]
+  rowCount: number
+  projectId: string
+  deviceId: string
+  status: 'ready' | 'failed'
+  errorCode: string
+  createdAt: string
+}
+/**
+ * Issue 102: 表格数据集导入. The renderer names the action and the project
+ * association only — the file is located by the trusted main process's
+ * native dialog and both actions are confirmed there. Deleting removes the
+ * registry row only and never the original file.
+ */
+export type DatasetCommand =
+  | { action: 'import'; projectId: string }
+  | { action: 'delete'; datasetId: string }
+/** Main-internal: the confirmed import over the main-process-picked path;
+ * the renderer never supplies a path. */
+export type DatasetImportCommand = { action: 'import'; path: string; projectId: string }
+/** Issue 102: one wire shape for both actions. Every reply carries the
+ * identity's own bounded post-action list plus its honest outcome flag: a
+ * duplicate import answers `duplicate` with the existing row's id instead of
+ * writing a second row, and a failed import answers `failed` with the fixed
+ * reason its row records. */
+export interface DatasetOperationView {
+  datasets: DatasetView[]
+  imported?: boolean
+  duplicate?: boolean
+  failed?: boolean
+  deleted?: boolean
+  datasetId?: string
+  duplicateOf?: string
+  errorCode?: string
+}
+
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {
   slug: string
@@ -701,6 +769,10 @@ export interface RuntimeStatus {
   directoryGrants?: { id: string; directory: string; operation: string; userId: string; deviceId: string; createdAt: string }[]
   knowledgeImports?: KnowledgeImportView[]
   knowledgeImportStorageError?: string
+  /** Issue 102: this identity's own dataset registry rows (bounded) plus the
+   * honest storage error; the rows ride the same 0.5 s status snapshot. */
+  datasets?: DatasetView[]
+  datasetsStorageError?: string
   knowledgePublications?: KnowledgePublicationView[]
   knowledgePublishStorageError?: string
   skillImports?: SkillImportView[]
@@ -814,6 +886,13 @@ export interface DesktopBridge {
    * re-reads its list; the desktop keeps no second roster and no local
    * state is bound to or cleared by a project operation. */
   projects(command: ProjectCommand): Promise<ProjectOperationView>
+  /** Issue 102: 表格数据集导入 — the device parses XLSX/CSV into a real
+   * registered dataset (multi-sheet, inferred column types), dedups by
+   * content fingerprint and records the platform project association with
+   * the row. File picking and confirmation stay in the trusted main
+   * process; the original file never leaves the machine and a delete
+   * removes the registry row only. */
+  datasets(command: DatasetCommand): Promise<DatasetOperationView>
   /** Issue 85: the platform scheduled-tasks management surface. The renderer
    * names the action and the task fields only; the platform owns timing,
    * previews and execution records, and a delete is confirmed in the trusted
@@ -914,7 +993,7 @@ export const NOTIFICATION_STATUS_LABELS: Record<string, string> = {
 }
 export const NOTIFICATION_APPROVAL_LABELS: Record<string, string> = {
   'file-write': '文件写入', 'skill-script': 'Skill 脚本', 'skill-dependencies': '技能依赖安装',
-  'knowledge-material': '知识取材'
+  'knowledge-material': '知识取材', 'browser-control': '本机浏览器控制'
 }
 
 /** Issue 77: list or settle the device's own notification ledger. */
@@ -970,12 +1049,15 @@ export type BrowserCommand = { action: 'clear' }
  * permission ask, one download's phase, a blocked navigation, a new-window
  * request routed to the owning pane, a finished partition clear); nothing
  * here carries page content, and the pane renders exactly what happened.
+ * Issue 108 adds the agent-control fact: one announce line per consented
+ * agent action on this pane (开工前标示), naming intent and target only.
  */
 export type BrowserPaneEvent =
   | { kind: 'permission'; permission: string; origin: string }
   | { kind: 'download'; phase: 'started' | 'completed' | 'canceled' | 'interrupted' | 'rejected'; filename: string; reason?: string }
   | { kind: 'navigation-blocked'; url: string }
   | { kind: 'window-open'; contentsId: number; url: string }
+  | { kind: 'agent-control'; intent: 'observe' | 'input' | 'submit' | 'download'; action: string; url: string }
   | { kind: 'cleared' }
 
 /** Issue 107: the one Chinese permission wording the pane reads; unmatched
@@ -1185,7 +1267,7 @@ export interface LocalConsentView {
   runId: string
   threadId: string
   requestHash: string
-  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code'
+  kind: 'file-write' | 'skill-script' | 'skill-dependencies' | 'knowledge-material' | 'inline-code' | 'browser-control'
   path?: string
   content?: string
   directory?: string
@@ -1207,6 +1289,11 @@ export interface LocalConsentView {
   language?: 'python' | 'node'
   workingRoot?: string
   script?: string
+  /** Issue 108: the browser-control ask names the intent and the page
+   * target; page content never rides the card. */
+  intent?: 'observe' | 'input' | 'submit' | 'download'
+  action?: string
+  url?: string
 }
 /** Issue 73: the chat-side model facts. `model` names the resolved choice
  * for the next submission, its honest availability, and — after a fallback
