@@ -8,9 +8,13 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import FieldPane from '../src/renderer/src/dock/panels/fieldPane'
+import { useDockStore } from '../src/renderer/src/dock/dockStore'
 import type { DesktopStatus, FilesPreview } from '../src/shared/desktop'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  useDockStore.getState().clearAutoLoad('field')
+})
 
 beforeAll(() => {
   window.matchMedia = window.matchMedia ?? ((query: string): MediaQueryList => ({
@@ -190,5 +194,18 @@ describe('field pane display contract (#116)', () => {
     expect((screen.getByLabelText('显示模式') as HTMLSelectElement).value).toBe('points')
     fireEvent.change(screen.getByLabelText('显示模式'), { target: { value: 'wireframe' } })
     expect((screen.getByLabelText('显示模式') as HTMLSelectElement).value).toBe('wireframe')
+  })
+
+  it('auto-loads a pending result path once the workspace is ready (#117)', async () => {
+    const api = readyBridge()
+    useDockStore.getState().requestAutoLoad('field', '/results/auto.dat')
+    renderPane(api)
+    // The auto-load rides the very same guarded read seam as a hand-typed
+    // path, shows in the input, and clears its pending entry afterwards.
+    await waitFor(() => expect(api.files).toHaveBeenCalledWith({ action: 'read', path: '/results/auto.dat' }))
+    expect((screen.getByLabelText('结果文件路径') as HTMLInputElement).value).toBe('/results/auto.dat')
+    expect(screen.getByLabelText('Zone 选择').textContent).toContain('slice (2×2×1)')
+    expect(useDockStore.getState().autoLoad.field).toBeUndefined()
+    useDockStore.getState().clearAutoLoad('field')
   })
 })

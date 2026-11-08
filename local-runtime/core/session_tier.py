@@ -52,12 +52,13 @@ DEFAULT_SESSION_TIER = SessionTier.ASK_FIRST
 # folder-anchored, so the session tier's folder scope cannot reach them and
 # the platform capability intersection (#70: 档位不越平台权限) keeps their
 # own authorization chains ahead.
-# The two sets are deliberately separate names even where they currently
-# hold the same members: the interactive command line (#111's controlled
-# terminal) is expected to ride FULL only, and each set must be able to
-# move without dragging the other.
+# The two sets are deliberately separate names even where they overlap:
+# #111's controlled terminal rides FULL only (自主档每条命令仍逐条询问),
+# and each set must be able to move without dragging the other. The
+# terminal's own service rule refuses anchors outside the confirmed
+# workspace or on protected names in every tier before any ask happens.
 TIER_AUTONOMOUS_CAPABILITIES = frozenset({"local.files.write", "local.python"})
-TIER_FULL_CAPABILITIES = frozenset({"local.files.write", "local.python"})
+TIER_FULL_CAPABILITIES = frozenset({"local.files.write", "local.python", "local.terminal"})
 
 
 def payload_anchor(payload: dict[str, Any], capability: str) -> str:
@@ -70,7 +71,7 @@ def payload_anchor(payload: dict[str, Any], capability: str) -> str:
         args = payload.get("arguments", payload.get("args", payload))
         path = args.get("path") if isinstance(args, dict) else None
         return path if isinstance(path, str) and path else ""
-    if capability == "local.python":
+    if capability in {"local.python", "local.terminal"}:
         root = payload.get("working_root")
         return root if isinstance(root, str) and root else ""
     return ""
@@ -116,7 +117,12 @@ def tier_gate_decision(
         # #108: the pane is not folder-anchored, so the workspace classifier
         # cannot reach it; its own intent rule answers instead.
         return browser_tier_decision(tier, payload)
-    if capability not in TIER_FULL_CAPABILITIES:
+    # Each tier consults its own set (#111): the two names exist precisely so
+    # the controlled terminal can ride FULL only without dragging the
+    # autonomous tier along - today the sets otherwise hold the same members,
+    # so no existing capability's answer changes.
+    allowed = TIER_FULL_CAPABILITIES if tier is SessionTier.FULL else TIER_AUTONOMOUS_CAPABILITIES
+    if capability not in allowed:
         return GateDecision.ASK
     anchor = payload_anchor(payload, capability)
     if not anchor:

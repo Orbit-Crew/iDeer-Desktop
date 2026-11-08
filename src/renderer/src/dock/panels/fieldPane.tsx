@@ -7,12 +7,15 @@
 // viewer under review in #151). Display modes stay the original three
 // (实体/线框/点云) with the original blue→gray→red scalar coloring; everything
 // outside the subset — FE zones, binary files, truncated reads, skipped
-// zones, non-finite values — is announced, never faked. Chat→pane auto-open
-// is #117's scope.
+// zones, non-finite values — is announced, never faked. Issue 117: chat→pane
+// auto-open is part of this surface — a task result inside the current
+// workspace grant opens this pane and reads its file through the same
+// guarded seam as a hand-typed path; upload and authorization stay untouched.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DesktopBridge, DesktopStatus, FilesPreview } from '../../../../shared/desktop'
 import { previewErrorText } from '../../components/FilePanel'
 import { useDockStore } from '../dockStore'
+import { useResultAutoLoad } from '../resultAutoOpen'
 import { parseTecplotAscii, type ParsedTecplot } from './field/tecplotReader'
 import {
   buildFieldGeometry, formatScalar, MAX_RENDER_POINTS, MAX_RENDER_QUADS,
@@ -131,6 +134,15 @@ export default function FieldPane({ instanceId, panelType, api }: {
     const scalar = scalarVariablesOf(parsed.variables)
     if (!scalar.includes(activeVar)) setActiveVar(scalar[0] ?? '')
   }, [parsed, activeVar])
+
+  // Issue 117: a task result inside the current workspace grant parks its
+  // workspace-logical path here; it reads through the same guarded seam as a
+  // hand-typed path once the workspace is ready and no load is in flight.
+  const autoLoad = useCallback((target: string): void => {
+    setPath(target)
+    void load(target)
+  }, [load])
+  useResultAutoLoad('field', workspaceReady && !busy, autoLoad)
 
   if (!workspaceReady) {
     return (

@@ -492,6 +492,80 @@ class KnowledgeIndexStore:
 
         self._execute(write)
 
+    # --- Issue 101: version-semantics cleanup and successor carry-over -------
+
+    def purge_revision(self, binding, revision_id: str, manifest_hash: str) -> int:
+        """Physically delete one revision's index rows (the user's separate
+        清理 action, #101). Every trace — terms, documents, and the revision
+        totals row — is removed for this frozen identity only; other revisions
+        keep theirs. After a purge the derived view reads 未建 honestly, and
+        old references keep their 原件已不在 marker instead of pretending."""
+        encoded, revision, digest = self._key(binding, revision_id, manifest_hash)
+
+        def write(db):
+            total = 0
+            for table in ("knowledge_index_terms", "knowledge_index_documents",
+                          "knowledge_index_revisions"):
+                total += db.execute(
+                    f"DELETE FROM {table} WHERE binding=? AND revision_id=? AND manifest_hash=?",
+                    (encoded, revision, digest)).rowcount
+            return total
+
+        return self._execute(write)
+
+    def carry_over_revision(self, binding, source_revision_id: str, source_manifest_hash: str,
+                            target_revision_id: str, target_manifest_hash: str,
+                            keep_hashes: list[str], document_count: int) -> int:
+        """Hand a successor revision the surviving documents' derived rows
+        (#101). A document-level delete registers the remaining documents as a
+        new revision; the deleted ones must not serve the successor. The rows
+        are content-addressed — a document's parsed text and terms are exactly
+        the bytes behind its frozen content hash — so copying the surviving
+        rows to the new identity is honest by construction: the successor
+        serves what survived, and what was deleted simply has no rows."""
+        source_key = self._key(binding, source_revision_id, source_manifest_hash)
+        target_key = self._key(binding, target_revision_id, target_manifest_hash)
+        wanted = [str(content_hash)[:64] for content_hash in (keep_hashes or [])]
+        if not wanted:
+            return 0
+
+        def write(db):
+            marks = ",".join("?" * len(wanted))
+            columns = "filename, content_hash, servable, char_count, note, text, layout, drift"
+            # The registration seam auto-indexed the successor from manifest
+            # entries without their parsed text (they were stripped long
+            # ago), so its rows exist but cannot serve. The carry-over
+            # replaces them wholesale with the surviving content-addressed
+            # rows: one honest write, never a merged half-truth.
+            db.execute(
+                "DELETE FROM knowledge_index_documents WHERE binding=? AND revision_id=? AND manifest_hash=?",
+                target_key)
+            db.execute(
+                "DELETE FROM knowledge_index_terms WHERE binding=? AND revision_id=? AND manifest_hash=?",
+                target_key)
+            moved = db.execute(
+                f"""INSERT INTO knowledge_index_documents
+                    (binding, revision_id, manifest_hash, {columns})
+                    SELECT ?, ?, ?, {columns} FROM knowledge_index_documents
+                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND content_hash IN ({marks})""",
+                (*target_key, *source_key, *wanted)).rowcount
+            db.execute(
+                f"""INSERT INTO knowledge_index_terms
+                    (binding, revision_id, manifest_hash, filename, content_hash, term, tf, lines)
+                    SELECT ?, ?, ?, filename, content_hash, term, tf, lines FROM knowledge_index_terms
+                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND content_hash IN ({marks})""",
+                (*target_key, *source_key, *wanted))
+            db.execute(
+                """INSERT INTO knowledge_index_revisions
+                    (binding, revision_id, manifest_hash, document_count, built_at, error)
+                    VALUES (?,?,?,?,?,'')
+                    ON CONFLICT(binding, revision_id, manifest_hash) DO UPDATE SET
+                    document_count=excluded.document_count, built_at=excluded.built_at, error=''""",
+                (*target_key, max(0, int(document_count)), _now()))
+            return moved
+
+        return self._execute(write)
+
     # --- reading ------------------------------------------------------------
 
     def revision_view(self, binding, revision_id: str, manifest_hash: str) -> dict[str, Any]:

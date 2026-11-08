@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { CadPaneService } from './cadPane'
@@ -591,6 +591,22 @@ if (!app.requestSingleInstanceLock()) {
       }
       return runtime.receipts(action, offset, receiptScope)
     })
+    // Issue 111: the Agent terminal pane reads this identity's own command
+    // history and stops Runs through the same durable fence as chat; the
+    // workspace scope travels from the main-side selection, never the
+    // renderer.
+    ipcMain.handle('desktop:terminal:history', (event, threadId?: string) => {
+      requireMainFrame(event)
+      if (threadId !== undefined && (typeof threadId !== 'string' || !threadId || threadId.length > 128)) {
+        throw new Error('TERMINAL_THREAD_INVALID')
+      }
+      return runtime.terminalHistory(threadId)
+    })
+    ipcMain.handle('desktop:terminal:stop', (event, runId: string) => {
+      requireMainFrame(event)
+      if (typeof runId !== 'string' || !runId || runId.length > 256) throw new Error('TERMINAL_RUN_INVALID')
+      return runtime.terminalStop(runId)
+    })
     ipcMain.handle('desktop:runtime:start', (event) => {
       requireMainFrame(event)
       if (maintenanceBusy()) throw new Error('UPDATE_INSTALL_BUSY')
@@ -696,6 +712,51 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
       return runtime.retryKnowledgeImport(recordId)
+    })
+    // Issue 101: 删除=库新版本. The renderer names the frozen revision and the
+    // documents to drop (by their own frozen content hashes); the platform
+    // issues the successor revision, so the historical record and every old
+    // reference stay traceable. No original file is read or touched, and the
+    // confirmation stays in this trusted process.
+    ipcMain.handle('desktop:knowledge:delete-documents', async (
+      event, kbId: string, revisionId: string, contentHashes: string[]): Promise<KnowledgeDeleteOutcome> => {
+      requireMainFrame(event)
+      if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+      if (typeof revisionId !== 'string' || !revisionId || revisionId.length > 64) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+      if (!Array.isArray(contentHashes) || contentHashes.length < 1 || contentHashes.length > 200 ||
+          contentHashes.some((hash) => typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash))) throw new Error('KNOWLEDGE_DELETE_DOCUMENTS_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '删除文档并登记库新版本',
+        message: `从该版本删除所选 ${contentHashes.length} 个文档并登记库新版本？`,
+        detail: '设备将把剩余文档在平台登记为新版本（删除=库新版本）：旧版本与所有历史引用（图谱、Wiki、检索引用）保留可追溯，仍指向其当时版本。本机文件不会被删除或修改；删除文档不清理其设备侧索引，可用「清理本机索引」另行物理清理。',
+        buttons: ['取消', '删除并登记新版本'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.deleteKnowledgeDocuments(kbId, revisionId, contentHashes)
+    })
+    // Issue 101: the user's separate physical cleanup. Purging removes this
+    // revision's device BM25 index rows and offline snapshot cache and marks
+    // its references 原件已不在; the original files are never touched here.
+    ipcMain.handle('desktop:knowledge:cleanup', async (
+      event, kbId: string, revisionId: string, manifestHash: string): Promise<KnowledgeCleanupOutcome> => {
+      requireMainFrame(event)
+      if (typeof kbId !== 'string' || !kbId || kbId.length > 64) throw new Error('KNOWLEDGE_INDEX_KB_INVALID')
+      if (typeof revisionId !== 'string' || !revisionId || revisionId.length > 64) throw new Error('KNOWLEDGE_INDEX_REVISION_INVALID')
+      if (typeof manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(manifestHash)) throw new Error('KNOWLEDGE_INDEX_MANIFEST_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+      if (status.workspace?.state !== 'ready') throw new Error('KNOWLEDGE_IMPORT_WORKSPACE_UNAVAILABLE')
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '清理该版本的本机索引与快照',
+        message: '物理清除该版本的设备侧检索索引与离线快照缓存？',
+        detail: '将删除该版本在本机的全文索引与离线快照缓存（物理清理），并把旧引用标记为「原件已不在」；记录本身保留可追溯。清理是删除之外的独立操作，且不会删除工作目录中的任何原文件。',
+        buttons: ['取消', '确认清理'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('KNOWLEDGE_IMPORT_CANCELED')
+      return runtime.cleanupKnowledgeRevision(kbId, revisionId, manifestHash)
     })
     // Issue 115: the explicit server publication flow. The preview step is
     // read-only; content leaves the device only after the owner has seen the
@@ -946,19 +1007,33 @@ if (!app.requestSingleInstanceLock()) {
       if (command.action === 'import') {
         if (typeof command.projectId !== 'string' || command.projectId.length > 128 ||
             (command.projectId && !/^[A-Za-z0-9_-]{1,128}$/.test(command.projectId))) throw new Error('DATASETS_COMMAND_INVALID')
+        // Issue 101: the optional knowledge revision binding passes through
+        // exactly as the renderer named it; kb and revision stand or fall
+        // together and the Runtime re-validates every field.
+        const binding = command.revision
+        if (binding !== undefined && (typeof binding !== 'object' || binding === null ||
+            typeof binding.kbId !== 'string' || !binding.kbId || binding.kbId.length > 128 ||
+            typeof binding.revisionId !== 'string' || !binding.revisionId || binding.revisionId.length > 128 ||
+            !Number.isSafeInteger(binding.revisionNo) || binding.revisionNo < 0 || binding.revisionNo > 1000000)) {
+          throw new Error('DATASETS_COMMAND_INVALID')
+        }
         const chosen = await dialog.showOpenDialog(mainWindow!, {
           title: '选择要导入的表格数据文件',
           filters: [{ name: '表格数据 (XLSX/CSV)', extensions: ['xlsx', 'csv'] }], properties: ['openFile'] })
         if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('DATASETS_CANCELED')
         const association = command.projectId ? `平台项目 ${command.projectId}` : '未关联平台项目'
+        const bindingNote = binding ? `\n\n知识版本绑定：R${binding.revisionNo}（${binding.revisionId.slice(0, 8)}…）` : ''
         const confirmation = await dialog.showMessageBox(mainWindow!, {
           type: 'question', title: '确认表格数据集导入',
           message: '解析所选表格文件并在本机登记为数据集？',
-          detail: `设备侧将真实解析 XLSX 的全部工作表与 CSV，逐列识别类型（数字/布尔/日期时间/文本），并按文件内容指纹去重：重复导入相同内容只会得到一条“内容重复”提示，不会产生第二条记录。\n\n数据集登记关联：${association}。原文件留在本机不会上传，登记内容仅含文件名、位置、内容指纹、表结构与行数等元数据。\n\n来源：${chosen.filePaths[0]}`,
+          detail: `设备侧将真实解析 XLSX 的全部工作表与 CSV，逐列识别类型（数字/布尔/日期时间/文本），并按文件内容指纹去重：重复导入相同内容只会得到一条“内容重复”提示，不会产生第二条记录。\n\n数据集登记关联：${association}。原文件留在本机不会上传，登记内容仅含文件名、位置、内容指纹、表结构与行数等元数据。${bindingNote}\n\n来源：${chosen.filePaths[0]}`,
           buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0, noLink: true
         })
         if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
-        return runtime.datasets({ action: 'import', path: chosen.filePaths[0], projectId: command.projectId })
+        return binding
+          ? runtime.datasets({ action: 'import', path: chosen.filePaths[0], projectId: command.projectId,
+              kbId: binding.kbId, revisionId: binding.revisionId, revisionNo: binding.revisionNo })
+          : runtime.datasets({ action: 'import', path: chosen.filePaths[0], projectId: command.projectId })
       }
       if (typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId)) throw new Error('DATASETS_COMMAND_INVALID')
       const confirmation = await dialog.showMessageBox(mainWindow!, {

@@ -40,6 +40,13 @@ const errorExplanations: Record<string, string> = {
   KNOWLEDGE_IMPORT_RECORD_NOT_FOUND: '该记录已不存在，列表已刷新',
   KNOWLEDGE_IMPORT_RETRY_NOT_FAILED: '只有失败的记录可以重试',
   KNOWLEDGE_IMPORT_FAILED: '导入未完成，请查看失败原因后重试',
+  // Issue 101: 删除=库新版本与物理清理的固定类别。
+  KNOWLEDGE_DELETE_DOCUMENTS_INVALID: '所选文档参数不完整，请刷新后重试',
+  KNOWLEDGE_DELETE_REVISION_UNKNOWN: '该版本已不在本机记录中，列表已刷新',
+  KNOWLEDGE_DELETE_DOCUMENT_UNKNOWN: '所选文档不在该版本的冻结清单中，请刷新后重试',
+  KNOWLEDGE_DELETE_LIBRARY_EMPTY: '不能删除版本中的全部文档；如需弃用整个版本，请删除导入记录',
+  KNOWLEDGE_CLEANUP_REVISION_UNKNOWN: '该版本已不在本机记录中，列表已刷新',
+  KNOWLEDGE_CLEANUP_FAILED: '清理未完成，请稍后重试',
   // Issue 97: the index rebuild's fixed categories.
   KNOWLEDGE_INDEX_UNAUTHENTICATED: '请先登录平台后再重建索引',
   KNOWLEDGE_INDEX_WORKSPACE_UNAVAILABLE: '需要先选择并确认工作目录，才能重建索引',
@@ -78,7 +85,7 @@ export const explainDocLibraryError = (message: string): string => {
 export class DocLibraryController {
   private generation = 0
   private view = emptyDocLibraryView()
-  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport' | 'rebuildKnowledgeIndex' | 'cancelKnowledgeIndexRebuild' | 'knowledgeSearch'>,
+  constructor(private readonly api: Pick<DesktopBridge, 'getStatus' | 'knowledgeFolderImport' | 'knowledgeFolderCancel' | 'deleteKnowledgeImports' | 'retryKnowledgeImport' | 'rebuildKnowledgeIndex' | 'cancelKnowledgeIndexRebuild' | 'deleteKnowledgeDocuments' | 'cleanupKnowledgeRevision' | 'knowledgeSearch'>,
               private readonly publish: (view: DocLibraryView) => void) {}
   snapshot(): DocLibraryView { return this.view }
   private update(change: Partial<DocLibraryView>): void { this.view = { ...this.view, ...change }; this.publish(this.view) }
@@ -153,6 +160,21 @@ export class DocLibraryController {
 
   deleteRecords(ids: string[]): Promise<void> {
     return this.run(() => this.api.deleteKnowledgeImports(ids))
+  }
+
+  /** Issue 101: 删除=库新版本 — drop the selected frozen documents from one
+   * registered revision; the platform issues the successor revision and the
+   * historical record stays traceable. The dialog confirmation lives in the
+   * trusted main process. */
+  deleteDocuments(record: KnowledgeImportView, contentHashes: string[]): Promise<void> {
+    return this.run(() => this.api.deleteKnowledgeDocuments(record.kbId, record.revisionId, contentHashes))
+  }
+
+  /** Issue 101: the user's separate physical cleanup — purge this revision's
+   * device index rows and offline snapshots and mark its references 原件已
+   * 不在. The original files are never touched. */
+  cleanupRevision(record: KnowledgeImportView): Promise<void> {
+    return this.run(() => this.api.cleanupKnowledgeRevision(record.kbId, record.revisionId, record.manifestHash))
   }
 
   /** Sequential batch retry: one command per record (each is one ordinary

@@ -80,6 +80,13 @@ class LocalPolicy:
             # explicit ask; the session tier then answers observe-only reads
             # in the upgraded tiers via its own intent rule.
             "local.browser.control",
+            # Issue 111: one agent shell command runs arbitrary code on this
+            # device, so every command starts as an explicit local ask; the
+            # session tier answers a full-tier ask whose folder anchor is
+            # inside the confirmed workspace, and the terminal service
+            # refuses outside/protected anchors in every tier before any
+            # ask can render.
+            "local.terminal",
         }:
             return RiskLevel.LEVEL_1
         # Projected MCP tools stay user-visible: consent is required unless the

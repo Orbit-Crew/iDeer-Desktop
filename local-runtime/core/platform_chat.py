@@ -513,9 +513,11 @@ def inherited_binding(source_binding):
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
+                 classify_path=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
-                 inline_scripts=None, project_bindings=None, knowledge_index=None, audit=None):
+                 inline_scripts=None, project_bindings=None, knowledge_index=None,
+                 knowledge_snapshots=None, audit=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -525,6 +527,10 @@ class DesktopChat:
         self.local_receipts = local_receipts
         self.stop_local = stop_local
         self.local_results = local_results
+        # Issue 117: where does a registered result stand against the CURRENT
+        # workspace grant? The verdict comes from desktop.py's own workspace
+        # classifier so this layer never re-derives authorization itself.
+        self.classify_path = classify_path
         self.compatibility_gate = compatibility_gate
         # Issue 112: explicit local imports reuse this session's transport
         # discipline; the registry keeps device-local display facts and the
@@ -536,6 +542,11 @@ class DesktopChat:
         # successful registration indexes its freshly parsed text behind the
         # revision identity. Originals and index content stay on the device.
         self.knowledge_index = knowledge_index
+        # Issue 101: the offline snapshot cache for the graph/wiki views.
+        # A cache write never fails a successful view and a cache read never
+        # impersonates the platform — only an unreachable platform serves it,
+        # annotated 离线快照.
+        self.knowledge_snapshots = knowledge_snapshots
         # Issue 98: the device's append-only audit log. A user library search
         # gets the same durable execution record a broker task's execution
         # gets, recorded before the reply is emitted.
@@ -1121,12 +1132,32 @@ class DesktopChat:
         except Exception:
             return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE', artifacts
 
+    def _workspace_state(self, logical_path):
+        """#117: a registered result's standing against the *current* grant.
+
+        The registry stores history, never a standing permission: the grant
+        can move or vanish after registration, so the verdict is re-derived
+        per snapshot. Fail closed — an unwired classifier, an empty path or
+        any classifier error is ``outside``; the device then never auto-opens
+        the file, it only lists it as a pending local result.
+        """
+        if self.classify_path is None or not isinstance(logical_path, str) or not logical_path:
+            return 'outside'
+        try:
+            state = self.classify_path(logical_path)
+        except Exception:
+            return 'outside'
+        return state if state in ('inside', 'protected', 'outside') else 'outside'
+
     def _merge_local_results(self, thread_id, merged):
         """Attach the device-local result registry view; failures hide nothing else.
 
         Registry rows stay metadata-only and identity-bound: another device (or
         another account on this one) sees the Server's task rows and platform
-        attachments, never this device's registered local results.
+        attachments, never this device's registered local results. #117: each
+        row also carries its verdict against the current workspace grant so
+        the desktop can auto-open an in-authority result without widening any
+        authorization or upload boundary.
         """
         results = {}
         if self.local_results is not None:
@@ -1137,6 +1168,8 @@ class DesktopChat:
                         binding, thread_id, {row['run_id'] for row in merged})}
             except Exception:
                 results = {}
+            for row in results.values():
+                row['workspace_state'] = self._workspace_state(row.get('logical_path', ''))
             for row in merged:
                 row['localResult'] = results.pop(row['task_id'], None)
             merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),
@@ -2302,6 +2335,124 @@ class DesktopChat:
                       paths=paths)
         return self.register_local_import(row['kbId'], physical_paths_for(grant, paths), source=source)
 
+    # --- Knowledge version semantics: 删除=库新版本 (issue 101) --------------
+
+    def delete_revision_documents(self, kb_id, revision_id, content_hashes):
+        """Delete documents from a library revision by registering the
+        remaining frozen documents as a new revision (#101, 决策票 62).
+
+        删除=库新版本: the platform owns the version chain — the same
+        frozen registration endpoint issues the successor revision, so the
+        old revision and every reference into it (wiki pages, graph
+        entities, citations) stay traceable to their era's version. Nothing
+        is read from the workspace and no original is touched: the manifest
+        minus the deleted documents is rebuilt from the registered record's
+        own frozen identity facts. The surviving documents' device index
+        rows are carried over content-addressed (a document's parsed text is
+        exactly the bytes behind its frozen hash), so the successor serves
+        what survived; the deleted ones simply have no rows. The historical
+        record stays on the books with a pointer to its successor.
+        """
+        from .knowledge_import import DOCUMENT_FIELDS, MAX_IMPORT_DOCUMENTS, KnowledgeImportError
+        from .settings import load_settings
+        if self.knowledge_imports is None:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        kb_id = self._uuid(kb_id)
+        # The revision id is the platform-assigned frozen identity: bounded
+        # text, matched against this device's own records (its fixture shape
+        # is whatever the platform once issued, never re-validated here).
+        if not isinstance(revision_id, str) or not revision_id or len(revision_id) > 128:
+            raise ChatError('CHAT_COMMAND_INVALID')
+        if not isinstance(content_hashes, list) or not 1 <= len(content_hashes) <= MAX_IMPORT_DOCUMENTS \
+                or any(not isinstance(item, str) or len(item) != 64
+                       or any(c not in '0123456789abcdef' for c in item)
+                       for item in content_hashes):
+            raise ChatError('CHAT_COMMAND_INVALID')
+        binding = profile_binding(load_settings(self.config))
+        registration = self.knowledge_imports.find_registration_by_revision(binding, kb_id, revision_id)
+        if registration is None or registration.get('status') != 'registered':
+            raise KnowledgeImportError('KNOWLEDGE_DELETE_REVISION_UNKNOWN')
+        wanted = set(content_hashes)
+        documents = registration.get('documents') or []
+        removed = [document for document in documents if document.get('sha256') in wanted]
+        remaining = [document for document in documents if document.get('sha256') not in wanted]
+        if len(removed) != len(wanted):
+            raise KnowledgeImportError('KNOWLEDGE_DELETE_DOCUMENT_UNKNOWN')
+        if not remaining:
+            raise KnowledgeImportError('KNOWLEDGE_DELETE_LIBRARY_EMPTY')
+        stored = registration.get('source') or {}
+        source = {'kind': 'delete', 'folder': str(stored.get('folder', ''))}
+        outcome = self.register_import_entries(
+            kb_id, [{key: document.get(key) for key in DOCUMENT_FIELDS} for document in remaining],
+            source=source)
+        try:
+            if self.knowledge_index is not None:
+                self.knowledge_index.carry_over_revision(
+                    binding, revision_id, registration.get('manifestHash', ''),
+                    outcome['revisionId'], outcome['manifestHash'],
+                    [document['sha256'] for document in remaining], outcome['documentCount'])
+        except Exception:
+            # The registration is the truth; an index carry-over failure
+            # honestly names the successor's index failed for a later rebuild,
+            # exactly like a fresh import's failed build — never a readiness
+            # claim over rows that cannot serve.
+            try:
+                if self.knowledge_index is not None:
+                    self.knowledge_index.mark_build_error(binding, outcome['revisionId'],
+                                                          outcome['manifestHash'], 'KNOWLEDGE_INDEX_FAILED')
+            except Exception:
+                pass
+        self.knowledge_imports.mark_superseded(binding, registration['id'], outcome['revisionId'])
+        return dict(kbId=kb_id, removedDocuments=len(removed), revision=outcome,
+                    supersededRecordId=registration['id'])
+
+    # --- Knowledge offline snapshots (issue 101) -----------------------------
+
+    def _remember_knowledge_snapshot(self, kb_id, revision_id, kind, payload):
+        """Best-effort cache of one successful projected view (#101).
+
+        A cache write never fails the view that produced it and never
+        touches the wire: an unreadable store simply means no offline copy.
+        """
+        if self.knowledge_snapshots is None or not isinstance(payload, dict):
+            return
+        try:
+            binding = profile_binding(load_settings(self.config))
+            if binding is None:
+                return
+            self.knowledge_snapshots.save(binding, kb_id, revision_id,
+                                          int(payload.get('revisionNo', 0) or 0),
+                                          str(payload.get('manifestHash', '')), kind, payload)
+        except Exception:
+            pass
+
+    def _offline_knowledge_snapshot(self, kb_id, revision_id, kind, exc):
+        """The offline fallback for one view-family read (#101, 决策票 62).
+
+        Only the honest outage categories may serve a cached copy, annotated
+        离线快照 with its capture time — a refused request (4xx) is a
+        refusal, never an excuse to show stale facts. A 5xx is the same
+        outage a dead socket is (_request's own rule).
+        Returns None when no snapshot exists, so the original error surfaces.
+        """
+        if str(exc) not in ('CHAT_SERVER_UNAVAILABLE', 'CHAT_SERVER_ERROR') \
+                or self.knowledge_snapshots is None:
+            return None
+        try:
+            binding = profile_binding(load_settings(self.config))
+            if binding is None:
+                return None
+            snapshot = self.knowledge_snapshots.fetch(binding, kb_id, revision_id, kind)
+        except Exception:
+            return None
+        if snapshot is None:
+            return None
+        payload = dict(snapshot['payload'])
+        payload['offline'] = True
+        payload['capturedAt'] = str(snapshot.get('capturedAt', ''))
+        payload.setdefault('kbId', kb_id)
+        return payload
+
     # --- Controlled knowledge-graph entry (issue 116) -----------------------
 
     def knowledge_graph(self, kb_id, revision_id, *, action, document_id=None, document_ids=None, query=""):
@@ -2338,15 +2489,27 @@ class DesktopChat:
             payload["kbId"] = kb_id
             return payload
         if action == "view":
-            payload = _graph_view_payload(self._json(
-                session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
+            try:
+                payload = _graph_view_payload(self._json(
+                    session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
+            except ChatError as exc:
+                # Issue 101: an unreachable platform serves the last cached
+                # view read-only, annotated 离线快照 — when one exists.
+                fallback = self._offline_knowledge_snapshot(kb_id, revision_id, "graph", exc)
+                if fallback is not None:
+                    return fallback
+                raise
             payload["kbId"] = kb_id
+            self._remember_knowledge_snapshot(kb_id, revision_id, "graph", payload)
             return payload
         if action == "generate":
             self._json(session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph", body={})
             payload = _graph_view_payload(self._json(
                 session, f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/graph"))
             payload["kbId"] = kb_id
+            # A finished generation is a fresh successful view: the cache
+            # refreshes with it so the next outage shows this state.
+            self._remember_knowledge_snapshot(kb_id, revision_id, "graph", payload)
             return payload
         if action == "locate":
             if self.knowledge_files is None:
@@ -2501,22 +2664,51 @@ class DesktopChat:
         session = self._session()
         base = f"/api/resources/{kb_id}/knowledge-revisions/{revision_id}/wiki"
         if action == "view":
-            payload = _wiki_view_payload(self._json(session, base))
+            try:
+                payload = _wiki_view_payload(self._json(session, base))
+            except ChatError as exc:
+                # Issue 101: an unreachable platform serves the last cached
+                # page list read-only, annotated 离线快照 — when one exists.
+                fallback = self._offline_knowledge_snapshot(kb_id, revision_id, "wiki", exc)
+                if fallback is not None:
+                    return fallback
+                raise
             payload["kbId"] = kb_id
+            self._remember_knowledge_snapshot(kb_id, revision_id, "wiki", payload)
             return payload
         if action == "generate":
             self._json(session, base, body={})
             payload = _wiki_view_payload(self._json(session, base))
             payload["kbId"] = kb_id
+            # A finished generation is a fresh successful view: the cache
+            # refreshes with it so the next outage shows this state.
+            self._remember_knowledge_snapshot(kb_id, revision_id, "wiki", payload)
             return payload
         if action == "read":
             document = _wiki_document_id(document_id)
-            payload = _wiki_page_payload(self._json(session, f"{base}/pages/{document}"))
+            try:
+                payload = _wiki_page_payload(self._json(session, f"{base}/pages/{document}"))
+            except ChatError as exc:
+                fallback = self._offline_knowledge_snapshot(kb_id, revision_id,
+                                                            f"wiki-page:{document}", exc)
+                if fallback is not None:
+                    return fallback
+                raise
             payload["kbId"] = kb_id
+            self._remember_knowledge_snapshot(kb_id, revision_id,
+                                              f"wiki-page:{document}", payload)
             return payload
         if action == "navigate":
-            payload = _wiki_navigation_payload(self._json(session, f"{base}/navigation"))
+            try:
+                payload = _wiki_navigation_payload(self._json(session, f"{base}/navigation"))
+            except ChatError as exc:
+                fallback = self._offline_knowledge_snapshot(kb_id, revision_id,
+                                                            "wiki-navigation", exc)
+                if fallback is not None:
+                    return fallback
+                raise
             payload["kbId"] = kb_id
+            self._remember_knowledge_snapshot(kb_id, revision_id, "wiki-navigation", payload)
             return payload
         raise ChatError("CHAT_COMMAND_INVALID")
 

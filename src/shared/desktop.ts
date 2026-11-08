@@ -38,6 +38,10 @@ export interface LocalResultView {
   bytes: number
   artifact_ref: string
   uploaded_at: string
+  /** Issue 117: the Runtime's verdict on where this result lands under the
+   * CURRENT workspace grant, re-derived per snapshot (never stored). Absent
+   * or anything but 'inside' means the device must not auto-open it. */
+  workspace_state?: 'inside' | 'protected' | 'outside'
 }
 export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
 /** Issue 112: device-local display fact for one explicit knowledge import. */
@@ -80,6 +84,16 @@ export interface KnowledgeImportView {
   /** Issue 96: the platform project identity when the registration response
    * carried one; the library identity stays kbId/revisionId. */
   projectId: string
+  /** Issue 101: the user-confirmed cleanup marker — this revision's 本机
+   * 原件与设备索引 have been physically cleaned up (原件已不在), while the
+   * row itself stays on the books. */
+  originalsMissing?: boolean
+  /** Issue 101: the successor revision a document-level delete formed
+   * (删除=库新版本); the historical row stays traceable through it. */
+  supersededBy?: string
+  /** Issue 101: derived per KB — a registered revision below the KB's
+   * highest registered revision on this device. Never a stored claim. */
+  historical?: boolean
   /** Issue 96: where a folder batch came from — the workspace-logical folder
    * and how many files it held. The stored paths never cross the bridge. */
   source: { kind: string; folder: string; pathCount: number } | null
@@ -94,6 +108,25 @@ export interface KnowledgeImportOutcome {
   revisionNo: number
   manifestHash: string
   documentCount: number
+}
+/** Issue 101: 删除=库新版本 — the successor revision the remaining frozen
+ * documents registered as, plus the historical record it supersedes. The
+ * platform keeps every registered revision, so old references stay
+ * traceable to their era's version. */
+export interface KnowledgeDeleteOutcome {
+  kbId: string
+  removedDocuments: number
+  revision: KnowledgeImportOutcome
+  supersededRecordId: string
+}
+/** Issue 101: the separate physical cleanup outcome — the revision's device
+ * BM25 index rows and offline snapshots are purged and its references marked
+ * 原件已不在. The original files are never touched by this device. */
+export interface KnowledgeCleanupOutcome {
+  kbId: string
+  revisionId: string
+  indexPurged: boolean
+  snapshotsPurged: number
 }
 /** Issue 96: the doc library's one background folder import job. */
 export interface KnowledgeFolderFailureView { filename: string; errorCode: string }
@@ -199,6 +232,10 @@ export interface KnowledgeGraphView {
   entities: KnowledgeGraphEntity[]
   relations: KnowledgeGraphRelation[]
   sources: KnowledgeGraphSource[]
+  /** Issue 101: 离线快照 — the platform was unreachable and this is the
+   * last cached successful view, served read-only with its capture time. */
+  offline?: boolean
+  capturedAt?: string
 }
 /** Issue 116: device-local locate answer; the path never leaves this device. */
 export interface KnowledgeGraphSourceLocation {
@@ -337,6 +374,10 @@ export interface WikiView {
   failed: number
   skipped: number
   pages: WikiPageSummary[]
+  /** Issue 101: 离线快照 — served from the device cache while the platform
+   * was unreachable; read-only, with its capture time. */
+  offline?: boolean
+  capturedAt?: string
 }
 /** Issue 118: one read page; a body only ever travels with a completed page. */
 export interface WikiPage {
@@ -351,6 +392,9 @@ export interface WikiPage {
   status: WikiPageSummary['status']
   errorCode: string
   body: string
+  /** Issue 101: 离线快照 — the cached copy of one page read. */
+  offline?: boolean
+  capturedAt?: string
 }
 /** Issue 119: one resolved link or backlink row; the target names its honest page status. */
 export interface WikiLink {
@@ -550,6 +594,35 @@ export interface ProjectView { id: string; name: string; status: 'active' | 'arc
  * another device reads an empty view and shows 未绑定（原设备绑定不迁移）.
  * The path is the user-confirmed working folder on this machine only. */
 export interface ProjectBindingView { projectId: string; path: string; deviceName: string; createdAt: string }
+/** Issue 111: one Agent-controlled terminal command — the device's own
+ * display record of what the platform Agent asked this machine to run, with
+ * its honest end state. Tails are bounded display facts; the content hashes
+ * stay the verifiable full-output facts. `effectsUncertain` marks the
+ * end states nobody observed to the end (stopped/timed out/interrupted):
+ * they render 结果待核实 and nothing ever re-runs them. */
+export interface AgentTerminalEntryView {
+  threadId: string
+  runId: string
+  taskId: string
+  toolCallId: string
+  command: string
+  workingRoot: string
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out' | 'interrupted' | 'refused'
+  exitCode: number | null
+  stdoutTail: string
+  stderrTail: string
+  stdoutHash: string
+  stderrHash: string
+  effectsUncertain: boolean
+  authorizationBasis: string
+  startedAt: string
+  finishedAt: string | null
+}
+/** Issue 111: the bounded history the pane reads for this identity. */
+export interface AgentTerminalHistoryView {
+  commands: AgentTerminalEntryView[]
+  storageError: string
+}
 /** Issue 91: the account's own Project capabilities as the Server states them.
  * Create, rename and the archive/restore flip share `projects:write`; only
  * deletion carries its own `projects:delete`. */
@@ -626,6 +699,9 @@ export interface DatasetView {
   projectId: string
   deviceId: string
   status: 'ready' | 'failed'
+  /** Issue 101: the optional knowledge revision binding (一套版本规矩);
+   * present exactly when the import named one, never invented. */
+  revision: { kbId: string; revisionId: string; revisionNo: number } | null
   errorCode: string
   createdAt: string
 }
@@ -633,14 +709,16 @@ export interface DatasetView {
  * Issue 102: 表格数据集导入. The renderer names the action and the project
  * association only — the file is located by the trusted main process's
  * native dialog and both actions are confirmed there. Deleting removes the
- * registry row only and never the original file.
+ * registry row only and never the original file. Issue 101: the import may
+ * bind the doc-library revision it accompanies (absent = unbound).
  */
 export type DatasetCommand =
-  | { action: 'import'; projectId: string }
+  | { action: 'import'; projectId: string; revision?: { kbId: string; revisionId: string; revisionNo: number } }
   | { action: 'delete'; datasetId: string }
 /** Main-internal: the confirmed import over the main-process-picked path;
  * the renderer never supplies a path. */
-export type DatasetImportCommand = { action: 'import'; path: string; projectId: string }
+export type DatasetImportCommand = { action: 'import'; path: string; projectId: string;
+  kbId?: string; revisionId?: string; revisionNo?: number }
 /** Issue 102: one wire shape for both actions. Every reply carries the
  * identity's own bounded post-action list plus its honest outcome flag: a
  * duplicate import answers `duplicate` with the existing row's id instead of
@@ -926,6 +1004,10 @@ export interface RuntimeStatus {
    * same 0.5 s snapshot the surface reads; empty on any other device. */
   projectBindings?: ProjectBindingView[]
   projectBindingStorageError?: string
+  /** Issue 111: the Agent terminal's in-flight commands (bounded live tails)
+   * and the history store's honest storage state, riding the same snapshot. */
+  agentTerminal?: { running: AgentTerminalEntryView[] }
+  agentTerminalStorageError?: string
   installDrain?: boolean
   activeTasks?: number
   unknownWriteEffects?: number
@@ -1006,6 +1088,14 @@ export interface DesktopBridge {
   beginLogin(server: string, deviceName: string): Promise<void>
   chat(command: ChatCommand): Promise<ChatSnapshot>
   receipts(action: 'history' | 'clear-confirmed', offset?: number): Promise<ReceiptHistory>
+  /** Issue 111: the Agent terminal's own history for this identity (scope
+   * comes from the snapshot the renderer already holds), optionally narrowed
+   * to one chat thread; the Runtime answers with bounded display rows. */
+  terminalHistory(threadId?: string): Promise<AgentTerminalHistoryView>
+  /** Issue 111: request a stop for one Run through the same durable fence
+   * the chat surface uses; the answer is only "requested" — never a claim
+   * that effects stopped at a knowable boundary. */
+  terminalStop(runId: string): Promise<{ requested: boolean }>
   /** Issue 112: explicit local import; the main process picks files and confirms. */
   importKnowledge(kbId: string): Promise<KnowledgeImportOutcome>
   /** Issue 96: the doc library's recursive folder import; the main process
@@ -1024,6 +1114,17 @@ export interface DesktopBridge {
   /** Issue 96: re-import one failed record's stored files through the
    * ordinary import seam; the confirmation stays in the trusted main process. */
   retryKnowledgeImport(recordId: string): Promise<KnowledgeImportOutcome>
+  /** Issue 101: 删除=库新版本 — drop documents from one registered revision
+   * by registering the surviving frozen documents as the successor revision;
+   * the historical record stays traceable. Documents are named by their own
+   * frozen content hashes; the confirmation stays in the trusted main
+   * process and no original file is read or touched. */
+  deleteKnowledgeDocuments(kbId: string, revisionId: string, contentHashes: string[]): Promise<KnowledgeDeleteOutcome>
+  /** Issue 101: the user's separate physical cleanup — purge one revision's
+   * device BM25 index rows and offline snapshots and mark its references
+   * 原件已不在. The confirmation stays in the trusted main process; the
+   * original files are never touched. */
+  cleanupKnowledgeRevision(kbId: string, revisionId: string, manifestHash: string): Promise<KnowledgeCleanupOutcome>
   /** Issue 115: explicit server publication; file picking and confirmation stay in main. */
   publishKnowledge(kbId: string, revisionId: string): Promise<KnowledgePublishOutcome>
   /** Issue 116: controlled graph view/generate plus device-local source locate. */
@@ -1263,6 +1364,17 @@ export interface CadMeshStats { meshes: number; vertices: number; triangles: num
  */
 export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
 export const CAD_MAX_TRIANGLES = 1_000_000
+
+/** Issue 115: the trusted read whitelist — extension → local parser format.
+ * Issue 117: the renderer's auto-open mapping keys its viewer3d rows off this
+ * same table (panelMeta.RESULT_PANE_TYPES), so the pane that may auto-open a
+ * file and the channel that may read it can never drift apart. */
+export const CAD_EXTENSIONS: Record<string, CadMeshFormat> = {
+  '.stl': 'stl',
+  '.obj': 'obj',
+  '.stp': 'step',
+  '.step': 'step'
+}
 
 /**
  * Issue 107: the local browser pane's one fixed session partition. Login

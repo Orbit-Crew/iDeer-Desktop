@@ -73,6 +73,11 @@ export function KnowledgeGraphSection({ runtime, graph, similarity, located, que
     {graph && <>
       <Typography.Paragraph className="mt-3">
         版本 R{graph.revisionNo} · {statusNames[graph.status]} · 成功 {graph.generated} · 失败 {graph.failed}
+        {/* Issue 101: 离线快照 — the cached view served while the platform
+            was unreachable stays read-only and honestly labeled. */}
+        {graph.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{graph.capturedAt ? `（${graph.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功生成的图谱
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{graph.manifestHash}</Typography.Paragraph>
       {graph.status === 'partial' && <Alert type="warning" message="部分文档生成失败：缺失的关系不代表完整图谱" />}

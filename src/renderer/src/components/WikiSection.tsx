@@ -1,5 +1,7 @@
-import { Alert, Button, Card, Space, Typography } from 'antd'
+import { Alert, Button, Card, Popconfirm, Space, Typography } from 'antd'
 import type { RuntimeStatus, WikiCommand, WikiLink, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../../../shared/desktop'
+import { WikiGraphPanel } from './WikiGraphPanel'
+import { wikiSourceLine } from './wikiGraphModel'
 
 const statusNames: Record<WikiView['status'], string> = {
   not_generated: '尚未生成',
@@ -23,6 +25,10 @@ export interface WikiSectionProps {
   busy: boolean
   error: string
   onCommand: (command: WikiCommand) => void
+  /** Issue #100: clear this device's derived wiki display state; the
+   * Server's pages stay, and the surface honestly returns to its initial
+   * state until the next view or rebuild. */
+  onClear?: () => void
 }
 
 /**
@@ -32,9 +38,16 @@ export interface WikiSectionProps {
  * 不可访问，跳过和失败的目标只显示状态；点击可读的链接或反链即阅读该页，
  * 回到相应来源。页面与来源始终绑定冻结的 KB/Revision 与文档指纹；跨账号或
  * 其他范围的版本不会出现在这里，越界的页面读取由 Server 拒绝。
+ *
+ * Issue #100：索引之上叠加概览/邻域图导航（确定性推导，见 WikiGraphPanel）；
+ * 每行来源标注文档与其在冻结清单中的位置；已生成页面的版本以「重新生成」
+ * 整体重建（Server 逐页替换，状态如实），「清空展示状态」只清除桌面上的
+ * 派生展示状态，不声称 Server 页面被删除。
  */
-export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCommand }: WikiSectionProps): JSX.Element {
+export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCommand, onClear }: WikiSectionProps): JSX.Element {
   const registered = (runtime?.knowledgeImports ?? []).filter(row => row.status === 'registered')
+  const shownForRevision = (revisionId: string): WikiView | WikiNavigation | null =>
+    (wiki && wiki.revisionId === revisionId && wiki) || (navigation && navigation.revisionId === revisionId && navigation) || null
   const readPage = (kbId: string, revisionId: string, documentId: string) =>
     onCommand({ action: 'read', kbId, revisionId, documentId })
   const linkRow = (link: WikiLink, label: string, kbId: string, revisionId: string): JSX.Element =>
@@ -46,28 +59,46 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
     <Typography.Paragraph>针对已登记的知识库版本，由平台统一编排生成 Wiki 页面；页面与来源始终绑定冻结版本与文档指纹，进度、跳过和部分失败如实展示。导航索引、链接反链与关联图均由该冻结版本自身的产物推导，缺失目标如实标注，不会伪造可访问页面。跨账号或其他范围的版本不会显示。</Typography.Paragraph>
     {error && <Alert type="error" message={`Wiki 操作未完成：${error}`} />}
     {!registered.length && <Typography.Text type="secondary">当前账号与设备尚无可查看 Wiki 的已登记版本。</Typography.Text>}
-    {registered.map(row => <Space key={row.id} className="mt-2">
-      <Typography.Text>R{row.revisionNo} · {row.kbId}</Typography.Text>
-      <Button aria-label={`查看Wiki R${row.revisionNo}`} disabled={busy}
-        onClick={() => onCommand({ action: 'view', kbId: row.kbId, revisionId: row.revisionId })}>查看Wiki</Button>
-      <Button aria-label={`生成Wiki R${row.revisionNo}`} disabled={busy}
-        onClick={() => onCommand({ action: 'generate', kbId: row.kbId, revisionId: row.revisionId })}>生成Wiki</Button>
-      <Button aria-label={`导航Wiki R${row.revisionNo}`} disabled={busy}
-        onClick={() => onCommand({ action: 'navigate', kbId: row.kbId, revisionId: row.revisionId })}>导航索引</Button>
-    </Space>)}
+    {registered.map(row => {
+      const shown = shownForRevision(row.revisionId)
+      const rebuilding = shown !== null && shown.status !== 'not_generated'
+      return <Space key={row.id} className="mt-2">
+        <Typography.Text>R{row.revisionNo} · {row.kbId}</Typography.Text>
+        <Button aria-label={`查看Wiki R${row.revisionNo}`} disabled={busy}
+          onClick={() => onCommand({ action: 'view', kbId: row.kbId, revisionId: row.revisionId })}>查看Wiki</Button>
+        <Button aria-label={`${rebuilding ? '重新生成' : '生成'}Wiki R${row.revisionNo}`} disabled={busy}
+          onClick={() => onCommand({ action: 'generate', kbId: row.kbId, revisionId: row.revisionId })}>{rebuilding ? '重新生成' : '生成Wiki'}</Button>
+        <Button aria-label={`导航Wiki R${row.revisionNo}`} disabled={busy}
+          onClick={() => onCommand({ action: 'navigate', kbId: row.kbId, revisionId: row.revisionId })}>导航索引</Button>
+      </Space>
+    })}
+    {(wiki || navigation) && onClear && <Popconfirm
+      title="清空桌面上的 Wiki 展示状态？"
+      description="仅清除本机派生的展示状态；Server 生成的页面保留，重新查看会再次显示，重新生成会整体重建各页。"
+      okText="确认清空"
+      cancelText="取消"
+      onConfirm={onClear}
+    >
+      <Button className="mt-2" size="small" danger disabled={busy} aria-label="清空Wiki展示状态">清空展示状态</Button>
+    </Popconfirm>}
     {wiki && <>
       <Typography.Paragraph className="mt-3">
         版本 R{wiki.revisionNo} · {statusNames[wiki.status]} · 成功 {wiki.generated} · 失败 {wiki.failed} · 跳过 {wiki.skipped}
+        {/* Issue 101: 离线快照 — the cached page list served while the
+            platform was unreachable stays read-only and honestly labeled. */}
+        {wiki.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{wiki.capturedAt ? `（${wiki.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功查看的页面列表
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{wiki.manifestHash}</Typography.Paragraph>
       {wiki.status === 'partial' && <Alert type="warning" message="部分页面未生成：缺失的页面不代表完整 Wiki" />}
       <Typography.Title level={5} className="mt-3">页面列表</Typography.Title>
       {!wiki.pages.length && <Typography.Text type="secondary">尚未生成任何页面。</Typography.Text>}
-      {wiki.pages.map(row => <Card key={row.documentId} size="small" className="mt-2">
+      {wiki.pages.map((row, index) => <Card key={row.documentId} size="small" className="mt-2">
         <Typography.Paragraph>
           {row.title || row.filename} · {pageStatusName(row)}
         </Typography.Paragraph>
-        <Typography.Paragraph type="secondary" copyable>来源 {row.filename} · 文档指纹：{row.contentHash}</Typography.Paragraph>
+        <Typography.Paragraph type="secondary" copyable>{wikiSourceLine(row, index, wiki.pages.length)}</Typography.Paragraph>
         {row.status === 'completed' && <Button aria-label={`阅读页面 ${row.filename}`} disabled={busy}
           onClick={() => readPage(wiki.kbId, wiki.revisionId, row.documentId)}>阅读此页</Button>}
       </Card>)}
@@ -77,6 +108,9 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
           ? <Card size="small">
             <Typography.Title level={5}>{page.title || page.filename}</Typography.Title>
             <Typography.Paragraph type="secondary">来源 {page.filename} · 指纹 {page.contentHash.slice(0, 12)}…</Typography.Paragraph>
+            {page.offline && <Typography.Paragraph type="warning">
+              离线快照{page.capturedAt ? `（${page.capturedAt} 生成）` : ''}：平台当前不可达，展示本机缓存的页面正文
+            </Typography.Paragraph>}
             <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{page.body}</Typography.Paragraph>
           </Card>
           : <Alert type="warning" message={`此页不可阅读：${pageStatusName(page)}`} />}
@@ -85,6 +119,10 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
     {navigation && <>
       <Typography.Paragraph className="mt-3">
         版本 R{navigation.revisionNo} · 导航索引 · {statusNames[navigation.status]} · 成功 {navigation.generated} · 失败 {navigation.failed} · 跳过 {navigation.skipped}
+        {/* Issue 101: the cached navigation index carries the same 离线快照 label. */}
+        {navigation.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{navigation.capturedAt ? `（${navigation.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功查看的导航索引
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{navigation.manifestHash}</Typography.Paragraph>
       {navigation.status === 'partial' && <Alert type="warning" message="部分页面未生成：缺失的页面不代表完整 Wiki" />}
@@ -95,11 +133,12 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
       {navigation.associations.sources.map(row => <Typography.Paragraph key={row.documentId} type="secondary">
         来源 {row.filename} · {pageStatusName(row)} · 文档指纹：{row.contentHash}
       </Typography.Paragraph>)}
+      <WikiGraphPanel navigation={navigation} busy={busy} onCommand={onCommand} />
       <Typography.Title level={5} className="mt-3">页面索引</Typography.Title>
       {!navigation.pages.length && <Typography.Text type="secondary">尚未生成任何页面。</Typography.Text>}
-      {navigation.pages.map(row => <Card key={row.documentId} size="small" className="mt-2">
+      {navigation.pages.map((row, index) => <Card key={row.documentId} size="small" className="mt-2">
         <Typography.Paragraph>{row.title || row.filename} · {pageStatusName(row)}</Typography.Paragraph>
-        <Typography.Paragraph type="secondary">来源 {row.filename} · 文档指纹：{row.contentHash}</Typography.Paragraph>
+        <Typography.Paragraph type="secondary">{wikiSourceLine(row, index, navigation.pages.length)}</Typography.Paragraph>
         {row.status === 'completed' && <Button aria-label={`阅读页面 ${row.filename}`} disabled={busy}
           onClick={() => readPage(navigation.kbId, navigation.revisionId, row.documentId)}>阅读此页</Button>}
         {!!row.links.length && <Typography.Paragraph className="mt-2">

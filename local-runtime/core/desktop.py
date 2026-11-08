@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 from .audit import LocalAuditLog
+from .agent_terminal import AgentTerminalHistory, TerminalHistoryError
 from .browser_control import BrowserControlService
 from .browser_login import BrowserLogin
 from .browser_remote import BrowserStreamProxy, normalize_input_event
@@ -24,13 +25,14 @@ from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
-from .file_service import WorkspaceSelection, WorkspaceFileStore
+from .file_service import WorkspaceSelection, WorkspaceFileService, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
 from .knowledge_import import (KnowledgeFolderImport, KnowledgeImportError, KnowledgeImportRegistry,
                                category_for)
 from .knowledge_index import KnowledgeIndexError, KnowledgeIndexRebuild, KnowledgeIndexStore
 from .knowledge_publish import KnowledgePublicationRegistry, KnowledgePublishError
+from .knowledge_snapshots import KnowledgeSnapshotStore
 from .project_binding import ProjectBindingError, ProjectBindingRegistry
 from .skill_import import SkillImportError, SkillImportRegistry
 from .skill_script import SkillScriptError
@@ -81,6 +83,10 @@ def main() -> int:
     commands: queue.Queue = queue.Queue(maxsize=1)
     workspace_commands: queue.Queue = queue.Queue(maxsize=1)
     receipt_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 111: the Agent terminal pane's history read and its stop button;
+    # one slot each, like the other session-scoped command families.
+    terminal_commands: queue.Queue = queue.Queue(maxsize=1)
+    terminal_stop_commands: queue.Queue = queue.Queue(maxsize=1)
     management_commands: queue.Queue = queue.Queue(maxsize=1)
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -159,6 +165,27 @@ def main() -> int:
                         and type(command['offset']) is int and 0 <= command['offset'] <= 1000000000):
                     receipt_commands.put_nowait(command)
                     continue
+                # Issue 111: the pane's history read (scope-gated, optionally
+                # narrowed to one chat thread) and its stop request for one
+                # Run. Exact key sets, bounded strings — the wire discipline
+                # every other command family follows.
+                if (isinstance(command, dict)
+                        and set(command) in ({'type', 'id', 'scope'}, {'type', 'id', 'scope', 'threadId'})
+                        and command['type'] == 'terminal-history' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and isinstance(command['scope'], str) and 0 < len(command['scope']) <= 128
+                        and (command.get('threadId') is None
+                             or (isinstance(command['threadId'], str)
+                                 and 0 < len(command['threadId']) <= 128))):
+                    terminal_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'scope', 'runId'}
+                        and command['type'] == 'terminal-stop' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['runId'], str)
+                        and 0 < len(command['runId']) <= 256
+                        and isinstance(command['scope'], str) and 0 < len(command['scope']) <= 128):
+                    terminal_stop_commands.put_nowait(command)
+                    continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'paths', 'scope'}
                         and command['type'] == 'knowledge-import' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['kbId'], str)
@@ -212,6 +239,35 @@ def main() -> int:
                         and command['type'] == 'knowledge-import-retry' and isinstance(command['id'], str)
                         and len(command['id']) <= 64 and isinstance(command['recordId'], str)
                         and re.fullmatch(r'[0-9a-f]{64}', command['recordId'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
+                    continue
+                # Issue 101: 删除=库新版本 — the renderer names the frozen
+                # revision and the documents to drop, identified by their own
+                # frozen content hashes (the device-side document identity;
+                # the platform's document ids never appear in a record).
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'contentHashes', 'scope'}
+                        and command['type'] == 'knowledge-revision-delete-documents' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64 and isinstance(command['contentHashes'], list)
+                        and 1 <= len(command['contentHashes']) <= 200
+                        and all(isinstance(item, str) and re.fullmatch(r'[0-9a-f]{64}', item)
+                                for item in command['contentHashes'])
+                        and isinstance(command['scope'], str) and len(command['scope']) <= 128):
+                    knowledge_manage_commands.put_nowait(command)
+                    continue
+                # Issue 101: the separate physical cleanup — purge one
+                # revision's device index rows and offline snapshots and mark
+                # its references 原件已不在. The renderer names the frozen
+                # identity only; the marker is user-confirmed in main.
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'revisionId', 'manifestHash', 'scope'}
+                        and command['type'] == 'knowledge-revision-cleanup' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['kbId'], str)
+                        and len(command['kbId']) <= 64 and isinstance(command['revisionId'], str)
+                        and len(command['revisionId']) <= 64
+                        and isinstance(command['manifestHash'], str)
+                        and re.fullmatch(r'[0-9a-f]{64}', command['manifestHash'])
                         and isinstance(command['scope'], str) and len(command['scope']) <= 128):
                     knowledge_manage_commands.put_nowait(command)
                     continue
@@ -351,13 +407,17 @@ def main() -> int:
                 # Issue 102: the table dataset family. A fixed per-action key
                 # set only: import names the main-process-picked file and the
                 # selected platform project (empty = unassociated), delete
-                # names the registry row. The path never reaches a renderer.
+                # names the registry row. Issue 101: the import may carry the
+                # optional knowledge revision binding (一套版本规矩) — kbId and
+                # revisionId stand or fall together and the revision number is
+                # a bounded display fact. The path never reaches a renderer.
                 # The per-action fields are read with .get so a cross-action
                 # key set can never raise inside this reader (the loop guard
                 # only catches ValueError/queue.Full), matching the
                 # knowledge-graph/skill-scripts gate idiom.
                 if (isinstance(command, dict) and set(command) in (
                         {'type', 'id', 'action', 'path', 'projectId', 'scope'},
+                        {'type', 'id', 'action', 'path', 'projectId', 'kbId', 'revisionId', 'revisionNo', 'scope'},
                         {'type', 'id', 'action', 'datasetId', 'scope'})
                         and command.get('type') == 'datasets' and isinstance(command.get('id'), str)
                         and len(command['id']) <= 64
@@ -366,7 +426,14 @@ def main() -> int:
                         and (command['action'] != 'import' or (
                             isinstance(command.get('path'), str) and 0 < len(command['path']) <= 32768
                             and isinstance(command.get('projectId'), str)
-                            and len(command['projectId']) <= 128))
+                            and len(command['projectId']) <= 128
+                            and isinstance(command.get('kbId', ''), str)
+                            and len(command.get('kbId', '')) <= 128
+                            and isinstance(command.get('revisionId', ''), str)
+                            and len(command.get('revisionId', '')) <= 128
+                            and type(command.get('revisionNo', 0)) is int
+                            and 0 <= command.get('revisionNo', 0) <= 1000000
+                            and bool(command.get('kbId', '')) == bool(command.get('revisionId', ''))))
                         and (command['action'] != 'delete' or (
                             isinstance(command.get('datasetId'), str)
                             and 0 < len(command['datasetId']) <= 128))):
@@ -563,6 +630,15 @@ def main() -> int:
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        # Issue 111: the Agent terminal's history store is one device-level
+        # instance across reconnects. A runtime restart killed any command
+        # still marked running, so the sweep records that honestly before
+        # this process can admit a single new row.
+        terminal_history = AgentTerminalHistory(args.config.with_name('agent-terminal.db'))
+        try:
+            terminal_history.sweep_interrupted()
+        except TerminalHistoryError:
+            pass
         # Issue 74: the chat session tiers and the audit log they are recorded
         # in are one device-level pair, shared by the chat surface and the
         # transport session.
@@ -584,6 +660,10 @@ def main() -> int:
         # Issue 97: the device BM25 index behind the frozen revisions — the
         # same binding-scoped identity discipline, device-local text only.
         knowledge_index = KnowledgeIndexStore(args.config.with_name('knowledge-index.db'))
+        # Issue 101: the offline snapshot cache for the graph/wiki views —
+        # display fact only, so an unreadable store degrades to "no offline
+        # copy" instead of ever failing a successful view.
+        knowledge_snapshots = KnowledgeSnapshotStore(args.config.with_name('knowledge-snapshots.db'))
         # Issue 102: table dataset imports keep the same registry discipline —
         # device-local display facts (schema, counts, fingerprints), never row
         # data, and the original file stays on this machine.
@@ -619,11 +699,16 @@ def main() -> int:
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
+            # Issue 117: the snapshot labels every registered result with its
+            # standing against the current grant, re-derived through the very
+            # same workspace classifier the write gate uses — never a stored
+            # or separately reasoned permission.
+            classify_path=lambda path: WorkspaceFileService(workspace).classify(path),
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
             session_tiers=session_tiers, inline_scripts=inline_scripts,
             project_bindings=project_bindings, knowledge_index=knowledge_index,
-            audit=audit_log)
+            knowledge_snapshots=knowledge_snapshots, audit=audit_log)
         # Issue 96: the doc library's background folder import. One job at a
         # time on its own daemon thread; progress rides the status snapshot
         # and the cancel command lands at the next file or batch boundary.
@@ -676,7 +761,7 @@ def main() -> int:
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
                 audit=audit_log, node_executable=args.node_executable,
-                inline_scripts=inline_scripts)
+                inline_scripts=inline_scripts, terminal_history=terminal_history)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
@@ -764,6 +849,53 @@ def main() -> int:
                     error = 'RECEIPT_STORAGE_UNAVAILABLE'
                 emit({'v': 1, 'type': 'receipts', 'id': receipt_command['id'],
                       'result': receipts.snapshot(receipt_owner, offset=receipt_command['offset']), 'error': error})
+            try:
+                terminal_command = terminal_commands.get_nowait()
+            except queue.Empty:
+                terminal_command = None
+            if terminal_command:
+                # Issue 111: the pane's history read. The rows are this
+                # identity's own device-side display facts; a stale scope is
+                # refused like every other session-scoped family, and an
+                # unreadable store fails closed with its fixed category.
+                error = ''
+                result = None
+                try:
+                    if terminal_command['scope'] != workspace.scope():
+                        error = 'IDENTITY_CHANGED'
+                    else:
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            result = {'commands': [], 'storageError': terminal_history.error}
+                        else:
+                            thread_id = terminal_command.get('threadId') or None
+                            result = {'commands': terminal_history.view(owner, thread_id=thread_id),
+                                      'storageError': terminal_history.error}
+                except TerminalHistoryError:
+                    error = 'TERMINAL_STORAGE_UNAVAILABLE'
+                emit({'v': 1, 'type': 'terminal-history', 'id': terminal_command['id'],
+                      'result': result, 'error': error})
+            try:
+                terminal_stop = terminal_stop_commands.get_nowait()
+            except queue.Empty:
+                terminal_stop = None
+            if terminal_stop:
+                # Issue 111: the pane's stop button rides the same durable
+                # Run fence as the chat surface — a stop that lands is a
+                # request, never a proven effect boundary, so the honest
+                # answer is only "requested". A stale scope is refused like
+                # every other session-scoped family.
+                error = ''
+                if terminal_stop['scope'] != workspace.scope():
+                    error = 'IDENTITY_CHANGED'
+                else:
+                    try:
+                        stop_local(terminal_stop['runId'])
+                    except Exception:
+                        error = 'TERMINAL_STOP_FAILED'
+                emit({'v': 1, 'type': 'terminal-stop', 'id': terminal_stop['id'],
+                      'result': {'requested': True}, 'error': error})
             try:
                 knowledge_command = knowledge_commands.get_nowait()
             except queue.Empty:
@@ -868,6 +1000,41 @@ def main() -> int:
                         owner = profile_binding(load_settings(args.config)) \
                             if login.status()['state'] == 'authenticated' else None
                         result = {'deleted': knowledge_imports.delete(owner, manage_command['ids'])}
+                    elif manage_command['type'] == 'knowledge-revision-delete-documents':
+                        # Issue 101: 删除=库新版本. The authenticated binding is
+                        # the fence — only a revision this identity registered
+                        # on this device can re-register its surviving
+                        # documents as the successor revision; no original is
+                        # read or touched.
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            raise KnowledgeImportError('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+                        result = chat.delete_revision_documents(manage_command['kbId'],
+                                                                manage_command['revisionId'],
+                                                                manage_command['contentHashes'])
+                    elif manage_command['type'] == 'knowledge-revision-cleanup':
+                        # Issue 101: the user's separate physical cleanup. The
+                        # registration lookup is the same fail-closed fence the
+                        # rebuild uses. Each step is atomic; the display marker
+                        # lands last, so a failed step leaves an honest
+                        # incomplete state the user can retry — 本机原件文件
+                        # themselves are never touched by this device.
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            raise KnowledgeImportError('KNOWLEDGE_IMPORT_UNAUTHENTICATED')
+                        if knowledge_imports.find_registration(owner, manage_command['revisionId'],
+                                                               manage_command['manifestHash']) is None:
+                            raise KnowledgeImportError('KNOWLEDGE_CLEANUP_REVISION_UNKNOWN')
+                        purged = knowledge_index.purge_revision(owner, manage_command['revisionId'],
+                                                                manage_command['manifestHash'])
+                        snapshots_purged = knowledge_snapshots.purge(owner, manage_command['kbId'],
+                                                                     manage_command['revisionId'])
+                        knowledge_imports.mark_originals_missing(owner, manage_command['kbId'],
+                                                                 manage_command['revisionId'], True)
+                        result = {'kbId': manage_command['kbId'], 'revisionId': manage_command['revisionId'],
+                                  'indexPurged': purged > 0, 'snapshotsPurged': snapshots_purged}
                     else:
                         result = chat.retry_import_record(manage_command['recordId'])
                 except Exception as exc:
@@ -1072,6 +1239,16 @@ def main() -> int:
                     if dataset_command['scope'] != workspace.scope():
                         raise DatasetError('DATASETS_IDENTITY_CHANGED')
                     owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    # Issue 101: a named knowledge revision binding is
+                    # fail-closed like every other version seam — only a
+                    # revision this identity registered on this device can be
+                    # bound, so a dataset can never display an identity it
+                    # never accompanied.
+                    binding_kb = dataset_command.get('kbId', '')
+                    binding_revision = dataset_command.get('revisionId', '')
+                    if isinstance(binding_kb, str) and binding_kb and isinstance(binding_revision, str) and binding_revision \
+                            and knowledge_imports.find_registration_by_revision(owner, binding_kb, binding_revision) is None:
+                        raise DatasetError('DATASETS_REVISION_UNKNOWN')
                     result = datasets_manage(dataset_command, registry=datasets_registry, owner=owner)
                 except DatasetError as exc:
                     # Only fixed categories cross the Desktop boundary; file
@@ -1314,6 +1491,21 @@ def main() -> int:
                         row['index'] = None
                 else:
                     row['index'] = None
+            # Issue 101: 历史版本 — within one KB, every registered revision
+            # below the highest registered revision on this device is a
+            # historical version (删除=库新版本 and 重导入 coexist with it
+            # until the user cleans up). Derived from the rows, never stored:
+            # the marker cannot outlive the facts it summarizes.
+            latest_revision_by_kb: dict = {}
+            for row in knowledge_rows[:20]:
+                if row.get('status') == 'registered':
+                    kb_id = row.get('kbId')
+                    revision_no = row.get('revisionNo') or 0
+                    if isinstance(kb_id, str) and revision_no > latest_revision_by_kb.get(kb_id, 0):
+                        latest_revision_by_kb[kb_id] = revision_no
+            for row in knowledge_rows[:20]:
+                row['historical'] = row.get('status') == 'registered' and \
+                    (row.get('revisionNo') or 0) < latest_revision_by_kb.get(row.get('kbId'), 0)
             try:
                 knowledge_publication_rows = knowledge_publications.view(current_receipt_owner) if current_receipt_owner else []
             except KnowledgePublishError:
@@ -1381,6 +1573,13 @@ def main() -> int:
                 unknown_write_effects = receipts.unknown_write_effects(None)
             except ReceiptStorageError:
                 unknown_write_effects = 1  # An unreadable ledger cannot prove effects are known.
+            # Issue 111: the running terminal commands ride the snapshot so
+            # the pane shows the live tail honestly; the in-memory facts are
+            # the store's running rows (stale ones were swept at start).
+            try:
+                agent_terminal_running = terminal_history.running()[:8]
+            except TerminalHistoryError:
+                agent_terminal_running = []
             tasks = [{"taskId": row['task_id'][:256], "runId": row['run_id'][:256],
                       "state": (row['status'] if row['delivery_state'] != 'cleaned' else 'cleaned')[:256],
                       "capability": row['capability'][:256]} for row in receipt_view['rows']]
@@ -1416,6 +1615,10 @@ def main() -> int:
                       "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
                       "projectBindings": binding_rows[:20],
                       "projectBindingStorageError": project_bindings.error,
+                      # Issue 111: the Agent terminal's in-flight commands and
+                      # the history store's honest storage state.
+                      "agentTerminal": {"running": agent_terminal_running},
+                      "agentTerminalStorageError": terminal_history.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])
