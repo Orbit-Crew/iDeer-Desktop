@@ -21,6 +21,7 @@
     "runtime:prepare": "node scripts/project-env.cjs python scripts/prepare-runtime.py",
     "test:runtime": "node scripts/project-env.cjs python -m pytest local-runtime/tests -q",
     "verify:provenance": "node scripts/project-env.cjs node scripts/verify-provenance.cjs",
+    "verify:ledger": "node scripts/project-env.cjs node scripts/verify-capability-ledger.cjs",
     "paths": "node scripts/project-env.cjs --print-env",
     "test:paths": "node --test test/project-env.test.cjs"
   },
