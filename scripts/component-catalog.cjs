@@ -28,8 +28,9 @@ class CatalogError extends Error {
 }
 
 function text(value, field) {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 400 || value.includes('\0')) {
-    throw new CatalogError('CATALOG_INVALID', `${field} 必须是非空文本`)
+  if (typeof value !== 'string' || value.length === 0 || value.length > 400 ||
+      value.includes('\0') || /[\r\n]/.test(value)) {
+    throw new CatalogError('CATALOG_INVALID', `${field} 必须是不含换行的非空文本`)
   }
   return value
 }
@@ -37,12 +38,24 @@ function text(value, field) {
 /** One package-relative posix path that cannot escape or masquerade. */
 function checkedRelative(value, field) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 256 || value.includes('\\') ||
-      value.startsWith('/') || isAbsolute(value) || /[:\0]/.test(value)) {
+      value.startsWith('/') || isAbsolute(value) || /[:\0\r\n]/.test(value)) {
     throw new CatalogError('CATALOG_INVALID', `${field} 必须是仓库相对路径`)
   }
   const parts = value.split('/')
   if (parts.some(part => part === '' || part === '.' || part === '..')) {
     throw new CatalogError('CATALOG_INVALID', `${field} 必须是仓库相对路径`)
+  }
+  return value
+}
+
+/**
+ * One catalog string that will be emitted verbatim into an NSIS SetOutPath /
+ * File / Delete path. Quotes would close the NSIS string, $ would expand a
+ * runtime variable — both refuse the catalog instead of letting it inject.
+ */
+function nsisPathToken(value, field) {
+  if (value.includes('"') || value.includes('$')) {
+    throw new CatalogError('CATALOG_INVALID', `${field} 不能包含引号或 $`)
   }
   return value
 }
@@ -104,14 +117,24 @@ function validateCatalog(data) {
         throw new CatalogError('CATALOG_INVALID', `${component.id}.artifact 字段集合非法`)
       }
       checkedRelative(artifact.source, `${component.id}.artifact.source`)
-      checkedRelative(artifact.dest, `${component.id}.artifact.dest`)
+      // dest and file names are emitted verbatim into NSIS SetOutPath/File/
+      // Delete lines — hold them to the stricter no-quote/no-$ contract.
+      nsisPathToken(checkedRelative(artifact.dest, `${component.id}.artifact.dest`), `${component.id}.artifact.dest`)
       const files = new Set()
+      const lowercased = new Set()
       for (const file of artifact.files) {
         // Artifact members stay single file names inside the artifact root.
-        const relative = checkedRelative(file, `${component.id}.artifact.files[]`)
+        const relative = nsisPathToken(
+          checkedRelative(file, `${component.id}.artifact.files[]`), `${component.id}.artifact.files[]`)
         if (relative.includes('/')) {
           throw new CatalogError('CATALOG_INVALID', `${component.id}.artifact.files 仅接受文件名`)
         }
+        // Case-insensitive filesystems (NTFS) must never see two members of
+        // one artifact collide after landing.
+        if (lowercased.has(relative.toLowerCase())) {
+          throw new CatalogError('CATALOG_INVALID', `${component.id}.artifact.files 存在重复`)
+        }
+        lowercased.add(relative.toLowerCase())
         files.add(relative)
       }
       if (files.size !== artifact.files.length) {
@@ -201,6 +224,7 @@ function componentLock(root = ROOT, appVersion = appVersionOf(root)) {
   const components = {}
   for (const id of expandables(catalog)) {
     const component = componentById(catalog, id)
+    const pins = component.provenance ? provenancePins(root, component) : null
     const files = {}
     for (const file of component.artifact.files) {
       const absolute = join(root, component.artifact.source, file)
@@ -208,8 +232,8 @@ function componentLock(root = ROOT, appVersion = appVersionOf(root)) {
         throw new CatalogError('ARTIFACT_MISSING', `组件 ${id} 缺少制品文件: ${component.artifact.source}/${file}`)
       }
       const digest = sha256File(absolute)
-      if (component.provenance) {
-        const pinned = provenancePins(root, component)[file]
+      if (pins) {
+        const pinned = pins[file]
         if (pinned === undefined) {
           throw new CatalogError('PROVENANCE_MISMATCH', `provenance 未固定 ${id}/${file}`)
         }
@@ -317,6 +341,9 @@ function generateNsis(catalog) {
     `!define IDEER_CORE_SECTION_INDEX ${coreIndex}`,
     '',
     '!macro customInit',
+    '  ; Borrow $0 through the stack (process-guard.nsh idiom) so .onInit',
+    '  ; callers after this macro never see a clobbered register.',
+    '  Push $0',
     '  SectionGetText ${IDEER_CORE_SECTION_INDEX} $0',
     '  StrCmp $0 "install" ideer_components_core_ok',
     '  DetailPrint "iDeer: unexpected installer section layout (section ' + coreIndex + ' is $0)"',
@@ -329,6 +356,7 @@ function generateNsis(catalog) {
       '  ; pending components are never silently installable.',
       `  SectionSetFlags ${'$'}{${sectionSymbol(component.id)}} 16`
     ]),
+    '  Pop $0',
     '!macroend',
     '',
     '!endif ; !BUILD_UNINSTALLER',

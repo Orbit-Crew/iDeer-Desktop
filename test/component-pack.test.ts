@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, 
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import { componentLock, loadCatalog } from '../scripts/component-catalog.cjs'
 import { PackError, buildPack, installPack } from '../scripts/component-pack.cjs'
@@ -253,6 +254,54 @@ describe('offline component pack stays offline (#119)', () => {
       rmSync(root, { recursive: true, force: true })
       rmSync(out, { recursive: true, force: true })
       rmSync(install, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('offline component pack CLI (#119)', () => {
+  const cli = (...args: string[]) =>
+    spawnSync(process.execPath, ['scripts/component-pack.cjs', ...args], { encoding: 'utf8', windowsHide: true })
+
+  it('builds and installs through the documented commands', () => {
+    const root = fixtureRoot()
+    const scratch = mkdtempSync(join(tmpdir(), 'ideer pack cli '))
+    const out = join(scratch, 'pack')
+    const install = installedDir(root, '1.2.3')
+    try {
+      const built = cli('build', '--root', root, '--out', out, '--components', 'cad-viewer')
+      expect({ code: built.status, stderr: built.stderr }).toEqual({ code: 0, stderr: '' })
+      expect(existsSync(join(out, 'component-pack.json'))).toBe(true)
+      const done = cli('install', '--pack', out, '--to', install)
+      expect({ code: done.status, stderr: done.stderr }).toEqual({ code: 0, stderr: '' })
+      expect(existsSync(join(install, 'resources/occt/occt-import-js.js'))).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+      rmSync(scratch, { recursive: true, force: true })
+      rmSync(install, { recursive: true, force: true })
+    }
+  })
+
+  it('refuses any unrecognized or stray argument with PACK_USAGE', () => {
+    const scratch = mkdtempSync(join(tmpdir(), 'ideer pack strict '))
+    const out = join(scratch, 'pack')
+    try {
+      // A stray positional, a typo'd flag, a duplicate option, a missing
+      // --out and an unknown command are all usage errors — never ignored.
+      for (const args of [
+        ['build', '--out', out, 'junk'],
+        ['build', '--out', out, '--componets', 'cad-viewer'],
+        ['build', '--out', out, '--out', out],
+        ['build'],
+        ['install', '--pack', out],
+        ['download', '--out', out]
+      ]) {
+        const run = cli(...args)
+        expect({ args: args.join(' '), code: run.status }).toMatchObject({ code: 1 })
+        expect(run.stderr).toContain('PACK_USAGE')
+        expect(existsSync(out)).toBe(false)
+      }
+    } finally {
+      rmSync(scratch, { recursive: true, force: true })
     }
   })
 })

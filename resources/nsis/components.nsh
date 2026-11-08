@@ -45,6 +45,9 @@ SectionEnd
 !define IDEER_CORE_SECTION_INDEX 3
 
 !macro customInit
+  ; Borrow $0 through the stack (process-guard.nsh idiom) so .onInit
+  ; callers after this macro never see a clobbered register.
+  Push $0
   SectionGetText ${IDEER_CORE_SECTION_INDEX} $0
   StrCmp $0 "install" ideer_components_core_ok
   DetailPrint "iDeer: unexpected installer section layout (section 3 is $0)"
@@ -55,6 +58,7 @@ SectionEnd
   ; catia-abaqus stays visible but locked read-only and unselected:
   ; pending components are never silently installable.
   SectionSetFlags ${SEC_IDEER_CATIA_ABAQUS} 16
+  Pop $0
 !macroend
 
 !endif ; !BUILD_UNINSTALLER

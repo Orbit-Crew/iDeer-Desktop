@@ -47,7 +47,17 @@ describe('installer component catalog (#119)', () => {
       mutated(data => { data.components[0].artifact.dest = '..\\escape' }),
       mutated(data => { data.components[2].artifact = data.components[0].artifact }),
       mutated(data => { data.components.push(data.components[0]) }),
-      mutated(data => { delete data.components[1].note })
+      mutated(data => { delete data.components[1].note }),
+      // NSIS emission discipline: newlines, quotes and $ must never reach a
+      // section name, a SetOutPath/File/Delete path or a tier label.
+      mutated(data => { data.tiers[0].name = '最小安装\nInstType "evil"' }),
+      mutated(data => { data.tiers[0].description = 'line\r\nbreak' }),
+      mutated(data => { data.components[0].name = 'CAD 查看\r器' }),
+      mutated(data => { data.components[0].artifact.dest = 'resources/$TEMP' }),
+      mutated(data => { data.components[0].artifact.files = ['occt-import-js.js', 'quoted".js'] }),
+      mutated(data => { data.components[0].artifact.files = ['occt-import-js.js', 'dollar$OUTDIR.js'] }),
+      // Case-insensitive filesystems must not collapse two members into one.
+      mutated(data => { data.components[0].artifact.files = ['occt-import-js.js', 'OCCT-IMPORT-JS.JS'] })
     ]
     try {
       invalid.forEach((data, index) => {

@@ -31,6 +31,10 @@ section 完全不执行（`test/nsis-components.test.ts` 用真实 makensis 编�
 - 构建时 `scripts/release/issue-107/after-pack.cjs` 写出
   `<安装目录>/resources/components/components-lock.json`：应用版本 + 每个制品
   文件的 SHA-256；制品字节与 provenance 固定哈希不一致时构建直接失败。
+- 边界（如实）：应用内增量更新（#107 体系）不携带该锁 —— 更新后
+  components-lock.json 仍记录旧应用版本，直到下一次完整安装器运行为止；
+  期间对新版本组件包的补装会被保守拒绝（`VERSION_LOCK_MISMATCH`），
+  绝不静默放行。
 - OCCT 源哈希的最终裁决权仍在 `resources/provenance/linz-source.json`。
 - 卸载会移除各 section 自己安装的文件（自定义 `customUnInstall` + NSIS
   卸载器对安装目录的整体清理）。

@@ -18,8 +18,8 @@ it.skipIf(process.platform !== 'win32')('installer component sections install on
   mkdirSync(join(buildResources, 'occt'), { recursive: true })
   writeFileSync(join(buildResources, 'occt/occt-import-js.js'), 'fixture-glue')
   writeFileSync(join(buildResources, 'occt/occt-import-js.wasm'), 'fixture-wasm')
-  const run = (file: string, args: string[]) =>
-    spawnSync(file, args, { windowsHide: true, encoding: 'utf8', timeout: 30000 })
+  const run = (file: string, args: string[], options: object = {}) =>
+    spawnSync(file, args, { windowsHide: true, encoding: 'utf8', timeout: 30000, ...options })
   try {
     for (const deselectCad of [false, true]) {
       const name = deselectCad ? 'minimal' : 'typical'
@@ -60,7 +60,7 @@ SectionEnd
       const target = join(scratch, `installed-${name}`)
       mkdirSync(target)
       const invocation = nsisInvocation(installer, target)
-      const installed = run(invocation.file, invocation.args)
+      const installed = run(invocation.file, invocation.args, invocation.options)
       expect({ name, code: installed.status, stderr: installed.stderr }).toEqual({ name, code: 0, stderr: '' })
       expect(existsSync(join(target, 'core-installed.txt')), `${name}: core missing`).toBe(true)
       const occtJs = existsSync(join(target, 'resources/occt/occt-import-js.js'))

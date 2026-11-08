@@ -194,8 +194,10 @@ function installPack(packDir, installDir) {
     }
   }
   // Staged copy + rename per file, destination re-verified after landing.
+  // Destinations stay posix-relative from the manifest and are joined with the
+  // platform's own separator — never a hard-coded backslash.
   for (const { component, file, source } of planned) {
-    const destination = join(installDir, component.dest.replace(/\//g, '\\'), file.path)
+    const destination = join(installDir, ...component.dest.split('/'), file.path)
     mkdirSync(dirname(destination), { recursive: true })
     const staged = `${destination}.pack-stage-${process.pid}`
     try {
@@ -230,11 +232,17 @@ function usage() {
 }
 
 function main(argv) {
+  // Strict parsing: every argument must be the command, a known option name,
+  // or that option's value — an unrecognized or stray token is a usage error,
+  // never a silently ignored flag.
+  const consumed = new Set([0])
   const option = (name) => {
     const index = argv.indexOf(name)
     if (index === -1) return undefined
     const value = argv[index + 1]
     if (typeof value !== 'string' || value.startsWith('--')) throw new PackError('PACK_USAGE', `${name} 需要一个参数`)
+    consumed.add(index)
+    consumed.add(index + 1)
     return value
   }
   const pathOption = (name) => {
@@ -244,9 +252,11 @@ function main(argv) {
   const command = argv[0]
   if (command === 'build') {
     const out = pathOption('--out')
-    if (!out || argv.length > 7) throw new PackError('PACK_USAGE', usage())
+    if (!out) throw new PackError('PACK_USAGE', usage())
     const root = resolve(option('--root') ?? '.')
     const requested = option('--components')
+    const stray = argv.filter((_, index) => !consumed.has(index))
+    if (stray.length > 0) throw new PackError('PACK_USAGE', `无法识别的参数: ${stray.join(' ')}\n${usage()}`)
     const manifest = buildPack(root, out, requested ? requested.split(',').map(id => id.trim()) : undefined)
     console.log(`Built pack for ${manifest.appVersion}: ${manifest.components.map(item => item.id).join(', ')} -> ${out}`)
     return
@@ -254,7 +264,9 @@ function main(argv) {
   if (command === 'install') {
     const pack = pathOption('--pack')
     const to = pathOption('--to')
-    if (!pack || !to || argv.length > 5) throw new PackError('PACK_USAGE', usage())
+    if (!pack || !to) throw new PackError('PACK_USAGE', usage())
+    const stray = argv.filter((_, index) => !consumed.has(index))
+    if (stray.length > 0) throw new PackError('PACK_USAGE', `无法识别的参数: ${stray.join(' ')}\n${usage()}`)
     const result = installPack(pack, to)
     console.log(`Installed components for: ${result.installed.join(', ')} -> ${to}`)
     return
