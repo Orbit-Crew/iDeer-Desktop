@@ -389,6 +389,7 @@ def main(argv: list[str] | None = None, *, store: SecretStore | None = None) -> 
     if args.command == "start-runtime":
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+        from .engineering_probe import EngineeringSoftwareProbe
         from .mcp import LocalMCPService, MCPSupervisor, load_mcp_specs
         from .transport import LocalRuntimeClient
 
@@ -426,6 +427,7 @@ def main(argv: list[str] | None = None, *, store: SecretStore | None = None) -> 
             device_id=args.device_id,
             session_token=session_token,
             private_key=key,
+            engineering_probe=EngineeringSoftwareProbe(),
             mcp_service=mcp_service,
         )
 

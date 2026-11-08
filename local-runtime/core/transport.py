@@ -40,8 +40,14 @@ from .consent_coord import (
     ConsentPrompt,
     LocalConsentCoordinator,
 )
-from .file_service import FileTaskResult, LocalFileService
-from .files import FileAccessError
+from .engineering_probe import (
+    RESULT_OPERATIONS,
+    EngineeringSoftwareProbe,
+    PROBE_OPERATIONS,
+    register_engineering_result,
+)
+from .file_service import FileTaskResult, LocalFileService, WorkspaceFileService
+from .files import FileAccessError, RootConfig
 from .knowledge_search import KnowledgeSearchError
 from .agent_terminal import TERMINAL_CAPABILITY, TerminalResult
 from .mcp import LocalMCPService, MCPExecution
@@ -88,6 +94,7 @@ class LocalRuntimeClient:
         file_service: LocalFileService | None = None,
         python_service: LocalPythonService | None = None,
         terminal_service: Any | None = None,
+        engineering_probe: EngineeringSoftwareProbe | None = None,
         mcp_service: LocalMCPService | None = None,
         skill_script_service: SkillScriptService | None = None,
         skill_dependency_service: Any | None = None,
@@ -158,6 +165,9 @@ class LocalRuntimeClient:
         # Issue 111: the Agent's controlled terminal; None keeps the
         # capability unannounced and every such task refused.
         self.terminal_service = terminal_service
+        # Issue 87: the desktop-side CATIA/Abaqus discovery surface; None
+        # means this device announces nothing about those tools at all.
+        self.engineering_probe = engineering_probe
         self.mcp_service = mcp_service
         # Issue 122: the device-leg Skill script gate; None keeps the
         # capability unannounced and every such task refused.
@@ -352,15 +362,25 @@ class LocalRuntimeClient:
         return self.consent_coord._answered_consents
 
     def _current_capabilities(self) -> tuple[str, ...]:
-        """Static capabilities plus the live ``local.mcp.*`` projection."""
-        if self.mcp_service is None:
-            return tuple(self.capabilities)
+        """Static capabilities plus the live ``local.mcp.*`` and #87 projections."""
         merged = list(self.capabilities)
-        merged.extend(
-            name
-            for name in self.mcp_service.supervisor.capabilities()
-            if name not in merged
-        )
+        if self.mcp_service is not None:
+            merged.extend(
+                name
+                for name in self.mcp_service.supervisor.capabilities()
+                if name not in merged
+            )
+        if self.engineering_probe is not None:
+            # Issue 87: the probe capabilities ride the filesystem live, so
+            # readiness drops out of the announcement the moment its
+            # evidence disappears — never on stale state.
+            merged.extend(
+                name
+                for name in self.engineering_probe.capability_names()
+                if name not in merged
+            )
+            if self.file_service is not None and self.local_results is not None:
+                merged.extend(name for name in sorted(RESULT_OPERATIONS) if name not in merged)
         return tuple(merged)
 
     async def send_hello(self) -> None:
@@ -424,6 +444,15 @@ class LocalRuntimeClient:
 
     async def _on_mcp_capabilities_changed(self) -> None:
         """Republish capabilities when a server reports a tool-set change."""
+        await self._republish_capabilities_if_changed()
+
+    async def _republish_capabilities_if_changed(self) -> None:
+        """Republish the announcement when the live set drifted since HELLO.
+
+        Issue 87 rides this too: a probe task can flip readiness (a license
+        file appears or disappears), and the device announcement is
+        refreshed in the same breath instead of waiting for the next HELLO.
+        """
         if self.connection is None or self.session_id is None:
             return
         current = self._current_capabilities()
@@ -585,6 +614,29 @@ class LocalRuntimeClient:
         return {"server_origin": f"{scheme}://{url.netloc}", "user_id": self.user_id,
                 "device_id": self.device_id, "device_public_key": public_key_text(self.private_key),
                 "broker_public_key": self.server_public_key or ""}
+
+    def _engineering_result_store(self):
+        """The authorized boundary a #87 job result must already sit inside.
+
+        A workspace runtime resolves against the current grant exactly like
+        its own file capabilities do; a plain store runtime resolves against
+        its configured roots. Either way the refusal codes come from the
+        store itself, so an unprovable path is never widened here.
+        """
+        from pathlib import Path
+
+        from .file_service import WorkspaceFileStore
+
+        assert self.file_service is not None
+        if isinstance(self.file_service, WorkspaceFileService):
+            with self.file_service.selection.lock:
+                _, grant = self.file_service.selection.current()
+                return WorkspaceFileStore(
+                    [RootConfig(grant["logical_root"], Path(grant["physical_root"]),
+                                identity=tuple(grant["identity"]), resolve_root=False)],
+                    protected_roots=(self.file_service.selection.config.parent,),
+                )
+        return self.file_service.files
 
     async def replay_receipts(self):
         """Only evidence is replayed, after the original pinned peer authenticates."""
@@ -773,6 +825,76 @@ class LocalRuntimeClient:
                     await self._denial_response(operation, task_id, envelope.payload, decision)
                     return
                 result = self.handle_calculator_task(operation, dict(envelope.payload))
+                receipt = self._file_receipt(envelope, operation, result)
+            elif operation in PROBE_OPERATIONS:
+                # Issue 87: the desktop's honest discovery surface —
+                # per-component install/plugin/license state with one
+                # actionable hint per missing piece. The external software
+                # loop belongs to iDeer #124/#125, so this launches nothing;
+                # like the calculators it never reaches the consent path,
+                # but it does need a paired connection: installation paths
+                # are local facts, not public ones.
+                if not self.server_public_key:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                decision = self.policy.authorize(operation, dict(envelope.payload))
+                if decision is PolicyDecision.DENY:
+                    await self._denial_response(operation, task_id, envelope.payload, decision)
+                    return
+                assert self.engineering_probe is not None
+                result = self.engineering_probe.run_probe_operation(operation)
+                receipt = self._file_receipt(envelope, operation, result)
+                # What the probe just saw may have flipped readiness; the
+                # announcement is refreshed here, not at the next HELLO.
+                await self._republish_capabilities_if_changed()
+            elif operation in RESULT_OPERATIONS:
+                # Issue 87: job outputs flow back only as display facts that
+                # already sit inside the authorized boundary — resolution
+                # refuses anything it cannot prove in-root, and the registry
+                # keeps hash/size metadata, never bytes or uploads.
+                if not self.server_public_key:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                decision = self.policy.authorize(operation, dict(envelope.payload))
+                if decision is PolicyDecision.DENY:
+                    await self._denial_response(operation, task_id, envelope.payload, decision)
+                    return
+                if self.file_service is None or self.local_results is None:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                payload = dict(envelope.payload)
+                arguments = payload.get("arguments", payload.get("args", payload))
+                logical_path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""
+                from .local_results import LocalResultError
+
+                try:
+                    result = register_engineering_result(
+                        store=self._engineering_result_store(),
+                        registry=self.local_results,
+                        binding=self.receipt_binding(),
+                        tool=RESULT_OPERATIONS[operation],
+                        logical_path=logical_path,
+                        thread_id=str(payload.get("thread_id", "")),
+                        run_id=str(payload.get("run_id", "")),
+                        task_id=task_id,
+                    )
+                except LocalResultError:
+                    # Registration never fails the completed job silently:
+                    # the audit row says the fact could not be stored.
+                    self._record(
+                        AuditKind.TASK,
+                        "local_result_unavailable",
+                        capability=operation,
+                        task_id=task_id,
+                        detail={"error_code": "RESULT_STORAGE_UNAVAILABLE"},
+                    )
+                    raise
                 receipt = self._file_receipt(envelope, operation, result)
             elif operation in {"local.files.list", "local.files.read", "local.files.search"}:
                 if not self.server_public_key:
