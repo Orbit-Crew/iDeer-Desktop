@@ -42,6 +42,8 @@ from .receipt_ledger import ReceiptLedger, ReceiptStorageError, profile_binding
 from .receipts import content_hash
 from .scheduled_tasks import SchedulesError
 from .tray import load_controller
+from .workspace_migration import (WorkspaceMigrationError, WorkspaceMigrationLedger,
+                                  legacy_linz_root, migration_manage)
 
 
 def browse_files_view(workspace, protected_root, action, logical_path):
@@ -110,6 +112,10 @@ def main() -> int:
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
     dataset_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 118: the migration wizard's scan (read-only legacy listing) and
+    # migrate (one confirmed workspace's create+bind); one slot like the
+    # other project-scoped families.
+    migration_commands: queue.Queue = queue.Queue(maxsize=1)
     schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -387,6 +393,28 @@ def main() -> int:
                             isinstance(command['path'], str) and 0 < len(command['path']) <= 1024))):
                     project_commands.put_nowait(command)
                     continue
+                # Issue 118: the migration wizard family. A fixed per-action
+                # key set only: scan carries nothing, migrate names the one
+                # confirmed workspace with its project name and the folder
+                # the trusted main process confirmed (empty = 不绑定). The
+                # workspaceId has no grammar of its own — the service refuses
+                # anything a fresh scan of the legacy root cannot back.
+                if (isinstance(command, dict) and set(command) in (
+                        {'type', 'id', 'action', 'scope'},
+                        {'type', 'id', 'action', 'scope', 'workspaceId', 'name', 'folder'})
+                        and command.get('type') == 'migration' and isinstance(command.get('id'), str)
+                        and len(command['id']) <= 64
+                        and command.get('action') in {'scan', 'migrate'}
+                        and isinstance(command.get('scope'), str) and len(command['scope']) <= 128
+                        and (command['action'] != 'migrate' or (
+                            isinstance(command.get('workspaceId'), str)
+                            and 0 < len(command.get('workspaceId', '')) <= 128
+                            and isinstance(command.get('name'), str)
+                            and 0 < len(command.get('name', '').strip()) <= 128
+                            and isinstance(command.get('folder'), str)
+                            and len(command.get('folder', '')) <= 1024))):
+                    migration_commands.put_nowait(command)
+                    continue
                 # Issue 102: the table dataset family. A fixed per-action key
                 # set only: import names the main-process-picked file and the
                 # selected platform project (empty = unassociated), delete
@@ -660,6 +688,13 @@ def main() -> int:
         # Issue 92: one device-local row per platform project+device; the
         # binding never migrates and never touches local files or grants.
         project_bindings = ProjectBindingRegistry(args.config.with_name('project-bindings.db'))
+        # Issue 118: the migration wizard's own ledger — one honest row per
+        # attempted workspace (migrated or failed-with-category, retryable),
+        # keyed by the whole profile binding like every device registry.
+        migration_ledger = WorkspaceMigrationLedger(args.config.with_name('workspace-migrations.db'))
+        # The old linz install's userData root the wizard may scan; the scan
+        # itself stays read-only and only runs on the explicit command.
+        legacy_root = legacy_linz_root()
         compatibility = CompatibilityGate(args.config, desktop_version=args.desktop_version,
                                           runtime_python=platform.python_version())
         def local_receipts(thread_id, run_ids):
@@ -1217,6 +1252,34 @@ def main() -> int:
                 emit({'v': 1, 'type': 'datasets', 'id': dataset_command['id'],
                       'result': result, 'error': error})
             try:
+                migration_command = migration_commands.get_nowait()
+            except queue.Empty:
+                migration_command = None
+            if migration_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 118: the wizard's own family. The scan is a
+                    # read-only listing of the legacy install; the migrate
+                    # composes the existing create+bind primitives for one
+                    # workspace the user confirmed, and its ledger rows stay
+                    # device-local display facts keyed by this identity. The
+                    # never-migrate list (旧聊天/密钥/批准记忆/执行状态) is
+                    # structurally outside the whitelist scan.
+                    if migration_command['scope'] != workspace.scope():
+                        raise WorkspaceMigrationError('MIGRATION_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    result = migration_manage(migration_command, root=legacy_root, chat=chat,
+                                              owner=owner, ledger=migration_ledger)
+                except WorkspaceMigrationError as exc:
+                    # Only fixed categories cross the Desktop boundary; legacy
+                    # file content and roster details never do.
+                    error = str(exc)
+                except Exception:
+                    error = 'MIGRATION_FAILED'
+                emit({'v': 1, 'type': 'migration', 'id': migration_command['id'],
+                      'result': result, 'error': error})
+            try:
                 model_command = model_commands.get_nowait()
             except queue.Empty:
                 model_command = None
@@ -1494,6 +1557,12 @@ def main() -> int:
                 binding_rows = project_bindings.view(current_receipt_owner) if current_receipt_owner else []
             except ProjectBindingError:
                 binding_rows = []
+            # Issue 118: the wizard's own attempt rows ride the same snapshot
+            # discipline — this identity's rows, honest storage error beside.
+            try:
+                migration_rows = migration_ledger.view(current_receipt_owner) if current_receipt_owner else []
+            except WorkspaceMigrationError:
+                migration_rows = []
             # The worker can complete a write while this thread reads SQLite
             # and controller status. Keep both activity observations so a stale
             # unknown count cannot look like an idle queue and falsely block
@@ -1573,6 +1642,10 @@ def main() -> int:
                       "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
                       "projectBindings": binding_rows[:20],
                       "projectBindingStorageError": project_bindings.error,
+                      # Issue 118: the migration ledger's honest rows and the
+                      # store's storage state, bounded like every registry.
+                      "migrationLedger": migration_rows[:20],
+                      "migrationStorageError": migration_ledger.error,
                       # Issue 111: the Agent terminal's in-flight commands and
                       # the history store's honest storage state.
                       "agentTerminal": {"running": agent_terminal_running},
