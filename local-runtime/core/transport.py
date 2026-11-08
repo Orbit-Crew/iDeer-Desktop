@@ -43,6 +43,7 @@ from .consent_coord import (
 from .file_service import FileTaskResult, LocalFileService
 from .files import FileAccessError
 from .knowledge_search import KnowledgeSearchError
+from .agent_terminal import TERMINAL_CAPABILITY, TerminalResult
 from .mcp import LocalMCPService, MCPExecution
 from .policy import LocalPolicy, PolicyDecision
 from .protocol import (
@@ -86,6 +87,7 @@ class LocalRuntimeClient:
         policy: LocalPolicy | None = None,
         file_service: LocalFileService | None = None,
         python_service: LocalPythonService | None = None,
+        terminal_service: Any | None = None,
         mcp_service: LocalMCPService | None = None,
         skill_script_service: SkillScriptService | None = None,
         skill_dependency_service: Any | None = None,
@@ -138,6 +140,10 @@ class LocalRuntimeClient:
                 )
             if python_service is not None:
                 default_capabilities.append("local.python")
+            # Issue 111: the controlled terminal rides the desktop surface
+            # only; without the service the capability is never announced.
+            if terminal_service is not None:
+                default_capabilities.append("local.terminal")
             capabilities = tuple(default_capabilities)
         self.capabilities = capabilities
         self.policy_hash = policy_hash
@@ -149,6 +155,9 @@ class LocalRuntimeClient:
         self.policy = policy or LocalPolicy()
         self.file_service = file_service
         self.python_service = python_service
+        # Issue 111: the Agent's controlled terminal; None keeps the
+        # capability unannounced and every such task refused.
+        self.terminal_service = terminal_service
         self.mcp_service = mcp_service
         # Issue 122: the device-leg Skill script gate; None keeps the
         # capability unannounced and every such task refused.
@@ -945,6 +954,55 @@ class LocalRuntimeClient:
                         "local Python execution did not produce a receipt"
                     )
                 receipt = replace(receipt, task_id=task_id)
+            elif operation == TERMINAL_CAPABILITY:
+                # Issue 111: the Agent's controlled terminal. One shell
+                # command per task, anchored inside the confirmed workspace;
+                # outside/protected anchors are refused by the service in
+                # every tier before any ask can render, and a stopped or
+                # timed-out command is recorded 效果待核实, never re-run.
+                if self.terminal_service is None:
+                    await self._denial_response(
+                        operation, task_id, envelope.payload, PolicyDecision.DENY
+                    )
+                    return
+                try:
+                    task_payload = self.terminal_service.normalize(
+                        dict(envelope.payload)
+                    )
+                except (ValueError, TypeError) as exc:
+                    await self._send_error(
+                        task_id, str(exc), "INVALID_TASK", envelope.payload, operation
+                    )
+                    return
+                terminal_result = await self.terminal_service.execute(
+                    task_payload,
+                    on_output=lambda stream, output: self._send_python_output(
+                        task_id, stream, output
+                    ),
+                    ledger_binding=self.receipt_binding(),
+                )
+                if terminal_result is PolicyDecision.CONSENT_REQUIRED:
+                    await self.consent_coord._request_consent(
+                        envelope,
+                        task_payload,
+                        self.terminal_service.consent,
+                    )
+                    return
+                if terminal_result is not PolicyDecision.ALLOW and not isinstance(
+                    terminal_result, TerminalResult
+                ):
+                    await self._denial_response(
+                        operation, task_id, task_payload, terminal_result
+                    )
+                    return
+                assert isinstance(terminal_result, TerminalResult)
+                result = self._terminal_result_value(terminal_result)
+                receipt = terminal_result.receipt
+                if receipt is None:
+                    raise RuntimeError(
+                        "local terminal execution did not produce a receipt"
+                    )
+                receipt = replace(receipt, task_id=task_id)
             elif operation.startswith("local.mcp."):
                 if self.mcp_service is None:
                     raise RuntimeError("mcp_service is required for local MCP tasks")
@@ -1207,12 +1265,28 @@ class LocalRuntimeClient:
             "artifact_error": result.artifact_error,
         }
 
+    @staticmethod
+    def _terminal_result_value(result: TerminalResult) -> dict[str, Any]:
+        # Issue 111: the result facts mirror the Python channel; the working
+        # folder stays a logical path and effects uncertainty is explicit so
+        # a stopped or timed-out command is never rendered as a known outcome.
+        return {
+            "status": result.status.value,
+            "exit_code": result.exit_code,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "working_root": result.working_root,
+            "effects_uncertain": result.effects_uncertain,
+        }
+
     def _consent_service_store(self, capability: str) -> ConsentStore:
         """The ConsentStore that grades one capability; the coordinator needs it to settle."""
         if capability.startswith("local.mcp."):
             service: Any = self.mcp_service
         elif capability == "local.python":
             service = self.python_service
+        elif capability == TERMINAL_CAPABILITY:
+            service = self.terminal_service
         elif capability == "local.skill.script":
             service = self.skill_script_service
         elif capability == "local.skill.dependencies":

@@ -103,8 +103,10 @@ describe('panel registry vocabulary', () => {
     // Issue 84 adds the `templates` plaza as a new native column beyond the
     // original vocabulary. Issue 112 adds the `office` pane the same way —
     // the narrowed read-only restoration of the excluded office page.
+    // Issue 111 adds the `agentTerminal` pane the same way — the read-only
+    // projection of the Runtime-carried Agent command history.
     expect(registered.sort()).toEqual([
-      'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'office', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
+      'agentTerminal', 'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'office', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
     ])
     expect(getRegisteredPanel('sql')).toBeUndefined()
     expect(PANEL_META.sql.title).toBe('数据')

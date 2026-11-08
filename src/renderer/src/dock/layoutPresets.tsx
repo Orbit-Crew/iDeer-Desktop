@@ -111,7 +111,9 @@ const PANEL_COLOR: Record<PanelTypeId, string> = {
   synapse: '#531dAB',
   notifications: '#D46B08',
   templates: '#C41D7F',
-  office: '#D48806'
+  office: '#D48806',
+  // Issue 111: the Agent terminal keeps the terminal family's dark shell tone.
+  agentTerminal: '#2f3542'
 }
 
 // —— 布局构建 ——

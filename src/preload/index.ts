@@ -18,6 +18,9 @@ const bridge: DesktopBridge = Object.freeze({
   beginLogin: (server: string, deviceName: string) => ipcRenderer.invoke('desktop:login:begin', server, deviceName),
   chat: (command: ChatCommand) => ipcRenderer.invoke('desktop:chat', command),
   receipts: (action: 'history' | 'clear-confirmed', offset = 0) => ipcRenderer.invoke('desktop:receipts', action, offset),
+  // Issue 111: the Agent terminal pane's history read and Run stop request.
+  terminalHistory: (threadId?: string) => ipcRenderer.invoke('desktop:terminal:history', threadId),
+  terminalStop: (runId: string) => ipcRenderer.invoke('desktop:terminal:stop', runId),
   importKnowledge: (kbId: string) => ipcRenderer.invoke('desktop:knowledge:import', kbId),
   // Issue 96: the doc library's recursive folder import (directory pick and
   // confirmation in main, background job in the Runtime), its cancel command,

@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 from .audit import LocalAuditLog
+from .agent_terminal import AgentTerminalHistory, TerminalHistoryError
 from .browser_control import BrowserControlService
 from .browser_login import BrowserLogin
 from .browser_remote import BrowserStreamProxy, normalize_input_event
@@ -82,6 +83,10 @@ def main() -> int:
     commands: queue.Queue = queue.Queue(maxsize=1)
     workspace_commands: queue.Queue = queue.Queue(maxsize=1)
     receipt_commands: queue.Queue = queue.Queue(maxsize=1)
+    # Issue 111: the Agent terminal pane's history read and its stop button;
+    # one slot each, like the other session-scoped command families.
+    terminal_commands: queue.Queue = queue.Queue(maxsize=1)
+    terminal_stop_commands: queue.Queue = queue.Queue(maxsize=1)
     management_commands: queue.Queue = queue.Queue(maxsize=1)
     drain_commands: queue.Queue = queue.Queue(maxsize=1)
     knowledge_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -156,6 +161,27 @@ def main() -> int:
                         and len(command['id']) <= 64 and command['action'] in {'history', 'clear-confirmed'}
                         and type(command['offset']) is int and 0 <= command['offset'] <= 1000000000):
                     receipt_commands.put_nowait(command)
+                    continue
+                # Issue 111: the pane's history read (scope-gated, optionally
+                # narrowed to one chat thread) and its stop request for one
+                # Run. Exact key sets, bounded strings — the wire discipline
+                # every other command family follows.
+                if (isinstance(command, dict)
+                        and set(command) in ({'type', 'id', 'scope'}, {'type', 'id', 'scope', 'threadId'})
+                        and command['type'] == 'terminal-history' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64
+                        and isinstance(command['scope'], str) and 0 < len(command['scope']) <= 128
+                        and (command.get('threadId') is None
+                             or (isinstance(command['threadId'], str)
+                                 and 0 < len(command['threadId']) <= 128))):
+                    terminal_commands.put_nowait(command)
+                    continue
+                if (isinstance(command, dict) and set(command) == {'type', 'id', 'scope', 'runId'}
+                        and command['type'] == 'terminal-stop' and isinstance(command['id'], str)
+                        and len(command['id']) <= 64 and isinstance(command['runId'], str)
+                        and 0 < len(command['runId']) <= 256
+                        and isinstance(command['scope'], str) and 0 < len(command['scope']) <= 128):
+                    terminal_stop_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and set(command) == {'type', 'id', 'kbId', 'paths', 'scope'}
                         and command['type'] == 'knowledge-import' and isinstance(command['id'], str)
@@ -587,6 +613,15 @@ def main() -> int:
 
         args.config.parent.mkdir(parents=True, exist_ok=True)
         receipts = ReceiptLedger(args.config.with_name('receipts.db'))
+        # Issue 111: the Agent terminal's history store is one device-level
+        # instance across reconnects. A runtime restart killed any command
+        # still marked running, so the sweep records that honestly before
+        # this process can admit a single new row.
+        terminal_history = AgentTerminalHistory(args.config.with_name('agent-terminal.db'))
+        try:
+            terminal_history.sweep_interrupted()
+        except TerminalHistoryError:
+            pass
         # Issue 74: the chat session tiers and the audit log they are recorded
         # in are one device-level pair, shared by the chat surface and the
         # transport session.
@@ -704,7 +739,7 @@ def main() -> int:
             args.config.parent.mkdir(parents=True, exist_ok=True)
             controller = load_controller(args.config, private_key=private_key, desktop_mode=True,
                 audit=audit_log, node_executable=args.node_executable,
-                inline_scripts=inline_scripts)
+                inline_scripts=inline_scripts, terminal_history=terminal_history)
             if not controller.settings.session_token:
                 raise ValueError("PAIRING_REQUIRED")
             controller.client.task_guard = TaskGuard(args.config.with_name("tasks.db"))
@@ -792,6 +827,53 @@ def main() -> int:
                     error = 'RECEIPT_STORAGE_UNAVAILABLE'
                 emit({'v': 1, 'type': 'receipts', 'id': receipt_command['id'],
                       'result': receipts.snapshot(receipt_owner, offset=receipt_command['offset']), 'error': error})
+            try:
+                terminal_command = terminal_commands.get_nowait()
+            except queue.Empty:
+                terminal_command = None
+            if terminal_command:
+                # Issue 111: the pane's history read. The rows are this
+                # identity's own device-side display facts; a stale scope is
+                # refused like every other session-scoped family, and an
+                # unreadable store fails closed with its fixed category.
+                error = ''
+                result = None
+                try:
+                    if terminal_command['scope'] != workspace.scope():
+                        error = 'IDENTITY_CHANGED'
+                    else:
+                        owner = profile_binding(load_settings(args.config)) \
+                            if login.status()['state'] == 'authenticated' else None
+                        if owner is None:
+                            result = {'commands': [], 'storageError': terminal_history.error}
+                        else:
+                            thread_id = terminal_command.get('threadId') or None
+                            result = {'commands': terminal_history.view(owner, thread_id=thread_id),
+                                      'storageError': terminal_history.error}
+                except TerminalHistoryError:
+                    error = 'TERMINAL_STORAGE_UNAVAILABLE'
+                emit({'v': 1, 'type': 'terminal-history', 'id': terminal_command['id'],
+                      'result': result, 'error': error})
+            try:
+                terminal_stop = terminal_stop_commands.get_nowait()
+            except queue.Empty:
+                terminal_stop = None
+            if terminal_stop:
+                # Issue 111: the pane's stop button rides the same durable
+                # Run fence as the chat surface — a stop that lands is a
+                # request, never a proven effect boundary, so the honest
+                # answer is only "requested". A stale scope is refused like
+                # every other session-scoped family.
+                error = ''
+                if terminal_stop['scope'] != workspace.scope():
+                    error = 'IDENTITY_CHANGED'
+                else:
+                    try:
+                        stop_local(terminal_stop['runId'])
+                    except Exception:
+                        error = 'TERMINAL_STOP_FAILED'
+                emit({'v': 1, 'type': 'terminal-stop', 'id': terminal_stop['id'],
+                      'result': {'requested': True}, 'error': error})
             try:
                 knowledge_command = knowledge_commands.get_nowait()
             except queue.Empty:
@@ -1449,6 +1531,13 @@ def main() -> int:
                 unknown_write_effects = receipts.unknown_write_effects(None)
             except ReceiptStorageError:
                 unknown_write_effects = 1  # An unreadable ledger cannot prove effects are known.
+            # Issue 111: the running terminal commands ride the snapshot so
+            # the pane shows the live tail honestly; the in-memory facts are
+            # the store's running rows (stale ones were swept at start).
+            try:
+                agent_terminal_running = terminal_history.running()[:8]
+            except TerminalHistoryError:
+                agent_terminal_running = []
             tasks = [{"taskId": row['task_id'][:256], "runId": row['run_id'][:256],
                       "state": (row['status'] if row['delivery_state'] != 'cleaned' else 'cleaned')[:256],
                       "capability": row['capability'][:256]} for row in receipt_view['rows']]
@@ -1484,6 +1573,10 @@ def main() -> int:
                       "connectorStorageError": connector_service.registry.error if connector_service is not None else '',
                       "projectBindings": binding_rows[:20],
                       "projectBindingStorageError": project_bindings.error,
+                      # Issue 111: the Agent terminal's in-flight commands and
+                      # the history store's honest storage state.
+                      "agentTerminal": {"running": agent_terminal_running},
+                      "agentTerminalStorageError": terminal_history.error,
                       "selectionScope": workspace.scope(),
                       "directoryGrants": [dict(id=row['id'], directory=row['directory'], operation=row['operation'],
                           userId=row['binding'][1], deviceId=row['binding'][2], createdAt=row['created_at'])
