@@ -32,6 +32,8 @@ jobs:
       - run: npm run verify:provenance
       # Issue #88: per-item third-party inventory must match what ships.
       - run: npm run verify:third-party
+      # Issue #120: capability × system matrix locked to the #89 ledger.
+      - run: npm run verify:matrix
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

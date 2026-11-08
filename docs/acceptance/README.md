@@ -12,6 +12,12 @@ its machine-readable single source of truth is
 [capability-ledger.json](capability-ledger.json) (`npm run verify:ledger`).
 Issue open/closed state is never evidence there.
 
+For the system axis (#120), [the capability × system matrix](system-matrix.md)
+accounts every ledger row on 现代 Windows and Win7 with registered execution
+entries; [system-matrix.json](system-matrix.json) is machine-readable, locked
+to the ledger (`npm run verify:matrix`), and its outcome is mapped to the
+[iDeer #131 retirement conditions](retirement-conditions.md).
+
 ## Issue #108
 
 Start with [the #108 report](issue-108/report.md). Its latest entry links the
