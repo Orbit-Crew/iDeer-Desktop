@@ -4,10 +4,12 @@
 // over-cap or malformed model is the channel's honest refusal text, the
 // loaded model's real size shows as stats, a WebGL failure falls back to the
 // software 2D engine with an announcement, and no geometry-editing control
-// exists anywhere.
+// exists anywhere. Issue 117: a pending auto-load path loads through the same
+// channel once the workspace is ready, and never before.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CadMeshView, DesktopBridge, DesktopStatus } from '../src/shared/desktop'
+import { useDockStore } from '../src/renderer/src/dock/dockStore'
 import Viewer3dPane from '../src/renderer/src/dock/panels/viewer3dPane'
 
 beforeEach(() => {
@@ -21,7 +23,10 @@ beforeEach(() => {
   window.IntersectionObserver = window.IntersectionObserver ??
     class { observe() {} unobserve() {} disconnect() {} takeRecords() { return [] } root = null; rootMargin = ''; thresholds = [] } as unknown as typeof IntersectionObserver
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  useDockStore.getState().clearAutoLoad('viewer3d')
+})
 
 const READY: DesktopStatus = {
   version: '0.0.0-test',
@@ -98,8 +103,11 @@ describe('viewer3d pane (#115)', () => {
     await openPath('/workspace/parts/bracket.stl', api, () => Promise.resolve(meshView()))
     // jsdom has no WebGL: the three.js engine fails, onFail switches the
     // engine, and the canvas 2D surface (announced, not silent) takes over.
-    await waitFor(() => expect(screen.getByText('WebGL 不可用，已切换到软件渲染')).toBeTruthy())
-    await waitFor(() => expect(document.querySelector('canvas')).toBeTruthy())
+    // The WebGL attempt is timing-sensitive; parallel suites routinely push
+    // it past the 1s default, so these waits carry real headroom (the flake
+    // predates #117 — reproducible on bare develop under load).
+    await waitFor(() => expect(screen.getByText('WebGL 不可用，已切换到软件渲染')).toBeTruthy(), { timeout: 8000 })
+    await waitFor(() => expect(document.querySelector('canvas')).toBeTruthy(), { timeout: 8000 })
   })
 
   it('never calls the channel for an empty path', async () => {
@@ -116,5 +124,31 @@ describe('viewer3d pane (#115)', () => {
     await screen.findByLabelText('模型逻辑路径', {}, { timeout: 2000 })
     expect(screen.getByText('只读查看 · 大模型按上限如实拒绝 · 几何编辑不在范围')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /导出|编辑|删除|保存/ })).toBeNull()
+  })
+
+  it('auto-loads a pending result path once the workspace is ready (#117)', async () => {
+    useDockStore.getState().requestAutoLoad('viewer3d', '/workspace/parts/auto.stl')
+    const api = renderPane(vi.fn(() => Promise.resolve(meshView())))
+    await waitFor(() => expect(api.cad).toHaveBeenCalledWith({ action: 'read-mesh', path: '/workspace/parts/auto.stl' }))
+    // The pane takes the path over: the input shows it and the pending entry clears.
+    await waitFor(() => expect((screen.getByLabelText('模型逻辑路径') as HTMLInputElement).value).toBe('/workspace/parts/auto.stl'))
+    expect(useDockStore.getState().autoLoad.viewer3d).toBeUndefined()
+    useDockStore.getState().clearAutoLoad('viewer3d')
+  })
+
+  it('keeps a pending auto-load path while the workspace is not ready (#117)', async () => {
+    useDockStore.getState().requestAutoLoad('viewer3d', '/workspace/parts/wait.stl')
+    const getStatus = vi.fn(() => Promise.resolve({
+      version: '0.0.0-test', server: { state: 'connected' },
+      runtime: { process: 'running', tasks: [], login: { state: 'authenticated' }, workspace: { state: 'missing' } }
+    } as unknown as DesktopStatus))
+    const api = renderPane(vi.fn(), getStatus)
+    await screen.findByText('三维模型查看器待工作目录就绪', {}, { timeout: 2000 })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    // Firing early would only burn the one shot on an unbound-workspace
+    // refusal, so the path waits until a ready workspace consumes it.
+    expect(api.cad).not.toHaveBeenCalled()
+    expect(useDockStore.getState().autoLoad.viewer3d).toBe('/workspace/parts/wait.stl')
+    useDockStore.getState().clearAutoLoad('viewer3d')
   })
 })

@@ -38,6 +38,10 @@ export interface LocalResultView {
   bytes: number
   artifact_ref: string
   uploaded_at: string
+  /** Issue 117: the Runtime's verdict on where this result lands under the
+   * CURRENT workspace grant, re-derived per snapshot (never stored). Absent
+   * or anything but 'inside' means the device must not auto-open it. */
+  workspace_state?: 'inside' | 'protected' | 'outside'
 }
 export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
 /** Issue 112: device-local display fact for one explicit knowledge import. */
@@ -1318,6 +1322,17 @@ export interface CadMeshStats { meshes: number; vertices: number; triangles: num
  */
 export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
 export const CAD_MAX_TRIANGLES = 1_000_000
+
+/** Issue 115: the trusted read whitelist — extension → local parser format.
+ * Issue 117: the renderer's auto-open mapping keys its viewer3d rows off this
+ * same table (panelMeta.RESULT_PANE_TYPES), so the pane that may auto-open a
+ * file and the channel that may read it can never drift apart. */
+export const CAD_EXTENSIONS: Record<string, CadMeshFormat> = {
+  '.stl': 'stl',
+  '.obj': 'obj',
+  '.stp': 'step',
+  '.step': 'step'
+}
 
 /**
  * Issue 107: the local browser pane's one fixed session partition. Login
