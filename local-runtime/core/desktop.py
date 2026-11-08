@@ -24,7 +24,7 @@ from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
-from .sql_query import SqlQueryError, sql_query
+from .sql_query import MAX_SQL_QUERY_CHARS, SqlQueryError, sql_query
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
@@ -369,7 +369,7 @@ def main() -> int:
                         and isinstance(command.get('datasetId'), str)
                         and 0 < len(command['datasetId']) <= 128
                         and isinstance(command.get('sql'), str)
-                        and 0 < len(command['sql']) <= 10000
+                        and 0 < len(command['sql']) <= MAX_SQL_QUERY_CHARS
                         and isinstance(command.get('scope'), str)
                         and len(command['scope']) <= 128):
                     sql_commands.put_nowait(command)

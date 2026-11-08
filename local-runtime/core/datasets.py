@@ -332,12 +332,14 @@ def parse_dataset(raw: bytes, filename: str) -> dict[str, Any]:
     counts and a per-sheet content fingerprint. Row data itself never
     persists: the caller records these facts and the file fingerprint only.
     """
-    suffix = Path(filename).suffix.lower()
-    format_name = "xlsx" if suffix == ".xlsx" else "csv" if suffix == ".csv" else ""
-    if len(raw) > MAX_DATASET_FILE_BYTES:
-        return _failure(DATASETS_FILE_TOO_LARGE, format_name)
-    if suffix not in SUPPORTED_DATASET_EXTENSIONS:
-        return _failure(DATASETS_FORMAT_UNSUPPORTED)
+    try:
+        suffix, format_name = _parse_gate(raw, filename)
+    except DatasetError as exc:
+        # The gate's refusals become the same honest failure rows the flow
+        # has always recorded: the recognized format is kept when the suffix
+        # named one ('' only when it named no supported format).
+        reason = str(exc)
+        return _failure(reason, "" if reason == DATASETS_FORMAT_UNSUPPORTED else _format_of(filename))
     try:
         if suffix == ".xlsx":
             tables, more_sheets = _xlsx_tables(raw)
@@ -360,6 +362,26 @@ def parse_dataset(raw: bytes, filename: str) -> dict[str, Any]:
     }
 
 
+def _format_of(filename: str) -> str:
+    """The format the suffix named — '' only when it named none."""
+    suffix = Path(filename).suffix.lower()
+    return "xlsx" if suffix == ".xlsx" else "csv" if suffix == ".csv" else ""
+
+
+def _parse_gate(raw: bytes, filename: str) -> tuple[str, str]:
+    """The shared parse gate: refuses honestly when the bytes exceed the
+    frozen bound or the suffix names no supported format, and answers the
+    (suffix, format) pair it accepted. Both the import facts (#102) and the
+    query engine (#103) read through it, so the two can never disagree
+    about what qualifies."""
+    suffix = Path(filename).suffix.lower()
+    if len(raw) > MAX_DATASET_FILE_BYTES:
+        raise DatasetError(DATASETS_FILE_TOO_LARGE)
+    if suffix not in SUPPORTED_DATASET_EXTENSIONS:
+        raise DatasetError(DATASETS_FORMAT_UNSUPPORTED)
+    return suffix, _format_of(filename)
+
+
 def parse_dataset_tables(raw: bytes, filename: str) -> list[_SheetTable]:
     """One file's full parsed tables — headers and data rows, in memory only
     (#103). The query engine reads real rows through the same parsing engine
@@ -368,11 +390,7 @@ def parse_dataset_tables(raw: bytes, filename: str) -> list[_SheetTable]:
     Content problems raise the fixed datasets categories like the import
     flow's failure rows do.
     """
-    suffix = Path(filename).suffix.lower()
-    if len(raw) > MAX_DATASET_FILE_BYTES:
-        raise DatasetError(DATASETS_FILE_TOO_LARGE)
-    if suffix not in SUPPORTED_DATASET_EXTENSIONS:
-        raise DatasetError(DATASETS_FORMAT_UNSUPPORTED)
+    suffix, _format = _parse_gate(raw, filename)
     try:
         if suffix == ".xlsx":
             tables, _more = _xlsx_tables(raw)

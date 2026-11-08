@@ -58,9 +58,14 @@ const buildSessionText = (dataset: DatasetView, sql: string, result: SqlQueryRes
     return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
   }
   if (result.rows.length <= 20 && result.columns.length <= 8) {
-    const head = `| ${result.columns.join(' | ')} |`
+    // Markdown table cells cannot carry a raw pipe or newline: a value with
+    // either would distort the draft's table shape, so each is escaped —
+    // the CSV path below keeps its own quoting.
+    const mdCell = (value: string | number | null): string =>
+      (value === null ? '' : String(value)).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
+    const head = `| ${result.columns.map(mdCell).join(' | ')} |`
     const rule = `| ${result.columns.map(() => '---').join(' | ')} |`
-    const body = result.rows.map((row) => `| ${row.map((cell) => (cell === null ? '' : String(cell))).join(' | ')} |`).join('\n')
+    const body = result.rows.map((row) => `| ${row.map(mdCell).join(' | ')} |`).join('\n')
     return `${header}\n\n${head}\n${rule}\n${body}`
   }
   const rows = [result.columns, ...result.rows].map((row) => row.map(csvCell).join(',')).join('\n')
@@ -84,21 +89,25 @@ export default function SqlPane({ instanceId, panelType, api }: {
   const [running, setRunning] = useState(false)
   const [hint, setHint] = useState('')
   const [result, setResult] = useState<SqlQueryResultView | null>(null)
-  const requestSequence = useRef(0)
+  // One sequence per operation: a refresh landing mid-query must never
+  // invalidate the query's own settle (its `finally` keeps the button
+  // honest), and vice versa.
+  const refreshSequence = useRef(0)
+  const querySequence = useRef(0)
 
   const selected = datasets.find((row) => row.id === selectedId) ?? null
 
   const refreshDatasets = useCallback(async () => {
-    const sequence = ++requestSequence.current
+    const sequence = ++refreshSequence.current
     try {
       const status: DesktopStatus = await bridge.getStatus()
-      if (requestSequence.current !== sequence) return
+      if (refreshSequence.current !== sequence) return
       const ready = (status.runtime.datasets ?? []).filter((row) => row.status === 'ready')
       setDatasets(ready)
       setSelectedId((current) =>
         ready.some((row) => row.id === current) ? current : ready[0]?.id ?? '')
     } catch {
-      if (requestSequence.current === sequence) setHint('数据集列表读取失败；请确认设备端 Runtime 正在运行')
+      if (refreshSequence.current === sequence) setHint('数据集列表读取失败；请确认设备端 Runtime 正在运行')
     }
   }, [bridge])
 
@@ -106,20 +115,20 @@ export default function SqlPane({ instanceId, panelType, api }: {
 
   const runQuery = useCallback(async () => {
     if (!selected || !sql.trim() || running) return
-    const sequence = ++requestSequence.current
+    const sequence = ++querySequence.current
     setRunning(true)
     setHint('')
     const command: SqlQueryCommand = { action: 'query', datasetId: selected.id, sql: sql.trim() }
     try {
       const view = await bridge.sql(command)
-      if (requestSequence.current !== sequence) return
+      if (querySequence.current !== sequence) return
       setResult(view)
     } catch (error) {
-      if (requestSequence.current !== sequence) return
+      if (querySequence.current !== sequence) return
       setResult(null)
       setHint(errorHint(error))
     } finally {
-      if (requestSequence.current === sequence) setRunning(false)
+      if (querySequence.current === sequence) setRunning(false)
     }
   }, [bridge, running, selected, sql])
 

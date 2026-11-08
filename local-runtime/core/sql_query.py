@@ -233,9 +233,16 @@ def _wire_cell(value: Any, budget: int) -> tuple[str | int | float | None, bool,
     return text, cut, len(text)
 
 
+def _statement_head(sql: str) -> str:
+    """The statement text with leading whitespace and comment-only lines
+    removed: a read may begin with comments (SQLite honours them), but what
+    it must begin with is still a read."""
+    return re.sub(r"^(?:\s|--[^\n]*\n)+", "", sql)
+
+
 def _execute_read(db: sqlite3.Connection, sql: str) -> dict[str, Any]:
     """One read statement against the fenced copy, bounded on every axis."""
-    if not sql.lstrip().lower().startswith(("select", "with")):
+    if not _statement_head(sql).lower().startswith(("select", "with")):
         raise SqlQueryError(SQL_QUERY_FORBIDDEN)
     steps = {"used": 0}
 
@@ -255,7 +262,7 @@ def _execute_read(db: sqlite3.Connection, sql: str) -> dict[str, Any]:
         truncated = False
         cells_truncated = False
         remaining = MAX_SQL_RESULT_CHARS
-        while True:
+        while not truncated:
             batch = cursor.fetchmany(64)
             if not batch:
                 break
@@ -281,8 +288,12 @@ def _execute_read(db: sqlite3.Connection, sql: str) -> dict[str, Any]:
             "cellsTruncated": cells_truncated,
         }
     except sqlite3.ProgrammingError as exc:
-        # execute() refuses multi-statement text before anything runs.
-        raise SqlQueryError(SQL_QUERY_FORBIDDEN) from exc
+        # execute() refuses multi-statement text before anything runs; any
+        # other programming error is this engine's own bug class, refused
+        # honestly rather than mislabeled as a write attempt.
+        if "one statement" in str(exc):
+            raise SqlQueryError(SQL_QUERY_FORBIDDEN) from exc
+        raise SqlQueryError(SQL_QUERY_FAILED) from exc
     except sqlite3.DatabaseError as exc:
         # A prepare-time denial surfaces as plain DatabaseError, a runtime
         # one as OperationalError — both carry ``not authorized``.

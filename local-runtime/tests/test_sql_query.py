@@ -235,6 +235,10 @@ def test_statements_that_are_not_reads_are_refused_up_front(tmp_path):
     # A WITH-prefixed read stays a read and answers rows.
     result = query(registry, dataset_id, 'WITH t AS (SELECT a FROM sheet1) SELECT * FROM t')
     assert result['rows'] == [[1]]
+    # SQLite honours leading comments; a comment before a read is still a
+    # read, so the prefix gate skips them instead of mislabeling it.
+    commented = query(registry, dataset_id, '-- 最新数据\n\nSELECT * FROM sheet1')
+    assert commented['rows'] == [[1]]
 
 
 def test_syntax_and_unknown_columns_answer_execution_failed(tmp_path):

@@ -93,14 +93,15 @@ export const toSqlQueryResultView = (input: unknown): SqlQueryResultView => {
       typeof result.cellsTruncated !== 'boolean') {
     throw new Error('Invalid sql result')
   }
+  const rows = result.rows.slice(0, 200).map(toRow)
   return {
     tables: result.tables.slice(0, 32).map(toSqlQueryTableMap),
     columns: result.columns.slice(0, 64).map((column) => {
       if (typeof column !== 'string') throw new Error('Invalid sql result column')
       return column.slice(0, 128)
     }),
-    rows: result.rows.slice(0, 200).map(toRow),
-    rowCount: result.rows.slice(0, 200).length,
+    rows,
+    rowCount: rows.length,
     truncated: result.truncated,
     columnsTruncated: result.columnsTruncated,
     cellsTruncated: result.cellsTruncated

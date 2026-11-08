@@ -144,4 +144,20 @@ describe('sql pane surface (#103)', () => {
     expect(prefill).toContain('```csv')
     expect(prefill).toContain('编号,品名')
   })
+
+  it('markdown cells carry pipes and newlines escaped so the draft keeps its table shape', async () => {
+    const sql = vi.fn().mockResolvedValue(queryResult({ rows: [[1, 'a|b'], [2, '两\n行']] }))
+    const bridge = api({ sql, getStatus: vi.fn().mockResolvedValue(status([dataset()])) })
+    render(<SqlPane instanceId="i1" panelType="sql" api={bridge} />)
+    fireEvent.change(await screen.findByLabelText('SQL 查询'), { target: { value: 'SELECT * FROM sheet1' } })
+    fireEvent.click(screen.getByLabelText('执行查询'))
+    await screen.findByText('返回 2 行')
+    fireEvent.click(screen.getByLabelText('结果入会话'))
+    await waitFor(() => expect(useSessionStore.getState().pendingPrefill).not.toBeNull())
+    const prefill = useSessionStore.getState().pendingPrefill?.content ?? ''
+    expect(prefill).toContain('a\\|b')
+    expect(prefill).toContain('两 行')
+    // The table still has exactly its header rule and two rows.
+    expect(prefill.match(/^\|/gm)?.length).toBe(4)
+  })
 })
