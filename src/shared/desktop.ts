@@ -1323,6 +1323,17 @@ export interface CadMeshStats { meshes: number; vertices: number; triangles: num
 export const CAD_MAX_FILE_BYTES = 100 * 1024 * 1024
 export const CAD_MAX_TRIANGLES = 1_000_000
 
+/** Issue 115: the trusted read whitelist — extension → local parser format.
+ * Issue 117: the renderer's auto-open mapping keys its viewer3d rows off this
+ * same table (panelMeta.RESULT_PANE_TYPES), so the pane that may auto-open a
+ * file and the channel that may read it can never drift apart. */
+export const CAD_EXTENSIONS: Record<string, CadMeshFormat> = {
+  '.stl': 'stl',
+  '.obj': 'obj',
+  '.stp': 'step',
+  '.step': 'step'
+}
+
 /**
  * Issue 107: the local browser pane's one fixed session partition. Login
  * state, cookies and site data live here — never in the app's default session

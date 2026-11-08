@@ -15,8 +15,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Input, Select, Spin, Typography, message } from 'antd'
 import { FolderOpenOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import type { CadMeshView, DesktopBridge, DesktopStatus } from '../../../../shared/desktop'
-import { CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES } from '../../../../shared/desktop'
+import { CAD_EXTENSIONS, CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES } from '../../../../shared/desktop'
 import { useDockStore } from '../dockStore'
+import { useResultAutoLoad } from '../resultAutoOpen'
 import ThreeMeshViewer, { type CadRepresentation } from './viewer3d/ThreeMeshViewer'
 import MeshCanvasViewer from './viewer3d/MeshCanvasViewer'
 
@@ -29,7 +30,7 @@ const formatCount = (count: number): string => count.toLocaleString('en-US')
 /** Refusal texts built from the shared cap constants, so the pane never
  * states a limit the trusted service does not enforce. */
 const CAD_ERROR_TEXT: Record<string, string> = {
-  CAD_FORMAT_UNSUPPORTED: '不支持的文件类型；三维窗格仅打开 .stl / .obj / .stp / .step',
+  CAD_FORMAT_UNSUPPORTED: `不支持的文件类型；三维窗格仅打开 ${Object.keys(CAD_EXTENSIONS).join(' / ')}`,
   CAD_FILE_TOO_LARGE: `文件超出查看器 ${formatMegabytes(CAD_MAX_FILE_BYTES)} 上限，未读取`,
   CAD_MESH_TOO_LARGE: `模型三角面数超出查看器 ${formatCount(CAD_MAX_TRIANGLES)} 上限（软渲染预算），未显示`,
   CAD_EMPTY_GEOMETRY: '文件中没有可显示的几何',
@@ -156,17 +157,14 @@ export default function Viewer3dPane({ instanceId, panelType, api }: {
     setEngine('canvas')
   }, [])
 
-  // Issue 117: consume a pending auto-load path once the workspace is ready —
-  // earlier than that, the read would only burn the one shot on an unbound
-  // workspace error, so a pending path waits here instead.
-  const autoLoadPath = useDockStore((state) => state.autoLoad.viewer3d)
-  const clearAutoLoad = useDockStore((state) => state.clearAutoLoad)
-  useEffect(() => {
-    if (!workspaceReady || !autoLoadPath) return
-    setPath(autoLoadPath)
-    void open(autoLoadPath)
-    clearAutoLoad('viewer3d')
-  }, [workspaceReady, autoLoadPath, open, clearAutoLoad])
+  // Issue 117: a task result inside the current workspace grant parks its
+  // workspace-logical path here; it loads through the same open() channel as
+  // a hand-typed path once the workspace is ready — never before.
+  const autoLoad = useCallback((target: string): void => {
+    setPath(target)
+    void open(target)
+  }, [open])
+  useResultAutoLoad('viewer3d', workspaceReady, autoLoad)
 
   if (!workspaceReady) {
     return <div className="h-full w-full flex flex-col items-center justify-center gap-3 p-6 text-center" style={{ background: 'var(--pane-bg, #F4F6FA)' }} data-instance={instanceId}>

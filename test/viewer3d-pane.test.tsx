@@ -103,8 +103,11 @@ describe('viewer3d pane (#115)', () => {
     await openPath('/workspace/parts/bracket.stl', api, () => Promise.resolve(meshView()))
     // jsdom has no WebGL: the three.js engine fails, onFail switches the
     // engine, and the canvas 2D surface (announced, not silent) takes over.
-    await waitFor(() => expect(screen.getByText('WebGL 不可用，已切换到软件渲染')).toBeTruthy())
-    await waitFor(() => expect(document.querySelector('canvas')).toBeTruthy())
+    // The WebGL attempt is timing-sensitive; parallel suites routinely push
+    // it past the 1s default, so these waits carry real headroom (the flake
+    // predates #117 — reproducible on bare develop under load).
+    await waitFor(() => expect(screen.getByText('WebGL 不可用，已切换到软件渲染')).toBeTruthy(), { timeout: 8000 })
+    await waitFor(() => expect(document.querySelector('canvas')).toBeTruthy(), { timeout: 8000 })
   })
 
   it('never calls the channel for an empty path', async () => {

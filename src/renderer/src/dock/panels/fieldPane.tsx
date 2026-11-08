@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DesktopBridge, DesktopStatus, FilesPreview } from '../../../../shared/desktop'
 import { previewErrorText } from '../../components/FilePanel'
 import { useDockStore } from '../dockStore'
+import { useResultAutoLoad } from '../resultAutoOpen'
 import { parseTecplotAscii, type ParsedTecplot } from './field/tecplotReader'
 import {
   buildFieldGeometry, formatScalar, MAX_RENDER_POINTS, MAX_RENDER_QUADS,
@@ -134,16 +135,14 @@ export default function FieldPane({ instanceId, panelType, api }: {
     if (!scalar.includes(activeVar)) setActiveVar(scalar[0] ?? '')
   }, [parsed, activeVar])
 
-  // Issue 117: consume a pending auto-load path once the workspace is ready;
-  // before that the guarded read can only refuse, so the path waits here.
-  const autoLoadPath = useDockStore((state) => state.autoLoad.field)
-  const clearAutoLoad = useDockStore((state) => state.clearAutoLoad)
-  useEffect(() => {
-    if (!workspaceReady || !autoLoadPath || busy) return
-    setPath(autoLoadPath)
-    void load(autoLoadPath)
-    clearAutoLoad('field')
-  }, [workspaceReady, autoLoadPath, busy, load, clearAutoLoad])
+  // Issue 117: a task result inside the current workspace grant parks its
+  // workspace-logical path here; it reads through the same guarded seam as a
+  // hand-typed path once the workspace is ready and no load is in flight.
+  const autoLoad = useCallback((target: string): void => {
+    setPath(target)
+    void load(target)
+  }, [load])
+  useResultAutoLoad('field', workspaceReady && !busy, autoLoad)
 
   if (!workspaceReady) {
     return (
