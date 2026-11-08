@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Space, Typography } from 'antd'
+import { Alert, Button, Card, Select, Space, Typography } from 'antd'
+import { useState } from 'react'
 import { useSessionStore } from '../stores/sessionStore'
 import type { DatasetCommand, DatasetView, RuntimeStatus } from '../../../shared/desktop'
 
@@ -20,6 +21,7 @@ const categoryHints: Record<string, string> = {
   DATASETS_FORMAT_UNSUPPORTED: '仅支持真实解析的 .xlsx 与 .csv；旧版二进制 .xls 不在此范围',
   DATASETS_PARSE_FAILED: '文件损坏或不是可解析的 XLSX/CSV，已如实记为失败',
   DATASETS_NOT_FOUND: '该数据集登记不存在或已被删除',
+  DATASETS_REVISION_UNKNOWN: '所选知识版本已不在本机记录中，请刷新后重新选择',
   DATASETS_STORAGE_UNAVAILABLE: '数据集登记存储不可用，状态显示可能不完整',
   DATASETS_CANCELED: '已取消，本机未改动'
 }
@@ -36,6 +38,12 @@ export function DatasetSection({ runtime, busy, error, notice, onCommand }: Data
   const projectId = projectSelection.kind === 'project' ? projectSelection.projectId : ''
   const rows: DatasetView[] = runtime?.datasets ?? []
   const hint = categoryHints[error] || '导入未完成：需要已认证会话，且所选文件必须是可解析的 XLSX/CSV'
+  // Issue 101: 一套版本规矩 — the import may bind the doc-library revision it
+  // accompanies (决策票 62). The binding is optional and explicit; the device
+  // records it with the row as a display fact.
+  const [revisionBinding, setRevisionBinding] = useState<string>('')
+  const revisions = (runtime?.knowledgeImports ?? []).filter(row => row.status === 'registered')
+  const chosenBinding = revisions.find(row => row.id === revisionBinding) ?? null
   return <Space direction="vertical" className="w-full">
     <Typography.Paragraph>
       把本机的一个 XLSX/CSV 表格文件导入为真实数据集：设备侧解析全部工作表（CSV 为单表），
@@ -45,11 +53,22 @@ export function DatasetSection({ runtime, busy, error, notice, onCommand }: Data
     <Typography.Text type="secondary">
       导入将关联项目：{projectId || '当前未选中平台项目（登记为未关联）'}
     </Typography.Text>
+    <Space align="center" className="w-full">
+      <Typography.Text type="secondary">绑定知识版本（可选）：</Typography.Text>
+      <Select aria-label="绑定知识版本" placeholder="不绑定" className="min-w-64" value={revisionBinding}
+        allowClear disabled={busy || !revisions.length}
+        onChange={(value) => setRevisionBinding(value ?? '')}
+        options={revisions.map(row => ({
+          value: row.id, label: `R${row.revisionNo} · ${row.revisionId.slice(0, 8)}…（${row.documentCount} 个文件）` }))} />
+    </Space>
     <Button
       type="primary"
       loading={busy}
       disabled={busy || !runtime || runtime.process !== 'running'}
-      onClick={() => onCommand({ action: 'import', projectId })}
+      onClick={() => onCommand({
+        action: 'import', projectId,
+        ...(chosenBinding ? { revision: { kbId: chosenBinding.kbId, revisionId: chosenBinding.revisionId, revisionNo: chosenBinding.revisionNo } } : {})
+      })}
     >导入表格数据集…</Button>
     {notice && <Alert type="info" message={notice} />}
     {error && <Alert type="error" message={hint} />}
@@ -67,6 +86,7 @@ export function DatasetSection({ runtime, busy, error, notice, onCommand }: Data
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary">
         关联项目 {row.projectId || '未关联'} · 设备 {row.deviceId} · {row.createdAt}
+        {row.revision && ` · 绑定版本 R${row.revision.revisionNo}（${row.revision.revisionId.slice(0, 8)}…）`}
       </Typography.Paragraph>
       {row.status === 'ready' && row.sheets.map(sheet => <Typography.Paragraph key={`${sheet.name}:${sheet.fingerprint}`} type="secondary">
         工作表「{sheet.name}」：{sheet.rowCount} 行 × {sheet.colCount} 列 · {sheet.schema}

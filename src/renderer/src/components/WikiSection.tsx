@@ -84,6 +84,11 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
     {wiki && <>
       <Typography.Paragraph className="mt-3">
         版本 R{wiki.revisionNo} · {statusNames[wiki.status]} · 成功 {wiki.generated} · 失败 {wiki.failed} · 跳过 {wiki.skipped}
+        {/* Issue 101: 离线快照 — the cached page list served while the
+            platform was unreachable stays read-only and honestly labeled. */}
+        {wiki.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{wiki.capturedAt ? `（${wiki.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功查看的页面列表
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{wiki.manifestHash}</Typography.Paragraph>
       {wiki.status === 'partial' && <Alert type="warning" message="部分页面未生成：缺失的页面不代表完整 Wiki" />}
@@ -103,6 +108,9 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
           ? <Card size="small">
             <Typography.Title level={5}>{page.title || page.filename}</Typography.Title>
             <Typography.Paragraph type="secondary">来源 {page.filename} · 指纹 {page.contentHash.slice(0, 12)}…</Typography.Paragraph>
+            {page.offline && <Typography.Paragraph type="warning">
+              离线快照{page.capturedAt ? `（${page.capturedAt} 生成）` : ''}：平台当前不可达，展示本机缓存的页面正文
+            </Typography.Paragraph>}
             <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{page.body}</Typography.Paragraph>
           </Card>
           : <Alert type="warning" message={`此页不可阅读：${pageStatusName(page)}`} />}
@@ -111,6 +119,10 @@ export function WikiSection({ runtime, wiki, navigation, page, busy, error, onCo
     {navigation && <>
       <Typography.Paragraph className="mt-3">
         版本 R{navigation.revisionNo} · 导航索引 · {statusNames[navigation.status]} · 成功 {navigation.generated} · 失败 {navigation.failed} · 跳过 {navigation.skipped}
+        {/* Issue 101: the cached navigation index carries the same 离线快照 label. */}
+        {navigation.offline && <Typography.Text type="warning">
+          {' '}· 离线快照{navigation.capturedAt ? `（${navigation.capturedAt} 生成）` : ''}：平台当前不可达，展示最后一次成功查看的导航索引
+        </Typography.Text>}
       </Typography.Paragraph>
       <Typography.Paragraph type="secondary" copyable>清单指纹：{navigation.manifestHash}</Typography.Paragraph>
       {navigation.status === 'partial' && <Alert type="warning" message="部分页面未生成：缺失的页面不代表完整 Wiki" />}
