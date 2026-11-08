@@ -134,6 +134,6 @@ filesystems, so machine state never leaks into a verdict.
 | Command | Result |
 | --- | --- |
 | `python -m pytest tests/test_engineering_probe.py -q` | 23 passed |
-| `python -m pytest tests -q` (full runtime suite) | see the PR description for the final count recorded at execution time |
+| `python -m pytest tests -q` (full runtime suite) | 1098 passed / 10 skipped / 0 failed (674s); the packaged-process pair additionally needs the bundled interpreter via `IDEER_TEST_PYTHON` in a fresh worktree without `.runtime` (verified 2 passed) |
 | `python -m ruff check core/engineering_probe.py core/transport.py core/policy.py core/files.py core/cli.py core/tray.py core/__init__.py tests/test_engineering_probe.py` | All checks passed |
 | `python scripts/verify-runtime-source.py` | Verified pinned Runtime sources from ccb251e0 (provenance `modified` entries extended for #87) |
