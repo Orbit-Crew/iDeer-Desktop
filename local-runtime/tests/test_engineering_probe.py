@@ -147,6 +147,13 @@ def test_catia_license_states_track_the_visible_signals(tmp_path: Path) -> None:
     report = _probe(env, tmp_path).probe("catia")
     assert report.components["license"].status == "present"
 
+    # A stray README is not a grant: the directory must carry a real .lic
+    # file for the DSLS signal to count, otherwise the answer stays unknown.
+    (licenses / "dsy.lic").unlink()
+    (licenses / "README.txt").write_text("docs")
+    report = _probe(env, tmp_path).probe("catia")
+    assert report.components["license"].status == "unknown"
+
 
 def test_abaqus_software_found_via_abaqus_home(tmp_path: Path) -> None:
     home = tmp_path / "Abaqus" / "2024"
@@ -169,6 +176,23 @@ def test_abaqus_software_found_via_simulia_commands(tmp_path: Path) -> None:
     ).probe("abaqus")
 
     assert report.components["software"].status == "present"
+
+
+def test_abaqus_cae_year_dir_is_version_evidence_but_junk_is_not(tmp_path: Path) -> None:
+    cae = tmp_path / "SIMULIA" / "CAE"
+    cae.mkdir(parents=True)
+    (cae / "scratch").mkdir()
+    report = _probe(
+        {"IDEER_ABAQUS_MCP_DIR": str(tmp_path / "absent")}, tmp_path
+    ).probe("abaqus")
+    assert report.components["software"].status == "missing"
+
+    (cae / "2024").mkdir()
+    report = _probe(
+        {"IDEER_ABAQUS_MCP_DIR": str(tmp_path / "absent")}, tmp_path
+    ).probe("abaqus")
+    assert report.components["software"].status == "present"
+    assert "2024" in report.components["software"].detail
 
 
 def test_abaqus_plugin_needs_server_dir_and_entry_script(tmp_path: Path) -> None:
@@ -384,6 +408,15 @@ def test_result_registration_refuses_missing_and_directory_paths(tmp_path: Path)
             logical_path="/workspace/dir",
         )
     assert directory.value.code == "NOT_A_FILE"
+
+    # A malformed task must not masquerade as a boundary escape: an empty
+    # target is an invalid argument, not OUTSIDE_ALLOWED_ROOTS.
+    with pytest.raises(FileAccessError) as empty:
+        register_engineering_result(
+            store=store, registry=registry, binding=binding, tool="catia",
+            logical_path="",
+        )
+    assert empty.value.code == "INVALID_PATH"
 
 
 # ---------------------------------------------------------------------------

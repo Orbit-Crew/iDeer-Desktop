@@ -868,8 +868,8 @@ class LocalRuntimeClient:
                         operation, task_id, envelope.payload, PolicyDecision.DENY
                     )
                     return
-                payload87 = dict(envelope.payload)
-                arguments = payload87.get("arguments", payload87.get("args", payload87))
+                payload = dict(envelope.payload)
+                arguments = payload.get("arguments", payload.get("args", payload))
                 logical_path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""
                 from .local_results import LocalResultError
 
@@ -880,8 +880,8 @@ class LocalRuntimeClient:
                         binding=self.receipt_binding(),
                         tool=RESULT_OPERATIONS[operation],
                         logical_path=logical_path,
-                        thread_id=str(payload87.get("thread_id", "")),
-                        run_id=str(payload87.get("run_id", "")),
+                        thread_id=str(payload.get("thread_id", "")),
+                        run_id=str(payload.get("run_id", "")),
                         task_id=task_id,
                     )
                 except LocalResultError:

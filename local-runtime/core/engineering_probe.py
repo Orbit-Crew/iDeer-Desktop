@@ -17,15 +17,27 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
-#: The one status per probed component; ``unknown`` is an honest answer when
-#: a license cannot be confirmed without launching the software itself.
-PRESENT = "present"
-MISSING = "missing"
-UNKNOWN = "unknown"
+from .compat import StrEnum
 
 CATIA = "catia"
 ABAQUS = "abaqus"
 TOOLS = (CATIA, ABAQUS)
+
+CATIA = "catia"
+ABAQUS = "abaqus"
+TOOLS = (CATIA, ABAQUS)
+
+#: The one status per probed component; ``unknown`` is an honest answer when
+#: a license cannot be confirmed without launching the software itself.
+class ProbeStatus(StrEnum):
+    PRESENT = "present"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+PRESENT = ProbeStatus.PRESENT
+MISSING = ProbeStatus.MISSING
+UNKNOWN = ProbeStatus.UNKNOWN
 
 #: The probe capability is always announced once this service exists; the
 #: ready capability only rides along while every component answers present.
@@ -47,14 +59,12 @@ _HASH_CHUNK_BYTES = 1 << 20
 
 _VERSION_PATTERNS = (re.compile(r"\b[Bb](\d{2})\b"), re.compile(r"\b(20\d{2})\b"))
 
-
-class EngineeringProbeError(RuntimeError):
-    """A fixed-category probe failure; safe to surface as an error code."""
+_RELEASE_YEAR_PATTERN = re.compile(r"20\d{2}")
 
 
 @dataclass(frozen=True)
 class ComponentState:
-    status: str
+    status: ProbeStatus
     detail: str = ""
     hint: str = ""
 
@@ -191,11 +201,12 @@ def _catia_license_state(env: Mapping[str, str]) -> ComponentState:
     program_data = _dir(env, "ProgramData")
     if program_data is not None:
         licenses = program_data / "DassaultSystemes" / "Licenses"
-        # A DSLS grant shows up as content in the license directory; an
+        # A DSLS grant shows up as an actual .lic file; a stray README or an
         # empty directory proves nothing, so it stays an honest unknown.
         if _is_dir(licenses):
             try:
-                entries = list(licenses.iterdir())
+                entries = [entry for entry in licenses.iterdir()
+                           if entry.is_file() and entry.suffix.lower() == ".lic"]
             except OSError:
                 entries = []
             if entries:
@@ -227,7 +238,10 @@ def _abaqus_software_state(env: Mapping[str, str]) -> ComponentState:
             detail = f"{version} ({base})" if version else str(base)
             return ComponentState(PRESENT, detail=detail)
         for year in _child_dirs(base / "CAE"):
-            return ComponentState(PRESENT, detail=f"{year.name} ({year})")
+            # The CAE folder carries exactly the release years; an arbitrary
+            # subdirectory is not a version, so it is not claimed as one.
+            if _RELEASE_YEAR_PATTERN.fullmatch(year.name):
+                return ComponentState(PRESENT, detail=f"{year.name} ({year})")
     return ComponentState(
         MISSING,
         hint="未检测到 Abaqus 安装:请安装 Abaqus/CAE,或设置环境变量 ABAQUS_HOME "
@@ -311,10 +325,15 @@ def register_engineering_result(
     hash and size join the display registry, exactly like workspace-write
     facts do.
     """
-    from .files import LOCKED_OR_UNAVAILABLE, NOT_A_FILE, NOT_FOUND, FileAccessError
+    from .files import (INVALID_PATH, LOCKED_OR_UNAVAILABLE, NOT_A_FILE, NOT_FOUND,
+                        FileAccessError)
 
     if tool not in TOOLS:
         raise ValueError("unsupported probe tool")
+    if not isinstance(logical_path, str) or not logical_path:
+        # An empty target must not masquerade as a boundary escape: refusing
+        # it as a malformed argument keeps the fixed codes honest.
+        raise FileAccessError(INVALID_PATH, "invalid logical path")
     root, path = store.resolve_with_root(logical_path)
     if not path.exists():
         raise FileAccessError(NOT_FOUND, "file not found")
@@ -372,7 +391,7 @@ class EngineeringSoftwareProbe:
                 "license": _abaqus_license_state(self.env),
             }
         else:
-            raise EngineeringProbeError("unsupported probe tool")
+            raise ValueError("unsupported probe tool")
         return ProbeReport(tool=tool, components=components)
 
     def capability_names(self) -> tuple[str, ...]:

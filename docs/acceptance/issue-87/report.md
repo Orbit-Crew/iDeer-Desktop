@@ -63,13 +63,14 @@ filesystems, so machine state never leaks into a verdict.
 | T87-01 | Every missing component (software/plugin/python/license-unknown) carries its own non-empty hint; hints are pairwise distinct; license with no signal is `unknown`, not `missing` | passed (`test_engineering_probe.py`) |
 | T87-02 | CATIA software found via `Program Files\Dassault Systemes\B31\win_b64` with the release in the detail; `CATINSTALLDIR` variant found with version parsed from the path | passed |
 | T87-03 | CATIA plugin needs the server dir **and** the `catia_mcp` module; dir-without-module is missing with the module-specific hint | passed |
-| T87-04 | CATIA license: `CATALICENCE_FILE` to an existing file → present; to a dangling path → missing; unset → unknown; DSLS license dir with content → present; empty dir stays unknown | passed |
+| T87-04 | CATIA license: `CATALICENCE_FILE` to an existing file → present; to a dangling path → missing; unset → unknown; DSLS license dir with a real `.lic` → present; dir with only a README (or empty) stays unknown | passed |
 | T87-05 | Abaqus software found via `ABAQUS_HOME` (code-dir evidence, year in detail) and via `SIMULIA\Commands\abaqus.bat` | passed |
+| T87-05b | Abaqus `SIMULIA\CAE\<year>` is version evidence only for real year-named dirs; an arbitrary subdirectory is not claimed as a version | passed |
 | T87-06 | Abaqus plugin needs the server dir **and** `mcp_server.py`; license: `27000@server` → present, dangling file path → missing, unset → unknown | passed |
 | T87-07 | Python: found on the injected PATH; absent PATH reported missing with hint | passed |
 | T87-08 | Readiness gating: all four present → ready; one signal removed → not ready, `local.<tool>.ready` drops from the announcement while the probe capability stays | passed |
 | T87-09 | Probe operation wire shape: tool/ready/components/hints, JSON-serializable; unknown probe operation refused | passed |
-| T87-10 | Result registration inside the boundary records capability/logical_root/sha256/bytes into the registry and returns the fact; outside-boundary, missing, and directory paths refuse with `OUTSIDE_ALLOWED_ROOTS` / `NOT_FOUND` / `NOT_A_FILE` and record nothing | passed |
+| T87-10 | Result registration inside the boundary records capability/logical_root/sha256/bytes into the registry and returns the fact; outside-boundary, missing, and directory paths refuse with `OUTSIDE_ALLOWED_ROOTS` / `NOT_FOUND` / `NOT_A_FILE`, an empty target refuses as `INVALID_PATH` (never masquerading as a boundary escape), and nothing is recorded on any refusal | passed |
 | T87-11 | Probe task round trip over the wire: TASK_RESULT carries the report and an allow receipt; probe capabilities announced by a runtime with the service; none announced without it | passed (`test_engineering_probe.py` transport section) |
 | T87-12 | Readiness flip republishes capabilities: HELLO announces ready, license signal removed, probe task answered, CAPABILITY_UPDATE arrives after the ACK without `local.catia.ready` and with the probe capability | passed |
 | T87-13 | Result task round trip: in-boundary registration completes with the fact and receipt; out-of-boundary path errors with `OUTSIDE_ALLOWED_ROOTS` | passed |
@@ -112,11 +113,27 @@ filesystems, so machine state never leaks into a verdict.
    command, exactly like workspace-write facts. The actual job execution
    and its result files are produced by the external loop (iDeer
    #124/#125), not by this desktop change.
+5. The capability announcement is a name list by wire contract, so
+   安装/版本/许可状态 reach the session through the probe task's result
+   (per-component detail strings) while the announcement itself carries
+   the binary `local.<tool>.ready` projection of that state.
+6. The live announcement recomputes the probe state on each
+   HELLO/capability computation — deliberately, so readiness never rides
+   stale state. The probes are plain existence checks on local install
+   paths (the same class of filesystem read the file capabilities do); no
+   subprocess is spawned and no network path is consulted.
+7. On the real desktop runtime the result-registration surface becomes
+   reachable through the desktop hub's existing local-result registry
+   injection (`core/desktop.py` assigns `controller.client.local_results`
+   before the session starts); the tray constructor itself stays
+   unchanged in that respect, matching how #105's write facts already
+   reach the same registry.
 
 ## Executed commands
 
 | Command | Result |
 | --- | --- |
-| `python -m pytest tests/test_engineering_probe.py -q` | 22 passed |
+| `python -m pytest tests/test_engineering_probe.py -q` | 23 passed |
 | `python -m pytest tests -q` (full runtime suite) | see the PR description for the final count recorded at execution time |
 | `python -m ruff check core/engineering_probe.py core/transport.py core/policy.py core/files.py core/cli.py core/tray.py core/__init__.py tests/test_engineering_probe.py` | All checks passed |
+| `python scripts/verify-runtime-source.py` | Verified pinned Runtime sources from ccb251e0 (provenance `modified` entries extended for #87) |
