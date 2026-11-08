@@ -19,6 +19,7 @@
 ```sh
 npm ci
 npm run verify:provenance
+npm run verify:third-party
 npm run typecheck
 npm test
 npm run build
@@ -31,6 +32,17 @@ pwsh -File scripts/windows-install-smoke.ps1
 
 `npm run test:security` 是固定快速安全回归，已包含于 `npm test`，不重复计数。
 它核查真实构建依赖图无旧模型/MCP/终端执行依赖，以及 preload 仅有两项 IPC。
+
+发布前置检查含第三方资源核验（#88）：`npm run verify:third-party`
+（scripts/verify-third-party.cjs）对照 resources/provenance/third-party-inventory.json
+逐项核验随包/不随包第三方资源——随包未登记、登记未随包、指纹漂移
+（linz-source.json occt 固定、distribution.lock.json、package-lock.json、
+electron-builder.yml）、devDependency 误报随包、THIRD_PARTY_NOTICES.md 清单漂移
+及新增未核验项均以类型化错误退出非零。唯一人工门 linz-license-grant
+（linz 上游授权文本）解决前，安装包仅为候选件、不得对外分发；解决或新增人工门
+须同时修订清单 humanGates 与脚本内 TRACKED_HUMAN_GATES 一并评审。
+逐项台账见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。
+
 startup 测试通过公开 UI 验证不可用状态。兼容测试覆盖克隆和流解码的已知上游缺口。
 desktop smoke 启动真实 Electron，检查 Node 16、隔离目录、最小桥接、拒绝外部页面 IPC、
 导航/弹窗/CSP、侧栏操作、退出和 native close，并确认旧数据固定件未变。
