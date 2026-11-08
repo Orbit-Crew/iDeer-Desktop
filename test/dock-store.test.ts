@@ -370,3 +370,23 @@ describe('device-local persistence', () => {
     expect(findAnchorPane(repaired!)).not.toBeNull()
   })
 })
+
+describe('autoLoad pending paths (issue 117)', () => {
+  it('stores one pending path per panel type, newest wins', () => {
+    hydrate()
+    useDockStore.getState().requestAutoLoad('viewer3d', '/a.stl')
+    useDockStore.getState().requestAutoLoad('field', '/a.dat')
+    useDockStore.getState().requestAutoLoad('viewer3d', '/b.stl')
+    expect(useDockStore.getState().autoLoad).toEqual({ viewer3d: '/b.stl', field: '/a.dat' })
+    useDockStore.getState().clearAutoLoad('viewer3d')
+    expect(useDockStore.getState().autoLoad).toEqual({ field: '/a.dat' })
+    useDockStore.getState().clearAutoLoad('field')
+    expect(useDockStore.getState().autoLoad).toEqual({})
+  })
+
+  it('clearing an absent entry is a no-op', () => {
+    hydrate()
+    expect(() => useDockStore.getState().clearAutoLoad('viewer3d')).not.toThrow()
+    expect(useDockStore.getState().autoLoad).toEqual({})
+  })
+})

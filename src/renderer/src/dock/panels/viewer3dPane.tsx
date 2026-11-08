@@ -6,9 +6,11 @@
 // WebGL, or the software 2D canvas when WebGL cannot be created — and refuses
 // to invent anything: caps, parse failures and an unbound workspace are all
 // explicit states, the loaded model's real size is shown as stats, and
-// geometry editing (out of scope by issue) has no control here. The
-// conversation→pane auto-load command (#117 结果自动开窗) is deliberately not
-// part of this surface.
+// geometry editing (out of scope by issue) has no control here. Issue 117:
+// the conversation→pane auto-load command is part of this surface — a task
+// result inside the current workspace grant opens this pane and loads its
+// file through the same trusted channel as a hand-typed path; nothing about
+// authorization or upload changes.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Input, Select, Spin, Typography, message } from 'antd'
 import { FolderOpenOutlined, PlayCircleOutlined } from '@ant-design/icons'
@@ -153,6 +155,18 @@ export default function Viewer3dPane({ instanceId, panelType, api }: {
     void message.info('WebGL 不可用，已切换到软件渲染')
     setEngine('canvas')
   }, [])
+
+  // Issue 117: consume a pending auto-load path once the workspace is ready —
+  // earlier than that, the read would only burn the one shot on an unbound
+  // workspace error, so a pending path waits here instead.
+  const autoLoadPath = useDockStore((state) => state.autoLoad.viewer3d)
+  const clearAutoLoad = useDockStore((state) => state.clearAutoLoad)
+  useEffect(() => {
+    if (!workspaceReady || !autoLoadPath) return
+    setPath(autoLoadPath)
+    void open(autoLoadPath)
+    clearAutoLoad('viewer3d')
+  }, [workspaceReady, autoLoadPath, open, clearAutoLoad])
 
   if (!workspaceReady) {
     return <div className="h-full w-full flex flex-col items-center justify-center gap-3 p-6 text-center" style={{ background: 'var(--pane-bg, #F4F6FA)' }} data-instance={instanceId}>

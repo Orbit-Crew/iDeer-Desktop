@@ -38,6 +38,10 @@ export interface LocalResultView {
   bytes: number
   artifact_ref: string
   uploaded_at: string
+  /** Issue 117: the Runtime's verdict on where this result lands under the
+   * CURRENT workspace grant, re-derived per snapshot (never stored). Absent
+   * or anything but 'inside' means the device must not auto-open it. */
+  workspace_state?: 'inside' | 'protected' | 'outside'
 }
 export interface PlatformArtifact { artifact_id: string; name: string; sha256: string; bytes: number }
 /** Issue 112: device-local display fact for one explicit knowledge import. */

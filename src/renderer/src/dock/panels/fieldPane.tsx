@@ -7,8 +7,10 @@
 // viewer under review in #151). Display modes stay the original three
 // (实体/线框/点云) with the original blue→gray→red scalar coloring; everything
 // outside the subset — FE zones, binary files, truncated reads, skipped
-// zones, non-finite values — is announced, never faked. Chat→pane auto-open
-// is #117's scope.
+// zones, non-finite values — is announced, never faked. Issue 117: chat→pane
+// auto-open is part of this surface — a task result inside the current
+// workspace grant opens this pane and reads its file through the same
+// guarded seam as a hand-typed path; upload and authorization stay untouched.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DesktopBridge, DesktopStatus, FilesPreview } from '../../../../shared/desktop'
 import { previewErrorText } from '../../components/FilePanel'
@@ -131,6 +133,17 @@ export default function FieldPane({ instanceId, panelType, api }: {
     const scalar = scalarVariablesOf(parsed.variables)
     if (!scalar.includes(activeVar)) setActiveVar(scalar[0] ?? '')
   }, [parsed, activeVar])
+
+  // Issue 117: consume a pending auto-load path once the workspace is ready;
+  // before that the guarded read can only refuse, so the path waits here.
+  const autoLoadPath = useDockStore((state) => state.autoLoad.field)
+  const clearAutoLoad = useDockStore((state) => state.clearAutoLoad)
+  useEffect(() => {
+    if (!workspaceReady || !autoLoadPath || busy) return
+    setPath(autoLoadPath)
+    void load(autoLoadPath)
+    clearAutoLoad('field')
+  }, [workspaceReady, autoLoadPath, busy, load, clearAutoLoad])
 
   if (!workspaceReady) {
     return (

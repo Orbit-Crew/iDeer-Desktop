@@ -70,3 +70,19 @@ export function defaultTitle(id: PanelTypeId, index: number): string {
   if (id === 'terminal') return `终端 ${index}`
   return PANEL_META[id].title
 }
+
+// Issue 117: task result kind → pane mapping for the auto-open trigger. The
+// table is the single extension point: add a lowercase-extension row naming a
+// single-instance panel and the trigger picks it up; a result whose extension
+// is unlisted is never auto-opened. Entries mirror the surfaces that can
+// actually render the kind (CAD extensions match the trusted cadPane
+// whitelist; Tecplot ASCII rides the field pane's structured-IJK subset).
+export const RESULT_PANE_TYPES: Record<string, PanelTypeId> = {
+  '.stl': 'viewer3d',
+  '.obj': 'viewer3d',
+  '.stp': 'viewer3d',
+  '.step': 'viewer3d',
+  '.plt': 'field',
+  '.dat': 'field'
+}
+
