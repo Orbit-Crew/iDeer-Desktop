@@ -14,3 +14,6 @@ docs/acceptance/issue-43/evidence/** -text
 # the committed occt-import-js.js must keep the exact CRLF bytes the pins were
 # taken over, and the .wasm stays raw binary.
 resources/occt/** -text
+# The generated NSIS component script is byte-pinned by tests against the
+# generator output; keep it LF everywhere so the pin cannot drift on checkout.
+resources/nsis/components.nsh text eol=lf

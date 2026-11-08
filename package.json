@@ -13,6 +13,7 @@
     "typecheck": "node scripts/project-env.cjs tsc --noEmit -p tsconfig.node.json && node scripts/project-env.cjs tsc --noEmit -p tsconfig.web.json",
     "test": "node --test test/project-env.test.cjs && node scripts/project-env.cjs vitest run",
     "test:security": "node scripts/project-env.cjs vitest run test/security.test.ts",
+    "test:components": "node scripts/project-env.cjs vitest run test/component-catalog.test.ts test/component-pack.test.ts test/nsis-components.test.ts",
     "test:desktop": "node scripts/project-env.cjs node scripts/desktop-smoke.cjs",
     "pack": "npm run build && node scripts/project-env.cjs electron-builder --dir",
     "dist:win": "npm run build && node scripts/project-env.cjs electron-builder --win nsis --x64",
@@ -22,6 +23,8 @@
     "test:runtime": "node scripts/project-env.cjs python -m pytest local-runtime/tests -q",
     "verify:provenance": "node scripts/project-env.cjs node scripts/verify-provenance.cjs",
     "verify:third-party": "node scripts/project-env.cjs node scripts/verify-third-party.cjs",
+    "components:generate": "node scripts/project-env.cjs node scripts/generate-component-nsis.cjs",
+    "components:pack": "node scripts/project-env.cjs node scripts/component-pack.cjs",
     "paths": "node scripts/project-env.cjs --print-env",
     "test:paths": "node --test test/project-env.test.cjs"
   },

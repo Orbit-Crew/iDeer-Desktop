@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "tiers": [
+    {
+      "id": "minimal",
+      "name": "最小安装",
+      "description": "仅主程序与内置 Python Runtime（应用离开 Runtime 无法工作）；不含可选工程组件"
+    },
+    {
+      "id": "typical",
+      "name": "常用安装",
+      "description": "主程序、内置 Runtime 与常用工程组件（CAD 查看器）"
+    },
+    {
+      "id": "custom",
+      "name": "自定义",
+      "description": "从常用配置开始，自行勾选各工程组件"
+    }
+  ],
+  "components": [
+    {
+      "id": "cad-viewer",
+      "name": "CAD 查看器",
+      "description": "STEP 模型三维预览（OpenCASCADE WASM 转换引擎，来自 linz 固定提交）",
+      "status": "available",
+      "tiers": { "minimal": false, "typical": true, "custom": true },
+      "artifact": {
+        "source": "resources/occt",
+        "dest": "resources/occt",
+        "files": ["occt-import-js.js", "occt-import-js.wasm"]
+      },
+      "provenance": { "file": "resources/provenance/linz-source.json", "prefix": "resources/occt/" }
+    },
+    {
+      "id": "tecplot-panel",
+      "name": "Tecplot 面板",
+      "description": "Tecplot 数据文件读取与场图面板",
+      "status": "bundled",
+      "note": "随主程序内置，无需单独安装"
+    },
+    {
+      "id": "catia-abaqus",
+      "name": "CATIA/Abaqus 配套组件",
+      "description": "CATIA/Abaqus 模型配套处理组件",
+      "status": "pending",
+      "note": "需待 #87 落地后随离线组件包补装"
+    }
+  ]
+}
