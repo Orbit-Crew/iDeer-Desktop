@@ -339,7 +339,14 @@ class KnowledgeImportRegistry:
                 # Issue 96: the workspace-logical source and the platform
                 # project identity are device-local display facts kept with
                 # the row; older databases gain the columns with empty defaults.
-                for column in ("source TEXT NOT NULL DEFAULT ''", "project_id TEXT NOT NULL DEFAULT ''"):
+                # Issue 101: the version-semantics columns — the cleanup marker
+                # (本机原件与索引已清理, references report 原件已不在) and the
+                # successor a document-level delete formed (删除=库新版本, the
+                # historical row stays traceable). Older databases gain the
+                # columns with empty defaults.
+                for column in ("source TEXT NOT NULL DEFAULT ''", "project_id TEXT NOT NULL DEFAULT ''",
+                               "originals_missing INTEGER NOT NULL DEFAULT 0",
+                               "superseded_by TEXT NOT NULL DEFAULT ''"):
                     try:
                         db.execute(f"ALTER TABLE knowledge_imports ADD COLUMN {column}")
                     except sqlite3.OperationalError:
@@ -458,12 +465,19 @@ class KnowledgeImportRegistry:
                 view["parse"] = document["parse"]
             views.append(view)
         project_id = row["project_id"] if "project_id" in row.keys() else ""
+        # Issue 101: the version-semantics display facts. originals_missing is
+        # the user-confirmed cleanup marker (旧引用标"原件已不在"); superseded_by
+        # names the successor revision a document-level delete formed.
+        originals_missing = bool(row["originals_missing"]) if "originals_missing" in row.keys() else False
+        superseded_by = row["superseded_by"] if "superseded_by" in row.keys() else ""
         return {
             "id": row["identity"], "kbId": row["kb_id"], "revisionId": row["revision_id"],
             "revisionNo": row["revision_no"], "manifestHash": row["manifest_hash"],
             "documentCount": row["document_count"], "status": row["status"],
             "errorCode": row["error_code"], "createdAt": row["created_at"],
             "projectId": project_id if isinstance(project_id, str) else "",
+            "originalsMissing": originals_missing,
+            "supersededBy": superseded_by if isinstance(superseded_by, str) else "",
             "source": cls._source_view(row, with_paths=with_source_paths),
             "documents": views,
         }
@@ -526,6 +540,38 @@ class KnowledgeImportRegistry:
                 total += db.execute("DELETE FROM knowledge_imports WHERE binding=? AND identity=?",
                                     (self._encoded(binding), identity)).rowcount
             return total
+
+        return self._execute(write)
+
+    def mark_originals_missing(self, binding, kb_id: str, revision_id: str,
+                               missing: bool = True) -> bool:
+        """Set (or clear) the user-confirmed cleanup marker for one revision
+        (#101). Physical cleanup is the user's separate choice: the marker is
+        the honest display fact that this revision's 本机原件与设备索引 are
+        cleaned up, so every old reference reports 原件已不在. The row itself
+        stays on the books — history is never erased by a cleanup."""
+
+        def write(db):
+            cursor = db.execute(
+                "UPDATE knowledge_imports SET originals_missing=? WHERE binding=? AND kb_id=? AND revision_id=?",
+                (1 if missing else 0, self._encoded(binding), str(kb_id)[:128], str(revision_id)[:128]))
+            return cursor.rowcount > 0
+
+        return self._execute(write)
+
+    def mark_superseded(self, binding, identity: str, successor_revision_id: str) -> bool:
+        """Record the successor revision a document-level delete formed (#101).
+
+        删除=库新版本: the historical row keeps its documents and gains the
+        pointer to the revision the remaining documents registered as, so the
+        version chain stays traceable device-side while the platform keeps
+        every registered revision anyway."""
+
+        def write(db):
+            cursor = db.execute(
+                "UPDATE knowledge_imports SET superseded_by=? WHERE binding=? AND identity=?",
+                (str(successor_revision_id)[:128], self._encoded(binding), str(identity)[:128]))
+            return cursor.rowcount > 0
 
         return self._execute(write)
 

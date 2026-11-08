@@ -36,6 +36,13 @@ const bridge: DesktopBridge = Object.freeze({
   cancelKnowledgeIndexRebuild: () => ipcRenderer.invoke('desktop:knowledge:index-rebuild-cancel'),
   deleteKnowledgeImports: (ids: string[]) => ipcRenderer.invoke('desktop:knowledge:delete', ids),
   retryKnowledgeImport: (recordId: string) => ipcRenderer.invoke('desktop:knowledge:retry', recordId),
+  // Issue 101: 删除=库新版本 (document-level delete registering the successor
+  // revision) and the separate physical cleanup (purge index + snapshots,
+  // mark 原件已不在) — both confirmed in the trusted main process.
+  deleteKnowledgeDocuments: (kbId: string, revisionId: string, contentHashes: string[]) =>
+    ipcRenderer.invoke('desktop:knowledge:delete-documents', kbId, revisionId, contentHashes),
+  cleanupKnowledgeRevision: (kbId: string, revisionId: string, manifestHash: string) =>
+    ipcRenderer.invoke('desktop:knowledge:cleanup', kbId, revisionId, manifestHash),
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),
   knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   knowledgeWiki: (command: WikiCommand) => ipcRenderer.invoke('desktop:knowledge:wiki', command),

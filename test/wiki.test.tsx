@@ -361,3 +361,31 @@ describe('wiki graph navigation with overview, neighborhood, clear, and rebuild 
     expect(renderSection({ wiki: null, navigation: null })).toContain('aria-label="生成Wiki R1"')
   })
 })
+
+describe('offline snapshot annotation (#101)', () => {
+  it('labels the cached page list and cached page body as 离线快照 while live views stay unlabeled', () => {
+    const offlineView: WikiView = { ...wikiView, offline: true, capturedAt: '2026-11-07T01:00:00Z' }
+    const html = renderSection({ wiki: offlineView })
+    expect(html).toContain('离线快照')
+    expect(html).toContain('2026-11-07T01:00:00Z 生成')
+    expect(html).toContain('平台当前不可达')
+    // A live view never claims the annotation.
+    expect(renderSection({ wiki: wikiView })).not.toContain('离线快照')
+    const offlinePage: WikiPage = { ...wikiPage, offline: true, capturedAt: '2026-11-07T01:00:00Z' }
+    const pageHtml = renderSection({ wiki: offlineView, page: offlinePage })
+    expect(pageHtml).toContain('离线快照')
+    expect(pageHtml).toContain('展示本机缓存的页面正文')
+  })
+
+  it('labels a cached navigation index the same way', () => {
+    const navigationFixture: WikiNavigation = {
+      ...wikiView,
+      pages: [{ ...wikiView.pages[0], links: [], missingLinks: [], backlinks: [] }],
+      associations: { status: 'completed', generated: 1, failed: 0, sources: [], entities: [], relations: [] },
+      offline: true, capturedAt: '2026-11-07T01:00:00Z'
+    }
+    const html = renderSection({ wiki: null, navigation: navigationFixture })
+    expect(html).toContain('离线快照')
+    expect(html).toContain('展示最后一次成功查看的导航索引')
+  })
+})
