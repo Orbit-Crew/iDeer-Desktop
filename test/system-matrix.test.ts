@@ -228,6 +228,12 @@ describe('system matrix validator', () => {
     noEntry.capabilities[0].systems.modernWindows.note = '与账本候选层分歧：说明原因'
     noEntry.capabilities[0].systems.modernWindows.entries = []
     expect(check(noEntry, ledger).join('\n')).toContain('issue 71 modernWindows 未记录 needs at least one execution entry')
+    // a non-array evidence value is a violation too, never a silent pass
+    const notArray = JSON.parse(JSON.stringify(matrix))
+    notArray.capabilities[0].systems.modernWindows.status = '未记录'
+    notArray.capabilities[0].systems.modernWindows.note = '与账本候选层分歧：说明原因'
+    notArray.capabilities[0].systems.modernWindows.evidence = 'docs/acceptance/issue-71/report.md'
+    expect(check(notArray, ledger).join('\n')).toContain('issue 71 modernWindows 未记录 must carry no evidence')
   })
 
   it('reserves 不适用 for governance rows, demands a note, and guards Win7 能力 exclusations with evidence', () => {

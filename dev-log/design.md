@@ -1,74 +1,61 @@
-# Issue #100 design decisions (settled before code)
+# Issue #120 design decisions (settled before code)
 
-## D1 — Renderer-only surface; no bridge, IPC, or platform changes
+## D1 — A system-axis sibling, not a ledger extension
 
-The Server's wiki navigation endpoint
-(`GET …/knowledge-revisions/{rid}/wiki/navigation`, built for old-numbering
-#119) already projects everything the graph needs: pages with honest
-`completed/skipped/failed/not_generated` statuses, resolved links, explicit
-missing targets, backlinks as the exact inverse of links, and the frozen
-document sources. The gap analysis (K05) names the Desktop gap as the
-canvas/organization, not the protocol. So #100 adds zero protocol surface:
-no `WikiCommand` action, no `src/shared/desktop.ts` type, no
-`runtime.ts`/`desktop.py`/`platform_chat.py` change, no
-`test/security.test.ts` channel-list update. This also keeps the branch
-conflict-free against the two open knowledge PRs (#153/#154), which do touch
-those files.
+The #89 ledger records layers × capability and its update protocol is
+candidate-driven ("只更新该候选实际触达的行"). #120 needs systems × capability —
+a different axis with a different update cadence (Win7 专项 lands in one future
+batch, modern cells drift with candidates). Extending `capability-ledger.json`
+with a per-system layer would entangle two protocols in one file and force a
+second validator into the ledger's locked schema. So the matrix is a sibling
+artifact (`system-matrix.json`) whose row set is **not re-enumerated**: the
+verifier reads the shipped ledger and locks row count/id/kind/name against it.
+A #70 sub-ticket change trips `verify:ledger`; matrix drift from the ledger
+trips `verify:matrix`. Each framework keeps one authority.
 
-## D2 — Deterministic graph model, no layout engine
+## D2 — Lockstep on the modern column, divergence must say why
 
-`wikiGraphModel.ts` derives nodes/edges/positions purely from the navigation
-payload: overview lays every page on one circle in manifest order; 邻域
-centers the selected page and rings its one-hop and two-hop closure over
-links ∪ backlinks (mirroring the original linz ego mode's depth 2), capped
-at 60 nodes. No cytoscape/d3 dependency (the pinned dependency list in
-`test/security.test.ts` must not grow), no randomness, no animation — the
-same index always draws the same picture, which is what makes the model
-unit-testable. Node radius grows with visible relations only (edges among
-rendered nodes), so size always names what is on screen.
+All acceptance so far happened on modern Windows, so the ledger's
+candidateAcceptance layer IS the modern story. To avoid double bookkeeping
+drift, the matrix's modernWindows cells mirror that layer verbatim, and the
+validator enforces equality — a differing status is invalid unless the cell
+carries a note explaining why (e.g. ledger update lag). Initial accounting has
+zero divergence. The matrix can never run ahead of the ledger narrative.
 
-Honesty rules carried over from the text index: an unresolved link target
-never becomes a node or edge (it stays an explicit dead end in the page
-rows below the canvas); a skipped/failed page in the closure renders with
-its own status color and is never clickable into a body; backlink rows are
-not drawn as second edges — edges come from `links` only, and the closure
-walk uses backlinks purely to reach referencing pages.
+## D3 — Execution entries are the deliverable, not decoration
 
-## D3 — 清空/重建 semantics with the Server as owner
+T131-01 requires "逐项登记责任人与执行入口" before any scenario runs. A matrix
+of 92 identical 未执行 cells would be honest but useless; per-cell registered
+entries (automated test paths, whitelisted commands, T131/W7 scenario anchors,
+bounded manual walkthroughs) are what make each grid executable later. Hence
+the rule that open win7 cells must keep a scenario anchor, and every open cell
+must register at least one entry. Entries are registration, never evidence —
+`未记录` stays zero-evidence.
 
-The original linz wiki stored pages locally, so 清空 deleted them. On the
-platform, pages are Server-owned per frozen revision and the gateway has no
-DELETE wiki route (verified: only POST generate, GET view/page/navigation).
-The honest Desktop translation, matching "生成绑定库 Revision，清空后可重建":
+## D4 — 不硬凑 as a validator rule
 
-- 清空展示状态 (Popconfirm): clears only this device's derived display
-  state (view, navigation, page bodies in `RuntimePanel`) via `onClear`.
-  The confirm copy states that Server pages stay, a re-view shows them
-  again, and a rebuild replaces them per page — the surface never claims a
-  Server deletion that did not happen.
-- 重建: the existing `generate` action, which the Server performs as a
-  per-document drop-and-rewrite (idempotent rebuild of every page from the
-  frozen manifest). The per-revision button reads 重新生成 once that
-  revision's displayed state is not `not_generated`, and 生成Wiki before.
+"上不了 Win7 的能力逐项明示（不硬凑、不默默砍）" becomes machinery: a
+capability row may claim win7 `不适用` only with in-tree incompatibility
+evidence attached plus a reason note; on modern Windows a capability row can
+never opt out (it must be attempted there first). 不适用 is otherwise reserved
+for 治理 rows, mirroring the ledger's reservation.
 
-## D4 — 来源标注到文档与位置
+## D5 — Stack integration base, disclosed
 
-`wikiSourceLine` renders `来源 {filename} · 冻结位置 {i}/{n} · 文档指纹：
-{sha256}` on both page lists and the selected node. The position is the
-row's index inside the revision's frozen manifest order — the only honest
-"位置" the platform states (pages are generated per whole document; the
-payload carries no in-document locators, and none are invented). The
-association coverage rows keep their existing format: they are the #116
-graph rows' own sources, already document- and digest-bound.
+#120's blockers (#119/#88 + the ledger from #89) were complete but unmerged.
+Merging them myself is not my call; waiting idle helps nobody. The branch
+merges the three PR branches into its base as explicit merge commits, keeps the
+#120-specific diff cleanly separated on top, and the PR states the merge-order
+constraint (162/163/164 first). The three branches were authored to coexist
+(#163: "对 PR #162 的 occt 重打包方向兼容，合并顺序无约束"; #164: "本 PR 刻意不碰
+工作流文件"), so the union is designed-for. Conflict surface seen: two
+`.gitattributes` hunks (union kept #162's superset) and package.json scripts
+(union). All three verifiers pass on the base before any #120 work started.
 
-## D5 — Component structure and state
+## D6 — Governance rows keep their ledger semantics
 
-`WikiGraphPanel` owns the two display-only states (mode, selected node) as
-local component state; they are view preferences, not data, and reset
-naturally when the panel unmounts (each 清空/view/navigate swap in
-`RuntimePanel` does exactly that). `WikiSection` stays a projection of its
-props, gaining only the optional `onClear` callback and the 重新生成 label
-decision. Tests follow the file's existing split: static markup via
-`renderToStaticMarkup` for projections, jsdom + `@testing-library/react`
-interactions for the new behaviors (the file gains the `@vitest-environment
-jsdom` header; `renderToStaticMarkup` works unchanged under jsdom).
+p6-47 (this ticket) and p6-48 (#89 framework) stay 治理 in the matrix. p6-48 is
+不适用 on both systems with a reason note (the framework has no installed
+surface), mirroring the ledger. p6-47 stays 未记录/未执行 with `T131-01` as its
+win7 anchor — this matrix is literally T131-01's traceability-matrix row
+source, so the ticket points at itself honestly.

@@ -159,7 +159,7 @@ function checkCell(cell, system, row, ledgerRow, findings, resolvePath) {
       } else {
         checkEvidence(cell.evidence, label, findings, resolvePath)
       }
-    } else if (Array.isArray(cell.evidence) && cell.evidence.length > 0) {
+    } else if (!Array.isArray(cell.evidence) || cell.evidence.length > 0) {
       findings.push(`${label} 不适用 must carry no evidence`)
     }
     if (cell.note === null) {
@@ -177,7 +177,7 @@ function checkCell(cell, system, row, ledgerRow, findings, resolvePath) {
   }
 
   if (cell.status === '未记录') {
-    if (Array.isArray(cell.evidence) && cell.evidence.length > 0) {
+    if (!Array.isArray(cell.evidence) || cell.evidence.length > 0) {
       findings.push(`${label} 未记录 must carry no evidence`)
     }
     if (cell.lastVerified !== null) {
