@@ -99,10 +99,17 @@ async function main() {
     // Issue 102 adds the datasets entry: 表格数据集导入 — the renderer names
     // the action and the project association only; file picking and both
     // confirmations stay in the trusted main process.
+    // Issue 101 adds the revision-semantics doors deleteKnowledgeDocuments +
+    // cleanupKnowledgeRevision: the document-level delete registering the
+    // successor revision and the separate physical cleanup — both confirmed
+    // in the trusted main process.
+    // Issue 111 adds the Agent-terminal read doors terminalHistory +
+    // terminalStop: the one thread's bounded command history and the
+    // explicit stop — both served by the Runtime.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
-      'beginLogin', 'browser', 'cad', 'cancelKnowledgeIndexRebuild', 'chat', 'checkUpdates', 'chooseWorkspace', 'connectors', 'datasets', 'deleteKnowledgeImports', 'files', 'getStatus',
+      'beginLogin', 'browser', 'cad', 'cancelKnowledgeIndexRebuild', 'chat', 'checkUpdates', 'chooseWorkspace', 'cleanupKnowledgeRevision', 'connectors', 'datasets', 'deleteKnowledgeDocuments', 'deleteKnowledgeImports', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'rebuildKnowledgeIndex', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'threads'
+      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'rebuildKnowledgeIndex', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'startRuntime', 'stopRuntime', 'templates', 'terminalHistory', 'terminalStop', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

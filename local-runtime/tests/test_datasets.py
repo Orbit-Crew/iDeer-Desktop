@@ -43,8 +43,10 @@ from core.datasets import (
     parse_dataset,
 )
 from core.file_service import WorkspaceSelection
+from core.knowledge_import import KnowledgeImportRegistry
 from core.protocol import public_key_text
-from core.settings import RuntimeSettings
+from core.receipt_ledger import profile_binding
+from core.settings import RuntimeSettings, load_settings
 
 X_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
@@ -250,6 +252,9 @@ OWNER = {'server_origin': 'http://127.0.0.1:108', 'user_id': 'A', 'device_id': '
          'device_public_key': 'k1', 'broker_public_key': 'k2'}
 OTHER = dict(OWNER, user_id='B', device_id='D2')
 PROJECT = 'prj_102'
+# Issue 101: the optional knowledge revision binding's fixture identity.
+KB = '33333333-3333-4333-8333-333333333333'
+REVISION = '77777777-7777-4777-8777-777777777777'
 
 
 def make_registry(tmp_path: Path) -> DatasetRegistry:
@@ -657,6 +662,68 @@ def test_import_round_trip_records_status_and_dedups(tmp_path, monkeypatch) -> N
         assert frame["result"]["duplicate"] is True
         assert frame["result"]["duplicateOf"] == dataset_id
         harness.wait_for_status(lambda frame: len(frame["datasets"]) == 1)
+    finally:
+        harness.finish()
+
+
+def test_import_with_revision_binding_records_the_display_fact(tmp_path, monkeypatch) -> None:
+    # Issue 101: 一套版本规矩 — an import may name the doc-library revision
+    # it accompanies; the binding is a display fact on the row and an absent
+    # one stays unbound. The identity never changes with the binding, so the
+    # same content still dedups to the row it already has.
+    harness = make_datasets_harness(tmp_path, monkeypatch)
+    harness.select_workspace(seeded_work(tmp_path))
+    # The binding is fail-closed like every other version seam: seed one
+    # registered revision this identity actually owns, plus the registry the
+    # desktop loop's fence reads.
+    registry = KnowledgeImportRegistry(harness.config.with_name('knowledge-imports.db'))
+    registry.record(profile_binding(load_settings(harness.config)),
+                    dict(kb_id=KB, status='registered', revision_id=REVISION,
+                    revision_no=3, manifest_hash='c' * 64, document_count=1,
+                    documents=[{'filename': 'g.md', 'sha256': 'c' * 64,
+                                'bytes': 1, 'mime': 'text/plain'}]))
+    harness.start()
+    try:
+        content = b"a,b\n1,2\n"
+        source = picked_file(tmp_path, 'table.csv', content)
+        frame = harness.command({"type": "datasets", "id": "d-1", "action": "import",
+                                 "path": source, "projectId": PROJECT, "kbId": KB,
+                                 "revisionId": REVISION, "revisionNo": 3, "scope": harness.scope})
+        assert frame["error"] == ""
+        assert frame["result"]["imported"] is True
+        dataset_id = frame["result"]["datasetId"]
+        status = harness.wait_for_status(lambda frame: len(frame["datasets"]) == 1)
+        row = status["datasets"][0]
+        assert row["revision"] == {"kbId": KB, "revisionId": REVISION, "revisionNo": 3}
+        # The plain import key set stays valid: unbound rows read as None.
+        frame = harness.command({"type": "datasets", "id": "d-2", "action": "import",
+                                 "path": picked_file(tmp_path, 'other.csv', b"x,y\n3,4\n"),
+                                 "projectId": "", "scope": harness.scope})
+        assert frame["error"] == ""
+        status = harness.wait_for_status(lambda frame: len(frame["datasets"]) == 2)
+        unbound = [row for row in status["datasets"] if row["id"] != dataset_id][0]
+        assert unbound["revision"] is None
+        # A revision this identity never registered refuses fail-closed: a
+        # dataset can never display an identity it never accompanied.
+        frame = harness.command({"type": "datasets", "id": "d-3", "action": "import",
+                                 "path": picked_file(tmp_path, 'stray.csv', b"s\n1\n"),
+                                 "projectId": "", "kbId": KB,
+                                 "revisionId": '99999999-9999-4999-8999-999999999999',
+                                 "revisionNo": 9, "scope": harness.scope})
+        assert frame["error"] == "DATASETS_REVISION_UNKNOWN"
+        assert frame["result"] is None
+        # A malformed binding (kb without revision) is dropped by the wire
+        # gate — never guessed into an identity the row never had.
+        harness.command({"type": "datasets", "id": "d-4", "action": "import",
+                         "path": picked_file(tmp_path, 'bad.csv', b"z\n1\n"),
+                         "projectId": "", "kbId": KB, "scope": harness.scope},
+                        expect_reply=False)
+        probe = harness.command({"type": "datasets", "id": "ok-2", "action": "delete",
+                                 "datasetId": "missing", "scope": harness.scope})
+        assert probe["error"] == "DATASETS_NOT_FOUND"
+        with harness._lock:
+            ids = [frame["id"] for frame in harness.frames if frame.get("type") == "datasets"]
+        assert "d-4" not in ids
     finally:
         harness.finish()
 

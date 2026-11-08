@@ -6,6 +6,7 @@ import { branchGate, turnGroups } from '../../../shared/chatTurns'
 import { ChatComposer } from './ChatComposer'
 import { WelcomeSection } from './WelcomeSection'
 import { useSessionStore } from '../stores/sessionStore'
+import { consumeResultAutoOpen } from '../dock/resultAutoOpen'
 
 type CommandHandler = (command: ChatCommand) => Promise<void>
 
@@ -550,6 +551,9 @@ export default function ChatPanel(): JSX.Element {
             scope.current = next.scope
             setState(next)
             setFailed(false)
+            // Issue 117: every fresh snapshot is also the auto-open trigger's
+            // input; the consumer is idempotent per task across polls.
+            consumeResultAutoOpen(next.localTasks)
             useSessionStore.getState().setActiveThreadId(next.thread?.id ?? '')
           }
         } catch { if (mounted.current) { scope.current = ''; setState(null); setFailed(true) } }
@@ -572,6 +576,9 @@ export default function ChatPanel(): JSX.Element {
         scope.current = next.scope
         setState(next)
         setFailed(false)
+        // Issue 117: a command reply can carry the finished task row before
+        // the next poll; the consumer stays idempotent per task.
+        consumeResultAutoOpen(next.localTasks)
         // Issue 93: a view reply replaces the displayed record; polls never
         // carry the field and cannot dismiss it — only an explicit thread
         // change does (the effect below).

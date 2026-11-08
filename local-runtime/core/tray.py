@@ -44,6 +44,7 @@ from .inline_code import InlineScriptStore
 from .mcp import LocalMCPService, MCPSupervisor, load_mcp_specs
 from .policy import RiskLevel
 from .protocol import public_key_text
+from .agent_terminal import AgentTerminalHistory, AgentTerminalService
 from .python import LocalPythonService
 from .secrets import (
     InMemorySecretStore,
@@ -383,6 +384,10 @@ class TrayController:
     #: Issue 105: the shared inline-code scratch store; a fresh one is used
     #: when the caller does not bring one.
     inline_scripts: InlineScriptStore | None = None
+    #: Issue 111: the shared Agent-terminal history store; the desktop shell
+    #: injects one instance across reconnects so the pane's history survives
+    #: the transport session underneath it. A fresh one is used otherwise.
+    terminal_history: AgentTerminalHistory | None = None
 
     def __post_init__(self) -> None:
         if self.server_public_key is None and self.settings.server_public_key:
@@ -448,6 +453,7 @@ class TrayController:
             self._desktop_python() if self.desktop_mode
             else _build_python_service(self.settings, self.secrets, self.consent)
         )
+        terminal_service = self._desktop_terminal() if self.desktop_mode else None
         self.client = LocalRuntimeClient(
             server_url=(
                 self.settings.websocket_url()
@@ -461,7 +467,8 @@ class TrayController:
             server_public_key=self.server_public_key,
             allow_unpinned_broker_key=self.settings.allow_unpinned_broker_key,
             capabilities=(
-                self._desktop_capabilities(python_service) if self.desktop_mode else None
+                self._desktop_capabilities(python_service, terminal_service)
+                if self.desktop_mode else None
             ),
             restrict_capabilities=self.desktop_mode,
             runtime_version=self.settings.runtime_version,
@@ -471,12 +478,18 @@ class TrayController:
             skill_script_service=self.skill_script_service,
             skill_dependency_service=self.skill_dependency_service,
             python_service=python_service,
+            terminal_service=terminal_service,
             mcp_service=self.mcp_service,
             audit=self.audit,
             consent_prompt=self._prompt,
             on_session_id=self._remember_session_id,
             on_server_public_key=self._remember_server_public_key,
         )
+        # Issue 111: the tier gate and the terminal service must read the same
+        # workspace classifier; the desktop shell swaps file_service on grant
+        # refresh, and classify reads the selection fresh on every call.
+        if terminal_service is not None and self.client.file_service is not None:
+            terminal_service.classify = self.client.file_service.classify
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
         self._serve_task: asyncio.Task[None] | None = None
@@ -528,6 +541,41 @@ class TrayController:
             scripts=self.inline_scripts,
         )
 
+    def _desktop_terminal(self):
+        """Issue 111: the Agent's controlled terminal rides the same confirmed
+        workspace store the Python channel uses.
+
+        Like ``_desktop_python``, a fresh grant is honored on every controller
+        construction; without a confirmed workspace there is no bound folder
+        to anchor commands in, so the service - and with it the capability
+        announcement - stays absent. The desktop shell injects one shared
+        history store across reconnects so the pane's history survives the
+        session underneath it.
+        """
+        from .file_service import WorkspaceFileStore, WorkspaceSelection
+        from .files import RootConfig
+
+        if not self.settings.config_path:
+            return None
+        selection = WorkspaceSelection(self.settings.config_path)
+        if selection.status()['state'] != 'ready':
+            return None
+        try:
+            _settings, grant = selection.current()
+        except FileAccessError:
+            return None
+        store = WorkspaceFileStore(
+            [RootConfig(grant['logical_root'], Path(grant['physical_root']),
+                        identity=tuple(grant['identity']), resolve_root=False)],
+            protected_roots=(Path(self.settings.config_path).parent,),
+        )
+        return AgentTerminalService(
+            store,
+            policy=self.settings.policy(),
+            consent=self.consent,
+            history=self.terminal_history,
+        )
+
     def _desktop_connector_mcp(self) -> LocalMCPService | None:
         """Issue 123: desktop mode runs only the controlled connector servers.
 
@@ -557,7 +605,7 @@ class TrayController:
         """
         self._replace_mcp_service()
 
-    def _desktop_capabilities(self, python_service):
+    def _desktop_capabilities(self, python_service, terminal_service):
         from .file_service import WORKSPACE_CAPABILITIES, WorkspaceSelection
         from .skill_script import SKILL_SCRIPT_CAPABILITIES
         # Issue 122: the Skill script capability rides the desktop surface
@@ -572,6 +620,10 @@ class TrayController:
             # way the file writes do; without one nothing may be announced.
             if python_service is not None:
                 capabilities.append("local.python")
+            # Issue 111: the controlled terminal is anchored the same way;
+            # without a bound folder there is nothing to start commands in.
+            if terminal_service is not None:
+                capabilities.append("local.terminal")
         return tuple(capabilities)
 
     def _save_connection_setting(self, name: str, value: str) -> None:
@@ -1344,6 +1396,7 @@ def load_controller(
     desktop_mode: bool = False,
     node_executable: str | None = None,
     inline_scripts: InlineScriptStore | None = None,
+    terminal_history: AgentTerminalHistory | None = None,
 ) -> TrayController:
     """Build a controller from a settings file; a missing file is a fresh device."""
     settings = load_settings(path)
@@ -1390,6 +1443,7 @@ def load_controller(
         consent_store_path=Path(path).with_name("consent.db"),
         node_executable=node_executable,
         inline_scripts=inline_scripts,
+        terminal_history=terminal_history,
     )
 
 

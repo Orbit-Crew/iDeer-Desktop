@@ -199,6 +199,12 @@ interface DockState {
    * 仍可重新打开。存在非锚点窗格时为幂等空操作。
    */
   restoreCompanionPane: () => void
+  /** Issue 117: 每类面板至多一条待自动加载的工作区逻辑路径；窗格就绪后消费并清除 */
+  autoLoad: Partial<Record<PanelTypeId, string>>
+  /** Issue 117: 记一条待自动加载路径（自动开窗触发器在 openPanelType 前调用） */
+  requestAutoLoad: (panelType: PanelTypeId, path: string) => void
+  /** Issue 117: 窗格已接管该路径后清除，避免重复自动加载 */
+  clearAutoLoad: (panelType: PanelTypeId) => void
 }
 
 export const useDockStore = create<DockState>((set, get) => {
@@ -231,10 +237,22 @@ export const useDockStore = create<DockState>((set, get) => {
     layout: INITIAL_LAYOUT,
     paneRects: {},
     containerOrigin: { x: 0, y: 0 },
+    autoLoad: {},
 
     hydrate: (layout) => set({ layout }),
     setPaneRect: (paneId, rect) => set((s) => ({ paneRects: { ...s.paneRects, [paneId]: rect } })),
     setContainerOrigin: (o) => set({ containerOrigin: o }),
+    // Issue 117: the pending path is transient display state, never persisted
+    // with the layout, and one path per panel type (the newest result wins).
+    requestAutoLoad: (panelType, path) =>
+      set((s) => ({ autoLoad: { ...s.autoLoad, [panelType]: path } })),
+    clearAutoLoad: (panelType) =>
+      set((s) => {
+        if (!(panelType in s.autoLoad)) return {}
+        const autoLoad = { ...s.autoLoad }
+        delete autoLoad[panelType]
+        return { autoLoad }
+      }),
     setActiveTab: (paneId, tabId) =>
       set((s) => {
         const pane = s.layout.byId[paneId]
