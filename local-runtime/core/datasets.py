@@ -360,6 +360,29 @@ def parse_dataset(raw: bytes, filename: str) -> dict[str, Any]:
     }
 
 
+def parse_dataset_tables(raw: bytes, filename: str) -> list[_SheetTable]:
+    """One file's full parsed tables — headers and data rows, in memory only
+    (#103). The query engine reads real rows through the same parsing engine
+    that records the import facts, so the two can never disagree about what
+    the file contains; the tables are rebuilt per query and never persist.
+    Content problems raise the fixed datasets categories like the import
+    flow's failure rows do.
+    """
+    suffix = Path(filename).suffix.lower()
+    if len(raw) > MAX_DATASET_FILE_BYTES:
+        raise DatasetError(DATASETS_FILE_TOO_LARGE)
+    if suffix not in SUPPORTED_DATASET_EXTENSIONS:
+        raise DatasetError(DATASETS_FORMAT_UNSUPPORTED)
+    try:
+        if suffix == ".xlsx":
+            tables, _more = _xlsx_tables(raw)
+        else:
+            tables = [_csv_table(raw, Path(filename).stem[:MAX_DATASET_HEADER_CHARS] or filename)]
+    except (_PartTooLarge, zipfile.BadZipFile, KeyError, OSError, ET.ParseError, ValueError) as exc:
+        raise DatasetError(DATASETS_PARSE_FAILED) from exc
+    return tables
+
+
 class DatasetRegistry:
     """Device-local display facts for one identity's imported table datasets (#102).
 
@@ -509,6 +532,23 @@ class DatasetRegistry:
                              " ORDER BY rowid DESC LIMIT 1",
                              (self._encoded(binding), str(file_sha256)[:64])).fetchone()
             return {"id": row["id"]} if row is not None else None
+
+        return self._execute(read)
+
+    def find_query_target(self, binding, dataset_id: str) -> dict[str, Any] | None:
+        """One ready row's read facts for the query engine (#103): the id
+        must name this identity's own row, and only ready rows qualify — a
+        failed import names a file the device never honestly parsed, so
+        querying it is a not-found, not a read."""
+
+        def read(db):
+            row = db.execute(
+                "SELECT source_path, filename FROM datasets"
+                " WHERE id=? AND binding=? AND status='ready'",
+                (str(dataset_id)[:128], self._encoded(binding))).fetchone()
+            if row is None:
+                return None
+            return {"source_path": row["source_path"], "filename": row["filename"]}
 
         return self._execute(read)
 

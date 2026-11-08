@@ -9,6 +9,7 @@ import ExternalPanePlaceholder from '../src/renderer/src/dock/panels/externalPan
 import UnwiredNativePane from '../src/renderer/src/dock/panels/unwiredPanes'
 import TerminalPane from '../src/renderer/src/dock/panels/terminalPane'
 import FieldPane from '../src/renderer/src/dock/panels/fieldPane'
+import SqlPane from '../src/renderer/src/dock/panels/sqlPane'
 import SynapsePane from '../src/renderer/src/dock/panels/synapsePane'
 
 describe('bootstrap capability boundary', () => {
@@ -156,8 +157,13 @@ describe('bootstrap capability boundary', () => {
     // window-lifecycle preference (close-to-tray vs 关窗即退出): the renderer
     // reads and writes the one boolean; the store itself lives in the trusted
     // main process because main needs it at close time.
+    // Issue 103 adds desktop:sql for the read-only SQL pane: the renderer
+    // names a registered ready dataset identity and the query text only;
+    // the device-side stdlib engine owns the read-only fence (write
+    // statements and unlisted functions refused) and every bound on the
+    // bounded reply — no file path, no engine flag, no raw rows outside it.
     expect([...preload.matchAll(/invoke\("([^"]+)"/g)].map((match) => match[1]).sort())
-      .toEqual(['desktop:browser', 'desktop:cad', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:delete', 'desktop:knowledge:folder', 'desktop:knowledge:folder-cancel', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:index-rebuild', 'desktop:knowledge:index-rebuild-cancel', 'desktop:knowledge:publish', 'desktop:knowledge:retry', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
+      .toEqual(['desktop:browser', 'desktop:cad', 'desktop:chat', 'desktop:compatibility:refresh', 'desktop:connectors', 'desktop:datasets', 'desktop:files', 'desktop:knowledge:delete', 'desktop:knowledge:folder', 'desktop:knowledge:folder-cancel', 'desktop:knowledge:graph', 'desktop:knowledge:import', 'desktop:knowledge:index-rebuild', 'desktop:knowledge:index-rebuild-cancel', 'desktop:knowledge:publish', 'desktop:knowledge:retry', 'desktop:knowledge:wiki', 'desktop:login:begin', 'desktop:manage', 'desktop:models', 'desktop:notifications', 'desktop:preferences', 'desktop:projects', 'desktop:quit', 'desktop:receipts', 'desktop:remote-browser', 'desktop:runtime:start', 'desktop:runtime:stop', 'desktop:schedules', 'desktop:skill-preferences', 'desktop:skill-scripts', 'desktop:skills', 'desktop:sql', 'desktop:status', 'desktop:templates', 'desktop:threads', 'desktop:updates:check', 'desktop:updates:import', 'desktop:updates:install', 'desktop:updates:recovery', 'desktop:workspace:choose', 'terminal:kill', 'terminal:resize', 'terminal:spawn', 'terminal:write'])
     // Issue 77 opens the bridge's first push channels: the full bounded
     // notification-center list after every ledger change, and the activate
     // payload behind an OS-toast click. Issue 107 adds desktop:browser:events
@@ -254,14 +260,20 @@ describe('dock pane security seam (issue 71)', () => {
     // the conversation's serialized command path.
     // Issue 116 wires the native `field` pane the same way — it reads over
     // the guarded files seam and renders desktop-local results only.
+    // Issue 103 wires the native `sql` pane the same way — one bounded
+    // read-only query on its own desktop:sql channel (pinned in
+    // test/sql-bridge.test.ts), results entering the conversation only as
+    // the #84 prefill draft.
     const unwiredNative = PANEL_REGISTRY.filter((p) => p.runtime === 'native' && !p.anchorOnly &&
-      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse', 'field'].includes(p.id))
+      !['runtime', 'notifications', 'files', 'terminal', 'templates', 'office', 'viewer3d', 'kb', 'synapse', 'field', 'sql'].includes(p.id))
     expect(unwiredNative.map((p) => p.id).sort()).toEqual([])
     for (const def of unwiredNative) expect(def.component).toBe(UnwiredNativePane)
     expect(PANEL_REGISTRY.find((p) => p.id === 'kb')!.component).toBe(DocLibraryPane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'field')!.component).toBe(FieldPane)
+    expect(PANEL_REGISTRY.find((p) => p.id === 'sql')!.component).toBe(SqlPane)
 
     expect(PANEL_REGISTRY.find((p) => p.id === 'synapse')!.component).toBe(SynapsePane)
-    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'viewer3d', 'kb', 'synapse', 'field']) {
+    for (const id of ['chat', 'runtime', 'notifications', 'files', 'browser', 'templates', 'terminal', 'office', 'viewer3d', 'kb', 'synapse', 'field', 'sql']) {
       const def = PANEL_REGISTRY.find((p) => p.id === id)!
       expect(def.component).not.toBe(ExternalPanePlaceholder)
       expect(def.component).not.toBe(UnwiredNativePane)

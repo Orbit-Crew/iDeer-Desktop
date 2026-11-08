@@ -1,12 +1,15 @@
 // Panel registry (issue 71): the dock's composable components. The chat anchor
 // hosts the platform chat; the Desktop runtime pane carries the device
 // surfaces; the remaining original vocabulary keeps its column position with
-// honest placeholders until its phase lands. `sql` stays meta-only, exactly as
-// in the pinned linz source (it was never a delivered original pane).
+// honest placeholders until its phase lands. Issue 103 wires `sql` — the
+// read-only SQL pane over this device's own registered datasets — as a
+// native pane on its own bounded channel; it was meta-only until its phase
+// landed, exactly as in the pinned linz source.
 import {
   ApartmentOutlined,
   BellOutlined,
   CodeOutlined,
+  DatabaseOutlined,
   DeploymentUnitOutlined,
   DesktopOutlined,
   FolderOpenOutlined,
@@ -32,6 +35,7 @@ import ExternalPanePlaceholder from './panels/externalPanes'
 import UnwiredNativePane from './panels/unwiredPanes'
 import OfficePane from './panels/officePane'
 import FieldPane from './panels/fieldPane'
+import SqlPane from './panels/sqlPane'
 import Viewer3dPane from './panels/viewer3dPane'
 
 /** chat 锚点内容：桌面平台聊天（无路由，锚点窗格直接承载） */
@@ -75,6 +79,12 @@ export const PANEL_REGISTRY: PanelTypeDef[] = [
   // the #94 guarded read seam, rendered on the CAD pane's software canvas
   // idiom; desktop-local results, never external content.
   { ...getPanelMeta('field'), icon: <LineChartOutlined />, component: FieldPane },
+  // Issue 103: the read-only SQL pane — one bounded SELECT over this
+  // identity's own registered ready datasets on its own desktop:sql
+  // channel; the device-side engine owns the read-only fence and every
+  // reply bound, and the results enter the conversation as the #84 prefill
+  // draft (never an automatic send).
+  { ...getPanelMeta('sql'), icon: <DatabaseOutlined />, component: SqlPane },
   // Issue 113: the session map — the platform's own Thread rows as nodes,
   // this device's observed branch edges as links; open/branch ride the
   // conversation's serialized command path through the session store.
@@ -111,6 +121,8 @@ export function panelIcon(id: PanelTypeId): JSX.Element {
       return <DeploymentUnitOutlined />
     case 'field':
       return <LineChartOutlined />
+    case 'sql':
+      return <DatabaseOutlined />
     case 'synapse':
       return <ApartmentOutlined />
     case 'notifications':

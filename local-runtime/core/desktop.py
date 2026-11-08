@@ -24,6 +24,7 @@ from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
+from .sql_query import SqlQueryError, sql_query
 from .file_service import WorkspaceSelection, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
@@ -104,6 +105,7 @@ def main() -> int:
     thread_commands: queue.Queue = queue.Queue(maxsize=1)
     project_commands: queue.Queue = queue.Queue(maxsize=1)
     dataset_commands: queue.Queue = queue.Queue(maxsize=1)
+    sql_commands: queue.Queue = queue.Queue(maxsize=1)
     schedule_commands: queue.Queue = queue.Queue(maxsize=1)
     connector_commands: queue.Queue = queue.Queue(maxsize=1)
     files_commands: queue.Queue = queue.Queue(maxsize=1)
@@ -354,6 +356,23 @@ def main() -> int:
                             isinstance(command.get('datasetId'), str)
                             and 0 < len(command['datasetId']) <= 128))):
                     dataset_commands.put_nowait(command)
+                    continue
+                # Issue 103: the read-only SQL family. One fixed key set: a
+                # registered ready dataset identity plus the query text. The
+                # gate only keeps malformed shapes out of the queue — the
+                # engine itself re-validates every field and refuses every
+                # write, matching the datasets gate idiom.
+                if (isinstance(command, dict)
+                        and set(command) == {'type', 'id', 'action', 'datasetId', 'sql', 'scope'}
+                        and command.get('type') == 'sql' and command.get('action') == 'query'
+                        and isinstance(command.get('id'), str) and len(command['id']) <= 64
+                        and isinstance(command.get('datasetId'), str)
+                        and 0 < len(command['datasetId']) <= 128
+                        and isinstance(command.get('sql'), str)
+                        and 0 < len(command['sql']) <= 10000
+                        and isinstance(command.get('scope'), str)
+                        and len(command['scope']) <= 128):
+                    sql_commands.put_nowait(command)
                     continue
                 if (isinstance(command, dict) and command.get('type') == 'skill-preferences'
                         and isinstance(command.get('id'), str) and len(command['id']) <= 64
@@ -1042,6 +1061,32 @@ def main() -> int:
                 except Exception:
                     error = 'DATASETS_FAILED'
                 emit({'v': 1, 'type': 'datasets', 'id': dataset_command['id'],
+                      'result': result, 'error': error})
+            try:
+                sql_command = sql_commands.get_nowait()
+            except queue.Empty:
+                sql_command = None
+            if sql_command:
+                error = ''
+                result = None
+                try:
+                    # Issue 103: read-only SQL over this identity's own ready
+                    # datasets. The workspace scope is the fence, the engine
+                    # is stdlib SQLite in memory — it refuses every write
+                    # statement and every unlisted function, bounds the reply
+                    # on every axis, and the copy lives exactly as long as
+                    # the query. The 原件 is only ever read.
+                    if sql_command['scope'] != workspace.scope():
+                        raise SqlQueryError('SQL_QUERY_IDENTITY_CHANGED')
+                    owner = profile_binding(load_settings(args.config)) if login.status()['state'] == 'authenticated' else None
+                    result = sql_query(sql_command, registry=datasets_registry, owner=owner)
+                except SqlQueryError as exc:
+                    # Only fixed categories cross the Desktop boundary; file
+                    # content and source details never do.
+                    error = str(exc)
+                except Exception:
+                    error = 'SQL_QUERY_FAILED'
+                emit({'v': 1, 'type': 'sql', 'id': sql_command['id'],
                       'result': result, 'error': error})
             try:
                 model_command = model_commands.get_nowait()

@@ -620,6 +620,38 @@ export interface DatasetOperationView {
   errorCode?: string
 }
 
+/** Issue 103: 只读 SQL 查询窗格. The renderer names a registered ready
+ * dataset identity and the query text only; the device-side stdlib engine
+ * refuses every write statement and every unlisted function over an
+ * in-memory copy of the 原件, bounds the reply on every axis (rows,
+ * columns, cells, total characters, a deterministic VM budget), and the
+ * copy lives exactly as long as the query. Reading one's own imported
+ * dataset is the human's own read on their own device data — the
+ * approval-free class the #94 human file-browsing seam established. */
+export type SqlQueryCommand = { action: 'query'; datasetId: string; sql: string }
+/** One loaded worksheet's query facts: the deterministic table name the
+ * copy registers it under (`sheetN`, import order) plus the sheet's own
+ * name and the exact column names the query may reference. */
+export interface SqlQueryTableMap {
+  table: string
+  name: string
+  columns: string[]
+}
+/** Values a bounded read-only result may carry. The engine maps blobs and
+ * non-finite numbers to null instead of pretending they survived — never a
+ * made-up string in place of a value the wire cannot carry. */
+export type SqlQueryValue = string | number | null
+export interface SqlQueryResultView {
+  tables: SqlQueryTableMap[]
+  columns: string[]
+  rows: SqlQueryValue[][]
+  /** The rows actually returned — the honest count, bounded at 200. */
+  rowCount: number
+  truncated: boolean
+  columnsTruncated: boolean
+  cellsTruncated: boolean
+}
+
 /** Issue 123: one installed connector — identity facts only, never a runnable binding. */
 export interface ConnectorView {
   slug: string
@@ -1020,6 +1052,11 @@ export interface DesktopBridge {
    * process; the original file never leaves the machine and a delete
    * removes the registry row only. */
   datasets(command: DatasetCommand): Promise<DatasetOperationView>
+  /** Issue 103: one bounded read-only SQL query over this identity's own
+   * registered ready dataset. The device-side engine refuses every write
+   * statement and every unlisted function, bounds the reply on every axis
+   * and answers fixed `SQL_QUERY_*` categories it can be held to. */
+  sql(command: SqlQueryCommand): Promise<SqlQueryResultView>
   /** Issue 85: the platform scheduled-tasks management surface. The renderer
    * names the action and the task fields only; the platform owns timing,
    * previews and execution records, and a delete is confirmed in the trusted
