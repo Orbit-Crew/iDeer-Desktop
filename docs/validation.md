@@ -38,7 +38,8 @@ pwsh -File scripts/windows-install-smoke.ps1
 逐项核验随包/不随包第三方资源——随包未登记、登记未随包、指纹漂移
 （linz-source.json occt 固定、distribution.lock.json、package-lock.json、
 electron-builder.yml）、devDependency 误报随包、THIRD_PARTY_NOTICES.md 清单漂移
-及新增未核验项均以类型化错误退出非零。唯一人工门 linz-license-grant
+及新增未核验项均以类型化错误退出非零（核心输入文件缺失等其余异常按脚本
+原始报错直接失败，与 verify-provenance 相同）。唯一人工门 linz-license-grant
 （linz 上游授权文本）解决前，安装包仅为候选件、不得对外分发；解决或新增人工门
 须同时修订清单 humanGates 与脚本内 TRACKED_HUMAN_GATES 一并评审。
 逐项台账见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。

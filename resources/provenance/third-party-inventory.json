@@ -1,12 +1,13 @@
 {
   "version": 1,
   "issue": "iDeer-Desktop #88（六期·46 第三方资源核验与维护者清单）",
-  "updated": "2026-11-08",
+  "updated": "2026-11-09",
   "scope": "随包（及明示不随包）第三方资源的逐项清单：来源、许可证、上游维护者与负责维护者。机器可读；scripts/verify-third-party.cjs（npm run verify:third-party）在 CI 与发布前逐项核验。",
   "consistencyRule": {
     "statuses": "verified=指纹/声明证据已记录；pending-maintainer-verification=真实人工门（当前仅 linz-license-grant）；not-shipped=有意不随包并附用户可见说明。",
-    "shippedNpmSet": "随包 npm 集合 = package.json dependencies 经 package-lock.json 依 dependencies+optionalDependencies 可达且未被 dev 标记的闭包（不含 peer 自动安装的类型包）。",
-    "noticesLedger": "THIRD_PARTY_NOTICES.md 中以「| `id` |」开头的清单行必须与 items 的 id 集合完全一致（双向）。",
+    "shippedNpmSet": "随包 npm 集合 = package.json dependencies 与 optionalDependencies 经 package-lock.json 依 dependencies+optionalDependencies 边可达且未被 dev 标记的闭包（不含 entry 级 peer 自动安装的类型包）；同名多版本条目按 name@version 逐项登记，不得合并。",
+    "shippedSurface": "随包文件面按 electron-builder.yml extraResources 逐映射枚举：资源目录内每个文件须被某个随包清单项认领（distribution.files 精确指纹或 runtime/派生类的目标路径前缀）；FIRST_PARTY_EXTRA_RESOURCES 白名单（resources/provenance、resources/updates、THIRD_PARTY_NOTICES.md、resources/components）为本方项目数据，免逐文件认领。occt 另接受 NSIS File 指令作为随包机制（PR #162）。",
+    "noticesLedger": "THIRD_PARTY_NOTICES.md 中以「| `id` |」开头的清单行必须与 items 的 id 集合完全一致（双向、各恰一次），且每行的许可证、上游维护者、负责维护者、随包（是/否）、状态列必须与清单字段一致（状态列以状态值开头）；组件/来源两列与正文为自由文本。",
     "humanGates": "pending-maintainer-verification 项的集合必须恰等于 humanGates[].item，且 humanGates[].id 必须恰等于 verify-third-party.cjs 内编译的 TRACKED_HUMAN_GATES；新增或解决人工门都须同时修订两处并经评审。"
   },
   "humanGates": [
@@ -88,7 +89,7 @@
       "distribution": {
         "ships": true,
         "path": "occt/",
-        "mechanism": "extraResources resources/occt → occt；字节指纹见下",
+        "mechanism": "extraResources resources/occt → occt（asar 外，glue 用 fs 读取 wasm），或 NSIS 安装节的 File 指令；两种机制均计为随包（PR #162 将 occt 改由 NSIS 装包）。字节指纹见下",
         "files": {
           "occt/occt-import-js.js": "3fb44ce11d00611f9b3f3c5775d520ebab48930c1f08279b7b1316f05f0d3379",
           "occt/occt-import-js.wasm": "33391fc9d94ea5c869a6718488bf0a9a464222bac9bdc764dfe1690cef281952"
@@ -98,7 +99,7 @@
         "resources/provenance/linz-source.json",
         "resources/provenance/linz-package-lock.json"
       ],
-      "notes": "LGPL-2.1 分发义务（随附许可证文本、对应源码获取途径）计入发布前置检查，见 THIRD_PARTY_NOTICES.md「发布前置检查」。"
+      "notes": "LGPL-2.1 分发义务（随附许可证文本、对应源码获取途径）为维护者发布时的人工职责，仅在此记录；verify-third-party 不对其做机器核验。见 THIRD_PARTY_NOTICES.md「发布前置检查」。"
     },
     {
       "id": "ideer-runtime-core",

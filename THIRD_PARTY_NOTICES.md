@@ -22,7 +22,9 @@ package-lock.json, electron-builder.yml) and this file.
   drifts (PIN_DRIFT), a dev dependency is claimed as distributed
   (DEPENDENCY_CLASS_MISMATCH), this ledger drifts from the inventory
   (NOTICES_DRIFT), or the pending human-gate set changes
-  (PENDING_GATE_MISMATCH). CI runs it in both PR jobs next to
+  (PENDING_GATE_MISMATCH). Missing core input files (locks, pin files,
+  builder config) abort the run with the raw read error, like the sibling
+  verify-provenance script. CI runs it in both PR jobs next to
   `npm run verify:provenance`.
 - Exactly one human gate is tracked today: **linz-license-grant**. The
   maintainer (the upstream repository owner) must resolve it before any public
@@ -30,9 +32,10 @@ package-lock.json, electron-builder.yml) and this file.
   requires one reviewed change that updates both the inventory `humanGates`
   and `TRACKED_HUMAN_GATES` in scripts/verify-third-party.cjs; anything else
   fails verification.
-- The LGPL-2.1 obligations for `occt-import-js` (license text shipped with the
-  package and a corresponding-source offer for the LGPL components) are part of
-  the pre-release duties recorded here.
+- The LGPL-2.1 obligations for `occt-import-js` (shipping the license text
+  with the package and providing a corresponding-source offer for the LGPL
+  components) are recorded here as maintainer release-time duties;
+  `verify:third-party` does not machine-check that they have been met.
 
 ## Unresolved release blocker: the linz upstream grant
 
@@ -53,13 +56,15 @@ Ant Design icons are installed from the locked npm package.
 ## Item ledger（逐项清单）
 
 The rows below must reference exactly the item ids of
-resources/provenance/third-party-inventory.json in both directions; the
-first cell of each row is the machine-checked id. 许可证 cites the evidence
-field of the inventory entry.
+resources/provenance/third-party-inventory.json in both directions, each id
+exactly once. The id, 许可证, 上游维护者, 负责维护者, 随包 and 状态 cells are
+machine-compared against the inventory fields (the 状态 cell must begin with
+the inventory status value); the 组件 and 来源 cells and all prose remain
+free-form. 许可证 cites the evidence recorded in the inventory entry.
 
 | 清单 id | 组件/版本 | 来源 | 许可证 | 上游维护者 | 负责维护者 | 随包 | 状态/说明 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `linz-derivation` | linz | https://github.com/Neowyh/linz @ f88141b | MIT（仅上游 package.json 声明；上游仓库无 LICENSE 文本） | LINZ Team（Neowyh，上游仓库所有者） | Neowyh（组织维护者：来源与许可证核验、发布签核） | 是 | pending（人工门 linz-license-grant） |
+| `linz-derivation` | linz | https://github.com/Neowyh/linz @ f88141b | MIT（仅上游 package.json 声明；上游仓库无 LICENSE 文本） | LINZ Team（Neowyh，上游仓库所有者） | Neowyh（组织维护者：来源与许可证核验、发布签核） | 是 | pending-maintainer-verification（人工门 linz-license-grant） |
 | `electron@22.3.27` | Electron 22.3.27 | https://github.com/electron/electron | MIT（Chromium/Node.js 等内嵌组件以随包 LICENSES.chromium.html 为准） | OpenJS Foundation 与 Electron 贡献者 | Orbit-Crew | 是 | verified（证据已记录） |
 | `occt-import-js` | occt-import-js 0.0.23 | https://github.com/kovacsv/occt-import-js | LGPL-2.1（glue 与 WASM 均属上游项目；内嵌 OCCT 同为 LGPL-2.1，附 OCCT 开发例外条款） | kovacsv（Viktor Kovács）；内嵌 OCCT：Open CASCADE SAS 与 OCCT 贡献者 | Orbit-Crew | 是 | verified（证据已记录） |
 | `ideer-runtime-core` | iDeer Runtime core（local-runtime/core） | https://github.com/Orbit-Crew/iDeer @ ccb251e | MIT（LICENSE.upstream，含 Bytedance Ltd. 与 iDeer Authors 版权行） | Orbit-Crew（iDeer 仓库侧） | Orbit-Crew | 是 | verified（证据已记录） |
