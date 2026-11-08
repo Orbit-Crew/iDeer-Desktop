@@ -1,0 +1,867 @@
+{
+  "version": 1,
+  "updated": "2026-11-08",
+  "frameworkDoc": "docs/acceptance/capability-ledger.md",
+  "capabilities": [
+    {
+      "id": "p1-01",
+      "issue": 71,
+      "phase": "一期",
+      "index": 1,
+      "kind": "能力",
+      "name": "Dock 多窗格框架与布局预设",
+      "originalEntry": "linz f88141b src/renderer/src/dock/*（11 文件）与 components/Chat/LayoutPresetDropdown.tsx",
+      "newPath": "src/renderer/src/dock/*；AppLayout 工作区即 dock，chat 锚点承载平台聊天，新增 Desktop 特有 runtime 伴随窗格",
+      "allowedDifferences": "锚点页签不可拖出；单窗格根 ensureAnchorPane 包装；伴随窗格首次默认可见；无路由（锚点直挂 ChatPanel）；持久化额外剥离 url（issue-71 报告分歧清单）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/acceptance/issue-71/report.md", "docs/porting.md"], "lastVerified": "2026-10-31" },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-71/report.md", "test/dock-store.test.ts", "test/dock-view.test.tsx"], "lastVerified": "2026-10-31" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-71/report.md"], "lastVerified": "2026-10-31" }
+      },
+      "scenarios": [
+        { "name": "布局与预设重启恢复", "state": "恢复", "evidence": ["docs/acceptance/issue-71/report.md"] },
+        { "name": "损坏/外来布局载荷拒绝", "state": "拒绝", "evidence": ["docs/acceptance/issue-71/report.md"] },
+        { "name": "八种排列预设逐一可达", "state": "成功", "evidence": ["docs/acceptance/issue-71/report.md"] }
+      ]
+    },
+    {
+      "id": "p1-02",
+      "issue": 72,
+      "phase": "一期",
+      "index": 2,
+      "kind": "能力",
+      "name": "会话侧栏完整管理（搜索/改名/删除/最近）",
+      "originalEntry": "linz components/Layout/Sidebar.tsx（0.1.0 基础移植按原布局与侧栏交互裁剪，见 docs/porting.md 源码表；完整管理为面向平台 Thread 的重建）",
+      "newPath": "src/renderer/src/components/Layout/Sidebar.tsx 与 src/renderer/src/stores/sessionSidebar.ts / sessionStore.ts，经 desktop:chat threads 桥",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-08" },
+        "businessWiring": { "status": "已接线", "evidence": ["test/session-sidebar-controller.test.ts", "test/threads-bridge.test.ts", "test/chat-sidebar-open.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "无权限时改名/删除本地拒绝", "state": "拒绝", "evidence": ["test/session-sidebar-controller.test.ts"] },
+        { "name": "确认对话框取消保持静默", "state": "拒绝", "evidence": ["test/session-sidebar-controller.test.ts"] },
+        { "name": "线忙有界重试不误报失败", "state": "恢复", "evidence": ["test/session-sidebar-controller.test.ts"] },
+        { "name": "列表与权限一次加载往返", "state": "成功", "evidence": ["test/session-sidebar-controller.test.ts", "test/threads-bridge.test.ts"] }
+      ]
+    },
+    {
+      "id": "p1-03",
+      "issue": 73,
+      "phase": "一期",
+      "index": 3,
+      "kind": "能力",
+      "name": "模型设置页（授权列表/账号默认/备用/失效提示）",
+      "originalEntry": "待补（docs/porting.md 能力清单将 settings 与 Agent/Skill 选择列为暂缓组，未到条目级）",
+      "newPath": "src/renderer/src/components/Layout/ModelSettingsModal.tsx，经钉死的 models 桥",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/model-settings.test.tsx", "test/models-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "授权列表展示且无 provider/key 字段", "state": "成功", "evidence": ["test/model-settings.test.tsx"] },
+        { "name": "模型目录缺失如实标注不伪造行", "state": "成功", "evidence": ["test/model-settings.test.tsx"] },
+        { "name": "设置写入失败保视图并报告", "state": "失败", "evidence": ["test/model-settings.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p1-04",
+      "issue": 74,
+      "phase": "一期",
+      "index": 4,
+      "kind": "能力",
+      "name": "会话权限档位（三档/默认最低/审计）",
+      "originalEntry": "待补",
+      "newPath": "ChatPanel 会话档位界面，命令经 ChatCommand tier 单一序列化路径",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-tier.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "无选择时默认最低档", "state": "成功", "evidence": ["test/chat-tier.test.tsx"] },
+        { "name": "满档切换确认不由界面代签", "state": "拒绝", "evidence": ["test/chat-tier.test.tsx"] },
+        { "name": "命令在途时拒绝切档", "state": "拒绝", "evidence": ["test/chat-tier.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p1-05",
+      "issue": 75,
+      "phase": "一期",
+      "index": 5,
+      "kind": "能力",
+      "name": "输入增强（@委派 / /Skill / 多技能注入）",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/ChatComposer.tsx 的 @ 选择器与 / 选择器，发送走同一命令路径",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-input-commands.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "@委派单条消息且会话同线程", "state": "成功", "evidence": ["test/chat-input-commands.test.tsx"] },
+        { "name": "/Skill 多选按选择顺序注入", "state": "成功", "evidence": ["test/chat-input-commands.test.tsx"] },
+        { "name": "协作关闭时不提供伪委派入口", "state": "拒绝", "evidence": ["test/chat-input-commands.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p1-06",
+      "issue": 76,
+      "phase": "一期",
+      "index": 6,
+      "kind": "能力",
+      "name": "协同模式（并行子代理进度展示）",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/ChatPanel.tsx 子代理进度卡（平台 Run/子代理事件只读投影）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-subagents.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "按平台事实渲染且运行中任务在前", "state": "成功", "evidence": ["test/chat-subagents.test.tsx"] },
+        { "name": "平台未派发时不渲染进度面", "state": "成功", "evidence": ["test/chat-subagents.test.tsx"] },
+        { "name": "不提供本地团队管理与派发面", "state": "拒绝", "evidence": ["test/chat-subagents.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p1-07",
+      "issue": 77,
+      "phase": "一期",
+      "index": 7,
+      "kind": "能力",
+      "name": "后台会话与通知跳回",
+      "originalEntry": "待补",
+      "newPath": "local-runtime/core/platform_chat.py 后台观察账本 + src/main/notifications.ts 通知账本与系统通知 + src/renderer/src/dock/panels/notificationsPane.tsx 通知中心",
+      "allowedDifferences": "通知账本为可信主进程内存态，持久化非验收标准且未加（issue-077 报告 Not done here）",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-077/report.md", "test/notifications.test.ts", "test/notification-center.test.tsx"], "lastVerified": "2026-11-01" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "切走后运行继续、完成恰好上报一次", "state": "成功", "evidence": ["docs/acceptance/issue-077/report.md"] },
+        { "name": "后台待审批跳前台询问、解决后重问", "state": "成功", "evidence": ["docs/acceptance/issue-077/report.md"] },
+        { "name": "身份/范围变化后账本清空不再上报", "state": "停止", "evidence": ["docs/acceptance/issue-077/report.md"] },
+        { "name": "通知点击跳回正确会话", "state": "成功", "evidence": ["docs/acceptance/issue-077/report.md"] }
+      ]
+    },
+    {
+      "id": "p1-08",
+      "issue": 78,
+      "phase": "一期",
+      "index": 8,
+      "kind": "能力",
+      "name": "消息级分支",
+      "originalEntry": "待补",
+      "newPath": "ChatPanel 消息级分支动作与侧栏分支视图（platform Thread API）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-branch.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "从指定消息连同整组助手回复分支", "state": "成功", "evidence": ["test/chat-branch.test.tsx"] },
+        { "name": "回合未落定时扣留分支动作", "state": "拒绝", "evidence": ["test/chat-branch.test.tsx"] },
+        { "name": "会话集变化时重读服务器列表", "state": "成功", "evidence": ["test/chat-branch.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p1-09",
+      "issue": 79,
+      "phase": "一期",
+      "index": 9,
+      "kind": "能力",
+      "name": "会话导出（整会话 MD / 单条）",
+      "originalEntry": "待补",
+      "newPath": "src/main/chat-export.ts 可信主进程导出 + ChatPanel 导出按钮（desktop:chat export 命令）",
+      "allowedDifferences": "界面为纯预格式化文本，代码块/公式/图片按消息原文如实呈现，不新增渲染器（issue-079 报告 Limitations）",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-079/report.md", "test/chat-export.test.ts", "test/chat-export-main.test.ts", "test/chat-export-ui.test.tsx"], "lastVerified": "2026-11-01" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "整会话导出内容与界面一致", "state": "成功", "evidence": ["docs/acceptance/issue-079/report.md"] },
+        { "name": "对话框取消零写入", "state": "拒绝", "evidence": ["docs/acceptance/issue-079/report.md"] },
+        { "name": "范围/线程/超限固定错误类别拒绝", "state": "拒绝", "evidence": ["docs/acceptance/issue-079/report.md"] },
+        { "name": "保存失败如实映射 CHAT_EXPORT_SAVE_FAILED", "state": "失败", "evidence": ["docs/acceptance/issue-079/report.md"] }
+      ]
+    },
+    {
+      "id": "p1-10",
+      "issue": 80,
+      "phase": "一期",
+      "index": 10,
+      "kind": "能力",
+      "name": "平台断线明确暂停",
+      "originalEntry": "待补（本能力为平台接入语义，docs/porting.md 无原版入口记录）",
+      "newPath": "src/renderer/src/components/ChatPanel.tsx 平台可达性横幅、显式暂停与自恢复（断线时锁输入、在途回合结果未知）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-platform.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": [
+        { "name": "断线显式暂停并锁输入", "state": "断线", "evidence": ["test/chat-platform.test.tsx"] },
+        { "name": "断线中在途回合结果未知", "state": "断线", "evidence": ["test/chat-platform.test.tsx"] },
+        { "name": "断线时播报将自动重连并补传执行记录", "state": "恢复", "evidence": ["test/chat-platform.test.tsx"] },
+        { "name": "正常可达会话无横幅", "state": "成功", "evidence": ["test/chat-platform.test.tsx"] }
+      ]
+    },
+    {
+      "id": "p2-11",
+      "issue": 91,
+      "phase": "二期",
+      "index": 11,
+      "kind": "能力",
+      "name": "平台项目管理（建/切/改名/归档/删除/散会话移入）",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/Layout/ProjectManageModal.tsx 与 src/renderer/src/stores/projectDirectory.ts",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/project-directory-controller.test.ts", "test/projects-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p2-12",
+      "issue": 92,
+      "phase": "二期",
+      "index": 12,
+      "kind": "能力",
+      "name": "项目文件夹绑定（项目+设备）",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/stores/projectDirectory.ts 的项目+设备绑定；消费面含人工终端起始目录链",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/terminal-start-dir.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p2-13",
+      "issue": 81,
+      "phase": "二期",
+      "index": 13,
+      "kind": "能力",
+      "name": "设备侧文档解析引擎（真实解析+定位+平台接口）",
+      "originalEntry": "待补",
+      "newPath": "local-runtime/core/document_parse.py，解析结果经知识导入界面呈现",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/knowledge-parse-view.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p2-14",
+      "issue": 93,
+      "phase": "二期",
+      "index": 14,
+      "kind": "能力",
+      "name": "附件去向选择器",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/ChatComposer.tsx 每附件去向选择（原生 select，有界选项）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-attachments.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p2-15",
+      "issue": 94,
+      "phase": "二期",
+      "index": 15,
+      "kind": "能力",
+      "name": "文件树与只读预览恢复",
+      "originalEntry": "linz components/RightPanel/FilePanel.tsx 与 src/main/ipc/file-browser.ipc.ts（f88141b 可查阅；本次为全新实现而非受管复制）",
+      "newPath": "src/renderer/src/components/FilePanel.tsx 与 dock files 窗格，经 Runtime files 控制命令族守卫（locate 物理路径只回可信主进程）",
+      "allowedDifferences": "全新实现非受管复制、无 provenance 条目；预览仅严格 UTF-8 文本（1 MiB）与常见位图（2 MiB），PDF/Word/Excel/二进制走外部打开；浏览要求已确认的工作区授权（docs/porting.md 2026-11-03 段）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-03" },
+        "businessWiring": { "status": "已接线", "evidence": ["test/file-panel.test.tsx", "test/files-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p2-16",
+      "issue": 95,
+      "phase": "二期",
+      "index": 16,
+      "kind": "能力",
+      "name": "切换不清场与跨设备标注核对",
+      "originalEntry": "待补",
+      "newPath": "项目切换保留原会话与其审批可达（src/renderer/src/stores/projectDirectory.ts 切换链）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/project-switch-retention.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-17",
+      "issue": 96,
+      "phase": "三期",
+      "index": 17,
+      "kind": "能力",
+      "name": "文档库管理页（递归导入/去重/批量/取消）",
+      "originalEntry": "待补（docs/porting.md 能力清单 kb/parsers 组列为暂缓，未到条目级）",
+      "newPath": "src/renderer/src/dock/panels/docLibraryPane.tsx 与 src/renderer/src/stores/docLibrary.ts",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/doc-library-pane.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-18",
+      "issue": 97,
+      "phase": "三期",
+      "index": 18,
+      "kind": "能力",
+      "name": "BM25 全文索引与漂移标注",
+      "originalEntry": "待补",
+      "newPath": "设备侧 BM25 索引：导入自建索引、检索按哈希校验冻结内容并定位到文档/页/表，漂移如实标注",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-97-bm25-index/report.md"], "lastVerified": "2026-11-07" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-19",
+      "issue": 98,
+      "phase": "三期",
+      "index": 19,
+      "kind": "能力",
+      "name": "检索问答引用到页",
+      "originalEntry": "待补",
+      "newPath": "待补（实现分支未并入 develop，本树无该面）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-20",
+      "issue": 99,
+      "phase": "三期",
+      "index": 20,
+      "kind": "能力",
+      "name": "文档相似图与实体图",
+      "originalEntry": "待补",
+      "newPath": "实体/关系层来自平台，相似层本设备按已注册 Revision 内容寻址重算；画布 src/renderer/src/components/graphCanvasModel.ts + KnowledgeGraphCanvas.tsx",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-99-similarity-graph/report.md", "test/graph-canvas-model.test.ts"], "lastVerified": "2026-11-07" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-21",
+      "issue": 100,
+      "phase": "三期",
+      "index": 21,
+      "kind": "能力",
+      "name": "Wiki 双链与邻域导航",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/WikiGraphPanel.tsx 与 wikiGraphModel.ts：总览与邻域画布、冻结源位、清除/重建显示语义",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-100-wiki-navigation/report.md"], "lastVerified": "2026-11-07" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-100-wiki-navigation/report.md"], "lastVerified": "2026-11-07" }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p3-22",
+      "issue": 101,
+      "phase": "三期",
+      "index": 22,
+      "kind": "能力",
+      "name": "知识版本语义统一",
+      "originalEntry": "待补",
+      "newPath": "统一 Revision 语义：删除=库新版本、清理分离、离线快照（命令在 Runtime 侧校验后转发）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/knowledge-import.test.ts", "test/datasets-ui.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-23",
+      "issue": 102,
+      "phase": "四期",
+      "index": 23,
+      "kind": "能力",
+      "name": "表格数据集导入",
+      "originalEntry": "待补",
+      "newPath": "local-runtime/core/datasets.py（设备侧 XLSX/CSV 解析）+ src/renderer/src/components/DatasetSection.tsx",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/datasets-bridge.test.ts", "test/datasets-ui.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-24",
+      "issue": 103,
+      "phase": "四期",
+      "index": 24,
+      "kind": "能力",
+      "name": "只读 SQL 窗格",
+      "originalEntry": "待补（原版 sql.js/better-sqlite3 引擎按 docs/porting.md 能力清单暂缓，不随包）",
+      "newPath": "待补（实现分支未并入 develop，本树无该面）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-25",
+      "issue": 82,
+      "phase": "四期",
+      "index": 25,
+      "kind": "能力",
+      "name": "技能包完整导入与声明（四类语言/权限/发布）",
+      "originalEntry": "待补",
+      "newPath": "src/main/skillDeclaration.ts 与技能导入确认流（四类脚本语言、导入期权限/依赖投影、确认对话框声明摘要）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-82/report.md"], "lastVerified": "2026-11-02" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-82/report.md"], "lastVerified": "2026-11-02" }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-26",
+      "issue": 104,
+      "phase": "四期",
+      "index": 26,
+      "kind": "能力",
+      "name": "技能依赖按需安装",
+      "originalEntry": "待补",
+      "newPath": "显式同意后的锁定 Skill 依赖安装（desktop:chat 依赖安装结算卡）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/chat-consent-cards.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-27",
+      "issue": 105,
+      "phase": "四期",
+      "index": 27,
+      "kind": "能力",
+      "name": "内联代码受控执行",
+      "originalEntry": "待补",
+      "newPath": "内联代码作为会话脚本在授权文件夹内运行（Runtime 侧，经 #74 档位与授权锚定）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-105-inline-code/report.md"], "lastVerified": "2026-11-04" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-105-inline-code/report.md"], "lastVerified": "2026-11-04" }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-28",
+      "issue": 83,
+      "phase": "四期",
+      "index": 28,
+      "kind": "能力",
+      "name": "固定计算器恢复",
+      "originalEntry": "待补",
+      "newPath": "local-runtime/core/calculator.py（免审批内置固定计算器）",
+      "allowedDifferences": "待补（对原版的答复差异修复见提交记录，文档级分歧清单待补）",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["local-runtime/tests/test_calculator.py", "local-runtime/tests/test_calculator_transport.py"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-29",
+      "issue": 84,
+      "phase": "四期",
+      "index": 29,
+      "kind": "能力",
+      "name": "模板广场",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/TemplateSection.tsx 与 dock templates 窗格（平台自有端点）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/templates-bridge.test.ts", "test/templates.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p4-30",
+      "issue": 106,
+      "phase": "四期",
+      "index": 30,
+      "kind": "能力",
+      "name": "官方模板集与欢迎页",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/WelcomeSection.tsx（平台只读官方模板集，ChatView 首条消息前承载）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/templates.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-31",
+      "issue": 107,
+      "phase": "五期",
+      "index": 31,
+      "kind": "能力",
+      "name": "本机浏览器窗格",
+      "originalEntry": "linz ipc/browser 与浏览器面板源码（f88141b 可查阅；本次为全新实现而非受管复制）",
+      "newPath": "src/main/browserPane.ts + src/renderer/src/dock/panels/browserPane.tsx（钉死持久分区 persist:browser-pane 的 webview）",
+      "allowedDifferences": "不恢复旧任意 IPC 旁路与本地搜索引擎兜底；instanceId 不用（页签状态窗格本地）；渲染层 CSP frame-src 放宽为 http:/https: 仅为承载校验过的 webview（docs/porting.md 2026-11-05 段）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md", "docs/acceptance/issue-107/desktop-browser-pane-report.md"], "lastVerified": "2026-11-05" },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-107/desktop-browser-pane-report.md", "test/browser-pane.test.tsx"], "lastVerified": "2026-11-05" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-32",
+      "issue": 108,
+      "phase": "五期",
+      "index": 32,
+      "kind": "能力",
+      "name": "Agent 控制本机浏览器",
+      "originalEntry": "待补",
+      "newPath": "src/main/agentBrowser.ts + dock/panels/browserSlotPane.tsx（单通道、经同意与档位门控）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/agent-browser-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-33",
+      "issue": 109,
+      "phase": "五期",
+      "index": 33,
+      "kind": "能力",
+      "name": "远程浏览器入口",
+      "originalEntry": "待补",
+      "newPath": "src/main/remoteBrowser.ts + dock/panels/remoteBrowserPane.tsx（平台浏览器流代理，会话凭据）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/remote-browser-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-34",
+      "issue": 110,
+      "phase": "五期",
+      "index": 34,
+      "kind": "能力",
+      "name": "人工终端窗格",
+      "originalEntry": "待补",
+      "newPath": "src/main/terminal.ts（node-pty 主进程 PTY）+ dock/panels/terminalPane.tsx",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/terminal-pane.test.tsx", "test/terminal-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-35",
+      "issue": 111,
+      "phase": "五期",
+      "index": 35,
+      "kind": "能力",
+      "name": "Agent 受控终端",
+      "originalEntry": "待补",
+      "newPath": "local-runtime/core/agent_terminal.py + dock/panels/agentTerminalPane.tsx（Runtime 携带的只读投影）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/agent-terminal.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-36",
+      "issue": 85,
+      "phase": "五期",
+      "index": 36,
+      "kind": "能力",
+      "name": "定时任务管理页（平台计时/补跑/跳过）",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/components/ScheduledTasksPanel.tsx 与 src/renderer/src/stores/scheduledTasks.ts（Runtime 面板入口，控制管道转发）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/schedule-panel.test.tsx", "test/schedules-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-37",
+      "issue": 86,
+      "phase": "五期",
+      "index": 37,
+      "kind": "能力",
+      "name": "托盘常驻与真退出",
+      "originalEntry": "待补（0.1.0 移植明确移除旧托盘常驻，见 docs/porting.md 源码表）",
+      "newPath": "src/main/tray.ts / lifecycle.ts + src/renderer/src/components/Layout/ClosePreference.tsx（真退出前排空）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/close-preference.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-38",
+      "issue": 112,
+      "phase": "五期",
+      "index": 38,
+      "kind": "能力",
+      "name": "办公室只读可视化",
+      "originalEntry": "linz ipc/chat、OfficePage 与 office 资源（docs/porting.md 能力清单行）",
+      "newPath": "src/renderer/src/dock/panels/officePane.tsx（平台 Run/子代理事件只读可视化）",
+      "allowedDifferences": "经 Desktop #112 范围决议收窄恢复：平台 Run/子代理事件只读可视化，无控制操作、无本地消息总线、无第二引擎（docs/porting.md 能力清单行）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-08" },
+        "businessWiring": { "status": "已接线", "evidence": ["test/office-pane.test.tsx"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p5-39",
+      "issue": 113,
+      "phase": "五期",
+      "index": 39,
+      "kind": "能力",
+      "name": "Synapse 会话地图",
+      "originalEntry": "linz SynapsePanel 与 DSH shim（f88141b 可查阅；本次为全新实现而非受管复制）",
+      "newPath": "src/renderer/src/dock/panels/synapsePane.tsx + local-runtime/core/branch_edges.py（平台 Thread 只读投影 + 本机观察分支边）",
+      "allowedDifferences": "不恢复 DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径；边数据不回写平台；跨设备分支边不同步（docs/porting.md 2026-11-07 段）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-07" },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/porting.md", "test/synapse-pane.test.tsx", "test/synapse-bridge.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-40",
+      "issue": 115,
+      "phase": "六期",
+      "index": 40,
+      "kind": "能力",
+      "name": "CAD 查看器（STEP/STL/OBJ）",
+      "originalEntry": "linz Viewer3D 与 resources/occt（occt-import-js WASM 逐字节随包，provenance 登记）",
+      "newPath": "src/main/cadPane.ts 与 src/main/cad/ + dock/panels/viewer3dPane.tsx（唯一 desktop:cad read-mesh 通道，网格负载有界）",
+      "allowedDifferences": "入口为工作区逻辑路径（无工作区即显式待就绪态）；文件 100 MB 上限、1,000,000 三角面预算；WebGL 失败自动 2D 回退；几何编辑不做（原版也没有）；IGES 等新增格式不做（docs/porting.md 2026-11-07 段）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md", "docs/acceptance/issue-115-cad-viewer/report.md"], "lastVerified": "2026-11-07" },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-115-cad-viewer/report.md"], "lastVerified": "2026-11-07" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-115-cad-viewer/report.md"], "lastVerified": "2026-11-07" }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-41",
+      "issue": 116,
+      "phase": "六期",
+      "index": 41,
+      "kind": "能力",
+      "name": "Tecplot 结果面板",
+      "originalEntry": "linz components/panels/tecplot-reader.ts、SolverResultsPanel.tsx、vtkViewer.ts（同源移植适配，非按原样复制故无 provenance 条目）",
+      "newPath": "src/renderer/src/dock/panels/fieldPane.tsx 与 field/（自建软件 2D 引擎，零新 IPC，读取复用 #94 受控 read 缝）",
+      "allowedDifferences": "仅原版实际支持的结构化 IJK ASCII 子集；软件 2D 画布替代 vtk.js/WebGL（零新依赖）；Fortran D 指数如实修正；跳过 zone/非有限值/固定上限如实明示（docs/porting.md 2026-11-07 段）",
+      "layers": {
+        "entryRestoration": { "status": "已恢复", "evidence": ["docs/porting.md", "docs/acceptance/issue-116-tecplot-panel/report.md"], "lastVerified": "2026-11-07" },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/issue-116-tecplot-panel/report.md", "test/field-pane.test.tsx", "test/field-canvas-model.test.ts"], "lastVerified": "2026-11-07" },
+        "candidateAcceptance": { "status": "未执行", "evidence": ["docs/acceptance/issue-116-tecplot-panel/report.md"], "lastVerified": "2026-11-07" }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-42",
+      "issue": 117,
+      "phase": "六期",
+      "index": 42,
+      "kind": "能力",
+      "name": "结果自动开窗",
+      "originalEntry": "待补",
+      "newPath": "src/renderer/src/dock/resultAutoOpen.ts（在权限内的任务结果自动开窗）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["test/result-auto-open.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-43",
+      "issue": 87,
+      "phase": "六期",
+      "index": 43,
+      "kind": "能力",
+      "name": "CATIA/Abaqus 桌面侧衔接",
+      "originalEntry": "linz step/occt 组的 CATIA、Abaqus 面（docs/porting.md 能力清单行：CATIA、Abaqus 暂缓，未纳入当前包）",
+      "newPath": "未纳入当前包（能力清单决议；实现分支未并入 develop）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未迁移", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-08" },
+        "businessWiring": { "status": "未接线", "evidence": ["docs/porting.md"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-44",
+      "issue": 118,
+      "phase": "六期",
+      "index": 44,
+      "kind": "能力",
+      "name": "迁移向导",
+      "originalEntry": "待补（一次性旧 linz 工作区迁移；docs/porting.md 明确不自动读取旧数据，人工迁移说明由退役阶段提供）",
+      "newPath": "待补（实现分支未并入 develop，本树无该面）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-45",
+      "issue": 119,
+      "phase": "六期",
+      "index": 45,
+      "kind": "能力",
+      "name": "安装向导按需勾选",
+      "originalEntry": "待补",
+      "newPath": "待补（实现分支未并入 develop，本树无该面）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-46",
+      "issue": 88,
+      "phase": "六期",
+      "index": 46,
+      "kind": "能力",
+      "name": "第三方资源核验与维护者清单",
+      "originalEntry": "待补（治理性能力：0.1.0 移植仅保留原 MIT 声明于 THIRD_PARTY_NOTICES.md，授权核验前不得对外分发，见 docs/porting.md）",
+      "newPath": "统一清单与发布前置检查未建；单项核验已有先例：occt-import-js 与 three.js 随 #115 完成来源/许可核验并登记（docs/porting.md 2026-11-07 段）",
+      "allowedDifferences": "待补",
+      "layers": {
+        "entryRestoration": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-47",
+      "issue": 120,
+      "phase": "六期",
+      "index": 47,
+      "kind": "治理",
+      "name": "Win7 能力矩阵与专项收尾",
+      "originalEntry": "不适用（治理项：能力×系统矩阵与 Win7 真机专项收尾，覆盖其余条目）",
+      "newPath": "不适用（矩阵须覆盖全部 46 项能力；Win7 真机专项挂 iDeer #131，见 docs/porting.md 时序记录）",
+      "allowedDifferences": "不适用（治理项）",
+      "layers": {
+        "entryRestoration": { "status": "不适用", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "未记录", "evidence": [], "lastVerified": null },
+        "candidateAcceptance": { "status": "未记录", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    },
+    {
+      "id": "p6-48",
+      "issue": 89,
+      "phase": "六期",
+      "index": 48,
+      "kind": "治理",
+      "name": "三层验收记账与六态场景库",
+      "originalEntry": "不适用（治理项：本记账框架自身）",
+      "newPath": "docs/acceptance/capability-ledger.md（框架）+ docs/acceptance/capability-ledger.json（单一事实源）+ scripts/verify-capability-ledger.cjs（校验器）",
+      "allowedDifferences": "不适用（治理项）",
+      "layers": {
+        "entryRestoration": { "status": "不适用", "evidence": [], "lastVerified": null },
+        "businessWiring": { "status": "已接线", "evidence": ["docs/acceptance/capability-ledger.md", "docs/acceptance/capability-ledger.json", "scripts/verify-capability-ledger.cjs", "test/capability-ledger.test.ts"], "lastVerified": "2026-11-08" },
+        "candidateAcceptance": { "status": "不适用", "evidence": [], "lastVerified": null }
+      },
+      "scenarios": []
+    }
+  ]
+}
