@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
+from .audit import AuditKind
 from .branch_edges import BranchEdgeLedger
 from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
@@ -514,7 +515,7 @@ class DesktopChat:
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
-                 inline_scripts=None, project_bindings=None, knowledge_index=None):
+                 inline_scripts=None, project_bindings=None, knowledge_index=None, audit=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -535,6 +536,10 @@ class DesktopChat:
         # successful registration indexes its freshly parsed text behind the
         # revision identity. Originals and index content stay on the device.
         self.knowledge_index = knowledge_index
+        # Issue 98: the device's append-only audit log. A user library search
+        # gets the same durable execution record a broker task's execution
+        # gets, recorded before the reply is emitted.
+        self.audit = audit
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
@@ -2402,7 +2407,7 @@ class DesktopChat:
 
     # --- User-side library retrieval (issue 98) ------------------------------
 
-    def knowledge_search(self, kb_id, revision_id, *, query=""):
+    def knowledge_search(self, kb_id, revision_id, *, query="", task_id=""):
         """The user's own retrieval over one registered frozen revision (#98).
 
         The doc library's search rides the exact engines the broker task
@@ -2412,8 +2417,11 @@ class DesktopChat:
         (filename, content hash) identity with the page/table anchors of the
         frozen parse, the view carries the library identity and the
         ``evidenceComplete`` fact, and the retrieval credentials ride as the
-        binding summary this search ran under. Nothing here calls the
-        Server: an offline device still answers its own question.
+        binding summary this search ran under. No request about the revision
+        reaches the Server; the only network fact here is the credential
+        summary the device already holds. ``task_id`` (the bridge command's
+        own id) rides the view and the audit row, so a citation is traceable
+        to a durable device record.
         """
         if self.knowledge_imports is None or self.knowledge_files is None:
             raise ChatError("CHAT_COMMAND_INVALID")
@@ -2444,11 +2452,34 @@ class DesktopChat:
         from .knowledge_search import KnowledgeSearchError, search_registered_revision
         index = KnowledgeIndexStore(self.config.with_name('knowledge-index.db'))
         try:
-            return search_registered_revision(registration, query, files=files,
+            view = search_registered_revision(registration, query, files=files,
                                               logical_root=grant["logical_root"],
                                               index=index, binding=binding)
         except KnowledgeSearchError as exc:
             raise ChatError(exc.code) from exc
+        if self.audit is not None:
+            # Issue 98: the user's search earns the same durable device record
+            # a broker task's execution gets, written before the reply leaves
+            # the seam. The query itself stays out of the row (its digest
+            # only), and a broken audit log fails the answer closed: an
+            # untraceable citation is never emitted, and the view names the
+            # record only when it exists.
+            try:
+                self.audit.record(AuditKind.EXECUTION, "completed",
+                                  capability="local.knowledge.search",
+                                  task_id=str(task_id or "")[:64], digest=view["manifestHash"],
+                                  detail={"kbId": str(view.get("kbId", ""))[:128],
+                                          "revisionId": str(view.get("revisionId", ""))[:64],
+                                          "engine": str(view.get("engine", ""))[:16],
+                                          "documentsMatched": view.get("documentsMatched"),
+                                          "documentsTotal": view.get("documentsTotal"),
+                                          "evidenceComplete": view.get("evidenceComplete") is True,
+                                          "queryDigest": hashlib.sha256(
+                                              query.encode("utf-8")).hexdigest()})
+            except Exception as exc:
+                raise ChatError("KNOWLEDGE_SEARCH_FAILED") from exc
+            view["auditTaskId"] = str(task_id or "")[:64]
+        return view
 
     # --- Controlled wiki entry (issue 118) ----------------------------------
 

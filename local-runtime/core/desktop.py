@@ -622,7 +622,8 @@ def main() -> int:
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
             session_tiers=session_tiers, inline_scripts=inline_scripts,
-            project_bindings=project_bindings, knowledge_index=knowledge_index)
+            project_bindings=project_bindings, knowledge_index=knowledge_index,
+            audit=audit_log)
         # Issue 96: the doc library's background folder import. One job at a
         # time on its own daemon thread; progress rides the status snapshot
         # and the cancel command lands at the next file or batch boundary.
@@ -922,8 +923,12 @@ def main() -> int:
                 error = ''
                 result = None
                 try:
+                    # Issue 98: the command's own id rides into the seam so the
+                    # durable device audit record and the returned view both
+                    # name it — a citation stays traceable after the fact.
                     result = chat.knowledge_search(search_command['kbId'], search_command['revisionId'],
-                                                   query=search_command['query'])
+                                                   query=search_command['query'],
+                                                   task_id=search_command['id'])
                 except Exception as exc:
                     # Only fixed categories cross the Desktop boundary.
                     message = str(exc)

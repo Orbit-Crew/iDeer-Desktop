@@ -113,6 +113,7 @@ const searchView = (overrides: Partial<KnowledgeSearchView> = {}): KnowledgeSear
   missing: [], truncated: false, documentsMatched: 2, documentsTotal: 2,
   evidenceComplete: true,
   credentials: { serverOrigin: 'https://test.invalid', userId: 'a@test.invalid', deviceId: 'dev' },
+  auditTaskId: '4'.repeat(32) + '-audit',
   ...overrides
 })
 
@@ -309,13 +310,14 @@ describe('doc library pane (issue 98 library search)', () => {
     expect(calls.find((call) => call.method === 'knowledgeSearch')?.args).toEqual([KB, 'f'.repeat(64), 'ALPHA'])
     const result = await screen.findByTestId('doc-library-search-result')
     // The citation chain on display: library revision, engine, hit locations.
-    expect(result.textContent).toContain('检索“ALPHA” · 版本 R2 · 引擎 BM25 全文索引')
-    expect(result.textContent).toContain('命中文档 2 / 2')
+    expect(result.textContent).toContain('检索“ALPHA” · 知识库 33333333-3333-4333-8333-333333333333 · 版本 R2 · 引擎 BM25 全文索引')
+    expect(result.textContent).toContain('参与检索 2 / 2')
     expect(result.textContent).toContain('report.md · 第 4 页 · 行 2 · 表 2 · 指纹 cccccccccccc')
     expect(result.textContent).toContain('guide.md · 第 1 页 · 行 1 · 指纹 dddddddddddd')
     expect(result.textContent).toContain('alpha in table body')
-    // The retrieval credentials close the chain and no physical path shows.
-    expect(result.textContent).toContain('检索凭据：https://test.invalid · 用户 a@test.invalid · 设备 dev')
+    // The retrieval credentials close the chain, the audit record keeps it
+    // queryable, and no physical path shows.
+    expect(result.textContent).toContain('检索凭据：https://test.invalid · 用户 a@test.invalid · 设备 dev · 本机审计记录 444444444444…')
     expect(result.textContent).not.toMatch(/\\|workspace\/report/)
     expect(result.textContent).not.toContain('依据不完整')
   })
@@ -337,7 +339,7 @@ describe('doc library pane (issue 98 library search)', () => {
     expect(partial.textContent).toContain('依据不完整：部分文档未能参与本次检索')
     expect(partial.textContent).toContain('未参与检索：report.md · 内容已变更（已过期）')
     expect(partial.textContent).toContain('命中数量达到上限，已截断显示')
-    expect(partial.textContent).toContain('命中文档 1 / 2')
+    expect(partial.textContent).toContain('参与检索 1 / 2')
     expect(partial.textContent).toContain('the launch code is ALPHA-7')
     expect(partial.textContent).not.toContain('alpha in table body')
   })

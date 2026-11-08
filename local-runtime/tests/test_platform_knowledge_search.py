@@ -11,6 +11,7 @@ never registered is refused, and no request about it reaches the Server.
 from __future__ import annotations
 
 import hashlib
+import json
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from core.audit import AuditKind, LocalAuditLog
 from core.file_service import WorkspaceFileStore, WorkspaceSelection
 from core.files import RootConfig
 from core.knowledge_import import KnowledgeImportRegistry
@@ -97,10 +99,11 @@ def prepare(tmp_path: Path, origin: str):
             identity=tuple(grant['identity']), resolve_root=False)], protected_roots=(config.parent,))
         return current, grant, files
 
+    audit = LocalAuditLog()
     chat = DesktopChat(config, secure, lambda: {'state': 'authenticated'},
-                       knowledge_imports=imports, knowledge_files=knowledge_files)
+                       knowledge_imports=imports, knowledge_files=knowledge_files, audit=audit)
     binding = profile_binding(load_settings(config))
-    return chat, imports, binding, space, config
+    return chat, imports, binding, space, config, audit
 
 
 def document(filename: str, content: str, layout=None) -> dict:
@@ -118,9 +121,9 @@ def _index_revision(config, binding, entries):
     index.index_revision(binding, REVISION, MANIFEST, entries)
 
 
-def test_library_search_answers_offline_with_citations(tmp_path) -> None:
+def test_library_search_answers_without_the_server_with_citations(tmp_path) -> None:
     with platform() as (origin, records):
-        chat, imports, binding, space, config = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         (space / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=2,
@@ -129,7 +132,7 @@ def test_library_search_answers_offline_with_citations(tmp_path) -> None:
         _index_revision(config, binding, [document('report.txt', REPORT, REPORT_LAYOUT),
                                           document('guide.txt', GUIDE)])
 
-        view = chat.knowledge_search(KB, REVISION, query='ALPHA')
+        view = chat.knowledge_search(KB, REVISION, query='ALPHA', task_id='task-98')
         assert records == []
         assert view['kbId'] == KB and view['revisionId'] == REVISION and view['revisionNo'] == 2
         assert view['manifestHash'] == MANIFEST
@@ -142,13 +145,25 @@ def test_library_search_answers_offline_with_citations(tmp_path) -> None:
         assert all(chunk['contentHash'] == REPORT_HASH for chunk in report_hits)
         assert view['credentials'] == {'serverOrigin': origin, 'userId': 'A', 'deviceId': 'D1'}
         assert str(space) not in str(view)
+        # The durable device record: one audit row written before the reply,
+        # carrying the frozen identity and the evidence fact, the query only
+        # as its digest — and the view names it so a citation is traceable.
+        rows = audit.recent(kind=AuditKind.EXECUTION)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row.capability == 'local.knowledge.search' and row.task_id == 'task-98'
+        assert row.digest == MANIFEST and row.detail['evidenceComplete'] is True
+        assert row.detail['queryDigest'] == hashlib.sha256(b'ALPHA').hexdigest()
+        assert row.detail['engine'] == 'bm25'
+        assert view['auditTaskId'] == 'task-98'
+        assert 'ALPHA' not in json.dumps(row.as_dict())
 
 
 def test_library_search_reports_incomplete_evidence(tmp_path) -> None:
     """A drifted document is structured missing with its filename — the
     answer says 依据不完整 and never substitutes current bytes."""
     with platform() as (origin, _records):
-        chat, imports, binding, space, config = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         (space / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
@@ -167,7 +182,7 @@ def test_library_search_reports_incomplete_evidence(tmp_path) -> None:
 
 def test_library_search_refuses_unregistered_revisions_and_bad_queries(tmp_path) -> None:
     with platform() as (origin, records):
-        chat, imports, binding, space, config = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
                                      manifest_hash=MANIFEST, document_count=1,
@@ -185,3 +200,40 @@ def test_library_search_refuses_unregistered_revisions_and_bad_queries(tmp_path)
             chat.knowledge_search('not-a-uuid', REVISION, query='ALPHA')
         assert str(bad_kb.value) == 'CHAT_COMMAND_INVALID'
         assert records == []
+
+
+def test_library_search_fails_closed_when_the_audit_record_cannot_be_written(tmp_path) -> None:
+    """A broken audit log never yields an untraceable citation: the answer
+    fails with the fixed category instead of leaving the seam unrecorded."""
+    with platform() as (origin, records):
+        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
+        imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
+                                     manifest_hash=MANIFEST, document_count=1,
+                                     status='registered', error_code='', documents=DOCUMENTS[:1]))
+
+        class _BrokenAudit:
+            def record(self, *args, **kwargs):
+                raise RuntimeError('audit storage unavailable')
+
+        chat.audit = _BrokenAudit()
+        with pytest.raises(ChatError) as failed:
+            chat.knowledge_search(KB, REVISION, query='ALPHA', task_id='task-98')
+        assert str(failed.value) == 'KNOWLEDGE_SEARCH_FAILED'
+        assert records == []
+
+
+def test_library_search_names_no_audit_record_when_none_was_written(tmp_path) -> None:
+    """Without a wired audit log the view honestly omits ``auditTaskId``
+    instead of naming a record that does not exist."""
+    with platform() as (origin, _records):
+        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
+        imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
+                                     manifest_hash=MANIFEST, document_count=1,
+                                     status='registered', error_code='', documents=DOCUMENTS[:1]))
+
+        chat.audit = None
+        view = chat.knowledge_search(KB, REVISION, query='ALPHA')
+        assert 'auditTaskId' not in view
+        assert view['evidenceComplete'] is True

@@ -82,9 +82,10 @@ export function SearchCitations({ view }: { view: KnowledgeSearchView }): JSX.El
   return (
     <Card type="inner" size="small" className="mt-2 w-full" data-testid="doc-library-search-result">
       <Typography.Paragraph className="mb-1">
-        检索“{view.query}” · 版本 R{view.revisionNo} · 引擎 {ENGINE_NAMES[view.engine] ?? view.engine}
+        检索“{view.query}” · 知识库 {view.kbId || '—'} · 版本 R{view.revisionNo} ·
+        引擎 {ENGINE_NAMES[view.engine] ?? view.engine}
         {view.fallbackReason ? ` · 降级原因 ${view.fallbackReason}` : ''}
-        {` · 命中文档 ${view.documentsMatched} / ${view.documentsTotal}`}
+        {` · 参与检索 ${view.documentsMatched} / ${view.documentsTotal}`}
       </Typography.Paragraph>
       {!view.evidenceComplete && <Alert type="warning" showIcon className="mb-2"
         message="依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。" />}
@@ -106,6 +107,7 @@ export function SearchCitations({ view }: { view: KnowledgeSearchView }): JSX.El
         : <Typography.Text type="secondary">没有命中的内容。</Typography.Text>}
       <Typography.Paragraph type="secondary" className="mb-0">
         检索凭据：{view.credentials.serverOrigin} · 用户 {view.credentials.userId} · 设备 {view.credentials.deviceId}
+        {view.auditTaskId ? ` · 本机审计记录 ${view.auditTaskId.slice(0, 12)}…` : ' · 本机审计记录不可用'}
       </Typography.Paragraph>
     </Card>
   )

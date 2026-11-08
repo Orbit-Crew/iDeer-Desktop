@@ -255,20 +255,22 @@ export interface KnowledgeSearchHit {
 /** Issue 98: a frozen document that could not contribute, with its fixed reason. */
 export interface KnowledgeSearchGap {
   filename: string
-  reason: 'content_drift' | 'not_searchable' | 'file_unavailable' | string
+  reason: string
 }
 /** Issue 98: the device-side citation view of one library search. The search
  * rides the same engines as the broker task, never calls the Server, and
  * `evidenceComplete` says honestly whether every document contributed —
  * 依据不完整 must be visible instead of a fake full answer. `credentials`
- * is the binding summary (origin/user/device) the search ran under. */
+ * is the binding summary (origin/user/device) the search ran under, and
+ * `auditTaskId` names the durable device audit record written for this
+ * search, so a citation is traceable after the fact. */
 export interface KnowledgeSearchView {
   kbId: string
   revisionId: string
   revisionNo: number
   manifestHash: string
   query: string
-  engine: string
+  engine: 'bm25' | 'literal'
   fallbackReason: string
   chunks: KnowledgeSearchHit[]
   missing: KnowledgeSearchGap[]
@@ -277,6 +279,7 @@ export interface KnowledgeSearchView {
   documentsTotal: number
   evidenceComplete: boolean
   credentials: { serverOrigin: string; userId: string; deviceId: string }
+  auditTaskId: string
 }
 /** Issue 117: one selected document inside a scoped query/ask, with its frozen source. */
 export interface KnowledgeGraphScopeRow {

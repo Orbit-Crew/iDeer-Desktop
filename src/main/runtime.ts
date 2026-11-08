@@ -1633,7 +1633,8 @@ export class RuntimeProcess {
             pending.resolve({
               kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
               manifestHash: outcome.manifestHash, query: text(outcome.query, 512),
-              engine: outcome.engine, fallbackReason: text(outcome.fallbackReason, 32),
+              engine: outcome.engine as KnowledgeSearchView['engine'],
+              fallbackReason: text(outcome.fallbackReason, 32),
               chunks: outcome.chunks.slice(0, 100).map((row: Record<string, unknown>) => ({
                 filename: text(row?.filename, 255), contentHash: text(row?.contentHash, 64),
                 content: text(row?.content, 1000),
@@ -1646,7 +1647,8 @@ export class RuntimeProcess {
               documentsTotal: integer(outcome.documentsTotal),
               evidenceComplete: outcome.evidenceComplete,
               credentials: { serverOrigin: text(outcome.credentials.serverOrigin, 255),
-                userId: text(outcome.credentials.userId, 128), deviceId: text(outcome.credentials.deviceId, 128) }
+                userId: text(outcome.credentials.userId, 128), deviceId: text(outcome.credentials.deviceId, 128) },
+              auditTaskId: text(outcome.auditTaskId, 64)
             })
             continue
           }
