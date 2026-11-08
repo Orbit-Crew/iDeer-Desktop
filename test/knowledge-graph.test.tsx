@@ -267,12 +267,12 @@ describe('scoped graph QA and relation retrieval (#117)', () => {
     }
     const html = renderSection({ askResult: partial })
     expect(html).toContain('依据 guide.txt：甲零件属于乙组件。')
-    expect(html).toContain('依据不完整：部分所选文档未成功参与本次回答')
+    expect(html).toContain('依据不完整：部分或全部所选文档未成功参与本次回答')
   })
 
   it('marks incomplete scoped retrieval results as 依据不完整 (#98)', () => {
     const html = renderSection({ queryResult: { ...queryResult, status: 'partial' } })
-    expect(html).toContain('依据不完整：部分所选文档未成功参与本次检索')
+    expect(html).toContain('依据不完整：部分或全部所选文档未成功参与本次检索')
   })
 })
 

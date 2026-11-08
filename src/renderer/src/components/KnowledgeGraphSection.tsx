@@ -111,7 +111,7 @@ export function KnowledgeGraphSection({ runtime, graph, similarity, located, que
             依据不完整 banner names the incompleteness on top of the rows. */}
         {(queryResult.status === 'partial' || queryResult.status === 'failed') &&
           <Alert type="warning" showIcon className="mb-2" data-testid="graph-query-incomplete"
-            message="依据不完整：部分所选文档未成功参与本次检索，以下结果仅来自成功参与的部分。" />}
+            message="依据不完整：部分或全部所选文档未成功参与本次检索，以下结果仅来自成功参与的部分。" />}
         {!queryResult.entities.length && !queryResult.relations.length && <Typography.Text type="secondary">所选范围内没有匹配的实体或关系。</Typography.Text>}
         {queryResult.relations.map((relation, index) => <Typography.Paragraph key={`r-${relation.documentId}-${index}`}>
           {relation.source} —[{relation.relation}]→ {relation.target}
@@ -134,7 +134,7 @@ export function KnowledgeGraphSection({ runtime, graph, similarity, located, que
             partial success must not read as a complete one. */}
         {askResult.answerAvailable && (askResult.status === 'partial' || askResult.status === 'failed') &&
           <Alert type="warning" showIcon className="mt-2" data-testid="graph-ask-incomplete"
-            message="依据不完整：部分所选文档未成功参与本次回答，答案仅基于成功参与的部分。" />}
+            message="依据不完整：部分或全部所选文档未成功参与本次回答，答案仅基于成功参与的部分。" />}
         {askResult.scope.map(row => <Typography.Paragraph key={row.documentId} className="mt-1">
           来源 {row.filename} · {scopeStatusName(row)}
           {row.contentHash && <Typography.Text type="secondary"> · 指纹 {row.contentHash.slice(0, 12)}…</Typography.Text>}

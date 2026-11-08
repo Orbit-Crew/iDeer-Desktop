@@ -29,9 +29,11 @@ from websockets.asyncio.server import serve
 from core.file_service import WorkspaceFileService, WorkspaceFileStore, WorkspaceSelection
 from core.files import RootConfig
 from core.knowledge_import import KnowledgeImportRegistry
-from core.knowledge_index import KnowledgeIndexStore
+from core.knowledge_index import KnowledgeIndexError, KnowledgeIndexStore
 from core.knowledge_search import (
+    MAX_MATCHES,
     KnowledgeSearchError,
+    answer_frozen_revision,
     parse_search_payload,
     search_frozen_revision,
     search_registered_revision,
@@ -181,6 +183,34 @@ def test_literal_scan_without_layouts_never_guesses_anchors(tmp_path) -> None:
     assert all(chunk['position']['page'] is None and chunk['position']['table'] is None
                for chunk in result['chunks'])
     assert all(chunk['position']['logical_path'].startswith('/workspace/') for chunk in result['chunks'])
+
+
+def test_literal_scan_overflow_marks_truncation_and_incomplete_evidence(tmp_path) -> None:
+    """More matching lines than MAX_MATCHES marks the cut, and the answer
+    seam refuses the complete-evidence claim — dropped hits never read as a
+    full answer."""
+    lines = ''.join(f'alpha line {number}\n' for number in range(1, MAX_MATCHES + 2))
+    (tmp_path / 'report.txt').write_bytes(lines.encode('utf-8'))
+
+    result = search_frozen_revision(_payload('', documents=[_document('report.txt', lines)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace')
+    assert len(result['chunks']) == MAX_MATCHES
+    assert result['truncated'] is True
+
+    class _MissingIndex:
+        def revision_view(self, *args, **kwargs):
+            return {'state': 'missing', 'documents': 0, 'indexedDocuments': 0, 'servableDocuments': 0,
+                    'driftedDocuments': 0, 'builtAt': '', 'error': 'KNOWLEDGE_INDEX_MISSING'}
+
+        def document_layouts(self, *args, **kwargs):
+            raise KnowledgeIndexError('KNOWLEDGE_INDEX_MISSING')
+
+    answer = answer_frozen_revision(_payload('', documents=[_document('report.txt', lines)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace',
+                                    index=_MissingIndex(), binding={'user_id': 'A', 'device_id': 'D1'},
+                                    library={'kbId': KB, 'revisionNo': 1})
+    assert answer['engine'] == 'literal' and answer['fallbackReason'] == 'index-missing'
+    assert answer['truncated'] is True and answer['evidenceComplete'] is False
 
 
 def test_service_result_carries_library_identity_and_evidence(tmp_path) -> None:

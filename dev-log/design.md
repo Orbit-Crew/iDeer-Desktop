@@ -1,74 +1,61 @@
-# Issue #100 design decisions (settled before code)
+# Issue #98 design decisions (settled before code)
 
-## D1 — Renderer-only surface; no bridge, IPC, or platform changes
+## D1 — One answering seam; only the projection differs
 
-The Server's wiki navigation endpoint
-(`GET …/knowledge-revisions/{rid}/wiki/navigation`, built for old-numbering
-#119) already projects everything the graph needs: pages with honest
-`completed/skipped/failed/not_generated` statuses, resolved links, explicit
-missing targets, backlinks as the exact inverse of links, and the frozen
-document sources. The gap analysis (K05) names the Desktop gap as the
-canvas/organization, not the protocol. So #100 adds zero protocol surface:
-no `WikiCommand` action, no `src/shared/desktop.ts` type, no
-`runtime.ts`/`desktop.py`/`platform_chat.py` change, no
-`test/security.test.ts` channel-list update. This also keeps the branch
-conflict-free against the two open knowledge PRs (#153/#154), which do touch
-those files.
+`answer_frozen_revision` in `knowledge_search.py` is the shared engine
+decision (BM25 when the index covers the whole revision and the query
+tokenizes, the literal scan otherwise with a visible `fallbackReason`). The
+broker task (`file_service._search_knowledge`) and the user's own doc-library
+search (`platform_chat.knowledge_search` → `search_registered_revision`)
+ride the same seam, so a broker answer and a library answer can never drift
+apart in what they verify or how they cite. The frozen-revision contract is
+not weakened: every search still re-validates each manifest document against
+the live bytes before anything is served, and the structured missing list
+stays the honest gap report.
 
-## D2 — Deterministic graph model, no layout engine
+## D2 — Citations come only from the frozen parse's layout anchors
 
-`wikiGraphModel.ts` derives nodes/edges/positions purely from the navigation
-payload: overview lays every page on one circle in manifest order; 邻域
-centers the selected page and rings its one-hop and two-hop closure over
-links ∪ backlinks (mirroring the original linz ego mode's depth 2), capped
-at 60 nodes. No cytoscape/d3 dependency (the pinned dependency list in
-`test/security.test.ts` must not grow), no randomness, no animation — the
-same index always draws the same picture, which is what makes the model
-unit-testable. Node radius grows with visible relations only (edges among
-rendered nodes), so size always names what is on screen.
+A hit cites a page (or table) only when the frozen parse's `document_layouts`
+row anchors it: `page_for_line`/`table_for_line` mirror the #97 page marks,
+a table is a bounded span (unlike a from-here-on page), a hit outside every
+table span cites no table, and an unknown layout cites no page — never a
+guessed page number. The literal engine consults the layout rows it reads
+for that branch only; the BM25 branch carries the anchors inside its ranked
+rows.
 
-Honesty rules carried over from the text index: an unresolved link target
-never becomes a node or edge (it stays an explicit dead end in the page
-rows below the canvas); a skipped/failed page in the closure renders with
-its own status color and is never clickable into a body; backlink rows are
-not drawn as second edges — edges come from `links` only, and the closure
-walk uses backlinks purely to reach referencing pages.
+## D3 — Wire contracts stay additive or bounded
 
-## D3 — 清空/重建 semantics with the Server as owner
+The broker result stays snake_case and additive (`library`, `evidenceComplete`,
+`position.table`, plus the internal `servableUnknown` flag consumed by the
+seam before the broker ever sees the result). The user-facing view
+(`search_registered_revision` → `project_search_view`) is bounded camelCase;
+documents are cited by their frozen (filename, content hash) identity — the
+registry never stores platform document ids, so none are invented.
 
-The original linz wiki stored pages locally, so 清空 deleted them. On the
-platform, pages are Server-owned per frozen revision and the gateway has no
-DELETE wiki route (verified: only POST generate, GET view/page/navigation).
-The honest Desktop translation, matching "生成绑定库 Revision，清空后可重建":
+## D4 — The device answers offline; credentials ride as a summary
 
-- 清空展示状态 (Popconfirm): clears only this device's derived display
-  state (view, navigation, page bodies in `RuntimePanel`) via `onClear`.
-  The confirm copy states that Server pages stay, a re-view shows them
-  again, and a rebuild replaces them per page — the surface never claims a
-  Server deletion that did not happen.
-- 重建: the existing `generate` action, which the Server performs as a
-  per-document drop-and-rewrite (idempotent rebuild of every page from the
-  frozen manifest). The per-revision button reads 重新生成 once that
-  revision's displayed state is not `not_generated`, and 生成Wiki before.
+Device-side retrieval never calls the Server: an offline device still answers
+its own question, and the retrieval credentials ride as the binding summary
+(origin/user/device) — public keys never cross the bridge. Honesty flags:
+`evidenceComplete` is false whenever a document is missing, the answer was
+cut, or servability could not be determined; the QA graph surface marks a
+partial/failed scope 依据不完整 instead of faking a complete answer.
 
-## D4 — 来源标注到文档与位置
+## D5 — The user's search earns a durable device record
 
-`wikiSourceLine` renders `来源 {filename} · 冻结位置 {i}/{n} · 文档指纹：
-{sha256}` on both page lists and the selected node. The position is the
-row's index inside the revision's frozen manifest order — the only honest
-"位置" the platform states (pages are generated per whole document; the
-payload carries no in-document locators, and none are invented). The
-association coverage rows keep their existing format: they are the #116
-graph rows' own sources, already document- and digest-bound.
+The user library search writes one append-only audit row at the seam before
+the reply leaves it: the query stays out of the row (its digest only), a
+broken audit log fails the answer closed (an untraceable citation is never
+emitted), the view names the record (`auditTaskId`) only when the row exists,
+and the desktop dispatch threads its command id into the seam so the row,
+the view, and the wire projection carry the same identity. The broker path
+keeps its receipt chain (`receipt.result_hash` pins the exact cited result;
+the ledger row binds the credential profile) — no receipt hash inside the
+result, which would be circular.
 
-## D5 — Component structure and state
+## D6 — Zero new dependencies; one new IPC channel
 
-`WikiGraphPanel` owns the two display-only states (mode, selected node) as
-local component state; they are view preferences, not data, and reset
-naturally when the panel unmounts (each 清空/view/navigate swap in
-`RuntimePanel` does exactly that). `WikiSection` stays a projection of its
-props, gaining only the optional `onClear` callback and the 重新生成 label
-decision. Tests follow the file's existing split: static markup via
-`renderToStaticMarkup` for projections, jsdom + `@testing-library/react`
-interactions for the new behaviors (the file gains the `@vitest-environment
-jsdom` header; `renderToStaticMarkup` works unchanged under jsdom).
+No new dependency anywhere. One new control command (`knowledge-search`)
+with an exact-shape gate in `desktop.py`, its single-slot queue, and the
+security-test pin (`desktop:knowledge:search` channel + smoke bridge key),
+following the #97 command ladder exactly.

@@ -23,7 +23,7 @@ from core.knowledge_import import KnowledgeImportRegistry, registration_payload,
 from core.knowledge_index import (KnowledgeIndexError, KnowledgeIndexRebuild, KnowledgeIndexStore,
                                   document_terms, line_page_marks, page_for_line, table_for_line,
                                   table_line_marks, tokenize)
-from core.knowledge_search import search_frozen_revision_indexed
+from core.knowledge_search import answer_frozen_revision, search_frozen_revision_indexed
 from core.receipt_ledger import profile_binding
 from core.settings import RuntimeSettings, load_settings
 
@@ -242,6 +242,38 @@ def test_indexed_search_cites_the_table_a_hit_lands_in(tmp_path) -> None:
     positions = {chunk['position']['line']: chunk['position'] for chunk in result['chunks']}
     assert positions[2]['table'] == 2 and positions[2]['page'] == 1
     assert positions[3]['table'] is None and positions[3]['page'] == 1
+
+
+def test_unresolvable_servability_never_claims_complete_evidence(tmp_path) -> None:
+    """Issue 98: when the index store cannot say which verified documents it
+    can serve, the answer still serves its hits but refuses the
+    complete-evidence claim — a verified document silently dropped by an
+    unservable index must never read as a full answer."""
+    text = 'report header line\nalpha in table body\nalpha after the table\n'
+    (tmp_path / 'report.txt').write_bytes(text.encode('utf-8'))
+    store = KnowledgeIndexStore(str(tmp_path / 'knowledge-index.db'))
+    entry = _entry('report.txt', text)
+    entry['parse']['layout'] = [{'kind': 'page', 'page': 1, 'line': 1, 'lines': 3}]
+    store.index_revision(BINDING, REVISION, MANIFEST, [entry])
+    files = _store_for(tmp_path, tmp_path)
+
+    class _UnresolvableServability:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def servable_identities(self, *args, **kwargs):
+            raise KnowledgeIndexError('KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE')
+
+    result = answer_frozen_revision(_payload('', query='alpha', documents=[_document('report.txt', text)]),
+                                    files=files, logical_root='/workspace',
+                                    index=_UnresolvableServability(store), binding=BINDING,
+                                    library={'kbId': KB, 'revisionNo': 2})
+    assert result['engine'] == 'bm25' and result['chunks']
+    assert result['missing'] == [] and result['truncated'] is False
+    assert result['evidenceComplete'] is False
 
 
 def test_document_layouts_reads_back_the_frozen_parse_anchors(tmp_path) -> None:

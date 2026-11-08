@@ -21,7 +21,7 @@ import pytest
 
 from core.audit import AuditKind, LocalAuditLog
 from core.file_service import WorkspaceFileStore, WorkspaceSelection
-from core.files import RootConfig
+from core.files import FileAccessError, RootConfig
 from core.knowledge_import import KnowledgeImportRegistry
 from core.knowledge_index import KnowledgeIndexStore
 from core.platform_chat import ChatError, DesktopChat
@@ -146,8 +146,9 @@ def test_library_search_answers_without_the_server_with_citations(tmp_path) -> N
         assert view['credentials'] == {'serverOrigin': origin, 'userId': 'A', 'deviceId': 'D1'}
         assert str(space) not in str(view)
         # The durable device record: one audit row written before the reply,
-        # carrying the frozen identity and the evidence fact, the query only
-        # as its digest — and the view names it so a citation is traceable.
+        # carrying the frozen identity, the evidence fact, and the credential
+        # identity, the query only as its digest — and the view names it so a
+        # citation is traceable.
         rows = audit.recent(kind=AuditKind.EXECUTION)
         assert len(rows) == 1
         row = rows[0]
@@ -155,6 +156,8 @@ def test_library_search_answers_without_the_server_with_citations(tmp_path) -> N
         assert row.digest == MANIFEST and row.detail['evidenceComplete'] is True
         assert row.detail['queryDigest'] == hashlib.sha256(b'ALPHA').hexdigest()
         assert row.detail['engine'] == 'bm25'
+        assert row.actor_id == 'A'
+        assert row.detail['serverOrigin'] == origin and row.detail['deviceId'] == 'D1'
         assert view['auditTaskId'] == 'task-98'
         assert 'ALPHA' not in json.dumps(row.as_dict())
 
@@ -163,7 +166,7 @@ def test_library_search_reports_incomplete_evidence(tmp_path) -> None:
     """A drifted document is structured missing with its filename — the
     answer says 依据不完整 and never substitutes current bytes."""
     with platform() as (origin, _records):
-        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, _audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         (space / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
@@ -180,9 +183,33 @@ def test_library_search_reports_incomplete_evidence(tmp_path) -> None:
         assert 'CHANGED' not in str(view)
 
 
+def test_library_search_names_an_unconfirmed_workspace_and_file_boundary_honestly(tmp_path) -> None:
+    """An unconfirmed workspace is not a generic failure: the fixed category
+    crosses the boundary so the UI can say exactly what is missing — and the
+    error code is read off the exception (``str`` is the human message)."""
+    with platform() as (origin, _records):
+        chat, imports, binding, space, config, _audit = prepare(tmp_path, origin)
+
+        def _unavailable():
+            raise FileAccessError('WORKSPACE_UNAVAILABLE')
+
+        chat.knowledge_files = _unavailable
+        with pytest.raises(ChatError) as refused:
+            chat.knowledge_search(KB, REVISION, query='ALPHA')
+        assert str(refused.value) == 'KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE'
+
+        def _outside():
+            raise FileAccessError('PROTECTED_PATH')
+
+        chat.knowledge_files = _outside
+        with pytest.raises(ChatError) as unavailable:
+            chat.knowledge_search(KB, REVISION, query='ALPHA')
+        assert str(unavailable.value) == 'KNOWLEDGE_SEARCH_FILE_UNAVAILABLE'
+
+
 def test_library_search_refuses_unregistered_revisions_and_bad_queries(tmp_path) -> None:
     with platform() as (origin, records):
-        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, _audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
                                      manifest_hash=MANIFEST, document_count=1,
@@ -206,7 +233,7 @@ def test_library_search_fails_closed_when_the_audit_record_cannot_be_written(tmp
     """A broken audit log never yields an untraceable citation: the answer
     fails with the fixed category instead of leaving the seam unrecorded."""
     with platform() as (origin, records):
-        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, _audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
                                      manifest_hash=MANIFEST, document_count=1,
@@ -227,7 +254,7 @@ def test_library_search_names_no_audit_record_when_none_was_written(tmp_path) ->
     """Without a wired audit log the view honestly omits ``auditTaskId``
     instead of naming a record that does not exist."""
     with platform() as (origin, _records):
-        chat, imports, binding, space, config, audit = prepare(tmp_path, origin)
+        chat, imports, binding, space, config, _audit = prepare(tmp_path, origin)
         (space / 'report.txt').write_bytes(REPORT.encode('utf-8'))
         imports.record(binding, dict(kb_id=KB, revision_id=REVISION, revision_no=1,
                                      manifest_hash=MANIFEST, document_count=1,

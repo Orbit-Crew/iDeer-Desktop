@@ -2604,8 +2604,9 @@ class DesktopChat:
         except (FileAccessError, KnowledgeMaterialError) as exc:
             # The search's own fixed categories: an unconfirmed or vanished
             # workspace is not a generic failure, and a material error's code
-            # is already a fixed category.
-            code = str(exc)
+            # is already a fixed category. The code lives on the exception
+            # (``str`` is the human message), so read it off the attribute.
+            code = getattr(exc, "code", "")
             if code == "WORKSPACE_UNAVAILABLE":
                 raise ChatError("KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE") from exc
             if isinstance(exc, KnowledgeMaterialError) or code in {"OUTSIDE_ALLOWED_ROOTS", "PROTECTED_PATH"}:
@@ -2631,7 +2632,13 @@ class DesktopChat:
                 self.audit.record(AuditKind.EXECUTION, "completed",
                                   capability="local.knowledge.search",
                                   task_id=str(task_id or "")[:64], digest=view["manifestHash"],
-                                  detail={"kbId": str(view.get("kbId", ""))[:128],
+                                  # The credential identity rides the row too, so
+                                  # a citation stays queryable from the durable
+                                  # record alone (the view carries the summary).
+                                  actor_id=str(binding.get("user_id", ""))[:128] or None,
+                                  detail={"serverOrigin": str(binding.get("server_origin", ""))[:255],
+                                          "deviceId": str(binding.get("device_id", ""))[:128],
+                                          "kbId": str(view.get("kbId", ""))[:128],
                                           "revisionId": str(view.get("revisionId", ""))[:64],
                                           "engine": str(view.get("engine", ""))[:16],
                                           "documentsMatched": view.get("documentsMatched"),

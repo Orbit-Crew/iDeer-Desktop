@@ -1,69 +1,66 @@
-# Issue #100 two-axis review (before final commit)
+# Issue #98 two-axis review (before push)
 
-Diff reviewed file by file: `git diff 29df1e2...HEAD` over 3 modified + 4 new
-source/test files (commit 4705f25), re-read against the acceptance criteria,
-the neighboring implementations (KnowledgeGraphSection, the doc library pane),
-the gap-analysis K05 line, and the original linz wiki components. Two
-independent agents reviewed Standards and Spec in parallel; their findings and
-the dispositions applied before the final commit follow. After the fixes:
-typecheck clean, wiki tests 27/27.
+Two parallel review passes over `git diff origin/develop..HEAD` — one against
+the repo's documented standards and established idioms, one against the
+issue's acceptance criteria — followed by fixes and re-verification. (The
+file previously held earlier sessions' reviews (#97/#100); those records live
+on in their branches' history, and this file now documents the #98 pass, as
+ticket.md documents the #98 ticket.)
 
-## Standards
+## Standards axis — findings and dispositions
 
-No documented-standard violations. Baseline smells (all judgement calls) and
-dispositions:
+1. **Workspace error codes were compared against the human message** (fixed,
+   必修): the seam mapped `str(exc)` against `WORKSPACE_UNAVAILABLE` /
+   `OUTSIDE_ALLOWED_ROOTS` / `PROTECTED_PATH`, but `FileAccessError` stores
+   the code on `.code` and `str()` is the lowercased message, so the honest
+   `KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE` category was unreachable — an
+   unconfirmed workspace answered the generic `KNOWLEDGE_SEARCH_FAILED`.
+   The mapping now reads `getattr(exc, "code", "")` (the `category_for`
+   precedent), pinned by
+   `test_library_search_names_an_unconfirmed_workspace_and_file_boundary_honestly`.
+2. **Unused `audit` unpacks in four seam tests** (fixed, nit): renamed to
+   `_audit`, matching the sibling file's convention.
+3. **`answer_frozen_revision` read `document_layouts` on every answer**
+   (fixed, nit): the layouts feed only the literal scan (the BM25 branch
+   carries anchors inside its ranked rows), so the read moved into the
+   literal branch — the broker hot path no longer pays a full-revision
+   layout read it never consumes.
+4. **依据不完整 banner understated a fully failed scope** (fixed, nit): the
+   KnowledgeGraphSection banners now say 部分或全部所选文档未成功参与, so an
+   all-documents-failed scope is not described as "部分".
 
-1. **Comment claims nonexistent behavior (must-fix, fixed).** The canvas
-   comment promised hover highlighting that does not exist, and the local
-   `highlight` set named nothing it did. Comment rewritten to what the canvas
-   does; the set is now `relations` and only feeds the honest per-node
-   relation-count tooltip.
-2. **Duplicated edge-extraction shape (fixed).** `buildOverview` and
-   `buildNeighborhood` shared the rows→links→included→dedup walk; extracted
-   as `extractEdges(rows, included)`, one shape, both callers.
-3. **Duplicated status color map (fixed).** `STATUS_COLORS` (canvas) and
-   `STATUS_DOT` (panel) collapsed into one exported
-   `WIKI_STATUS_COLORS: Record<WikiPageSummary['status'], string>` in the
-   model module; the panel derives its legend dots from it. The test-fixture
-   duplication across the two wiki test files stays: each file keeps its own
-   small fixtures for isolation, matching the repo's test idiom.
-4. **Weak typing of the status maps (fixed).** The panel's maps are now
-   `Record<WikiPageSummary['status'], string>`; the read command the panel
-   issues is typed `WikiReadCommand = WikiCommand & { action: 'read' }`.
-   (An `Extract<WikiCommand, …>` variant compiled to `never` — `WikiCommand`
-   is a single interface, not a discriminated union.)
-5. **`depth` field overload (fixed).** Overview entries no longer fake
-   `depth: 0` to center a single page; placement decides the center
-   explicitly (`entry.depth === 0 || (mode === 'overview' && pages.length === 1)`),
-   and the unreachable `radius === 0` guard is gone (`ringPosition` documents
-   its `count >= 1` precondition).
-6. **Overview scale (noted, not changed).** The navigation projection itself
-   caps the payload at 200 pages; the radius formula saturates at 300, so a
-   200-page overview is crowded but usable and deterministic. The model
-   comment now states the 200-page source bound; a denser layout is a
-   display preference, not part of this ticket.
+## Spec axis — findings and dispositions
 
-## Spec
+1. **No test drove a successful search through the desktop loop** (fixed,
+   应修): the load-bearing `task_id=search_command['id']` threading — the
+   traceability the audit commit exists for — was only exercised below the
+   dispatch. New `test_desktop_knowledge_search.py` drives `desktop.main()`
+   end-to-end: the command passes the wire gate, the reply carries
+   `auditTaskId == command id` with real page/table citations, and the
+   profile's real `audit.db` row pins the same id, digest, and query digest;
+   the refusal path keeps its fixed category on the same loop.
+2. **Unresolvable servability silently claimed complete evidence** (fixed,
+   nit): when `index.servable_identities` fails, a verified document the
+   index cannot serve produces neither a hit nor a structured missing, and
+   `evidenceComplete` stayed true. The indexed engine now flags
+   `servableUnknown`, and `answer_frozen_revision` refuses the
+   complete-evidence claim in that case, pinned by
+   `test_unresolvable_servability_never_claims_complete_evidence`.
+3. **The durable audit row lacked the credential identity** (fixed, nit):
+   the row now carries `actor_id` (user id) plus the origin/device summary
+   in `detail`, so AC2 stays queryable from the durable row alone; the
+   seam test asserts the row and the absence of the raw query.
+4. **No engine test drove truncation** (fixed, nit):
+   `test_literal_scan_overflow_marks_truncation_and_incomplete_evidence`
+   overflows `MAX_MATCHES`, pins `truncated` and the refused
+   `evidenceComplete`, and the visible fallback reason.
+5. **Truncation-only incompleteness showed the document-missing banner**
+   (fixed, nit): the doc library's 依据不完整 banner now names the cut
+   (命中数量达到上限) when nothing is missing, pinned by a UI test.
 
-The reviewer judged 清空 (display-state-only clear behind an explicit confirm
-with honest copy) compliant given the verified no-DELETE gateway, and 位置
-(manifest position) compliant given the payload carries no in-document
-locator. Findings and dispositions:
-
-1. **Truncated closure was silent (fixed).** The 60-node neighborhood bound
-   cut pages without saying so. The panel now shows 邻域已达 60 页上限…
-   完整范围见下方页面索引 whenever the bound applies, pinned by a test.
-2. **生成Wiki label after 清空 (accepted, documented).** After a clear the
-   button reads 生成Wiki again although Server pages persist. The label
-   describes the action, never claims prior state; the confirm copy carries
-   the honest Server-side sentence. Changing the label would require the
-   renderer to remember cleared state, exactly what 清空 removes.
-3. **冻结位置 assumes manifest order (accepted, inherited contract).** The
-   Server builds both page lists from `manifest_entries(revision)` in order;
-   the ordering is pinned by `local-runtime/tests/test_platform_wiki.py`
-   (unchanged here). The model doc comment states the assumption.
-4. No scope creep of substance: no bridge/IPC/shared-type/dependency change,
-   `test/security.test.ts` channel lists untouched.
-
-Standards: 1 must-fix + 4 actionable smells, all fixed. Spec: 2 findings
-fixed, 2 accepted with written dispositions, 0 unresolved.
+No hard standards breaches: stdlib-only Python, no new dependencies, one
+fixed-category boundary, exact-shape gates with updated security pins
+(preload channel list + smoke bridge keys, both sorted), one audit write
+point at the seam (fail-closed), physical paths never crossing to the
+renderer or the wire, and the merge's union resolutions (channel lists,
+bridge keys, controller Pick, pane JSX) all coherent.

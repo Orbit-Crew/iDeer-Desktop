@@ -101,6 +101,21 @@
   partial/failed scope (answer or retrieval) on top of the existing refusal
   alert.
 
+## Follow-up: the durable audit record (settled after the first review)
+
+The user's library search earns the same durable device record a broker
+task's execution gets, settled at the seam rather than the dispatch layer:
+`platform_chat.knowledge_search` writes one `AuditKind.EXECUTION` `completed`
+row for `local.knowledge.search` before the reply leaves — the query stays
+out of the row (its sha256 `queryDigest` only), the credential identity
+rides the row (`actor_id` + origin/device summary), a broken audit log fails
+the answer closed (`KNOWLEDGE_SEARCH_FAILED`), and the view carries
+`auditTaskId` only when the row exists. The desktop dispatch threads its
+command id into the seam as `task_id`, so the row, the view, and the wire
+projection name the same record; the loop-level test drives the whole path
+against the real profile `audit.db`. The projection itself stays pure —
+no `task_id` parameter, no premature `auditTaskId` claim.
+
 ## Scope guidance
 
 1. No changes to `local.knowledge.search`'s wire contract beyond additive

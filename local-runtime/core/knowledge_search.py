@@ -328,6 +328,10 @@ def search_frozen_revision_indexed(payload: dict[str, Any], *, files: Any, logic
         "documentsMatched": len(frozen) - len(missing),
         "engine": "bm25",
         "index": view,
+        # Consumed by answer_frozen_revision: the servability read failed, so
+        # a verified document the index cannot serve may have vanished from
+        # this answer without entering ``missing`` — never claim full evidence.
+        "servableUnknown": servable is None,
     }
 
 
@@ -353,15 +357,17 @@ def answer_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root:
         view = {"state": "missing", "documents": 0, "indexedDocuments": 0, "servableDocuments": 0,
                 "driftedDocuments": 0, "builtAt": "",
                 "error": "KNOWLEDGE_INDEX_STORAGE_UNAVAILABLE"}
-    layouts = None
-    try:
-        layouts = index.document_layouts(binding, payload["revision_id"], payload["manifest_hash"])
-    except KnowledgeIndexError:
-        layouts = None
     if view["state"] == "ready" and tokenize(payload["query"]):
         result = search_frozen_revision_indexed(payload, files=files, logical_root=logical_root,
                                                 index=index, binding=binding)
     else:
+        # The literal scan cites the frozen parse's anchors directly; the BM25
+        # branch carries them inside its ranked rows, so the layouts read is
+        # paid only where it is consumed.
+        try:
+            layouts = index.document_layouts(binding, payload["revision_id"], payload["manifest_hash"])
+        except KnowledgeIndexError:
+            layouts = None
         result = search_frozen_revision(payload, files=files, logical_root=logical_root, layouts=layouts)
         result["index"] = view
         if not tokenize(payload["query"]):
@@ -376,7 +382,13 @@ def answer_frozen_revision(payload: dict[str, Any], *, files: Any, logical_root:
                          "revisionId": payload["revision_id"],
                          "revisionNo": library.get("revisionNo"),
                          "manifestHash": payload["manifest_hash"]}
-    result["evidenceComplete"] = not result["missing"] and not result["truncated"]
+    # The indexed engine flags the (storage-error) case where servability
+    # could not be determined: verified documents the index cannot serve then
+    # produce neither a hit nor a structured missing, so the answer must not
+    # claim complete evidence it cannot prove.
+    servable_unknown = bool(result.pop("servableUnknown", False))
+    result["evidenceComplete"] = (not result["missing"] and not result["truncated"]
+                                  and not servable_unknown)
     return result
 
 

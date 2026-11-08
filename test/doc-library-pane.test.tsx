@@ -357,6 +357,22 @@ describe('doc library pane (issue 98 library search)', () => {
     expect(partial.textContent).not.toContain('alpha in table body')
   })
 
+  it('names truncation, not missing documents, when the cut alone broke completeness', async () => {
+    stubIdeer()
+    ;(window as unknown as { ideer: { knowledgeSearch: unknown } }).ideer.knowledgeSearch = vi.fn(() =>
+      Promise.resolve(searchView({ evidenceComplete: false, truncated: true, missing: [] })))
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.change(await screen.findByRole('textbox', { name: '检索版本 ffffffff' }), { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    const cut = await screen.findByTestId('doc-library-search-result')
+    // Every document participated; the honest banner names the cut, and the
+    // document-missing wording stays out.
+    expect(cut.textContent).toContain('依据不完整：命中数量达到上限，以下仅显示截断前的命中')
+    expect(cut.textContent).not.toContain('部分文档未能参与本次检索')
+    expect(cut.textContent).not.toContain('未参与检索：')
+  })
+
   it('explains a refused search through its fixed category', async () => {
     stubIdeer({ reject: 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED' })
     statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })

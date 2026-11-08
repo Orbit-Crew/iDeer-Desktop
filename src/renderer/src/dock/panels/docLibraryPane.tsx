@@ -99,7 +99,9 @@ export function SearchCitations({ view }: { view: KnowledgeSearchView }): JSX.El
         {` · 参与检索 ${view.documentsMatched} / ${view.documentsTotal}`}
       </Typography.Paragraph>
       {!view.evidenceComplete && <Alert type="warning" showIcon className="mb-2"
-        message="依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。" />}
+        message={view.missing.length > 0
+          ? '依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。'
+          : '依据不完整：命中数量达到上限，以下仅显示截断前的命中。'} />}
       {view.missing.map((gap, index) => (
         <Typography.Paragraph key={`${gap.filename}-${index}`} type="warning" className="mb-1">
           未参与检索：{gap.filename} · {GAP_REASONS[gap.reason] ?? gap.reason}
