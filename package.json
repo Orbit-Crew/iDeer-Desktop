@@ -22,6 +22,7 @@
     "runtime:prepare": "node scripts/project-env.cjs python scripts/prepare-runtime.py",
     "test:runtime": "node scripts/project-env.cjs python -m pytest local-runtime/tests -q",
     "verify:provenance": "node scripts/project-env.cjs node scripts/verify-provenance.cjs",
+    "verify:third-party": "node scripts/project-env.cjs node scripts/verify-third-party.cjs",
     "components:generate": "node scripts/project-env.cjs node scripts/generate-component-nsis.cjs",
     "components:pack": "node scripts/project-env.cjs node scripts/component-pack.cjs",
     "paths": "node scripts/project-env.cjs --print-env",

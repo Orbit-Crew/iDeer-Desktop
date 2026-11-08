@@ -30,6 +30,8 @@ jobs:
           PYTHONPATH: local-runtime
       - run: npm ci
       - run: npm run verify:provenance
+      # Issue #88: per-item third-party inventory must match what ships.
+      - run: npm run verify:third-party
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -58,6 +60,8 @@ jobs:
         env:
           PYTHONPATH: local-runtime
       - run: npm ci
+      # Issue #88: per-item third-party inventory must match what ships.
+      - run: npm run verify:third-party
       - run: npm run typecheck
       - run: npm run test:security
       # Issue #43: dual-shell proof that the acceptance drivers read UTF-8
