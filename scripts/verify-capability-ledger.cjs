@@ -69,6 +69,30 @@ const LAYER_STATUS = {
 const SCENARIO_STATES = ['成功', '拒绝', '失败', '断线', '停止', '恢复', '未执行']
 const INACTIVE = ['未记录', '不适用']
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+
+// A YYYY-MM-DD string must also be a real calendar date: the shape regex
+// alone accepts impossible values like 2026-02-30, so round-trip the
+// constructed date and require it to match its components back.
+function isCalendarDate(value) {
+  if (typeof value !== 'string' || !DATE.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+// Shared shape guard for every evidence path: repository-relative only —
+// no absolute paths, no '..' traversal, and no backslashes (backslash
+// separators resolve on Windows but break on POSIX runners). Used by layer
+// evidence, active scenario slots, and 未执行 scenario slots alike.
+function isRepositoryRelativePath(path) {
+  return (
+    typeof path === 'string' &&
+    path.length > 0 &&
+    !isAbsolute(path) &&
+    !path.includes('..') &&
+    !path.includes('\\')
+  )
+}
 const ENTRY_KEYS = [
   'id', 'issue', 'phase', 'index', 'kind', 'name',
   'originalEntry', 'newPath', 'allowedDifferences', 'layers', 'scenarios'
@@ -93,7 +117,7 @@ function checkEvidence(list, label, findings, resolvePath) {
     return
   }
   for (const path of list) {
-    if (typeof path !== 'string' || path.length === 0 || isAbsolute(path) || path.includes('..')) {
+    if (!isRepositoryRelativePath(path)) {
       findings.push(`evidence path must be repository-relative: ${String(path)}`)
       continue
     }
@@ -110,7 +134,7 @@ function validateLedger(ledger, resolvePath) {
   }
   if (!exactKeys(ledger, LEDGER_KEYS, 'ledger', findings)) return { findings, counts: null }
   if (ledger.version !== 1) findings.push('ledger.version must be 1')
-  if (typeof ledger.updated !== 'string' || !DATE.test(ledger.updated)) {
+  if (!isCalendarDate(ledger.updated)) {
     findings.push('ledger.updated must be a YYYY-MM-DD date')
   }
   if (typeof ledger.frameworkDoc !== 'string' || !resolvePath(ledger.frameworkDoc)) {
@@ -186,7 +210,7 @@ function validateLedger(ledger, resolvePath) {
       }
       checkEvidence(record.evidence, `entry #${spec.issue} ${layer} ${record.status}`, findings, resolvePath)
       citations += record.evidence.length
-      if (typeof record.lastVerified !== 'string' || !DATE.test(record.lastVerified)) {
+      if (!isCalendarDate(record.lastVerified)) {
         findings.push(`entry #${spec.issue} ${layer} ${record.status} needs lastVerified as YYYY-MM-DD`)
       }
     }
@@ -206,8 +230,24 @@ function validateLedger(ledger, resolvePath) {
         continue
       }
       if (scenario.state === '未执行') {
-        for (const path of scenario.evidence) {
-          if (!resolvePath(path)) findings.push(`evidence path does not exist: ${path}`)
+        // 未执行 means 尚无证据 (capability-ledger.md): the slot must stay
+        // empty. Entries that appear anyway are a contract breach, and any
+        // non-array value is flagged here instead of crashing the loop; the
+        // entries still go through the shared path guard so findings name
+        // malformed paths rather than silently passing shape checks.
+        if (!Array.isArray(scenario.evidence)) {
+          findings.push(`entry #${spec.issue} scenario ${scenario.name} evidence must be an array`)
+        } else {
+          if (scenario.evidence.length !== 0) {
+            findings.push(`entry #${spec.issue} scenario ${scenario.name} 未执行 must carry no evidence (尚无证据)`)
+          }
+          for (const path of scenario.evidence) {
+            if (!isRepositoryRelativePath(path)) {
+              findings.push(`evidence path must be repository-relative: ${String(path)}`)
+              continue
+            }
+            if (!resolvePath(path)) findings.push(`evidence path does not exist: ${path}`)
+          }
         }
       } else {
         checkEvidence(scenario.evidence, `entry #${spec.issue} scenario ${scenario.name} with state ${scenario.state}`, findings, resolvePath)

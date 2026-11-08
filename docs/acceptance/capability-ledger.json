@@ -213,7 +213,7 @@
       "scenarios": [
         { "name": "断线显式暂停并锁输入", "state": "断线", "evidence": ["test/chat-platform.test.tsx"] },
         { "name": "断线中在途回合结果未知", "state": "断线", "evidence": ["test/chat-platform.test.tsx"] },
-        { "name": "平台恢复后自动恢复并播报", "state": "恢复", "evidence": ["test/chat-platform.test.tsx"] },
+        { "name": "断线时播报将自动重连并补传执行记录", "state": "恢复", "evidence": ["test/chat-platform.test.tsx"] },
         { "name": "正常可达会话无横幅", "state": "成功", "evidence": ["test/chat-platform.test.tsx"] }
       ]
     },

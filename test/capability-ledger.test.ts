@@ -184,6 +184,39 @@ describe('capability ledger validator', () => {
     expect(check(extraKey)[0]).toContain('scenario keys')
   })
 
+  it('rejects calendar-invalid dates that pass the YYYY-MM-DD shape check', () => {
+    const impossible = fullLedger()
+    impossible.updated = '2026-02-30'
+    expect(check(impossible)[0]).toContain('ledger.updated must be a YYYY-MM-DD date')
+    const layer = fullLedger()
+    layer.capabilities[0].layers.entryRestoration.lastVerified = '2026-13-01'
+    expect(check(layer).join('\n')).toContain('entryRestoration 已恢复 needs lastVerified as YYYY-MM-DD')
+  })
+
+  it('rejects evidence paths containing backslashes', () => {
+    const backslash = fullLedger()
+    backslash.capabilities[0].layers.entryRestoration.evidence = ['docs\\acceptance\\issue-71\\report.md']
+    expect(check(backslash)[0]).toContain('evidence path must be repository-relative')
+  })
+
+  it('guards 未执行 scenario slots: empty evidence, array shape, repository-relative paths', () => {
+    // 尚无证据: a 未执行 slot must carry no evidence at all
+    const filled = fullLedger()
+    filled.capabilities[0].scenarios[0] = { name: '候选包断线', state: '未执行', evidence: ['docs/porting.md'] }
+    expect(check(filled)[0]).toContain('候选包断线 未执行 must carry no evidence')
+    // a non-array evidence value yields a finding instead of a TypeError
+    const notArray = fullLedger()
+    notArray.capabilities[0].scenarios[0] = { name: '候选包断线', state: '未执行', evidence: 'docs/porting.md' }
+    expect(check(notArray)[0]).toContain('候选包断线 evidence must be an array')
+    // entries that do appear still face the shared repository-relative shape guard
+    const absolute = fullLedger()
+    absolute.capabilities[0].scenarios[0] = { name: '候选包断线', state: '未执行', evidence: ['C:\\tmp\\report.md'] }
+    expect(check(absolute).join('\n')).toContain('evidence path must be repository-relative: C:\\tmp\\report.md')
+    const traversal = fullLedger()
+    traversal.capabilities[0].scenarios[0] = { name: '候选包断线', state: '未执行', evidence: ['../outside.md'] }
+    expect(check(traversal).join('\n')).toContain('evidence path must be repository-relative: ../outside.md')
+  })
+
   it('requires every 一期 demo row to carry at least one evidence citation', () => {
     const bare = fullLedger()
     for (const row of bare.capabilities.filter((c: { phase: string }) => c.phase === '一期')) {
