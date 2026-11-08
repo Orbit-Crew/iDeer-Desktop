@@ -278,7 +278,17 @@ describe('system matrix validator', () => {
       { kind: 'scenario', ref: 'T131-998' },
       { kind: 'command', ref: 'npm run dist:win' }
     ]
-    expect(check(badScenario, ledger).join('\n')).toContain('scenario ref must match T131-NN or W7-NN: T131-998')
+    const scenarioFindings = check(badScenario, ledger).join('\n')
+    expect(scenarioFindings).toContain('scenario ref must be a known T131-01..08 or W7-01..08 id: T131-998')
+    // shape-valid but unknown ids are fabricated anchors: flagged too
+    const unknownScenario = JSON.parse(JSON.stringify(matrix))
+    unknownScenario.capabilities[0].systems.win7.entries = [
+      { kind: 'scenario', ref: 'T131-09' },
+      { kind: 'command', ref: 'npm run dist:win' }
+    ]
+    expect(check(unknownScenario, ledger).join('\n')).toContain(
+      'scenario ref must be a known T131-01..08 or W7-01..08 id: T131-09'
+    )
   })
 
   it('validates entry shapes: kinds, existing automated paths, command whitelist, manual bounds', () => {
@@ -319,8 +329,33 @@ describe('system matrix validator', () => {
     const result = validateMatrix(allAccepted, ledger, resolvePath)
     expect(result.findings).toEqual([])
     expect(result.counts.belowBar).toEqual([])
-    expect(result.counts.modernAccepted).toBe(2)
-    expect(result.counts.win7Accepted).toBe(2)
+    // only capability rows count towards the 已验收 story; the governance
+    // row (p6-48) is excluded even when its cells say 已验收
+    expect(result.counts.modernAccepted).toBe(1)
+    expect(result.counts.win7Accepted).toBe(1)
+  })
+
+  it('bounds every non-null note, not just the mandatory ones', () => {
+    const { matrix, ledger } = fixture()
+    const longNote = JSON.parse(JSON.stringify(matrix))
+    longNote.capabilities[0].systems.modernWindows.note = '长'.repeat(201)
+    expect(check(longNote, ledger).join('\n')).toContain(
+      'issue 71 modernWindows note must be null or a 1-200 character single-line string'
+    )
+    const fine = JSON.parse(JSON.stringify(matrix))
+    fine.capabilities[0].systems.modernWindows.note = '普通格可以有界说明'
+    expect(check(fine, ledger)).toEqual([])
+  })
+
+  it('keeps the command whitelist in lockstep with package.json scripts', () => {
+    const { COMMAND_WHITELIST } = require('../scripts/verify-system-matrix.cjs')
+    const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts
+    const missing = COMMAND_WHITELIST.filter((command: string) => {
+      if (command === 'npm test') return false
+      const name = command.replace(/^npm run /, '')
+      return !(name in scripts)
+    })
+    expect(missing).toEqual([])
   })
 
   it('rejects calendar-invalid dates that pass the shape check', () => {

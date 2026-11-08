@@ -36,8 +36,14 @@ const COMMAND_WHITELIST = [
   'npm run verify:matrix'
 ]
 // Execution entries may point at the iDeer #131 final-acceptance scenarios
-// (T131-01..) or the desktop Win7 table in docs/validation.md (W7-01..).
-const SCENARIO_RE = /^(?:T131|W7)-\d{2}$/
+// or the desktop Win7 table in docs/validation.md — pinned to the real IDs,
+// not just the shape, so a fabricated anchor cannot pass. Extend these sets
+// only when iDeer #131 / docs/validation.md actually gain a scenario, in the
+// same change that cites it.
+const KNOWN_SCENARIOS = new Set([
+  ...Array.from({ length: 8 }, (_, i) => `T131-${String(i + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 8 }, (_, i) => `W7-${String(i + 1).padStart(2, '0')}`)
+])
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const CONTROL_CHARS = /[\u0000-\u001f]/
@@ -84,7 +90,7 @@ function exactKeys(object, keys, label, findings) {
 }
 
 // A note is mandatory where an explanation is owed (不适用 reasons, ledger
-// divergence) and must otherwise stay null or a bounded single-line string.
+// divergence) and wherever present must be a bounded single-line string.
 // Returns true when a usable note is present.
 function usableNote(note) {
   return typeof note === 'string' && note.length >= 1 && note.length <= 200 && !CONTROL_CHARS.test(note)
@@ -126,8 +132,8 @@ function checkEntry(entry, label, findings, resolvePath) {
       findings.push(`${label} manual entry must be 1-160 characters without control characters`)
     }
   } else if (kind === 'scenario') {
-    if (typeof ref !== 'string' || !SCENARIO_RE.test(ref)) {
-      findings.push(`scenario ref must match T131-NN or W7-NN: ${String(ref)}`)
+    if (typeof ref !== 'string' || !KNOWN_SCENARIOS.has(ref)) {
+      findings.push(`scenario ref must be a known T131-01..08 or W7-01..08 id: ${String(ref)}`)
     }
   } else if (!COMMAND_WHITELIST.includes(ref)) {
     findings.push(`command entry is not whitelisted: ${String(ref)}`)
@@ -142,8 +148,11 @@ function checkCell(cell, system, row, ledgerRow, findings, resolvePath) {
   }
   if (!exactKeys(cell, CELL_KEYS, label, findings)) return
   if (!STATUS.includes(cell.status)) {
-    findings.push(`${system} status must be one of ${STATUS.join('/')}: ${String(cell.status)}`)
+    findings.push(`${label} status must be one of ${STATUS.join('/')}: ${String(cell.status)}`)
     return
+  }
+  if (cell.note !== null && !usableNote(cell.note)) {
+    findings.push(`${label} note must be null or a 1-200 character single-line string`)
   }
 
   if (cell.status === '不适用') {
@@ -164,8 +173,6 @@ function checkCell(cell, system, row, ledgerRow, findings, resolvePath) {
     }
     if (cell.note === null) {
       findings.push(`${label} 不适用 needs a note stating the reason`)
-    } else if (!usableNote(cell.note)) {
-      findings.push(`${label} note must be null or a 1-200 character single-line string`)
     }
     if (Array.isArray(cell.entries) && cell.entries.length > 0) {
       findings.push(`${label} 不适用 must carry no execution entries`)
@@ -232,8 +239,6 @@ function checkCell(cell, system, row, ledgerRow, findings, resolvePath) {
         findings.push(
           `${label} status diverges from the ledger candidate layer (${ledgerStatus}) without a note`
         )
-      } else if (!usableNote(cell.note)) {
-        findings.push(`${label} note must be null or a 1-200 character single-line string`)
       }
     }
   }
@@ -267,7 +272,7 @@ function validateMatrix(matrix, ledger, resolvePath) {
       findings.push(`systems.${system} must be an object`)
       return { findings, counts: null }
     }
-    exactKeys(meta, SYSTEM_META_KEYS, `systems.${system}`, findings)
+    if (!exactKeys(meta, SYSTEM_META_KEYS, `systems.${system}`, findings)) continue
     for (const field of SYSTEM_META_KEYS) {
       if (typeof meta[field] !== 'string' || meta[field].length === 0) {
         findings.push(`systems.${system}.${field} must be a non-empty string`)
@@ -325,6 +330,9 @@ function validateMatrix(matrix, ledger, resolvePath) {
     for (const system of SYSTEM_IDS) {
       checkCell(row.systems[system], system, row, ledgerRow, findings, resolvePath)
       if (row.systems[system] && row.systems[system].status === '已验收') {
+        // The summary counts capability acceptance only; governance rows
+        // never inflate the 已验收 story.
+        if (row.kind !== '能力') continue
         if (system === 'modernWindows') modernAccepted += 1
         else win7Accepted += 1
       } else {
@@ -370,6 +378,24 @@ function main() {
     ledger = JSON.parse(readFileSync(join(root, LEDGER_PATH), 'utf8'))
   } catch (error) {
     console.error(`input is not valid JSON: ${error.message}`)
+    process.exit(1)
+  }
+  // The command whitelist is hand-maintained against package.json; drift
+  // (a renamed script still cited by matrix entries) must fail loudly here
+  // instead of passing while citing a dead command.
+  let scripts = {}
+  try {
+    scripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts || {}
+  } catch {
+    console.error('package.json is not valid JSON')
+    process.exit(1)
+  }
+  const drifted = COMMAND_WHITELIST.filter((command) => {
+    const name = command.replace(/^npm run /, '')
+    return name !== 'npm test' && !(name in scripts)
+  })
+  if (drifted.length > 0) {
+    console.error(`COMMAND_WHITELIST drift: missing npm scripts: ${drifted.join(', ')}`)
     process.exit(1)
   }
   const { findings, counts } = validateMatrix(matrix, ledger, (path) => existsSync(join(root, path)))
