@@ -18,6 +18,11 @@ try {
   $install = Start-Process -FilePath $installer -ArgumentList "/S /D=`"$installDir`"" -WindowStyle Hidden -Wait -PassThru
   if ($install.ExitCode -ne 0) { throw "Installation failed: $($install.ExitCode)" }
   if (-not (Test-Path $env:DESKTOP_EXECUTABLE)) { throw 'Installed executable missing' }
+  # Issue 119: the silent /S install follows the sections' default selection,
+  # which is the 常用 tier — the CAD viewer component must ride along, and the
+  # version lock ships next to the catalog for offline top-ups.
+  if (-not (Test-Path (Join-Path $installDir 'resources/occt/occt-import-js.wasm'))) { throw 'Silent default (常用) install is missing the CAD viewer component' }
+  if (-not (Test-Path (Join-Path $installDir 'resources/components/components-lock.json'))) { throw 'Installed tree is missing the components version lock' }
   node scripts/desktop-smoke.cjs
   if ($LASTEXITCODE -ne 0) { throw 'Installed Desktop smoke failed' }
 } finally {
@@ -28,6 +33,7 @@ try {
   $deadline = (Get-Date).AddSeconds(30)
   while ((Test-Path $env:DESKTOP_EXECUTABLE) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 250 }
   if (Test-Path $env:DESKTOP_EXECUTABLE) { throw 'Uninstall did not remove the executable' }
+  if (Test-Path (Join-Path $installDir 'resources/occt')) { throw 'Uninstall did not remove the CAD viewer component' }
   if ((Get-Content $legacyFixture) -ne 'old-linz-data') { throw 'Legacy data changed during lifecycle' }
   if ((Get-Content $desktopFixture) -ne 'desktop-user-data') { throw 'Desktop data was removed on uninstall' }
   Remove-Item $legacyFixture, $desktopFixture
