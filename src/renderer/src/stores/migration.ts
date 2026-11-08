@@ -7,6 +7,8 @@
 // confirmation dialog is a user decision, not a failure.
 import type { DesktopBridge, MigrationLedgerView, MigrationScanView } from '../../../shared/desktop'
 
+type MigrationApi = Pick<DesktopBridge, 'migration' | 'getStatus'>
+
 export interface MigrationWizardView {
   busy: boolean
   failed: boolean
@@ -48,10 +50,13 @@ export const explainMigrationError = (message: string): string =>
 export class MigrationController {
   private generation = 0
   private view = emptyMigrationWizardView()
-  constructor(private readonly api: Pick<DesktopBridge, 'migration'>, private readonly publish: (view: MigrationWizardView) => void) {}
+  constructor(private readonly api: MigrationApi, private readonly publish: (view: MigrationWizardView) => void) {}
   snapshot(): MigrationWizardView { return this.view }
   private update(change: Partial<MigrationWizardView>): void { this.view = { ...this.view, ...change }; this.publish(this.view) }
   invalidate(): void { this.generation++ }
+  /** Seed display state without a wire round-trip (surface remount, test
+   * harness); later runs keep the seeded scan and merge their own outcome. */
+  seed(change: Partial<MigrationWizardView>): void { this.update(change) }
 
   /** One wizard round-trip; the reply always carries the authoritative
    * state — the scan's listing or the post-action ledger — so nothing is
@@ -82,16 +87,43 @@ export class MigrationController {
     }
   }
 
+  /** Opening the wizard: seed this identity's attempt rows from the same
+   * 0.5 s status snapshot the rest of the surface reads, so an already
+   * migrated workspace shows as 迁移后 even after a remount or restart,
+   * then run the explicit read-only scan. The wizard never reads the
+   * legacy install outside these commands. */
+  async open(): Promise<void> {
+    this.invalidate()
+    const generation = this.generation
+    let seeded: MigrationLedgerView[] = []
+    try {
+      const status = await this.api.getStatus()
+      if (generation !== this.generation) return
+      seeded = status.runtime.migrationLedger ?? []
+    } catch {
+      seeded = []
+    }
+    if (generation !== this.generation) return
+    this.update({ ledger: seeded })
+    await this.run({ action: 'scan' })
+  }
+
   /** The explicit scan; the wizard never reads the legacy install outside
    * this command. */
   rescan(): Promise<void> { return this.run({ action: 'scan' }) }
 
-  /** One confirmed workspace's migration; `folder` is only the scan's
-   * suggestion — the final folder is chosen and confirmed in the trusted
-   * main process's native dialog (不绑定 = ''). */
-  migrate(workspaceId: string, name: string, bind: boolean, folder?: string): Promise<void> {
+  /** One confirmed workspace's migration. `workspaceName` is the legacy
+   * name the confirm dialog states; `name` is the platform project name the
+   * user edited. `folder` is only the scan's suggestion — the final folder
+   * is chosen and confirmed in the trusted main process's native dialog
+   * (不绑定 = ''). */
+  migrate(workspaceId: string, workspaceName: string, name: string, bind: boolean, folder?: string): Promise<void> {
     const trimmed = name.trim()
     if (!trimmed || trimmed.length > 128) return Promise.resolve()
-    return this.run({ action: 'migrate', workspaceId, name: trimmed, bind, ...(folder ? { folder } : {}) })
+    const legacy = workspaceName.slice(0, 128)
+    return this.run({
+      action: 'migrate', workspaceId, workspaceName: legacy, name: trimmed, bind,
+      ...(folder ? { folder } : {})
+    })
   }
 }

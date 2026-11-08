@@ -39,6 +39,15 @@ LEGACY_EVIDENCE_FILES = (('data', 'data.db'), ('kb', 'kb.db'), ('tables', 'table
 CONFIG_UNREADABLE = 'MIGRATION_CONFIG_UNREADABLE'
 
 
+def _safe_workspace_id(workspace_id: str) -> bool:
+    """A roster id is joined into workspaces/<id>/ for the evidence stats, so
+    a foreign config.json may never smuggle separators or dot segments into
+    that path — anything but a plain folder name lists as nothing."""
+    return (0 < len(workspace_id) <= MAX_NAME
+            and not any(sep in workspace_id for sep in ('/', '\\'))
+            and workspace_id not in ('.', '..'))
+
+
 class WorkspaceMigrationError(RuntimeError):
     """Only fixed categories cross the Desktop boundary."""
 
@@ -74,11 +83,11 @@ def _read_roster(config_path: Path) -> tuple[list[dict[str, Any]], str]:
     if not isinstance(roster, list):
         return [], ''
     rows: list[dict[str, Any]] = []
-    for entry in roster[:MAX_WORKSPACES]:
+    for entry in roster:
         if not isinstance(entry, dict):
             continue
         workspace_id = _bounded_text(entry.get('id'), MAX_NAME)
-        if not workspace_id:
+        if not workspace_id or not _safe_workspace_id(workspace_id):
             continue
         rows.append({
             'id': workspace_id,
@@ -91,14 +100,17 @@ def _read_roster(config_path: Path) -> tuple[list[dict[str, Any]], str]:
     return rows, ''
 
 
-def scan_legacy_workspaces(root: Path) -> dict[str, Any]:
+def scan_legacy_workspaces(root: Path | None) -> dict[str, Any]:
     """One read-only listing of the legacy install. The roster is the
     workspace list; workspace folders on disk without a roster entry still
-    list (名册缺失), because the wizard never silently drops a workspace."""
-    root = Path(root)
-    scan: dict[str, Any] = {'root': str(root)[:512], 'workspaces': [], 'configError': ''}
-    if not root.is_dir():
+    list (名册缺失), because the wizard never silently drops a workspace.
+    A roster beyond the display cap is an announced truncation, never a
+    silent drop; an absent root is an honest empty listing."""
+    scan: dict[str, Any] = {'root': str(root)[:512] if root is not None else '',
+                            'workspaces': [], 'configError': '', 'truncated': False}
+    if root is None or not Path(root).is_dir():
         return scan
+    root = Path(root)
     roster, scan['configError'] = _read_roster(root / LEGACY_CONFIG_NAME)
     seen: set[str] = set()
 
@@ -113,7 +125,9 @@ def scan_legacy_workspaces(root: Path) -> dict[str, Any]:
                 files[key] = {'present': False, 'size': 0}
         return files
 
-    for row in roster:
+    if len(roster) > MAX_WORKSPACES:
+        scan['truncated'] = True
+    for row in roster[:MAX_WORKSPACES]:
         seen.add(row['id'])
         scan['workspaces'].append({**row, 'orphan': False, 'files': evidence(row['id'])})
     orphans_dir = root / LEGACY_WORKSPACES_DIR
@@ -123,8 +137,11 @@ def scan_legacy_workspaces(root: Path) -> dict[str, Any]:
         except OSError:
             children = []
         for name in children:
-            if name in seen:
+            if name in seen or not _safe_workspace_id(name):
                 continue
+            if len(scan['workspaces']) >= MAX_WORKSPACES:
+                scan['truncated'] = True
+                break
             scan['workspaces'].append({'id': name, 'name': '', 'folder': '', 'current': False,
                                        'createdAt': '', 'lastOpenedAt': '', 'orphan': True,
                                        'files': evidence(name)})
@@ -274,27 +291,35 @@ def migration_manage(command, *, root: Path | None, chat, owner, ledger: Workspa
         ledger.record(owner, workspace_id, workspace['name'], project_id, name, folder, status, error_code)
         return ledger.view(owner)
 
+    def failed_step(step, project_id):
+        try:
+            step()
+        except Exception as exc:
+            # Only fixed categories cross the Desktop boundary; a server
+            # detail never leaks paths or content.
+            message = str(exc)
+            code = message if message.startswith('CHAT_') else 'MIGRATION_FAILED'
+            return {'migrated': False, 'workspaceId': workspace_id, 'projectId': project_id,
+                    'errorCode': code, 'ledger': record('failed', project_id, code)}
+        return None
+
     project_id = prior['projectId'] if prior is not None else ''
-    try:
-        if not project_id:
+    if not project_id:
+        def create():
+            nonlocal project_id
             created = chat.projects_manage({'type': 'projects', 'id': command['id'],
                                             'action': 'create', 'scope': command['scope'], 'name': name})
             project_id = created.get('createdId') or ''
             if not project_id:
                 raise WorkspaceMigrationError('MIGRATION_FAILED')
-    except Exception as exc:
-        message = str(exc)
-        code = message if message.startswith('CHAT_') else 'MIGRATION_FAILED'
-        return {'migrated': False, 'workspaceId': workspace_id, 'projectId': project_id,
-                'errorCode': code, 'ledger': record('failed', project_id, code)}
+        outcome = failed_step(create, '')
+        if outcome is not None:
+            return outcome
     if folder:
-        try:
-            chat.projects_manage({'type': 'projects', 'id': command['id'], 'action': 'bind-folder',
-                                  'scope': command['scope'], 'projectId': project_id, 'path': folder})
-        except Exception as exc:
-            message = str(exc)
-            code = message if message.startswith('CHAT_') else 'MIGRATION_FAILED'
-            return {'migrated': False, 'workspaceId': workspace_id, 'projectId': project_id,
-                    'errorCode': code, 'ledger': record('failed', project_id, code)}
+        outcome = failed_step(lambda: chat.projects_manage(
+            {'type': 'projects', 'id': command['id'], 'action': 'bind-folder',
+             'scope': command['scope'], 'projectId': project_id, 'path': folder}), project_id)
+        if outcome is not None:
+            return outcome
     return {'migrated': True, 'workspaceId': workspace_id, 'projectId': project_id, 'errorCode': '',
             'ledger': record('migrated', project_id, '')}

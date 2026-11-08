@@ -644,11 +644,14 @@ export interface LegacyWorkspaceView {
 }
 /** Issue 118: one read-only scan of the old linz install. `configError` is
  * '' or the fixed category for an unreadable roster; the on-disk evidence
- * still lists either way (名册缺失 never silently drops a workspace). */
+ * still lists either way (名册缺失 never silently drops a workspace).
+ * `truncated` is announced when the roster or the on-disk listing exceeded
+ * the display cap — a dropped row is a stated fact, never a silent one. */
 export interface MigrationScanView {
   root: string
   workspaces: LegacyWorkspaceView[]
   configError: string
+  truncated: boolean
 }
 /** Issue 118: this identity's own attempt row — migrated, or failed with a
  * fixed retryable category. A failed row keeps its created projectId so the
@@ -675,12 +678,15 @@ export interface MigrationOutcomeView {
 }
 export type MigrationResultView = MigrationScanView | MigrationOutcomeView
 /** Issue 118: 迁移向导. The renderer names the action and, for migrate, the
- * one confirmed workspace plus its project name; `bind` only asks the
- * trusted main process to run its native folder dialog (the scan's `folder`
- * prefills it). The final folder crosses the Runtime wire from main only. */
+ * one confirmed workspace: `workspaceName` is the legacy name for the
+ * confirm dialog's wording (the editable project name travels separately in
+ * `name`), `bind` only asks the trusted main process to run its native
+ * folder dialog, and `folder` is at most the scan's suggestion used to
+ * prefill it — the dialog's chosen path originates in main, and only main's
+ * wire command ever carries a final folder. */
 export type MigrationCommand =
   | { action: 'scan' }
-  | { action: 'migrate'; workspaceId: string; name: string; bind: boolean; folder?: string }
+  | { action: 'migrate'; workspaceId: string; workspaceName: string; name: string; bind: boolean; folder?: string }
 /**
  * Main-internal: the migrate wire command with the folder that was chosen
  * and confirmed in the trusted main process (empty = 不绑定). Never accepted

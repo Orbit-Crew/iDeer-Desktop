@@ -2258,12 +2258,13 @@ export class RuntimeProcess {
             const row = result as Record<string, unknown>
             if (Array.isArray(row.workspaces)) {
               if (pending.action !== 'scan' || typeof row.root !== 'string' ||
-                  typeof row.configError !== 'string' || row.configError.length > 64) {
+                  typeof row.configError !== 'string' || row.configError.length > 64 ||
+                  typeof row.truncated !== 'boolean') {
                 pending.reject(new Error('MIGRATION_FAILED')); continue
               }
               const scan: MigrationScanView = { root: row.root.slice(0, 512),
                 workspaces: row.workspaces.slice(0, 50).map(toLegacyWorkspaceView),
-                configError: row.configError }
+                configError: row.configError, truncated: row.truncated as boolean }
               pending.resolve(scan)
               continue
             }

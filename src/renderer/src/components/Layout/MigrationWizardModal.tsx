@@ -120,6 +120,8 @@ export function MigrationWizardBody({ view, controller, onOpenPane }: {
     </div>
     {scan && scan.configError &&
       <Alert type="warning" showIcon message="旧版名册读取失败，以下仅显示磁盘上发现的工作区文件夹" />}
+    {scan && scan.truncated &&
+      <Alert type="warning" showIcon message="旧版工作区超过显示上限，仅列出前 50 个；其余未列出，绝不静默丢弃" />}
     {scan && scan.workspaces.length === 0 && !view.busy &&
       <Typography.Text type="secondary">
         未发现旧版 linz 工作区。若旧版装在其他位置，本向导不会去猜测路径；确认旧版已安装并至少打开过一次后再试。
@@ -128,19 +130,25 @@ export function MigrationWizardBody({ view, controller, onOpenPane }: {
       <ul className="space-y-2" aria-label="旧版工作区列表">
         {scan.workspaces.map((row) => <MigrationRow key={row.id} workspace={row}
           ledgerRow={ledgerFor(row.id)} busy={view.busy}
-          onMigrate={(name, bind) => void controller.migrate(row.id, name, bind, row.folder || undefined)} />)}
+          onMigrate={(name, bind) => void controller.migrate(row.id, row.name, name, bind, row.folder || undefined)} />)}
       </ul>}
     <div>
       <Typography.Title level={5} className="!mt-0">重导入指路（迁移 ≠ 导入完成）</Typography.Title>
+      <Typography.Text type="secondary" className="!text-xs">
+        各入口的导入失败在对应面板内如实标注并可逐项重试（知识库导入记录、表格数据集失败行、技能包导入结果）。
+      </Typography.Text>
       <ul className="space-y-1.5" aria-label="重导入入口列表">
-        {reImportEntries.map((entry) => <li key={entry.key} className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">{entry.icon}</span>
-          <span className="w-28 text-gray-700">{entry.label}</span>
-          <span className="flex-1 text-xs text-gray-500">{entry.hint}</span>
-          {entry.pane && entry.paneLabel &&
-            <Button size="small" type="link" aria-label={`${entry.paneLabel}（${entry.label}）`}
-              onClick={() => openPane(entry.pane as PanelTypeId)}>{entry.paneLabel}</Button>}
-        </li>)}
+        {reImportEntries.map((entry) => {
+          const pane = entry.pane
+          return <li key={entry.key} className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500">{entry.icon}</span>
+            <span className="w-28 text-gray-700">{entry.label}</span>
+            <span className="flex-1 text-xs text-gray-500">{entry.hint}</span>
+            {pane && entry.paneLabel &&
+              <Button size="small" type="link" aria-label={`${entry.paneLabel}（${entry.label}）`}
+                onClick={() => openPane(pane)}>{entry.paneLabel}</Button>}
+          </li>
+        })}
         <li className="flex items-center gap-2 text-sm">
           <span className="text-gray-500"><ImportOutlined /></span>
           <span className="w-28 text-gray-700">Agent 配置导入</span>
@@ -160,8 +168,9 @@ export default function MigrationWizardModal({ open, onClose, view, controller, 
 }): JSX.Element {
   useEffect(() => {
     // Opening the wizard is the explicit act that authorizes one read-only
-    // scan; nothing reads the legacy install outside this surface.
-    if (open) void controller.rescan()
+    // scan (plus seeding this identity's attempt rows from the status
+    // snapshot); nothing reads the legacy install outside this surface.
+    if (open) void controller.open()
   }, [open, controller])
   return <Modal title="旧版迁移向导" open={open} onCancel={onClose} footer={null} width={640}>
     <MigrationWizardBody view={view} controller={controller} onOpenPane={onOpenPane} />

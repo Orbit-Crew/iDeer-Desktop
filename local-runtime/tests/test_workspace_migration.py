@@ -113,7 +113,35 @@ def test_scan_never_opens_or_writes_legacy_databases(tmp_path):
 
 def test_scan_honest_empty_when_legacy_root_missing(tmp_path):
     scan = scan_legacy_workspaces(tmp_path / 'no-linz-here')
-    assert scan == {'root': str(tmp_path / 'no-linz-here'), 'workspaces': [], 'configError': ''}
+    assert scan == {'root': str(tmp_path / 'no-linz-here'), 'workspaces': [], 'configError': '',
+                    'truncated': False}
+
+
+def test_scan_announces_truncation_instead_of_silently_dropping(tmp_path):
+    root = legacy_root(tmp_path)
+    config = json.loads((root / 'aeromind-config.json').read_text(encoding='utf-8'))
+    config['workspaces']['list'] = [
+        {'id': f'ws-{index:02d}', 'name': f'工作区{index}', 'path': '', 'createdAt': '',
+         'lastOpenedAt': '', 'folder': ''} for index in range(60)]
+    (root / 'aeromind-config.json').write_text(json.dumps(config, ensure_ascii=False), encoding='utf-8')
+    scan = scan_legacy_workspaces(root)
+    assert len(scan['workspaces']) == 50
+    assert scan['truncated'] is True
+
+
+def test_scan_refuses_roster_ids_that_could_escape_the_workspaces_folder(tmp_path):
+    """A foreign config.json's id is joined into workspaces/<id>/ for the
+    evidence stats, so separator or dot-segment ids list as nothing — the
+    read-only scan never follows a smuggled path."""
+    root = legacy_root(tmp_path)
+    config = json.loads((root / 'aeromind-config.json').read_text(encoding='utf-8'))
+    config['workspaces']['list'] = [
+        {'id': '../escape', 'name': '越界', 'path': '', 'createdAt': '', 'lastOpenedAt': '', 'folder': ''},
+        {'id': 'a\\b', 'name': '反斜杠', 'path': '', 'createdAt': '', 'lastOpenedAt': '', 'folder': ''},
+        {'id': 'ws-ok', 'name': '正常', 'path': '', 'createdAt': '', 'lastOpenedAt': '', 'folder': ''}]
+    (root / 'aeromind-config.json').write_text(json.dumps(config, ensure_ascii=False), encoding='utf-8')
+    scan = scan_legacy_workspaces(root)
+    assert [row['id'] for row in scan['workspaces'] if not row['orphan']] == ['ws-ok']
 
 
 def test_scan_lists_orphan_workspace_dirs_without_roster(tmp_path):

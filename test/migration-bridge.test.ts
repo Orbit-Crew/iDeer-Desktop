@@ -18,7 +18,6 @@ describe('migration wizard bridge contract (#118)', () => {
       { action: 'migrate', workspaceId: 'ws-a', name: '   ' },
       { action: 'migrate', workspaceId: 'ws-a', name: 'x'.repeat(129), folder: '' },
       { action: 'migrate', workspaceId: 'ws-a', name: '结构仿真', folder: 'x'.repeat(1025) },
-      { action: 'migrate', workspaceId: 'ws-a', name: '结构仿真', folder: '' },
       { action: 'migrate', workspaceId: 'ws-a', name: '结构仿真', folder: 'C:/bind', bind: true },
       { action: 'migrate', workspaceId: 'ws-a', name: '结构仿真', folder: 'C:/bind', extra: 1 }
     ]
@@ -38,10 +37,11 @@ describe('migration wizard bridge contract (#118)', () => {
       // The scan is read-only and needs no owner binding, so an
       // unauthenticated fresh profile still gets the honest listing of
       // whatever this machine's %APPDATA%/linz holds (possibly nothing).
-      const scan = await runtime.migration({ action: 'scan' }) as { root: string; workspaces: unknown[]; configError: string }
+      const scan = await runtime.migration({ action: 'scan' }) as { root: string; workspaces: unknown[]; configError: string; truncated: boolean }
       expect(typeof scan.root).toBe('string')
       expect(Array.isArray(scan.workspaces)).toBe(true)
       expect(scan.configError).toBe('')
+      expect(scan.truncated).toBe(false)
       // A migrate without an owner binding is refused before any platform
       // round-trip — the fixed category, never a guessed success.
       await expect(runtime.migration({ action: 'migrate', workspaceId: 'ws-a', name: '任意名', folder: '' }))
