@@ -106,13 +106,16 @@ async function main() {
     // Issue 111 adds the Agent-terminal read doors terminalHistory +
     // terminalStop: the one thread's bounded command history and the
     // explicit stop — both served by the Runtime.
+    // Issue 118 adds the migration door: the one-time legacy-workspace
+    // wizard's read-only scan and per-confirmed-workspace migrate; the
+    // confirm and folder dialogs stay in the trusted main process.
     // Issue 103 adds the sql door: the renderer's read-only SQL command
     // rides the Runtime's fenced device engine; the query text and row
     // limits stay inside the Runtime contract.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'browser', 'cad', 'cancelKnowledgeIndexRebuild', 'chat', 'checkUpdates', 'chooseWorkspace', 'cleanupKnowledgeRevision', 'connectors', 'datasets', 'deleteKnowledgeDocuments', 'deleteKnowledgeImports', 'files', 'getStatus',
       'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
-      'manage', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'rebuildKnowledgeIndex', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'sql', 'startRuntime', 'stopRuntime', 'templates', 'terminalHistory', 'terminalStop', 'threads'
+      'manage', 'migration', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'rebuildKnowledgeIndex', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'sql', 'startRuntime', 'stopRuntime', 'templates', 'terminalHistory', 'terminalStop', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
     assert.equal(await page.evaluate(() => typeof window.aeromind), 'undefined')

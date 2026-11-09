@@ -5,6 +5,13 @@ bind their results to a candidate and environment; read their coverage limits
 before applying an older result to newer code. GitHub issues track discussion
 and link to these versioned records.
 
+For the cross-issue picture, [the #89 capability ledger](capability-ledger.md)
+accounts every #70 child capability on three layers (entry restoration,
+business wiring, installed-candidate acceptance) with six-state scenario slots;
+its machine-readable single source of truth is
+[capability-ledger.json](capability-ledger.json) (`npm run verify:ledger`).
+Issue open/closed state is never evidence there.
+
 ## Issue #108
 
 Start with [the #108 report](issue-108/report.md). Its latest entry links the
@@ -46,3 +53,4 @@ These links locate existing records; this index does not change their verdicts.
 | #115 (CAD 查看器) | [Desktop issue 115 CAD viewer — the directory is issue-115-cad-viewer because issue-115/ belongs to the iDeer repo issue of the same number](issue-115-cad-viewer/report.md) |
 | #100 (Wiki 双链与邻域导航) | [Desktop issue 100 wiki graph navigation — the directory is issue-100-wiki-navigation because issue-100/ belongs to the iDeer repo issue of the same number](issue-100-wiki-navigation/report.md) |
 | #97 (BM25 全文索引与漂移标注) | [the directory is issue-97-bm25-index because issue-97/ belongs to the old installer-acceptance numbering](issue-97-bm25-index/report.md) |
+| #118 (迁移向导，六期·44) | [Desktop issue 118 migration wizard — the directory is issue-118-migration-wizard because issue-118/ belongs to the old-numbering ticket of the same number](issue-118-migration-wizard/report.md) |
