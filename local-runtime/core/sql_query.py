@@ -16,17 +16,21 @@ functions therefore all answer the same honest fixed category — refused,
 with nothing done.
 
 The reply is bounded on every axis before it exists: rows, columns, cell
-characters, total characters, and a deterministic VM-instruction budget
-that interrupts a runaway query at a reproducible point (the honest stand-in
-for a wall-clock timeout, which a pure engine does not read). Values the
-wire cannot carry honestly — blobs and non-finite numbers — answer null and
-raise the cut marker instead of pretending they survived.
+characters, total characters, and two interrupt bounds consulted together
+at the same every-10_000-VM-steps check point — a deterministic instruction
+budget that stops a runaway query at a reproducible step count, and a
+wall-clock deadline, so cost that hides inside one slow step still stops
+the query at the next check. Both answer the same honest interrupted
+category. Values the wire cannot carry honestly — blobs and non-finite
+numbers — answer null and raise the cut marker instead of pretending they
+survived.
 """
 from __future__ import annotations
 
 import math
 import re
 import sqlite3
+import time
 from typing import Any
 
 from .datasets import (
@@ -52,9 +56,13 @@ MAX_SQL_RESULT_CHARS = 256_000
 # The in-memory copy refuses datasets past this total cell count: a bound
 # the load phase can check before a single cell is copied.
 MAX_SQL_TABLE_CELLS = 2_000_000
-# The deterministic stand-in for a timeout: VM instructions of query work,
-# checked every 10_000 steps. Pure — no wall clock is ever read.
+# The deterministic interrupt: VM instructions of query work, checked every
+# 10_000 steps at a reproducible point.
 MAX_SQL_VM_STEPS = 5_000_000
+# The wall-clock companion interrupt, consulted at the same check points:
+# pure step counting cannot see cost that hides inside one slow VM step, so
+# a query running past this bound stops at the next check.
+MAX_SQL_WALL_CLOCK_MS = 10_000
 _MAX_SQL_COLUMN_CHARS = 128
 
 SQL_QUERY_COMMAND_INVALID = "SQL_QUERY_COMMAND_INVALID"
@@ -245,13 +253,18 @@ def _execute_read(db: sqlite3.Connection, sql: str) -> dict[str, Any]:
     if not _statement_head(sql).lower().startswith(("select", "with")):
         raise SqlQueryError(SQL_QUERY_FORBIDDEN)
     steps = {"used": 0}
+    deadline = time.monotonic() + MAX_SQL_WALL_CLOCK_MS / 1000
 
-    def budget() -> int:
+    def interrupt_check() -> int:
         steps["used"] += 10_000
-        return 1 if steps["used"] > MAX_SQL_VM_STEPS else 0
+        # ``>=`` on purpose: a deadline of now must trip the very first check,
+        # whatever the coarse Windows clock tick did between the two reads.
+        if steps["used"] > MAX_SQL_VM_STEPS or time.monotonic() >= deadline:
+            return 1
+        return 0
 
     db.set_authorizer(_authorize)
-    db.set_progress_handler(budget, 10_000)
+    db.set_progress_handler(interrupt_check, 10_000)
     try:
         cursor = db.execute(sql)
         description = cursor.description or []

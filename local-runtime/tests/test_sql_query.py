@@ -4,11 +4,12 @@ Every test drives the real query engine with genuinely imported datasets in
 a temporary profile: SELECT reads over the typed in-memory copy answer real
 rows, while every write statement, every multi-statement input and every
 function outside the engine's fixed allowlist is refused with the one honest
-fixed category. The reply bounds — rows, columns, cells, total characters
-and the deterministic VM budget — are pinned, and a missing, deleted or
-mutated source file answers its own fixed reason instead of a wrong result.
+fixed category, and a missing, deleted or mutated source file answers its
+own fixed reason instead of a wrong result.
 Row data lives only inside the per-query in-memory database: the registry
-still keeps identity, schema and counts only.
+still keeps identity, schema and counts only. The reply bounds — rows,
+columns, cells, total characters, the deterministic VM budget and the
+wall-clock deadline — are pinned.
 """
 from __future__ import annotations
 
@@ -325,6 +326,25 @@ def test_vm_budget_interrupts_a_runaway_query(tmp_path):
         query(registry, dataset_id,
               'WITH RECURSIVE t(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM t)'
               ' SELECT count(*) FROM t')
+    assert str(caught.value) == SQL_QUERY_INTERRUPTED
+
+
+def test_wall_clock_deadline_interrupts_where_the_vm_budget_cannot(tmp_path, monkeypatch):
+    from core import sql_query as sql_module
+    # The wall-clock deadline shares the progress handler with the VM budget:
+    # an already-past deadline trips the very first check, so a query whose
+    # cost hides inside slow steps still stops at the next check and answers
+    # the same honest interrupted category instead of holding the device loop.
+    monkeypatch.setattr(sql_module, 'MAX_SQL_WALL_CLOCK_MS', 0)
+    registry = make_registry(tmp_path)
+    body = '\n'.join(str(row) for row in range(128))
+    dataset_id = imported_dataset(tmp_path, registry, 'rows.csv',
+                                  f'n\n{body}\n'.encode('utf-8'))
+    with pytest.raises(Exception) as caught:
+        # count(*) with no WHERE would take SQLite's scan-the-table
+        # shortcut and never reach the first progress check; the row-wise
+        # aggregate forces the join the deadline must interrupt.
+        query(registry, dataset_id, 'SELECT count(a.n + b.n) FROM sheet1 a, sheet1 b')
     assert str(caught.value) == SQL_QUERY_INTERRUPTED
 
 
