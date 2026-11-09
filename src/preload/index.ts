@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, MigrationCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, MigrationCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, SqlQueryCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 // Issue 106: the official selection rides the templates family's one pinned
 // channel, so the channel inventory stays one entry per channel.
@@ -63,6 +63,10 @@ const bridge: DesktopBridge = Object.freeze({
   // native dialog, both actions are confirmed there, and the original file
   // never leaves the machine.
   datasets: (command: DatasetCommand) => ipcRenderer.invoke('desktop:datasets', command),
+  // Issue 103: the read-only SQL pane. The renderer names the registered
+  // dataset identity and the query text only; the device-side engine owns
+  // the read-only fence and every bound on the reply.
+  sql: (command: SqlQueryCommand) => ipcRenderer.invoke('desktop:sql', command),
   // Issue 85: the platform scheduled-tasks management surface; deletes are
   // confirmed in the trusted main process before they reach the wire.
   schedules: (command: ScheduleCommand) => ipcRenderer.invoke('desktop:schedules', command),

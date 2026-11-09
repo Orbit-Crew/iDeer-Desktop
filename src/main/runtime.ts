@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LegacyWorkspaceView, LoginStatus, MigrationCommand, MigrationLedgerView, MigrationMigrateCommand, MigrationOutcomeView, MigrationResultView, MigrationScanView, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, KnowledgeSimilarityView, LegacyWorkspaceView, LoginStatus, MigrationCommand, MigrationLedgerView, MigrationMigrateCommand, MigrationOutcomeView, MigrationResultView, MigrationScanView, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindCommand, ProjectBindingView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, SqlQueryCommand, SqlQueryResultView, SqlQueryTableMap, SqlQueryValue, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -65,6 +65,60 @@ export const toDatasetView = (input: unknown): DatasetView => {
     errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt }
 }
 
+/** Issue 103: one queryable worksheet's registration facts as the engine
+ * records them — the deterministic table name, the sheet's own name and the
+ * exact queryable columns. Exported for the regression test that pins the
+ * engine's real wire shapes. */
+export const toSqlQueryTableMap = (input: unknown): SqlQueryTableMap => {
+  const table = input as Record<string, unknown>
+  const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/
+  if (!table || typeof table.table !== 'string' || !namePattern.test(table.table) ||
+      typeof table.name !== 'string' || !Array.isArray(table.columns)) {
+    throw new Error('Invalid sql table map')
+  }
+  return { table: table.table, name: table.name.slice(0, 128),
+    columns: table.columns.slice(0, 128).map((column) => {
+      if (typeof column !== 'string') throw new Error('Invalid sql table map')
+      return column.slice(0, 128)
+    }) }
+}
+/** Issue 103: one bounded read-only result as the engine answers it — every
+ * axis bounded, every cut marked, and only values the wire can carry
+ * honestly. `rowCount` is derived from the rows themselves: the count the
+ * renderer can verify, never a claim to trust. Exported for the regression
+ * test that pins the engine's real wire shapes. */
+export const toSqlQueryResultView = (input: unknown): SqlQueryResultView => {
+  const result = input as Record<string, unknown>
+  const isValue = (value: unknown): value is SqlQueryValue =>
+    value === null || typeof value === 'string' ||
+    (typeof value === 'number' && Number.isFinite(value))
+  const toRow = (row: unknown): SqlQueryValue[] => {
+    if (!Array.isArray(row)) throw new Error('Invalid sql result row')
+    return row.slice(0, 64).map((value) => {
+      if (!isValue(value)) throw new Error('Invalid sql result cell')
+      return value
+    })
+  }
+  if (!result || !Array.isArray(result.tables) || !Array.isArray(result.columns) ||
+      !Array.isArray(result.rows) || typeof result.truncated !== 'boolean' ||
+      typeof result.columnsTruncated !== 'boolean' ||
+      typeof result.cellsTruncated !== 'boolean') {
+    throw new Error('Invalid sql result')
+  }
+  const rows = result.rows.slice(0, 200).map(toRow)
+  return {
+    tables: result.tables.slice(0, 32).map(toSqlQueryTableMap),
+    columns: result.columns.slice(0, 64).map((column) => {
+      if (typeof column !== 'string') throw new Error('Invalid sql result column')
+      return column.slice(0, 128)
+    }),
+    rows,
+    rowCount: rows.length,
+    truncated: result.truncated,
+    columnsTruncated: result.columnsTruncated,
+    cellsTruncated: result.cellsTruncated
+  }
+}
 /** Issue 118: one legacy workspace row's bounded scan facts — roster fields
  * plus per-file evidence stats. The whitelist here mirrors the Runtime's
  * scan exactly, so a legacy config's secret fields can never slip through a
@@ -159,6 +213,8 @@ export class RuntimeProcess {
   private projectRequests = new Map<string, { resolve: (view: ProjectOperationView) => void; reject: (error: Error) => void; action: ProjectCommand['action'] }>()
   /** Issue 102: the device-local dataset family's single in-flight round. */
   private datasetRequests = new Map<string, { resolve: (view: DatasetOperationView) => void; reject: (error: Error) => void; action: (DatasetCommand | DatasetImportCommand)['action'] }>()
+  /** Issue 103: the read-only SQL family's single in-flight query. */
+  private sqlRequests = new Map<string, { resolve: (view: SqlQueryResultView) => void; reject: (error: Error) => void }>()
   /** Issue 118: the migration wizard's single in-flight round. */
   private migrationRequests = new Map<string, { resolve: (view: MigrationResultView) => void; reject: (error: Error) => void; action: MigrationCommand['action'] }>()
   /** Issue 85: bounded in-flight management round-trips; the card drives
@@ -1070,6 +1126,35 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.datasetRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.datasetRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 103: 只读 SQL 查询窗格. The wire command is one fixed key set that
+   * only reaches the owned Runtime and its device-local engine: a registered
+   * ready dataset identity plus the query text. The engine itself refuses
+   * every write statement and unlisted function over an in-memory copy of
+   * the 原件 and bounds the reply; the scope rides the workspace identity the
+   * Runtime itself last reported — the same fence the dataset family uses.
+   */
+  async sqlQuery(command: SqlQueryCommand): Promise<SqlQueryResultView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('SQL_QUERY_COMMAND_INVALID')
+    if (command.action !== 'query' ||
+        typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId) ||
+        typeof command.sql !== 'string' || !command.sql.trim() || command.sql.length > 10000 ||
+        Object.keys(command).length !== 3) throw new Error('SQL_QUERY_COMMAND_INVALID')
+    if (this.sqlRequests.size) throw new Error('SQL_QUERY_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    const wire = { type: 'sql', id, action: command.action, datasetId: command.datasetId,
+      sql: command.sql, scope: this.selectionScope }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.sqlRequests.delete(id); reject(new Error('SQL_QUERY_TIMEOUT')) }, 60000)
+      this.sqlRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.sqlRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.sqlRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -2244,6 +2329,27 @@ export class RuntimeProcess {
             })
             continue
           }
+          if (value.v === 1 && value.type === 'sql') {
+            // Issue 103: the engine's bounded read-only result. An error is
+            // always the fixed `SQL_QUERY_*` category the engine (or the
+            // device fence) answered — the query text and file content
+            // never ride back. Like the dataset family, the wire is mapped
+            // before settling: a malformed result is a protocol failure
+            // that kills the child while the pending entry stays
+            // registered, so the close handler rejects the query instead
+            // of hanging it until the timeout.
+            const pending = this.sqlRequests.get(value.id)
+            if (!pending) continue
+            if (value.error || !value.result) {
+              this.sqlRequests.delete(value.id)
+              pending.reject(new Error(value.error || 'SQL_QUERY_FAILED'))
+              continue
+            }
+            const view = toSqlQueryResultView(value.result)
+            this.sqlRequests.delete(value.id)
+            pending.resolve(view)
+            continue
+          }
           if (value.v === 1 && value.type === 'migration') {
             // Issue 118: the wizard's own reply — the scan's read-only
             // listing or the migrate round's honest outcome plus the
@@ -2903,6 +3009,7 @@ export class RuntimeProcess {
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.datasetRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.sqlRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.schedulesRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       // Issue 109: a dead child ends the remote browser's pending lifecycle
       // request and every in-flight input forward immediately.

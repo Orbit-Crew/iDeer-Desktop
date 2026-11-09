@@ -98,17 +98,19 @@ describe('layout arrangements', () => {
 })
 
 describe('panel registry vocabulary', () => {
-  it('keeps every original column except the never-delivered sql pane', () => {
+  it('keeps every original column, with `sql` wired by its phase (#103)', () => {
     const registered = PANEL_REGISTRY.map((p) => p.id)
     // Issue 84 adds the `templates` plaza as a new native column beyond the
     // original vocabulary. Issue 112 adds the `office` pane the same way —
     // the narrowed read-only restoration of the excluded office page.
     // Issue 111 adds the `agentTerminal` pane the same way — the read-only
     // projection of the Runtime-carried Agent command history.
+    // Issue 103 ends `sql`'s meta-only status: the read-only SQL pane is a
+    // delivered native column on its own bounded device channel.
     expect(registered.sort()).toEqual([
-      'agentTerminal', 'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'office', 'runtime', 'synapse', 'templates', 'terminal', 'viewer3d'
+      'agentTerminal', 'browser', 'chat', 'field', 'files', 'kb', 'notifications', 'office', 'runtime', 'sql', 'synapse', 'templates', 'terminal', 'viewer3d'
     ])
-    expect(getRegisteredPanel('sql')).toBeUndefined()
+    expect(getRegisteredPanel('sql')).toBeDefined()
     expect(PANEL_META.sql.title).toBe('数据')
   })
 

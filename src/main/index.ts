@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, MigrationCommand, MigrationMigrateCommand, MigrationResultView, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, MigrationCommand, MigrationMigrateCommand, MigrationResultView, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, SqlQueryCommand, SqlQueryResultView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { CadPaneService } from './cadPane'
@@ -1036,6 +1036,24 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
       return runtime.datasets({ action: 'delete', datasetId: command.datasetId })
+    })
+    // Issue 103: 只读 SQL 查询窗格. The renderer names the registered ready
+    // dataset identity and the query text only; the device-side stdlib
+    // engine refuses every write statement and every unlisted function over
+    // an in-memory copy, and the reply is bounded before it crosses back.
+    // A query reads this identity's own imported 原件 and asks for nothing
+    // beyond it — the human's own read on their own device data, the same
+    // approval-free class the #94 human file-browsing seam established, so
+    // it is confirmed by no dialog.
+    ipcMain.handle('desktop:sql', async (event, command: SqlQueryCommand): Promise<SqlQueryResultView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || command.action !== 'query' ||
+          typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId) ||
+          typeof command.sql !== 'string' || !command.sql.trim() || command.sql.length > 10000 ||
+          Object.keys(command).length !== 3) throw new Error('SQL_QUERY_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('SQL_QUERY_UNAUTHENTICATED')
+      return runtime.sqlQuery(command)
     })
     // Issue 118: 迁移向导. The scan is the read-only legacy listing, passed
     // through untouched. The migrate names one workspace the user explicitly
