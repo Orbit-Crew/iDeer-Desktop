@@ -373,6 +373,25 @@ describe('doc library pane (issue 98 library search)', () => {
     expect(cut.textContent).not.toContain('未参与检索：')
   })
 
+  it('never claims a cut when completeness broke without one and without a missing row', async () => {
+    stubIdeer()
+    ;(window as unknown as { ideer: { knowledgeSearch: unknown } }).ideer.knowledgeSearch = vi.fn(() =>
+      Promise.resolve(searchView({ evidenceComplete: false, truncated: false, missing: [] })))
+    statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })
+    render(<DocLibraryPane instanceId="kb-1" panelType="kb" />)
+    fireEvent.change(await screen.findByRole('textbox', { name: '检索版本 ffffffff' }), { target: { value: 'ALPHA' } })
+    fireEvent.click(screen.getByRole('button', { name: '检索 ffffffff' }))
+    const unknown = await screen.findByTestId('doc-library-search-result')
+    // The servability read failed: no document is nameable as missing and no
+    // cut happened, so the banner must not claim either — it names the
+    // unverifiable participation instead.
+    expect(unknown.textContent).toContain('依据不完整')
+    expect(unknown.textContent).toContain('无法确认')
+    expect(unknown.textContent).not.toContain('命中数量达到上限')
+    expect(unknown.textContent).not.toContain('部分文档未能参与本次检索')
+    expect(unknown.textContent).not.toContain('未参与检索：')
+  })
+
   it('explains a refused search through its fixed category', async () => {
     stubIdeer({ reject: 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED' })
     statusFixture = runtimeStatus({ knowledgeImports: [importRow()] })

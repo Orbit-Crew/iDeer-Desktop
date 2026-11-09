@@ -84,6 +84,17 @@ export function describeSearchLocation(position: KnowledgeSearchHit['position'])
   return parts.join(' · ')
 }
 
+/** The honest 依据不完整 wording for the exact three causes the engine can
+ * produce (local-runtime answer_frozen_revision): a document named in
+ * missing, a real cut, or a servability read that could not confirm
+ * participation — each names its own cause and never claims what the data
+ * does not back. */
+export function describeEvidenceBanner(view: Pick<KnowledgeSearchView, 'missing' | 'truncated'>): string {
+  if (view.missing.length > 0) return '依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。'
+  if (view.truncated) return '依据不完整：命中数量达到上限，以下仅显示截断前的命中。'
+  return '依据不完整：部分文档能否参与本次检索无法确认，以下命中仅来自已确认参与的文件。'
+}
+
 /** Issue 98: one library search's citation card — the library identity, the
  * engine that answered, every hit with its document/page/table location and
  * content fingerprint, and the honest 依据不完整 banner plus the structured
@@ -99,9 +110,7 @@ export function SearchCitations({ view }: { view: KnowledgeSearchView }): JSX.El
         {` · 参与检索 ${view.documentsMatched} / ${view.documentsTotal}`}
       </Typography.Paragraph>
       {!view.evidenceComplete && <Alert type="warning" showIcon className="mb-2"
-        message={view.missing.length > 0
-          ? '依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。'
-          : '依据不完整：命中数量达到上限，以下仅显示截断前的命中。'} />}
+        message={describeEvidenceBanner(view)} />}
       {view.missing.map((gap, index) => (
         <Typography.Paragraph key={`${gap.filename}-${index}`} type="warning" className="mb-1">
           未参与检索：{gap.filename} · {GAP_REASONS[gap.reason] ?? gap.reason}
