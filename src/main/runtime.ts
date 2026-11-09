@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgeSearchHit, KnowledgeSearchView, KnowledgeSimilarityView, KnowledgePublishOutcome, KnowledgePublishPreview, LoginStatus, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindingView, ProjectBindCommand, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, KnowledgeSearchHit, KnowledgeSearchView, KnowledgeSimilarityView, LegacyWorkspaceView, LoginStatus, MigrationCommand, MigrationLedgerView, MigrationMigrateCommand, MigrationOutcomeView, MigrationResultView, MigrationScanView, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindCommand, ProjectBindingView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, SqlQueryCommand, SqlQueryResultView, SqlQueryTableMap, SqlQueryValue, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -65,6 +65,104 @@ export const toDatasetView = (input: unknown): DatasetView => {
     errorCode: typeof row.errorCode === 'string' ? row.errorCode : '', createdAt: row.createdAt }
 }
 
+/** Issue 103: one queryable worksheet's registration facts as the engine
+ * records them — the deterministic table name, the sheet's own name and the
+ * exact queryable columns. Exported for the regression test that pins the
+ * engine's real wire shapes. */
+export const toSqlQueryTableMap = (input: unknown): SqlQueryTableMap => {
+  const table = input as Record<string, unknown>
+  const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/
+  if (!table || typeof table.table !== 'string' || !namePattern.test(table.table) ||
+      typeof table.name !== 'string' || !Array.isArray(table.columns)) {
+    throw new Error('Invalid sql table map')
+  }
+  return { table: table.table, name: table.name.slice(0, 128),
+    columns: table.columns.slice(0, 128).map((column) => {
+      if (typeof column !== 'string') throw new Error('Invalid sql table map')
+      return column.slice(0, 128)
+    }) }
+}
+/** Issue 103: one bounded read-only result as the engine answers it — every
+ * axis bounded, every cut marked, and only values the wire can carry
+ * honestly. `rowCount` is derived from the rows themselves: the count the
+ * renderer can verify, never a claim to trust. Exported for the regression
+ * test that pins the engine's real wire shapes. */
+export const toSqlQueryResultView = (input: unknown): SqlQueryResultView => {
+  const result = input as Record<string, unknown>
+  const isValue = (value: unknown): value is SqlQueryValue =>
+    value === null || typeof value === 'string' ||
+    (typeof value === 'number' && Number.isFinite(value))
+  const toRow = (row: unknown): SqlQueryValue[] => {
+    if (!Array.isArray(row)) throw new Error('Invalid sql result row')
+    return row.slice(0, 64).map((value) => {
+      if (!isValue(value)) throw new Error('Invalid sql result cell')
+      return value
+    })
+  }
+  if (!result || !Array.isArray(result.tables) || !Array.isArray(result.columns) ||
+      !Array.isArray(result.rows) || typeof result.truncated !== 'boolean' ||
+      typeof result.columnsTruncated !== 'boolean' ||
+      typeof result.cellsTruncated !== 'boolean') {
+    throw new Error('Invalid sql result')
+  }
+  const rows = result.rows.slice(0, 200).map(toRow)
+  return {
+    tables: result.tables.slice(0, 32).map(toSqlQueryTableMap),
+    columns: result.columns.slice(0, 64).map((column) => {
+      if (typeof column !== 'string') throw new Error('Invalid sql result column')
+      return column.slice(0, 128)
+    }),
+    rows,
+    rowCount: rows.length,
+    truncated: result.truncated,
+    columnsTruncated: result.columnsTruncated,
+    cellsTruncated: result.cellsTruncated
+  }
+}
+/** Issue 118: one legacy workspace row's bounded scan facts — roster fields
+ * plus per-file evidence stats. The whitelist here mirrors the Runtime's
+ * scan exactly, so a legacy config's secret fields can never slip through a
+ * parser drift. Exported for the regression test that pins the wire shapes. */
+export const toLegacyWorkspaceView = (input: unknown): LegacyWorkspaceView => {
+  const row = input as Record<string, unknown>
+  const evidence = (value: unknown): { present: boolean; size: number } => {
+    const stat = value as Record<string, unknown> | null
+    if (!stat || typeof stat.present !== 'boolean' || !Number.isSafeInteger(stat.size) ||
+        (stat.size as number) < 0) throw new Error('Invalid legacy workspace row')
+    return { present: stat.present as boolean, size: stat.size as number }
+  }
+  if (!row || typeof row.id !== 'string' || !row.id || row.id.length > 128 ||
+      typeof row.name !== 'string' || row.name.length > 128 ||
+      typeof row.folder !== 'string' || row.folder.length > 1024 ||
+      typeof row.current !== 'boolean' || typeof row.orphan !== 'boolean' ||
+      typeof row.createdAt !== 'string' || typeof row.lastOpenedAt !== 'string' ||
+      !row.files || typeof row.files !== 'object') throw new Error('Invalid legacy workspace row')
+  const files = row.files as Record<string, unknown>
+  return { id: row.id, name: row.name, folder: row.folder, current: row.current,
+    orphan: row.orphan, createdAt: row.createdAt.slice(0, 64), lastOpenedAt: row.lastOpenedAt.slice(0, 64),
+    files: { data: evidence(files.data), kb: evidence(files.kb), tables: evidence(files.tables) } }
+}
+/** Issue 118: one migration attempt row — bounded display facts with the
+ * fixed category on failed rows. Exported like toDatasetView for the same
+ * regression discipline. */
+export const toMigrationLedgerView = (input: unknown): MigrationLedgerView => {
+  const row = input as Record<string, unknown>
+  if (!row || typeof row.workspaceId !== 'string' || !row.workspaceId || row.workspaceId.length > 128 ||
+      typeof row.workspaceName !== 'string' || row.workspaceName.length > 128 ||
+      typeof row.projectId !== 'string' || row.projectId.length > 128 ||
+      typeof row.projectName !== 'string' || row.projectName.length > 128 ||
+      typeof row.folder !== 'string' || row.folder.length > 1024 ||
+      typeof row.status !== 'string' || !['migrated', 'failed'].includes(row.status) ||
+      typeof row.errorCode !== 'string' ||
+      (row.status === 'failed' ? !row.errorCode : row.errorCode !== '') ||
+      typeof row.createdAt !== 'string' || typeof row.updatedAt !== 'string') {
+    throw new Error('Invalid migration ledger row')
+  }
+  return { workspaceId: row.workspaceId, workspaceName: row.workspaceName, projectId: row.projectId,
+    projectName: row.projectName, folder: row.folder, status: row.status as MigrationLedgerView['status'],
+    errorCode: row.errorCode.slice(0, 64), createdAt: row.createdAt.slice(0, 64), updatedAt: row.updatedAt.slice(0, 64) }
+}
+
 /** Issue 101: the 离线快照 annotation a cached view carries — present only
  * when the Runtime actually served the cached copy, never on a live view. */
 const offlineAnnotation = (outcome: Record<string, unknown>): { offline?: boolean; capturedAt?: string } =>
@@ -117,6 +215,10 @@ export class RuntimeProcess {
   private projectRequests = new Map<string, { resolve: (view: ProjectOperationView) => void; reject: (error: Error) => void; action: ProjectCommand['action'] }>()
   /** Issue 102: the device-local dataset family's single in-flight round. */
   private datasetRequests = new Map<string, { resolve: (view: DatasetOperationView) => void; reject: (error: Error) => void; action: (DatasetCommand | DatasetImportCommand)['action'] }>()
+  /** Issue 103: the read-only SQL family's single in-flight query. */
+  private sqlRequests = new Map<string, { resolve: (view: SqlQueryResultView) => void; reject: (error: Error) => void }>()
+  /** Issue 118: the migration wizard's single in-flight round. */
+  private migrationRequests = new Map<string, { resolve: (view: MigrationResultView) => void; reject: (error: Error) => void; action: MigrationCommand['action'] }>()
   /** Issue 85: bounded in-flight management round-trips; the card drives
    * list + runs + preview concurrently, so it caps instead of serializing. */
   private schedulesRequests = new Map<string, { resolve: (view: SchedulesOutcome) => void; reject: (error: Error) => void; action: ScheduleCommand['action'] }>()
@@ -1052,6 +1154,78 @@ export class RuntimeProcess {
         action: command.action,
         resolve: (view) => { clearTimeout(timer); this.datasetRequests.delete(id); resolve(view) },
         reject: (error) => { clearTimeout(timer); this.datasetRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 103: 只读 SQL 查询窗格. The wire command is one fixed key set that
+   * only reaches the owned Runtime and its device-local engine: a registered
+   * ready dataset identity plus the query text. The engine itself refuses
+   * every write statement and unlisted function over an in-memory copy of
+   * the 原件 and bounds the reply; the scope rides the workspace identity the
+   * Runtime itself last reported — the same fence the dataset family uses.
+   */
+  async sqlQuery(command: SqlQueryCommand): Promise<SqlQueryResultView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('SQL_QUERY_COMMAND_INVALID')
+    if (command.action !== 'query' ||
+        typeof command.datasetId !== 'string' || !/^[0-9a-f]{64}$/.test(command.datasetId) ||
+        typeof command.sql !== 'string' || !command.sql.trim() || command.sql.length > 10000 ||
+        Object.keys(command).length !== 3) throw new Error('SQL_QUERY_COMMAND_INVALID')
+    if (this.sqlRequests.size) throw new Error('SQL_QUERY_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    const wire = { type: 'sql', id, action: command.action, datasetId: command.datasetId,
+      sql: command.sql, scope: this.selectionScope }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.sqlRequests.delete(id); reject(new Error('SQL_QUERY_TIMEOUT')) }, 60000)
+      this.sqlRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.sqlRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.sqlRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /**
+   * Issue 118: 迁移向导. The wire command is a fixed per-action key set that
+   * only reaches the owned Runtime: `scan` is the read-only legacy listing,
+   * `migrate` names the one confirmed workspace with its project name and
+   * the folder the trusted main process's own dialog chose (empty = 不绑定)
+   * — the renderer-facing bind request never carries a path. The scope
+   * rides the workspace identity the Runtime itself last reported, the
+   * same fence the device-local families use.
+   */
+  async migration(command: MigrationCommand | MigrationMigrateCommand): Promise<MigrationResultView> {
+    if (!command || typeof command !== 'object' || Array.isArray(command)) throw new Error('MIGRATION_COMMAND_INVALID')
+    const wire: Record<string, unknown> = { type: 'migration', id: '', action: command.action }
+    if (command.action === 'scan') {
+      if (Object.keys(command).length !== 1) throw new Error('MIGRATION_COMMAND_INVALID')
+    } else if (command.action === 'migrate') {
+      const picked = command as MigrationMigrateCommand
+      const name = typeof picked.name === 'string' ? picked.name.trim() : ''
+      if (typeof picked.workspaceId !== 'string' || !picked.workspaceId || picked.workspaceId.length > 128 ||
+          !name || name.length > 128 ||
+          typeof picked.folder !== 'string' || picked.folder.length > 1024 ||
+          Object.keys(command).length !== 4) throw new Error('MIGRATION_COMMAND_INVALID')
+      wire.workspaceId = picked.workspaceId
+      wire.name = name
+      wire.folder = picked.folder
+    } else {
+      throw new Error('MIGRATION_COMMAND_INVALID')
+    }
+    if (this.migrationRequests.size) throw new Error('MIGRATION_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    wire.id = id
+    wire.scope = this.selectionScope
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.migrationRequests.delete(id); reject(new Error('MIGRATION_TIMEOUT')) }, 60000)
+      this.migrationRequests.set(id, {
+        action: command.action,
+        resolve: (view) => { clearTimeout(timer); this.migrationRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.migrationRequests.delete(id); reject(error) }
       })
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
     })
@@ -2232,6 +2406,65 @@ export class RuntimeProcess {
             })
             continue
           }
+          if (value.v === 1 && value.type === 'sql') {
+            // Issue 103: the engine's bounded read-only result. An error is
+            // always the fixed `SQL_QUERY_*` category the engine (or the
+            // device fence) answered — the query text and file content
+            // never ride back. Like the dataset family, the wire is mapped
+            // before settling: a malformed result is a protocol failure
+            // that kills the child while the pending entry stays
+            // registered, so the close handler rejects the query instead
+            // of hanging it until the timeout.
+            const pending = this.sqlRequests.get(value.id)
+            if (!pending) continue
+            if (value.error || !value.result) {
+              this.sqlRequests.delete(value.id)
+              pending.reject(new Error(value.error || 'SQL_QUERY_FAILED'))
+              continue
+            }
+            const view = toSqlQueryResultView(value.result)
+            this.sqlRequests.delete(value.id)
+            pending.resolve(view)
+            continue
+          }
+          if (value.v === 1 && value.type === 'migration') {
+            // Issue 118: the wizard's own reply — the scan's read-only
+            // listing or the migrate round's honest outcome plus the
+            // post-action ledger, bounded before they reach the renderer.
+            // A shape violation kills the child like every other family.
+            const pending = this.migrationRequests.get(value.id)
+            if (!pending) continue
+            this.migrationRequests.delete(value.id)
+            if (value.error) { pending.reject(new Error(value.error)); continue }
+            const result = value.result
+            if (!result || typeof result !== 'object') { pending.reject(new Error('MIGRATION_FAILED')); continue }
+            const row = result as Record<string, unknown>
+            if (Array.isArray(row.workspaces)) {
+              if (pending.action !== 'scan' || typeof row.root !== 'string' ||
+                  typeof row.configError !== 'string' || row.configError.length > 64 ||
+                  typeof row.truncated !== 'boolean') {
+                pending.reject(new Error('MIGRATION_FAILED')); continue
+              }
+              const scan: MigrationScanView = { root: row.root.slice(0, 512),
+                workspaces: row.workspaces.slice(0, 50).map(toLegacyWorkspaceView),
+                configError: row.configError, truncated: row.truncated as boolean }
+              pending.resolve(scan)
+              continue
+            }
+            if (pending.action !== 'migrate' || typeof row.migrated !== 'boolean' ||
+                typeof row.workspaceId !== 'string' || !row.workspaceId || row.workspaceId.length > 128 ||
+                typeof row.projectId !== 'string' || row.projectId.length > 128 ||
+                typeof row.errorCode !== 'string' || row.errorCode.length > 64 ||
+                !Array.isArray(row.ledger)) {
+              pending.reject(new Error('MIGRATION_FAILED')); continue
+            }
+            const outcome: MigrationOutcomeView = { migrated: row.migrated as boolean,
+              workspaceId: row.workspaceId as string, projectId: row.projectId as string,
+              errorCode: (row.errorCode as string).slice(0, 64),
+              ledger: (row.ledger as unknown[]).slice(0, 20).map(toMigrationLedgerView) }
+            pending.resolve(outcome)
+            continue
+          }
           if (value.v === 1 && value.type === 'schedules') {
             // Issue 85: the platform's own post-action rows plus the device's
             // 补跑 marks, bounded before they reach the renderer. A shape
@@ -2753,6 +2986,15 @@ export class RuntimeProcess {
                 deviceName: row.deviceName.slice(0, 128), createdAt: row.createdAt.slice(0, 64) })
             }
           }
+          // Issue 118: this identity's own migration attempt rows ride the
+          // same snapshot; a malformed row is a protocol failure like any
+          // other status row.
+          const migrationLedgerRows: MigrationLedgerView[] = []
+          if (Array.isArray(value.migrationLedger)) {
+            for (const row of value.migrationLedger.slice(0, 20)) {
+              migrationLedgerRows.push(toMigrationLedgerView(row))
+            }
+          }
           const datasetRows: DatasetView[] = []
           if (Array.isArray(value.datasets)) {
             for (const row of value.datasets.slice(0, 20)) {
@@ -2806,6 +3048,8 @@ export class RuntimeProcess {
             connectorStorageError: value.connectorStorageError === 'CONNECTOR_STORAGE_UNAVAILABLE' ? value.connectorStorageError : '',
             projectBindings,
             projectBindingStorageError: value.projectBindingStorageError === 'PROJECT_BINDING_STORAGE_UNAVAILABLE' ? value.projectBindingStorageError : '',
+            migrationLedger: migrationLedgerRows,
+            migrationStorageError: value.migrationStorageError === 'MIGRATION_STORAGE_UNAVAILABLE' ? value.migrationStorageError : '',
             agentTerminal: { running: agentTerminalRunning },
             agentTerminalStorageError: value.agentTerminalStorageError === 'TERMINAL_STORAGE_UNAVAILABLE' ? value.agentTerminalStorageError : '',
             receiptStorageError: value.receiptStorageError === 'RECEIPT_STORAGE_UNAVAILABLE' ? value.receiptStorageError : '', receiptScope: this.receiptScope }
@@ -2842,6 +3086,7 @@ export class RuntimeProcess {
       for (const pending of this.modelRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.threadRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.datasetRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
+      for (const pending of this.sqlRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       for (const pending of this.schedulesRequests.values()) pending.reject(new Error('RUNTIME_UNAVAILABLE'))
       // Issue 109: a dead child ends the remote browser's pending lifecycle
       // request and every in-flight input forward immediately.

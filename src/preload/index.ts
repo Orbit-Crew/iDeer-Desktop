@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, BrowserPaneEvent, CadCommand, ChatCommand, ConnectorCommand, DatasetCommand, DesktopBridge, FilesCommand, KnowledgeGraphCommand, MigrationCommand, ModelCommand, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, ProjectCommand, RemoteBrowserCommand, RemoteBrowserEvent, ScheduleCommand, SkillCommand, SkillPreferenceCommand, SkillScriptCommand, SqlQueryCommand, TemplateCommand, TemplateView, TerminalBridge, TerminalDataEvent, TerminalExitEvent, ThreadCommand, WikiCommand } from '../shared/desktop'
 
 // Issue 106: the official selection rides the templates family's one pinned
 // channel, so the channel inventory stays one entry per channel.
@@ -59,11 +59,19 @@ const bridge: DesktopBridge = Object.freeze({
   // Issue 91: platform project management; every action rides the Server's
   // own Project API and the reply is its post-action list.
   projects: (command: ProjectCommand) => ipcRenderer.invoke('desktop:projects', command),
+  // Issue 118: 迁移向导. The renderer names the action and the one confirmed
+  // workspace; the confirm dialog and the folder dialog stay in the trusted
+  // main process, and the final folder only ever crosses the wire from there.
+  migration: (command: MigrationCommand) => ipcRenderer.invoke('desktop:migration', command),
   // Issue 102: 表格数据集导入. The renderer names the action and the project
   // association only; the file is located by the trusted main process's
   // native dialog, both actions are confirmed there, and the original file
   // never leaves the machine.
   datasets: (command: DatasetCommand) => ipcRenderer.invoke('desktop:datasets', command),
+  // Issue 103: the read-only SQL pane. The renderer names the registered
+  // dataset identity and the query text only; the device-side engine owns
+  // the read-only fence and every bound on the reply.
+  sql: (command: SqlQueryCommand) => ipcRenderer.invoke('desktop:sql', command),
   // Issue 85: the platform scheduled-tasks management surface; deletes are
   // confirmed in the trusted main process before they reach the wire.
   schedules: (command: ScheduleCommand) => ipcRenderer.invoke('desktop:schedules', command),

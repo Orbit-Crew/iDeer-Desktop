@@ -182,6 +182,20 @@ its tasks and pending approvals. A slow shutdown cannot regain access after a
 new login. Signed-out status exposes no receipt owner, grant list or task
 history. Native window close remains a true exit; there is no tray-hide entry.
 
+Issue #87 adds `core/engineering_probe.py` and extends the copied transport,
+policy, files, tray, cli and package surface with the desktop-side
+CATIA/Abaqus discovery: per-component software/plugin/license/python probes
+(filesystem and environment reads only), one actionable hint per missing
+piece, honest `unknown` license states, live `local.<tool>.probe`/`ready`
+capability announcements refreshed when a probe flips readiness, and
+`local.<tool>.result` facts that resolve through the store's own guarded
+boundary before recording hash/size metadata into the existing local-result
+registry. Both operations require a bound broker key; nothing launches
+software, spawns MCP servers or uploads bytes — the external loop stays with
+iDeer #124/#125. `core/files.py` gains the public `resolve_with_root` seam so
+a fact's logical root and its boundary check share one resolution; all
+original file operations and tests remain unchanged.
+
 ## Build and evidence
 
 `npm.cmd run dist:win` prepares the Runtime before NSIS packaging.

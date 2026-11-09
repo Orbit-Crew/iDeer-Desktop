@@ -22,7 +22,9 @@ Python Runtime。Orbit-Crew/iDeer 维护 Server、共享协议和阶段协调；
 可执行文件 ideer-desktop.exe。NSIS 使用独立 appId 派生的安装身份，用户选择安装目录，
 默认按当前用户安装，不复用 linz 的安装记录或快捷方式。
 数据固定在 `%APPDATA%/iDeer Desktop`，Chromium 会话在其 Session 子目录。
-卸载保留应用数据。未读取或迁移旧 `%APPDATA%/linz`、旧工作区、密钥、会话或授权。
+卸载保留应用数据。除 #118 迁移向导的一次性只读探测与逐个确认的归属迁移外
+（见 2026-11-08 段），不读取或迁移旧 `%APPDATA%/linz`、旧工作区、密钥、会话
+或授权；旧数据永不修改或删除。
 
 ## 源码和依赖
 
@@ -177,6 +179,49 @@ scope 记入设备本地 `branch_edges.db`，重启后照常重建，记录/读�
 DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径；边数据不回写
 平台；跨设备分支边不同步（另一台设备发起的分支只以节点出现）。
 
+## 2026-11-08 旧版迁移向导（iDeer-Desktop #118）
+
+六期·44 恢复迁移辅助（GLOSSARY 迁移向导）。**一次性辅助流程，不是搬运器**：
+旧版 linz 的 userData 布局按参考仓库 f88141b 固定（`%APPDATA%/linz` 下
+`aeromind-config.json` 名册与 `workspaces/<id>/{data.db,kb.db,tables.db}`）。
+向导打开才执行一次只读扫描：白名单读取名册的 workspace 字段（id/名/时间/
+folder），名册损坏如实标注并仍列出磁盘上发现的工作区文件夹（名册缺失），
+逐工作区只 stat 三个库文件的存在与大小，**从不打开任何旧数据库字节**，旧
+配置的模型密钥、批准记忆、工具策略因此结构性不进入该界面（回归测试以诱饵
+字段逐字断言）。归属迁移逐工作区确认（勾选确认归属 → 受信任主进程原生确认
+对话框 → 可选的原生文件夹选择，扫描的旧 folder 仅作预填建议）：一次平台
+项目 create + 一次设备本地 bind-folder（#91/#92 既有原语组合，Runtime 以
+create 应答新增的 createdId 精确引用新建项目）；失败行如实记固定类别与已建
+项目 id，重试只补做未完成步骤，绝不重复建项目；已迁移工作区拒绝二次迁移。
+永不迁清单（旧聊天/密钥/批准记忆/执行状态）由实现结构性保证并有负路径
+测试。迁移 ≠ 导入完成：向导内指路真实重导入入口（知识库/表格/技能 ZIP/
+模板广场），Agent 配置导入入口尚未提供、如实标注不虚设（ADR 0001）。
+与 [iDeer #130](https://github.com/Orbit-Crew/iDeer/issues/130) 人工演练的
+衔接：T130-01 的逐工作区确认记录即本向导的确认勾选 + 主进程确认对话框；
+T130-01/T130-02 的"旧会话/执行状态不迁、旧数据保留"由本段边界与验收报告
+（docs/acceptance/issue-118-migration-wizard/）共同承载；原文件重导入按
+向导指路入口人工执行并按 #130 记账。三层验收：入口恢复与业务接线由自动
+化测试覆盖，实际候选人工验收（真实旧版安装、真实平台、安装包）未执行。
+## 2026-11-08 CATIA/Abaqus 桌面侧衔接恢复（iDeer-Desktop #87）
+
+六期·43 恢复桌面侧职责：**只做探测与提示**。Runtime 新增
+`core/engineering_probe.py`——按原版 `mcp/templates.ts` 的探测面恢复
+（CATIA：`CATINSTALLDIR`/`Dassault Systemes\B*` 安装证据、`catia_mcp`
+插件模块、`CATALICENCE_FILE`/DSLS 许可目录；Abaqus：`ABAQUS_HOME`/
+`SIMULIA\Commands\abaqus.bat` 安装证据、`mcp_server.py` 插件脚本、
+`ABAQUSLM_LICENSE_FILE` 许可信号；Python 解释器沿用原 `detectPythonPath`
+的 PATH/常见路径次序），插件目录默认值保持原开发期路径并新增
+`IDEER_CATIA_MCP_DIR`/`IDEER_ABAQUS_MCP_DIR` 覆盖。每部件独立状态
+（present/missing/unknown），缺软件、缺插件、缺许可分别给可操作提示，
+许可无信号时如实 unknown 而不硬凑 ready。能力公告诚实：探测能力
+（`local.catia.probe`/`local.abaqus.probe`）随服务在桌面侧常驻公告，
+`local.<tool>.ready` 仅在全部部件 present 时公告，探测完成后公告即时
+重发；配对门要求绑定 broker key 后才回答（安装路径是本机事实）。
+作业结果回流按显式边界处理：`local.<tool>.result` 只登记授权根内已
+存在文件的哈希/字节事实（复用文件门解析，越界/缺失按固定错误码拒绝），
+字节不出设备、不上传。零软件启动、零 MCP 服务器拉起；外部软件闭环、
+真实作业执行仍归 iDeer #124/#125，catia-smart 分发决定不变。
+
 ## 能力清单
 
 以下来源均固定为 f88141b；未复制实现仍保留在该提交可查阅，未删除原覆盖。
@@ -191,10 +236,10 @@ DSH IPC、事件订阅、prompt、fork、create session 等旧本机控制路径
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |
 | kb、parsers、database、knowledgeGraph、wiki、sql.js、better-sqlite3 | 暂缓，尚未适配平台身份、Revision 和 Runtime | 知识与技能阶段；原文件重导入，图谱/Wiki 重建，权限/引用/失败及 Win7 native ABI 验证；图片占位不作为 OCR 交付 | Desktop 知识 / Server 治理 |
 | agent-skills、skills、脚本、pandoc、便携 Python | 暂缓，不能直接运行旧技能脚本 | 知识与技能阶段；完整包确认上传 private、固定版本、环境和脚本授权；随包二进制许可证/Win7 验证 | Desktop 技能 / 工具维护者 |
-| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D 已按 #115 恢复（见 2026-11-07 段）；CATIA、Abaqus 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
+| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D 已按 #115 恢复（见 2026-11-07 段）；CATIA、Abaqus 桌面侧探测与提示已按 [#87](https://github.com/Orbit-Crew/iDeer-Desktop/issues/87) 恢复（安装/插件/许可探测、诚实能力公告、缺项可操作提示、结果回流授权边界，见 2026-11-08 段）；外部软件闭环未纳入当前包（归 iDeer #124/#125） | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
 | catia-smart | 暂缓安装分发 | 先核验 SDK/插件权利、依赖和 Win7，再决定阶段，不自动列入下一期 | 工具维护者 |
 | updater、gen-manifest、gen-patch | 暂缓旧未签名更新，不注册补丁文件关联或 CLI 执行 | 一期安全更新；签名、排空、组合恢复和数据保护专项 | Desktop 构建发布 |
-| 旧会话、配置、密钥、自动迁移、macOS/Linux | 排除当前交付范围 | 人工迁移说明由退役阶段提供；不得自动读取或删除旧数据 | 迁移维护者 |
+| 旧会话、配置、密钥、自动迁移、macOS/Linux | 排除当前交付范围；#118 迁移向导提供逐个确认的一次性归属迁移与重导入指路（见 2026-11-08 段），整体搬运与自动迁移仍不存在 | 人工迁移说明见该段与 [iDeer #130](https://github.com/Orbit-Crew/iDeer/issues/130) 演练记账；不得自动读取或删除旧数据 | 迁移维护者 |
 
 ## linz 冻结和旧数据查阅
 
