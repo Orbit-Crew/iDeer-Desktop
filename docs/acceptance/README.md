@@ -46,3 +46,4 @@ These links locate existing records; this index does not change their verdicts.
 | #115 (CAD 查看器) | [Desktop issue 115 CAD viewer — the directory is issue-115-cad-viewer because issue-115/ belongs to the iDeer repo issue of the same number](issue-115-cad-viewer/report.md) |
 | #100 (Wiki 双链与邻域导航) | [Desktop issue 100 wiki graph navigation — the directory is issue-100-wiki-navigation because issue-100/ belongs to the iDeer repo issue of the same number](issue-100-wiki-navigation/report.md) |
 | #97 (BM25 全文索引与漂移标注) | [the directory is issue-97-bm25-index because issue-97/ belongs to the old installer-acceptance numbering](issue-97-bm25-index/report.md) |
+| #118 (迁移向导，六期·44) | [Desktop issue 118 migration wizard — the directory is issue-118-migration-wizard because issue-118/ belongs to the old-numbering ticket of the same number](issue-118-migration-wizard/report.md) |

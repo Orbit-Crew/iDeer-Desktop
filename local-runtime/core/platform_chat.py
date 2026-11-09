@@ -3459,10 +3459,11 @@ class DesktopChat:
             if set(command) != expected:
                 raise ChatError('CHAT_COMMAND_INVALID')
             permissions = self._project_permissions(session)
+            created_row = None
             if action == 'create':
                 if not permissions['canWrite']:
                     raise ChatError('CHAT_FORBIDDEN')
-                self._json(session, '/api/projects', {'name': command['name'].strip()})
+                created_row = self._json(session, '/api/projects', {'name': command['name'].strip()})
             elif action == 'rename':
                 if not permissions['canWrite']:
                     raise ChatError('CHAT_FORBIDDEN')
@@ -3502,6 +3503,11 @@ class DesktopChat:
                 result['unbound'] = True
             if action == 'create':
                 result['created'] = True
+                # Issue 118: the migration wizard composes create+bind on the
+                # device, so the created project's own id rides the reply and
+                # the bind references exactly the row the Server just made.
+                created_id = created_row.get('id') if isinstance(created_row, dict) else None
+                result['createdId'] = created_id[:128] if isinstance(created_id, str) and created_id else ''
             elif action == 'rename':
                 result['renamed'] = True
             elif action == 'archive':

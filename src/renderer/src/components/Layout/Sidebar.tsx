@@ -9,7 +9,7 @@
 // sidebar's project directory (create/switch/rename/archive/delete via the
 // Server's own Project API), the 散会话 bucket, move-into-project and
 // per-project grouping, all projected from the Server's own replies.
-import { BellOutlined, DeleteOutlined, EditOutlined, DoubleLeftOutlined, FolderOutlined, FolderAddOutlined, RocketOutlined, SearchOutlined, SettingOutlined, UndoOutlined } from '@ant-design/icons'
+import { BellOutlined, DeleteOutlined, EditOutlined, DoubleLeftOutlined, FolderOutlined, FolderAddOutlined, ImportOutlined, RocketOutlined, SearchOutlined, SettingOutlined, UndoOutlined } from '@ant-design/icons'
 import { Alert, Badge, Button, Dropdown, Input, Popconfirm, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../stores/uiStore'
@@ -18,7 +18,9 @@ import { useNotificationCenter } from '../../stores/notificationCenter'
 import { useDockStore } from '../../dock/dockStore'
 import { explainThreadError, SessionSidebarController, emptySessionSidebarView, type SessionSidebarView } from '../../stores/sessionSidebar'
 import { explainProjectError, ProjectDirectoryController, emptyProjectDirectoryView, type ProjectDirectoryView } from '../../stores/projectDirectory'
+import { MigrationController, emptyMigrationWizardView, type MigrationWizardView } from '../../stores/migration'
 import ModelSettingsModal from './ModelSettingsModal'
+import MigrationWizardModal from './MigrationWizardModal'
 import ProjectManageModal from './ProjectManageModal'
 import type { ThreadRowView } from '../../../../shared/desktop'
 
@@ -206,10 +208,13 @@ export default function Sidebar(): JSX.Element {
   // Issue 73: the model settings modal rides the restored bottom entry.
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
+  const [migrationOpen, setMigrationOpen] = useState(false)
   const [view, setView] = useState<SessionSidebarView>(emptySessionSidebarView)
   const [projectView, setProjectView] = useState<ProjectDirectoryView>(emptyProjectDirectoryView)
+  const [migrationView, setMigrationView] = useState<MigrationWizardView>(emptyMigrationWizardView)
   const controllerRef = useRef<SessionSidebarController | null>(null)
   const projectControllerRef = useRef<ProjectDirectoryController | null>(null)
+  const migrationControllerRef = useRef<MigrationController | null>(null)
   const loadedVersion = useRef(0)
   // Static startup markup renders without a preload bridge; the sidebar then
   // shows its empty state and only manages sessions once the bridge exists.
@@ -219,6 +224,10 @@ export default function Sidebar(): JSX.Element {
     controllerRef.current = current
     const projectController = new ProjectDirectoryController(window.ideer, (next) => { if (active) setProjectView(next) })
     projectControllerRef.current = projectController
+    // Issue 118: the migration wizard's controller; it only acts when the
+    // wizard surface is open (the modal drives every scan/migrate itself).
+    const migrationController = new MigrationController(window.ideer, (next) => { if (active) setMigrationView(next) })
+    migrationControllerRef.current = migrationController
     void (async () => {
       // The chat poll records the session scope the Runtime reports; align
       // the first load with it instead of failing on a cold start.
@@ -233,7 +242,7 @@ export default function Sidebar(): JSX.Element {
     })()
     void projectController.load()
     loadedVersion.current = useSessionStore.getState().sessionsVersion
-    return () => { active = false; current.invalidate(); projectController.invalidate(); if (controllerRef.current === current) controllerRef.current = null }
+    return () => { active = false; current.invalidate(); projectController.invalidate(); migrationController.invalidate(); if (controllerRef.current === current) controllerRef.current = null }
   }, [])
   useEffect(() => {
     // The mount effect consumes the version it started with; only a bump
@@ -253,6 +262,7 @@ export default function Sidebar(): JSX.Element {
   }, [projectSelection, projectView.projects])
   const controller = controllerRef.current
   const projectController = projectControllerRef.current
+  const migrationController = migrationControllerRef.current
   return (
     <aside className="w-[260px] min-w-[260px] h-full flex flex-col border-r border-line bg-white text-gray-700">
       <div className="px-5 py-4 flex items-center gap-2.5">
@@ -286,6 +296,10 @@ export default function Sidebar(): JSX.Element {
         <p className="mb-3">版本 0.1.0</p>
         <Button block icon={<FolderOutlined />} className="mb-2"
           onClick={() => setProjectsOpen(true)}>项目管理</Button>
+        {/* Issue 118: the one-time migration wizard's only entry; it never
+            reads the legacy install until this surface opens. */}
+        <Button block icon={<ImportOutlined />} className="mb-2"
+          onClick={() => setMigrationOpen(true)}>旧版迁移</Button>
         <Button block icon={<SettingOutlined />} className="mb-2"
           onClick={() => setSettingsOpen(true)}>设置</Button>
         <Button block onClick={() => void window.ideer.quit()}>退出应用</Button>
@@ -294,6 +308,9 @@ export default function Sidebar(): JSX.Element {
       {projectController &&
         <ProjectManageModal open={projectsOpen} onClose={() => setProjectsOpen(false)}
           view={projectView} controller={projectController} />}
+      {migrationController &&
+        <MigrationWizardModal open={migrationOpen} onClose={() => setMigrationOpen(false)}
+          view={migrationView} controller={migrationController} />}
     </aside>
   )
 }
