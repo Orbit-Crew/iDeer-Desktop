@@ -12,6 +12,12 @@ its machine-readable single source of truth is
 [capability-ledger.json](capability-ledger.json) (`npm run verify:ledger`).
 Issue open/closed state is never evidence there.
 
+For the system axis (#120), [the capability × system matrix](system-matrix.md)
+accounts every ledger row on 现代 Windows and Win7 with registered execution
+entries; [system-matrix.json](system-matrix.json) is machine-readable, locked
+to the ledger (`npm run verify:matrix`), and its outcome is mapped to the
+[iDeer #131 retirement conditions](retirement-conditions.md).
+
 ## Issue #108
 
 Start with [the #108 report](issue-108/report.md). Its latest entry links the
@@ -51,6 +57,7 @@ These links locate existing records; this index does not change their verdicts.
 | #111 | [Report](issue-111/report.md), [2026-10-26 modern Windows acceptance with human signoff](issue-111/supplement-20261026.md) |
 | #112–#123 | [#112](issue-112/report.md), [#113](issue-113/report.md), [#114](issue-114/report.md), [#115](issue-115/report.md), [#116](issue-116/report.md), [#117](issue-117/report.md), [#118](issue-118/report.md), [#119](issue-119/report.md), [#120](issue-120/report.md), [#121](issue-121/report.md), [#122](issue-122/report.md), [#123](issue-123/report.md), [2026-10-30 corrections, closure re-evaluation and re-verification index](corrections-2026-10-30-issues-112-123.md) |
 | #115 (CAD 查看器) | [Desktop issue 115 CAD viewer — the directory is issue-115-cad-viewer because issue-115/ belongs to the iDeer repo issue of the same number](issue-115-cad-viewer/report.md) |
+| #120 (Win7 能力矩阵) | [Desktop issue 120 matrix foundation — the directory is issue-120-win7-matrix because issue-120/ belongs to the old installer-acceptance numbering](issue-120-win7-matrix/report.md) |
 | #100 (Wiki 双链与邻域导航) | [Desktop issue 100 wiki graph navigation — the directory is issue-100-wiki-navigation because issue-100/ belongs to the iDeer repo issue of the same number](issue-100-wiki-navigation/report.md) |
 | #97 (BM25 全文索引与漂移标注) | [the directory is issue-97-bm25-index because issue-97/ belongs to the old installer-acceptance numbering](issue-97-bm25-index/report.md) |
 | #118 (迁移向导，六期·44) | [Desktop issue 118 migration wizard — the directory is issue-118-migration-wizard because issue-118/ belongs to the old-numbering ticket of the same number](issue-118-migration-wizard/report.md) |

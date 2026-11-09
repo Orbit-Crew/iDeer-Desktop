@@ -1,0 +1,2236 @@
+{
+  "version": 1,
+  "updated": "2026-11-09",
+  "frameworkDoc": "docs/acceptance/system-matrix.md",
+  "ledgerDoc": "docs/acceptance/capability-ledger.json",
+  "systems": {
+    "modernWindows": {
+      "label": "现代 Windows",
+      "description": "开发与 CI 主机环境（Windows 10/11 x64）上的安装候选验收列；与 #89 台账候选层锁步"
+    },
+    "win7": {
+      "label": "Windows 7",
+      "description": "退役目标真机（iDeer #131 专项）上的最终候选验收列；专项放最后，现代结果不替代"
+    }
+  },
+  "capabilities": [
+    {
+      "id": "p1-01",
+      "issue": 71,
+      "kind": "能力",
+      "name": "Dock 多窗格框架与布局预设",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-71/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/dock-store.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/dock-view.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查八种排列预设与重启布局恢复"
+            }
+          ],
+          "lastVerified": "2026-10-31",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-02",
+      "issue": 72,
+      "kind": "能力",
+      "name": "会话侧栏完整管理（搜索/改名/删除/最近）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/session-sidebar-controller.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/threads-bridge.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/chat-sidebar-open.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查侧栏搜索/改名/删除与最近排序"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-03",
+      "issue": 73,
+      "kind": "能力",
+      "name": "模型设置页（授权列表/账号默认/备用/失效提示）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/model-settings.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/models-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查授权模型列表与账号默认/备用切换"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-04",
+      "issue": 74,
+      "kind": "能力",
+      "name": "会话权限档位（三档/默认最低/审计）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-tier.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查三档权限、默认最低档与审批卡"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-05",
+      "issue": 75,
+      "kind": "能力",
+      "name": "输入增强（@委派 / /Skill / 多技能注入）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-input-commands.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工输入 @委派与 /Skill 核对注入与提示"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-06",
+      "issue": 76,
+      "kind": "能力",
+      "name": "协同模式（并行子代理进度展示）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-subagents.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后一句话派发并行子代理并核对进度与结果展示"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-07",
+      "issue": 77,
+      "kind": "能力",
+      "name": "后台会话与通知跳回",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/notifications.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/notification-center.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后切走会话等待完成/待审批通知并跳回"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-08",
+      "issue": 78,
+      "kind": "能力",
+      "name": "消息级分支",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-branch.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后从历史消息分支出新支线并核对文件夹绑定继承"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-09",
+      "issue": 79,
+      "kind": "能力",
+      "name": "会话导出（整会话 MD / 单条）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-export.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/chat-export-main.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/chat-export-ui.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查整会话 Markdown 与单条导出"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p1-10",
+      "issue": 80,
+      "kind": "能力",
+      "name": "平台断线明确暂停",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-platform.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后断网核对显式暂停、输入锁定与恢复播报"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-11",
+      "issue": 91,
+      "kind": "能力",
+      "name": "平台项目管理（建/切/改名/归档/删除/散会话移入）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/project-directory-controller.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/projects-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查项目建/切/改名/归档/删除与散会话移入"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-12",
+      "issue": 92,
+      "kind": "能力",
+      "name": "项目文件夹绑定（项目+设备）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/terminal-start-dir.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后绑定/解绑本机文件夹并核对夹外拒绝"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-13",
+      "issue": 81,
+      "kind": "能力",
+      "name": "设备侧文档解析引擎（真实解析+定位+平台接口）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/knowledge-parse-view.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后导入 PDF/Office 核对真实解析与页/表定位"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-14",
+      "issue": 93,
+      "kind": "能力",
+      "name": "附件去向选择器",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-attachments.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后拖入附件逐一核对发送文本/上传原件/仅本机查看"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-15",
+      "issue": 94,
+      "kind": "能力",
+      "name": "文件树与只读预览恢复",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/file-panel.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/files-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查文件树只读预览与外部打开"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p2-16",
+      "issue": 95,
+      "kind": "能力",
+      "name": "切换不清场与跨设备标注核对",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/project-switch-retention.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后切换项目核对在途任务继续与跨设备标注"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-17",
+      "issue": 96,
+      "kind": "能力",
+      "name": "文档库管理页（递归导入/去重/批量/取消）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/doc-library-pane.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后递归导入文件夹核对去重、批量管理与取消"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-18",
+      "issue": 97,
+      "kind": "能力",
+      "name": "BM25 全文索引与漂移标注",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后检索核对 BM25 命中定位与过期/重建标注"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-19",
+      "issue": 98,
+      "kind": "能力",
+      "name": "检索问答引用到页",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #98 并入 develop 后按其专票场景执行候选走查"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-20",
+      "issue": 99,
+      "kind": "能力",
+      "name": "文档相似图与实体图",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/graph-canvas-model.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查相似图/实体图与画布拖拽筛选"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-21",
+      "issue": 100,
+      "kind": "能力",
+      "name": "Wiki 双链与邻域导航",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-100-wiki-navigation/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查 Wiki 双链、索引与邻域导航"
+            }
+          ],
+          "lastVerified": "2026-11-07",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p3-22",
+      "issue": 101,
+      "kind": "能力",
+      "name": "知识版本语义统一",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/knowledge-import.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/datasets-ui.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后核对库版本语义与历史引用追溯"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-23",
+      "issue": 102,
+      "kind": "能力",
+      "name": "表格数据集导入",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/datasets-bridge.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/datasets-ui.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后导入 Excel/CSV 核对多 sheet 与类型识别"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-24",
+      "issue": 103,
+      "kind": "能力",
+      "name": "只读 SQL 窗格",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #103 并入 develop 后按其专票场景执行候选走查"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-25",
+      "issue": 82,
+      "kind": "能力",
+      "name": "技能包完整导入与声明（四类语言/权限/发布）",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-82/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后以 ZIP 导入技能包核对预览确认与发布流"
+            }
+          ],
+          "lastVerified": "2026-11-02",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-26",
+      "issue": 104,
+      "kind": "能力",
+      "name": "技能依赖按需安装",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/chat-consent-cards.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后触发缺依赖提示并核对确认后锁定版本安装"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-27",
+      "issue": 105,
+      "kind": "能力",
+      "name": "内联代码受控执行",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-105-inline-code/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后在授权夹内走查临时脚本执行与会话清理"
+            }
+          ],
+          "lastVerified": "2026-11-04",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-28",
+      "issue": 83,
+      "kind": "能力",
+      "name": "固定计算器恢复",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "local-runtime/tests/test_calculator.py"
+            },
+            {
+              "kind": "automated",
+              "ref": "local-runtime/tests/test_calculator_transport.py"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查普通与航空固定计算器"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-29",
+      "issue": 84,
+      "kind": "能力",
+      "name": "模板广场",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/templates-bridge.test.ts"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/templates.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查模板建/分类/变量/编辑与预填不自动发送"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p4-30",
+      "issue": 106,
+      "kind": "能力",
+      "name": "官方模板集与欢迎页",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/templates.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后走查欢迎页官方模板精选与另存为我的"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-31",
+      "issue": 107,
+      "kind": "能力",
+      "name": "本机浏览器窗格",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/browser-pane.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查本机浏览器窗格登录态与下载去向"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-03"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-32",
+      "issue": 108,
+      "kind": "能力",
+      "name": "Agent 控制本机浏览器",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/agent-browser-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后授权 Agent 控制本机浏览器并核对审批标示"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-33",
+      "issue": 109,
+      "kind": "能力",
+      "name": "远程浏览器入口",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/remote-browser-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后核对远程浏览器入口标识与下载取回流"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-03"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-34",
+      "issue": 110,
+      "kind": "能力",
+      "name": "人工终端窗格",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/terminal-pane.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/terminal-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查终端起始目录与关闭时结束询问"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-35",
+      "issue": 111,
+      "kind": "能力",
+      "name": "Agent 受控终端",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/agent-terminal.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后核对受控终端夹外拒绝、联网随档位与产物落点"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-04"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-36",
+      "issue": 85,
+      "kind": "能力",
+      "name": "定时任务管理页（平台计时/补跑/跳过）",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/schedule-panel.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/schedules-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后走查定时任务建/停/恢复/补跑与执行记录"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-37",
+      "issue": 86,
+      "kind": "能力",
+      "name": "托盘常驻与真退出",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/close-preference.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后核对关窗缩托盘、托盘菜单真退出与角标"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-02"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-05"
+            },
+            {
+              "kind": "scenario",
+              "ref": "W7-07"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-38",
+      "issue": 112,
+      "kind": "能力",
+      "name": "办公室只读可视化",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/office-pane.test.tsx"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后人工走查办公室只读动态可视化"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p5-39",
+      "issue": 113,
+      "kind": "能力",
+      "name": "Synapse 会话地图",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/synapse-pane.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/synapse-bridge.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后走查会话地图打开会话与发起分支"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-40",
+      "issue": 115,
+      "kind": "能力",
+      "name": "CAD 查看器（STEP/STL/OBJ）",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-115-cad-viewer/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后导入 STEP/STL/OBJ 核对查看器渲染"
+            }
+          ],
+          "lastVerified": "2026-11-07",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-41",
+      "issue": 116,
+      "kind": "能力",
+      "name": "Tecplot 结果面板",
+      "systems": {
+        "modernWindows": {
+          "status": "未执行",
+          "evidence": [
+            "docs/acceptance/issue-116-tecplot-panel/report.md"
+          ],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/field-pane.test.tsx"
+            },
+            {
+              "kind": "automated",
+              "ref": "test/field-canvas-model.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后打开 Tecplot 结果核对面板呈现"
+            }
+          ],
+          "lastVerified": "2026-11-07",
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-42",
+      "issue": 117,
+      "kind": "能力",
+      "name": "结果自动开窗",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "automated",
+              "ref": "test/result-auto-open.test.ts"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "候选包安装后核对在权任务结果自动开窗"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-43",
+      "issue": 87,
+      "kind": "能力",
+      "name": "CATIA/Abaqus 桌面侧衔接",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #160 并入 develop 后按其专票场景执行候选走查"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-44",
+      "issue": 118,
+      "kind": "能力",
+      "name": "迁移向导",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #159 并入 develop 后按其专票场景执行候选走查"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-02"
+            },
+            {
+              "kind": "scenario",
+              "ref": "W7-02"
+            },
+            {
+              "kind": "scenario",
+              "ref": "W7-05"
+            },
+            {
+              "kind": "scenario",
+              "ref": "W7-08"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-45",
+      "issue": 119,
+      "kind": "能力",
+      "name": "安装向导按需勾选",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #162 并入 develop 后按安装向导三档与组件勾选场景执行"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-02"
+            },
+            {
+              "kind": "scenario",
+              "ref": "W7-03"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-46",
+      "issue": 88,
+      "kind": "能力",
+      "name": "第三方资源核验与维护者清单",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "实现分支 PR #163 并入 develop 后按清单核验与人工门场景执行"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-06"
+            },
+            {
+              "kind": "scenario",
+              "ref": "T131-02"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-47",
+      "issue": 120,
+      "kind": "治理",
+      "name": "Win7 能力矩阵与专项收尾",
+      "systems": {
+        "modernWindows": {
+          "status": "未记录",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "维护者按本矩阵逐格核对记账并复核未达标清单"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        },
+        "win7": {
+          "status": "未执行",
+          "evidence": [],
+          "entries": [
+            {
+              "kind": "scenario",
+              "ref": "T131-01"
+            },
+            {
+              "kind": "command",
+              "ref": "npm run dist:win"
+            },
+            {
+              "kind": "manual",
+              "ref": "维护者按本矩阵逐格核对记账并复核未达标清单"
+            }
+          ],
+          "lastVerified": null,
+          "note": null
+        }
+      }
+    },
+    {
+      "id": "p6-48",
+      "issue": 89,
+      "kind": "治理",
+      "name": "三层验收记账与六态场景库",
+      "systems": {
+        "modernWindows": {
+          "status": "不适用",
+          "evidence": [],
+          "entries": [],
+          "lastVerified": null,
+          "note": "记账框架自身，无候选安装面"
+        },
+        "win7": {
+          "status": "不适用",
+          "evidence": [],
+          "entries": [],
+          "lastVerified": null,
+          "note": "记账框架自身，无 Win7 场景"
+        }
+      }
+    }
+  ]
+}

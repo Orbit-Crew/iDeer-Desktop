@@ -1,69 +1,63 @@
-# Issue #100 two-axis review (before final commit)
+# Issue #120 two-axis review (before final commit)
 
-Diff reviewed file by file: `git diff 29df1e2...HEAD` over 3 modified + 4 new
-source/test files (commit 4705f25), re-read against the acceptance criteria,
-the neighboring implementations (KnowledgeGraphSection, the doc library pane),
-the gap-analysis K05 line, and the original linz wiki components. Two
-independent agents reviewed Standards and Spec in parallel; their findings and
-the dispositions applied before the final commit follow. After the fixes:
-typecheck clean, wiki tests 27/27.
+Fixed point: 90e6fbf (the #164 merge completing the integration base; the three
+stacked branches were reviewed in their own PRs #162/#163/#164). Diff
+`git diff 90e6fbf...HEAD` over commits 14d3fa9 / 6052c4c / d539679, two
+independent sub-agents (Standards / Spec) run in parallel.
 
 ## Standards
 
-No documented-standard violations. Baseline smells (all judgement calls) and
-dispositions:
+No hard violations of documented standards. Root AGENTS.md storage/env rules
+respected; `verify:matrix` routes through `scripts/project-env.cjs` like every
+sibling; validator/test/doc match the `verify-capability-ledger.cjs` family
+patterns; ledger discipline (未记录⇒零证据, 不适用 reservation, 工单状态不是证据)
+enforced and stated. Six judgement-call findings:
 
-1. **Comment claims nonexistent behavior (must-fix, fixed).** The canvas
-   comment promised hover highlighting that does not exist, and the local
-   `highlight` set named nothing it did. Comment rewritten to what the canvas
-   does; the set is now `relations` and only feeds the honest per-node
-   relation-count tooltip.
-2. **Duplicated edge-extraction shape (fixed).** `buildOverview` and
-   `buildNeighborhood` shared the rows→links→included→dedup walk; extracted
-   as `extractEdges(rows, included)`, one shape, both callers.
-3. **Duplicated status color map (fixed).** `STATUS_COLORS` (canvas) and
-   `STATUS_DOT` (panel) collapsed into one exported
-   `WIKI_STATUS_COLORS: Record<WikiPageSummary['status'], string>` in the
-   model module; the panel derives its legend dots from it. The test-fixture
-   duplication across the two wiki test files stays: each file keeps its own
-   small fixtures for isolation, matching the repo's test idiom.
-4. **Weak typing of the status maps (fixed).** The panel's maps are now
-   `Record<WikiPageSummary['status'], string>`; the read command the panel
-   issues is typed `WikiReadCommand = WikiCommand & { action: 'read' }`.
-   (An `Extract<WikiCommand, …>` variant compiled to `never` — `WikiCommand`
-   is a single interface, not a discriminated union.)
-5. **`depth` field overload (fixed).** Overview entries no longer fake
-   `depth: 0` to center a single page; placement decides the center
-   explicitly (`entry.depth === 0 || (mode === 'overview' && pages.length === 1)`),
-   and the unreachable `radius === 0` guard is gone (`ringPosition` documents
-   its `count >= 1` precondition).
-6. **Overview scale (noted, not changed).** The navigation projection itself
-   caps the payload at 200 pages; the radius formula saturates at 300, so a
-   200-page overview is crowded but usable and deterministic. The model
-   comment now states the 200-page source bound; a denser layout is a
-   display preference, not part of this ticket.
+1. **Duplicated helpers (Duplicated Code)** — `isCalendarDate`,
+   `isRepositoryRelativePath`, `exactKeys`, `checkEvidence`, `DATE`,
+   `CONTROL_CHARS` copied verbatim from `verify-capability-ledger.cjs`.
+   **Deferred with rationale**: extracting a `scripts/lib/` shared module would
+   modify `verify-capability-ledger.cjs`, an artifact of open PR #164 under
+   another session's review — exactly what the stack discipline forbids
+   touching. Recorded as follow-up once #162/#163/#164 merge.
+2. **usableNote comment/code mismatch** — bounds were enforced only on
+   不适用 and divergence notes. **Fixed**: every non-null note is now bounded
+   and single-line (uniform check at cell entry), with a regression test.
+3. **Row-blind status finding** — status violations omitted the issue label.
+   **Fixed**: `issue <n> <system> status must be one of …`.
+4. **Ignored exactKeys return** for `systems.<id>` metadata produced noise
+   follow-ups. **Fixed**: early `continue` when the key check fails.
+5. **Closed-vocabulary gaps** — `COMMAND_WHITELIST` had no package.json
+   cross-check; `SCENARIO_RE` was shape-only (T131-99 would pass).
+   **Fixed both**: the CLI now fails on whitelist/script drift, the test file
+   statically asserts lockstep, and scenario refs must be real
+   T131-01..08 / W7-01..08 ids (negative tests for T131-998 and shape-valid
+   T131-09). Extending the sets requires the same change that cites the new
+   scenario.
+6. **Minor** — 20+ `JSON.parse(JSON.stringify(...))` clones kept (readable,
+   matches test intent; sibling's fresh-fixture idiom is stylistic);
+   `modernAccepted`/`win7Accepted` now count 能力 rows only (governance can
+   no longer inflate the 已验收 story, test updated); duplicate note message
+   removed by fix 2.
 
 ## Spec
 
-The reviewer judged 清空 (display-state-only clear behind an explicit confirm
-with honest copy) compliant given the verified no-DELETE gateway, and 位置
-(manifest position) compliant given the payload carries no in-document
-locator. Findings and dispositions:
+Data sanity all passed (sub-agent cross-checked programmatically):
+zero modernWindows status/evidence divergence from the ledger candidate layer;
+win7 46/46 未执行 with empty evidence — no fabricated results; the lone 不适用
+is governance p6-48 with a reason note; all evidence paths and automated refs
+exist on disk; every scenario anchor is a real #131 / W7 id;
+retirement-conditions.md records ①未达成 / ②③未开始 and never forges
+confirmations; AC checkboxes stay unchecked in dev-log/ticket.md.
 
-1. **Truncated closure was silent (fixed).** The 60-node neighborhood bound
-   cut pages without saying so. The panel now shows 邻域已达 60 页上限…
-   完整范围见下方页面索引 whenever the bound applies, pinned by a test.
-2. **生成Wiki label after 清空 (accepted, documented).** After a clear the
-   button reads 生成Wiki again although Server pages persist. The label
-   describes the action, never claims prior state; the confirm copy carries
-   the honest Server-side sentence. Changing the label would require the
-   renderer to remember cleared state, exactly what 清空 removes.
-3. **冻结位置 assumes manifest order (accepted, inherited contract).** The
-   Server builds both page lists from `manifest_entries(revision)` in order;
-   the ordering is pinned by `local-runtime/tests/test_platform_wiki.py`
-   (unchanged here). The model doc comment states the assumption.
-4. No scope creep of substance: no bridge/IPC/shared-type/dependency change,
-   `test/security.test.ts` channel lists untouched.
+- AC2 (现代 Windows 全量验收完成) and AC3 (Win7 真机专项) are partial /
+  unexecuted — disclosed exactly as
+  [the acceptance report](../docs/acceptance/issue-120-win7-matrix/report.md)
+  scopes them; execution is left to candidate rounds and the #131 special.
+- 48 rows vs the spec's "46 项能力": ledger-driven superset (46 能力 + 2 治理),
+  disclosed, not silent re-scoping.
+- Scenario fabrication gap — same as Standards 5b, fixed there.
 
-Standards: 1 must-fix + 4 actionable smells, all fixed. Spec: 2 findings
-fixed, 2 accepted with written dispositions, 0 unresolved.
+Standards: 0 hard violations, 6 judgement calls (4 fixed, 1 deferred with
+written rationale, 1 partially stylistic accepted). Spec: 1 validator gap
+fixed; AC2/AC3 openness matches the report's honest scoping; 0 unresolved.
