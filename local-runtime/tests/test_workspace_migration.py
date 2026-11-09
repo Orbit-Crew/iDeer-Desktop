@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -206,9 +207,13 @@ def test_migrate_creates_platform_project_and_binds_roster_folder(tmp_path):
         # Exactly one platform create; the bind is device-local after the
         # Server's own list verified the project.
         assert [(m, p) for m, p, _, _ in records if m == 'POST' and p == '/api/projects'] == [('POST', '/api/projects')]
-        assert chat.projects_manage(wire_projects_list(scope))['bindings'] == [
+        # The ledger and the platform binding are two sequential writes: their
+        # wall-clock seconds may differ across a tick, so each store's own
+        # timestamp is echoed rather than pinned against the other's.
+        bindings = chat.projects_manage(wire_projects_list(scope))['bindings']
+        assert bindings == [
             {'projectId': 'proj-new-1', 'path': str(bind_dir.resolve()),
-             'deviceName': '本机设备', 'createdAt': result['ledger'][0]['createdAt']}]
+             'deviceName': '本机设备', 'createdAt': bindings[0]['createdAt']}]
         assert result['ledger'] == [
             {'workspaceId': 'ws-a', 'workspaceName': '结构仿真', 'projectId': 'proj-new-1',
              'projectName': '结构仿真', 'folder': str(bind_dir.resolve()),
@@ -320,8 +325,9 @@ def test_migrate_retry_after_created_project_rebinds_without_duplicates(tmp_path
         assert [(m, p) for m, p, _, _ in records if m == 'POST' and p == '/api/projects'] == [('POST', '/api/projects')]
         listing = chat.projects_manage(wire_projects_list(scope))
         assert [row['id'] for row in listing['projects'] if row['name'] == '结构仿真'] == ['proj-new-1']
+        # Same two-store discipline as above: echo the binding's own timestamp.
         assert listing['bindings'] == [{'projectId': 'proj-new-1', 'path': str(bind_dir.resolve()),
-                                        'deviceName': '本机设备', 'createdAt': retried['ledger'][0]['createdAt']}]
+                                        'deviceName': '本机设备', 'createdAt': listing['bindings'][0]['createdAt']}]
         assert [row['status'] for row in retried['ledger']] == ['migrated']
 
 
@@ -392,8 +398,21 @@ def test_ledger_storage_outage_is_honest(tmp_path):
     assert 'MIGRATION_STORAGE_UNAVAILABLE' in str(excinfo.value)
 
 
+@pytest.mark.skipif(sys.platform != 'win32',
+                    reason='Pins the Windows APPDATA branch, which instantiates the real WindowsPath')
 def test_legacy_root_resolution_is_platform_default(monkeypatch):
     from core.workspace_migration import legacy_linz_root
     monkeypatch.setattr(os, 'name', 'nt')
     monkeypatch.setenv('APPDATA', str(Path('C:/Users/x/AppData/Roaming')))
     assert legacy_linz_root() == Path('C:/Users/x/AppData/Roaming') / 'linz'
+
+
+@pytest.mark.skipif(sys.platform == 'win32',
+                    reason='Pins the POSIX XDG branch, which the Windows lane cannot construct')
+def test_legacy_root_resolution_is_platform_default_posix(monkeypatch):
+    """The non-Windows branches stay constructible on POSIX runners, so the
+    XDG path stays verified on the Linux CI lane that caught the Windows-only
+    instantiation failure."""
+    from core.workspace_migration import legacy_linz_root
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(Path('/home/x/.config')))
+    assert legacy_linz_root() == Path('/home/x/.config') / 'linz'
