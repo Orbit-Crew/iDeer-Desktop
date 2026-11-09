@@ -5,6 +5,13 @@ bind their results to a candidate and environment; read their coverage limits
 before applying an older result to newer code. GitHub issues track discussion
 and link to these versioned records.
 
+For the cross-issue picture, [the #89 capability ledger](capability-ledger.md)
+accounts every #70 child capability on three layers (entry restoration,
+business wiring, installed-candidate acceptance) with six-state scenario slots;
+its machine-readable single source of truth is
+[capability-ledger.json](capability-ledger.json) (`npm run verify:ledger`).
+Issue open/closed state is never evidence there.
+
 ## Issue #108
 
 Start with [the #108 report](issue-108/report.md). Its latest entry links the
