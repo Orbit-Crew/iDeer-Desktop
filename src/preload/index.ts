@@ -46,6 +46,11 @@ const bridge: DesktopBridge = Object.freeze({
   publishKnowledge: (kbId: string, revisionId: string) => ipcRenderer.invoke('desktop:knowledge:publish', kbId, revisionId),
   knowledgeGraph: (command: KnowledgeGraphCommand) => ipcRenderer.invoke('desktop:knowledge:graph', command),
   knowledgeWiki: (command: WikiCommand) => ipcRenderer.invoke('desktop:knowledge:wiki', command),
+  // Issue 98: the user's own search over one registered frozen revision —
+  // read-only device-side compute; the renderer names the identity and the
+  // query only, and the answer's citations are bounded display facts.
+  knowledgeSearch: (kbId: string, revisionId: string, query: string) =>
+    ipcRenderer.invoke('desktop:knowledge:search', kbId, revisionId, query),
   skills: (command: SkillCommand) => ipcRenderer.invoke('desktop:skills', command),
   skillPreferences: (command: SkillPreferenceCommand) => ipcRenderer.invoke('desktop:skill-preferences', command),
   skillScripts: (command: SkillScriptCommand) => ipcRenderer.invoke('desktop:skill-scripts', command),

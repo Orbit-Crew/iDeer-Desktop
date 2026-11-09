@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, KnowledgeSimilarityView, LegacyWorkspaceView, LoginStatus, MigrationCommand, MigrationLedgerView, MigrationMigrateCommand, MigrationOutcomeView, MigrationResultView, MigrationScanView, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindCommand, ProjectBindingView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, SqlQueryCommand, SqlQueryResultView, SqlQueryTableMap, SqlQueryValue, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
+import type { AgentTerminalEntryView, AgentTerminalHistoryView, ChatCommand, ChatSnapshot, ConnectorCommand, ConnectorInstallCommand, ConnectorInternalOutcome, ConnectorOutcome, ConnectorPreviewCommand, ConnectorView, DatasetCommand, DatasetImportCommand, DatasetOperationView, DatasetSheetView, DatasetView, FilesListView, FilesPreview, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeFolderJobView, KnowledgeGraphAskResult, KnowledgeGraphCommand, KnowledgeGraphQueryResult, KnowledgeGraphScopeRow, KnowledgeGraphSourceLocation, KnowledgeGraphView, KnowledgeImportOutcome, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeIndexView, KnowledgePublicationView, KnowledgePublishOutcome, KnowledgePublishPreview, KnowledgeSearchHit, KnowledgeSearchView, KnowledgeSimilarityView, LegacyWorkspaceView, LoginStatus, MigrationCommand, MigrationLedgerView, MigrationMigrateCommand, MigrationOutcomeView, MigrationResultView, MigrationScanView, ModelCommand, ModelRowView, ModelSettingsView, OfficialTemplateCommand, OfficialTemplateRowView, OfficialTemplatesView, ProjectBindCommand, ProjectBindingView, ProjectCommand, ProjectOperationView, ProjectPermissionsView, ProjectView, ReceiptHistory, RuntimeNotifyEvent, RuntimeStatus, RuntimeTask, ScheduleCommand, ScheduleMarkView, ScheduleRunView, ScheduleTaskView, SchedulesOutcome, SessionTierValue, SkillImportEnvironmentView, SkillImportOutcome, SkillImportPermissionsView, SkillImportPreview, SkillImportView, SkillPackageFileView, SkillPreferenceCommand, SkillPreferencesView, SkillPublishOutcome, SkillScriptAuthorizationView, SkillScriptCommand, SkillScriptView, SkillTriggerPreferenceView, SqlQueryCommand, SqlQueryResultView, SqlQueryTableMap, SqlQueryValue, TemplateCommand, TemplateRowView, TemplateView, ThreadCommand, ThreadPermissionsView, ThreadRowView, ThreadView, WikiCommand, WikiNavigation, WikiPage, WikiPageSummary, WikiView } from '../shared/desktop'
 import { MAX_ATTACHMENT_NAME, MAX_ATTACHMENT_PATH, MAX_BRANCH_TURN_MESSAGES, MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_SKILLS, SESSION_TIERS } from '../shared/desktop'
 import { parseNotifyEvent } from './notifications'
 import { agentBrowserResultWire, parseAgentBrowserCommandWire } from './agentBrowser'
@@ -204,6 +204,8 @@ export class RuntimeProcess {
   private knowledgeCleanupRequests = new Map<string, { resolve: (outcome: KnowledgeCleanupOutcome) => void; reject: (error: Error) => void }>()
   private knowledgeGraphRequests = new Map<string, { resolve: (view: KnowledgeGraphView | KnowledgeGraphSourceLocation | KnowledgeGraphQueryResult | KnowledgeGraphAskResult | KnowledgeSimilarityView) => void; reject: (error: Error) => void; action: KnowledgeGraphCommand['action'] }>()
   private knowledgeWikiRequests = new Map<string, { resolve: (view: WikiView | WikiPage | WikiNavigation) => void; reject: (error: Error) => void; action: WikiCommand['action'] }>()
+  // Issue 98: the user's library search — one bounded in-flight round-trip.
+  private knowledgeSearchRequests = new Map<string, { resolve: (view: KnowledgeSearchView) => void; reject: (error: Error) => void }>()
   private skillImportRequests = new Map<string, { resolve: (outcome: SkillImportPreview | SkillImportOutcome) => void; reject: (error: Error) => void; phase: 'preview' | 'confirm' }>()
   private skillPublishRequests = new Map<string, { resolve: (outcome: SkillPublishOutcome) => void; reject: (error: Error) => void }>()
   private skillPreferenceRequests = new Map<string, { resolve: (view: SkillPreferencesView) => void; reject: (error: Error) => void }>()
@@ -815,6 +817,32 @@ export class RuntimeProcess {
       const wire: Record<string, unknown> = { type: 'knowledge-wiki', id, kbId: command.kbId, revisionId: command.revisionId, action: command.action, scope: this.selectionScope }
       if (command.action === 'read') wire.documentId = command.documentId
       this.child!.stdin.write(JSON.stringify(wire) + '\n')
+    })
+  }
+
+  /** Issue 98: the user's own search over one registered frozen revision.
+   * The renderer names the revision and the query only; the search runs
+   * entirely device-side over the same engines as the broker task. No
+   * workspace gate here: an unconfirmed workspace answers with the Runtime's
+   * own honest KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE category instead of a
+   * generic unavailability. */
+  async knowledgeSearch(kbId: string, revisionId: string, query: string): Promise<KnowledgeSearchView> {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    if (typeof kbId !== 'string' || !uuid.test(kbId)) throw new Error('KNOWLEDGE_SEARCH_KB_INVALID')
+    if (typeof revisionId !== 'string' || !uuid.test(revisionId)) throw new Error('KNOWLEDGE_SEARCH_REVISION_INVALID')
+    if (typeof query !== 'string' || query.trim().length < 1 || query.length > 512 || query.includes('\n')) {
+      throw new Error('KNOWLEDGE_SEARCH_QUERY_INVALID')
+    }
+    if (this.knowledgeSearchRequests.size) throw new Error('KNOWLEDGE_SEARCH_BUSY')
+    if (!this.child || this.stopping || this.snapshot.process !== 'running') throw new Error('RUNTIME_UNAVAILABLE')
+    const id = randomUUID()
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.knowledgeSearchRequests.delete(id); reject(new Error('KNOWLEDGE_SEARCH_TIMEOUT')) }, 60000)
+      this.knowledgeSearchRequests.set(id, {
+        resolve: (view) => { clearTimeout(timer); this.knowledgeSearchRequests.delete(id); resolve(view) },
+        reject: (error) => { clearTimeout(timer); this.knowledgeSearchRequests.delete(id); reject(error) }
+      })
+      this.child!.stdin.write(JSON.stringify({ type: 'knowledge-search', id, kbId, revisionId, query, scope: this.selectionScope }) + '\n')
     })
   }
 
@@ -1969,6 +1997,55 @@ export class RuntimeProcess {
               sources: outcome.sources.slice(0, 200).map((row: Record<string, unknown>) => ({
                 documentId: text(row?.documentId, 64), filename: text(row?.filename, 255),
                 contentHash: text(row?.contentHash, 64), status: text(row?.status, 32), errorCode: text(row?.errorCode, 64) }))
+            })
+            continue
+          }
+          if (value.v === 1 && value.type === 'knowledge-search') {
+            // Issue 98: the library search's citation view. Only bounded
+            // fields the device stated are projected; a refusal (an
+            // unregistered revision, a bad query) stays an error.
+            const pending = this.knowledgeSearchRequests.get(value.id)
+            if (!pending) continue
+            if (value.error) { this.knowledgeSearchRequests.delete(value.id); pending.reject(new Error(value.error)); continue }
+            const outcome = value.result
+            const text = (input: unknown, limit: number): string => typeof input === 'string' && input.length > 0 && input.length <= limit ? input : ''
+            const integer = (input: unknown): number => Number.isSafeInteger(input) ? input as number : -1
+            if (!outcome || typeof outcome.kbId !== 'string' || typeof outcome.revisionId !== 'string' ||
+                typeof outcome.manifestHash !== 'string' || !/^[0-9a-f]{64}$/.test(outcome.manifestHash) ||
+                !Number.isSafeInteger(outcome.revisionNo) || !['bm25', 'literal'].includes(outcome.engine) ||
+                !Array.isArray(outcome.chunks) || !Array.isArray(outcome.missing) ||
+                typeof outcome.truncated !== 'boolean' || typeof outcome.evidenceComplete !== 'boolean' ||
+                !outcome.credentials || typeof outcome.credentials.serverOrigin !== 'string') {
+              this.knowledgeSearchRequests.delete(value.id)
+              pending.reject(new Error('KNOWLEDGE_SEARCH_FAILED'))
+              continue
+            }
+            const position = (input: Record<string, unknown>): KnowledgeSearchHit['position'] => ({
+              logicalPath: text(input?.logicalPath, 32768),
+              line: integer(input?.line),
+              page: Number.isInteger(input?.page) && (input?.page as number) >= 1 ? input?.page as number : null,
+              table: Number.isInteger(input?.table) && (input?.table as number) >= 1 ? input?.table as number : null
+            })
+            this.knowledgeSearchRequests.delete(value.id)
+            pending.resolve({
+              kbId: outcome.kbId, revisionId: outcome.revisionId, revisionNo: outcome.revisionNo,
+              manifestHash: outcome.manifestHash, query: text(outcome.query, 512),
+              engine: outcome.engine as KnowledgeSearchView['engine'],
+              fallbackReason: text(outcome.fallbackReason, 32),
+              chunks: outcome.chunks.slice(0, 100).map((row: Record<string, unknown>) => ({
+                filename: text(row?.filename, 255), contentHash: text(row?.contentHash, 64),
+                content: text(row?.content, 1000),
+                position: position((row?.position ?? {}) as Record<string, unknown>)
+              })),
+              missing: outcome.missing.slice(0, 200).map((row: Record<string, unknown>) => ({
+                filename: text(row?.filename, 255), reason: text(row?.reason, 32) })),
+              truncated: outcome.truncated,
+              documentsMatched: integer(outcome.documentsMatched),
+              documentsTotal: integer(outcome.documentsTotal),
+              evidenceComplete: outcome.evidenceComplete,
+              credentials: { serverOrigin: text(outcome.credentials.serverOrigin, 255),
+                userId: text(outcome.credentials.userId, 128), deviceId: text(outcome.credentials.deviceId, 128) },
+              auditTaskId: text(outcome.auditTaskId, 64)
             })
             continue
           }

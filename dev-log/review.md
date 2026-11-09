@@ -1,3 +1,12 @@
+# Issue #98 two-axis review (before push)
+
+Two parallel review passes over `git diff origin/develop..HEAD` — one against
+the repo's documented standards and established idioms, one against the
+issue's acceptance criteria — followed by fixes and re-verification. (The
+file previously held earlier sessions' reviews (#97/#100); those records live
+on in their branches' history, and this file now documents the #98 pass, as
+ticket.md documents the #98 ticket.)
+
 # Issue #120 two-axis review (before final commit)
 
 Fixed point: 90e6fbf (the #164 merge completing the integration base; the three
@@ -5,7 +14,29 @@ stacked branches were reviewed in their own PRs #162/#163/#164). Diff
 `git diff 90e6fbf...HEAD` over commits 14d3fa9 / 6052c4c / d539679, two
 independent sub-agents (Standards / Spec) run in parallel.
 
-## Standards
+## Standards axis — findings and dispositions
+
+1. **Workspace error codes were compared against the human message** (fixed,
+   必修): the seam mapped `str(exc)` against `WORKSPACE_UNAVAILABLE` /
+   `OUTSIDE_ALLOWED_ROOTS` / `PROTECTED_PATH`, but `FileAccessError` stores
+   the code on `.code` and `str()` is the lowercased message, so the honest
+   `KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE` category was unreachable — an
+   unconfirmed workspace answered the generic `KNOWLEDGE_SEARCH_FAILED`.
+   The mapping now reads `getattr(exc, "code", "")` (the `category_for`
+   precedent), pinned by
+   `test_library_search_names_an_unconfirmed_workspace_and_file_boundary_honestly`.
+2. **Unused `audit` unpacks in four seam tests** (fixed, nit): renamed to
+   `_audit`, matching the sibling file's convention.
+3. **`answer_frozen_revision` read `document_layouts` on every answer**
+   (fixed, nit): the layouts feed only the literal scan (the BM25 branch
+   carries anchors inside its ranked rows), so the read moved into the
+   literal branch — the broker hot path no longer pays a full-revision
+   layout read it never consumes.
+4. **依据不完整 banner understated a fully failed scope** (fixed, nit): the
+   KnowledgeGraphSection banners now say 部分或全部所选文档未成功参与, so an
+   all-documents-failed scope is not described as "部分".
+
+## Spec axis — findings and dispositions
 
 No hard violations of documented standards. Root AGENTS.md storage/env rules
 respected; `verify:matrix` routes through `scripts/project-env.cjs` like every
@@ -40,7 +71,39 @@ enforced and stated. Six judgement-call findings:
    no longer inflate the 已验收 story, test updated); duplicate note message
    removed by fix 2.
 
-## Spec
+1. **No test drove a successful search through the desktop loop** (fixed,
+   应修): the load-bearing `task_id=search_command['id']` threading — the
+   traceability the audit commit exists for — was only exercised below the
+   dispatch. New `test_desktop_knowledge_search.py` drives `desktop.main()`
+   end-to-end: the command passes the wire gate, the reply carries
+   `auditTaskId == command id` with real page/table citations, and the
+   profile's real `audit.db` row pins the same id, digest, and query digest;
+   the refusal path keeps its fixed category on the same loop.
+2. **Unresolvable servability silently claimed complete evidence** (fixed,
+   nit): when `index.servable_identities` fails, a verified document the
+   index cannot serve produces neither a hit nor a structured missing, and
+   `evidenceComplete` stayed true. The indexed engine now flags
+   `servableUnknown`, and `answer_frozen_revision` refuses the
+   complete-evidence claim in that case, pinned by
+   `test_unresolvable_servability_never_claims_complete_evidence`.
+3. **The durable audit row lacked the credential identity** (fixed, nit):
+   the row now carries `actor_id` (user id) plus the origin/device summary
+   in `detail`, so AC2 stays queryable from the durable row alone; the
+   seam test asserts the row and the absence of the raw query.
+4. **No engine test drove truncation** (fixed, nit):
+   `test_literal_scan_overflow_marks_truncation_and_incomplete_evidence`
+   overflows `MAX_MATCHES`, pins `truncated` and the refused
+   `evidenceComplete`, and the visible fallback reason.
+5. **Truncation-only incompleteness showed the document-missing banner**
+   (fixed, nit): the doc library's 依据不完整 banner now names the cut
+   (命中数量达到上限) when nothing is missing, pinned by a UI test.
+
+No hard standards breaches: stdlib-only Python, no new dependencies, one
+fixed-category boundary, exact-shape gates with updated security pins
+(preload channel list + smoke bridge keys, both sorted), one audit write
+point at the seam (fail-closed), physical paths never crossing to the
+renderer or the wire, and the merge's union resolutions (channel lists,
+bridge keys, controller Pick, pane JSX) all coherent.
 
 Data sanity all passed (sub-agent cross-checked programmatically):
 zero modernWindows status/evidence divergence from the ledger candidate layer;

@@ -252,6 +252,28 @@ describe('scoped graph QA and relation retrieval (#117)', () => {
     expect(html).toContain('来源 policy.txt · 失败：GRAPH_CONTENT_DRIFTED')
     expect(html).not.toContain('依据 guide.txt：甲零件属于乙组件。')
   })
+
+  it('marks an answer formed from an incomplete scope as 依据不完整 (#98)', () => {
+    // A partial-status ask that still answered: the answer stays, but the
+    // incompleteness is named on top — a partial success must not read as a
+    // complete one.
+    const partial: KnowledgeGraphAskResult = {
+      ...askResult,
+      status: 'partial',
+      scope: [
+        { documentId: DOCUMENT, filename: 'guide.txt', contentHash: GUIDE_HASH, status: 'completed', errorCode: '' },
+        { documentId: 'b'.repeat(32), filename: 'policy.txt', contentHash: 'e'.repeat(64), status: 'failed', errorCode: 'GRAPH_CONTENT_DRIFTED' }
+      ]
+    }
+    const html = renderSection({ askResult: partial })
+    expect(html).toContain('依据 guide.txt：甲零件属于乙组件。')
+    expect(html).toContain('依据不完整：部分或全部所选文档未成功参与本次回答')
+  })
+
+  it('marks incomplete scoped retrieval results as 依据不完整 (#98)', () => {
+    const html = renderSection({ queryResult: { ...queryResult, status: 'partial' } })
+    expect(html).toContain('依据不完整：部分或全部所选文档未成功参与本次检索')
+  })
 })
 
 describe('device similarity layer and interactive canvas (#99)', () => {

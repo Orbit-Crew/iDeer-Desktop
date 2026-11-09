@@ -114,7 +114,7 @@ async function main() {
     // limits stay inside the Runtime contract.
     assert.deepEqual(await page.evaluate(() => Object.keys(window.ideer).sort()), [
       'beginLogin', 'browser', 'cad', 'cancelKnowledgeIndexRebuild', 'chat', 'checkUpdates', 'chooseWorkspace', 'cleanupKnowledgeRevision', 'connectors', 'datasets', 'deleteKnowledgeDocuments', 'deleteKnowledgeImports', 'files', 'getStatus',
-      'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeWiki',
+      'importKnowledge', 'importUpdate', 'installUpdate', 'knowledgeFolderCancel', 'knowledgeFolderImport', 'knowledgeGraph', 'knowledgeSearch', 'knowledgeWiki',
       'manage', 'migration', 'models', 'notifications', 'officialTemplates', 'onBrowserEvents', 'onNotificationActivate', 'onNotifications', 'onRemoteBrowserEvents', 'preferences', 'projects', 'publishKnowledge', 'quit', 'rebuildKnowledgeIndex', 'receipts', 'recoveryState', 'refreshCompatibility', 'remoteBrowser', 'retryKnowledgeImport', 'schedules', 'skillPreferences', 'skillScripts', 'skills', 'sql', 'startRuntime', 'stopRuntime', 'templates', 'terminalHistory', 'terminalStop', 'threads'
     ])
     assert.equal(await page.evaluate(() => typeof window.require), 'undefined')

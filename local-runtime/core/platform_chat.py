@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .artifacts import ArtifactUploadError, FileArtifactUploader
+from .audit import AuditKind
 from .branch_edges import BranchEdgeLedger
 from .browser_control import BROWSER_INTENTS, browser_intent_of
 from .browser_login import _NoRedirect, platform_origin
@@ -516,7 +517,7 @@ class DesktopChat:
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
                  inline_scripts=None, project_bindings=None, knowledge_index=None,
-                 knowledge_snapshots=None):
+                 knowledge_snapshots=None, audit=None):
         self.config, self.secure, self.login_status = config, secure, login_status
         self._lock = threading.RLock()
         self._state = empty_state()
@@ -546,6 +547,10 @@ class DesktopChat:
         # impersonates the platform — only an unreachable platform serves it,
         # annotated 离线快照.
         self.knowledge_snapshots = knowledge_snapshots
+        # Issue 98: the device's append-only audit log. A user library search
+        # gets the same durable execution record a broker task's execution
+        # gets, recorded before the reply is emitted.
+        self.audit = audit
         # Issue 120: explicit skill package imports keep the same discipline —
         # the registry stores device-local display facts, never package content.
         self.skill_imports = skill_imports
@@ -2562,6 +2567,89 @@ class DesktopChat:
             except KnowledgeSimilarityError as exc:
                 raise ChatError(exc.code) from exc
         raise ChatError("CHAT_COMMAND_INVALID")
+
+    # --- User-side library retrieval (issue 98) ------------------------------
+
+    def knowledge_search(self, kb_id, revision_id, *, query="", task_id=""):
+        """The user's own retrieval over one registered frozen revision (#98).
+
+        The doc library's search rides the exact engines the broker task
+        uses — the same content-addressed revalidation, the same engine
+        decision, the same structured missing — through
+        ``search_registered_revision``. Documents are cited by their frozen
+        (filename, content hash) identity with the page/table anchors of the
+        frozen parse, the view carries the library identity and the
+        ``evidenceComplete`` fact, and the retrieval credentials ride as the
+        binding summary this search ran under. No request about the revision
+        reaches the Server; the only network fact here is the credential
+        summary the device already holds. ``task_id`` (the bridge command's
+        own id) rides the view and the audit row, so a citation is traceable
+        to a durable device record.
+        """
+        if self.knowledge_imports is None or self.knowledge_files is None:
+            raise ChatError("CHAT_COMMAND_INVALID")
+        if not isinstance(query, str) or not 1 <= len(query) <= 512 or "\n" in query:
+            raise ChatError("CHAT_COMMAND_INVALID")
+        kb_id = self._uuid(kb_id)
+        revision_id = self._uuid(revision_id)
+        from .receipt_ledger import profile_binding
+        binding = profile_binding(load_settings(self.config))
+        if binding is None:
+            raise ChatError("KNOWLEDGE_SEARCH_IDENTITY_UNAVAILABLE")
+        registration = self.knowledge_imports.find_registration_by_revision(binding, kb_id, revision_id)
+        from .files import FileAccessError
+        from .knowledge_material import KnowledgeMaterialError
+        try:
+            _settings, grant, files = self.knowledge_files()
+        except (FileAccessError, KnowledgeMaterialError) as exc:
+            # The search's own fixed categories: an unconfirmed or vanished
+            # workspace is not a generic failure, and a material error's code
+            # is already a fixed category. The code lives on the exception
+            # (``str`` is the human message), so read it off the attribute.
+            code = getattr(exc, "code", "")
+            if code == "WORKSPACE_UNAVAILABLE":
+                raise ChatError("KNOWLEDGE_SEARCH_WORKSPACE_UNAVAILABLE") from exc
+            if isinstance(exc, KnowledgeMaterialError) or code in {"OUTSIDE_ALLOWED_ROOTS", "PROTECTED_PATH"}:
+                raise ChatError("KNOWLEDGE_SEARCH_FILE_UNAVAILABLE") from exc
+            raise ChatError("KNOWLEDGE_SEARCH_FAILED") from exc
+        from .knowledge_index import KnowledgeIndexStore
+        from .knowledge_search import KnowledgeSearchError, search_registered_revision
+        index = KnowledgeIndexStore(self.config.with_name('knowledge-index.db'))
+        try:
+            view = search_registered_revision(registration, query, files=files,
+                                              logical_root=grant["logical_root"],
+                                              index=index, binding=binding)
+        except KnowledgeSearchError as exc:
+            raise ChatError(exc.code) from exc
+        if self.audit is not None:
+            # Issue 98: the user's search earns the same durable device record
+            # a broker task's execution gets, written before the reply leaves
+            # the seam. The query itself stays out of the row (its digest
+            # only), and a broken audit log fails the answer closed: an
+            # untraceable citation is never emitted, and the view names the
+            # record only when it exists.
+            try:
+                self.audit.record(AuditKind.EXECUTION, "completed",
+                                  capability="local.knowledge.search",
+                                  task_id=str(task_id or "")[:64], digest=view["manifestHash"],
+                                  # The credential identity rides the row too, so
+                                  # a citation stays queryable from the durable
+                                  # record alone (the view carries the summary).
+                                  actor_id=str(binding.get("user_id", ""))[:128] or None,
+                                  detail={"serverOrigin": str(binding.get("server_origin", ""))[:255],
+                                          "deviceId": str(binding.get("device_id", ""))[:128],
+                                          "kbId": str(view.get("kbId", ""))[:128],
+                                          "revisionId": str(view.get("revisionId", ""))[:64],
+                                          "engine": str(view.get("engine", ""))[:16],
+                                          "documentsMatched": view.get("documentsMatched"),
+                                          "documentsTotal": view.get("documentsTotal"),
+                                          "evidenceComplete": view.get("evidenceComplete") is True,
+                                          "queryDigest": hashlib.sha256(
+                                              query.encode("utf-8")).hexdigest()})
+            except Exception as exc:
+                raise ChatError("KNOWLEDGE_SEARCH_FAILED") from exc
+            view["auditTaskId"] = str(task_id or "")[:64]
+        return view
 
     # --- Controlled wiki entry (issue 118) ----------------------------------
 

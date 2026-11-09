@@ -177,6 +177,39 @@ def page_for_line(marks: list[tuple[int, int]], line: int) -> int | None:
     return page
 
 
+def table_line_marks(layout: Any) -> list[tuple[int, int, int]]:
+    """Sorted (start_line, end_line, table) spans from one parse record's
+    table anchors (#98). Unlike a page anchor, a table covers exactly its
+    own anchored line range — a hit line outside every span cites no table."""
+    if not isinstance(layout, list):
+        return []
+    marks: list[tuple[int, int, int]] = []
+    for entry in layout:
+        if not isinstance(entry, dict) or entry.get("kind") != "table":
+            continue
+        table = entry.get("table")
+        start = entry.get("line")
+        lines = entry.get("lines")
+        if type(table) is int and table >= 1 and type(start) is int and start >= 1 \
+                and type(lines) is int and lines >= 1:
+            marks.append((start, start + lines - 1, table))
+    marks.sort()
+    return marks
+
+
+def table_for_line(marks: list[tuple[int, int, int]], line: int) -> int | None:
+    """The table whose anchored span contains this line, or None (#98).
+
+    Spans come sorted by start; the first containing span wins, so a
+    degenerate overlapping parse still resolves deterministically."""
+    for start, end, table in marks:
+        if start > line:
+            break
+        if line <= end:
+            return table
+    return None
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -418,6 +451,28 @@ class KnowledgeIndexStore:
                 """SELECT filename, content_hash FROM knowledge_index_documents
                    WHERE binding=? AND revision_id=? AND manifest_hash=? AND servable=1""",
                 self._key(binding, revision_id, manifest_hash))}
+
+        return self._execute(read)
+
+    def document_layouts(self, binding, revision_id: str, manifest_hash: str) -> dict[tuple[str, str], list]:
+        """The frozen parse layouts keyed by (lowercased filename, content
+        hash) (#98). The literal engine consults these so a degraded-answer
+        hit still cites the page/table the frozen parse anchored — and a
+        revision whose layout was never stored simply cites none."""
+
+        def read(db):
+            layouts: dict[tuple[str, str], list] = {}
+            for row in db.execute(
+                    """SELECT filename, content_hash, layout FROM knowledge_index_documents
+                       WHERE binding=? AND revision_id=? AND manifest_hash=?""",
+                    self._key(binding, revision_id, manifest_hash)):
+                try:
+                    layout = json.loads(row["layout"])
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(layout, list) and layout:
+                    layouts[(row["filename"].lower(), row["content_hash"])] = layout
+            return layouts
 
         return self._execute(read)
 

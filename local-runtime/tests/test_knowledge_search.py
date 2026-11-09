@@ -5,14 +5,22 @@ frozen manifest identity only, each document must still hash to its frozen
 digest at read time, drifted or missing files are reported as structured
 missing entries instead of current content, and a revision this identity
 never registered on this device is refused outright.
+
+Since #98 every hit also cites the frozen parse's page/table anchors and
+the result carries the library identity plus the ``evidenceComplete`` fact;
+the user's doc-library search rides the same engines through
+``search_registered_revision`` and projects a bounded camelCase view.
 """
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import json
+import os
+import sqlite3
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -21,13 +29,18 @@ from websockets.asyncio.server import serve
 from core.file_service import WorkspaceFileService, WorkspaceFileStore, WorkspaceSelection
 from core.files import RootConfig
 from core.knowledge_import import KnowledgeImportRegistry
+from core.knowledge_index import KnowledgeIndexError, KnowledgeIndexStore
 from core.knowledge_search import (
+    MAX_MATCHES,
     KnowledgeSearchError,
+    answer_frozen_revision,
     parse_search_payload,
     search_frozen_revision,
+    search_registered_revision,
 )
 from core.protocol import public_key_text
-from core.receipt_ledger import profile_binding
+from core.receipt_ledger import BINDING_FIELDS, ReceiptLedger, profile_binding
+from core.receipts import content_hash
 from core.settings import CapabilityRule, RuntimeSettings
 from core.transport import LocalRuntimeClient
 from server_protocol import MessageType as ServerMessageType, sign_envelope as server_sign
@@ -138,6 +151,205 @@ def test_duplicate_names_still_find_the_frozen_bytes(tmp_path) -> None:
     assert result['missing'] == []
     assert len(result['chunks']) == 1
     assert result['chunks'][0]['position']['logical_path'] == '/workspace/archive/guide.txt'
+
+
+# --- citation facts (#98) -------------------------------------------------------
+
+
+REPORT = 'report header line\nalpha in table body\nalpha after the table\n'
+REPORT_LAYOUT = [{'kind': 'page', 'page': 4, 'line': 1, 'lines': 3},
+                 {'kind': 'table', 'table': 2, 'line': 2, 'lines': 1}]
+
+
+def test_literal_scan_cites_frozen_parse_anchors_when_layout_known(tmp_path) -> None:
+    (tmp_path / 'report.txt').write_bytes(REPORT.encode('utf-8'))
+    layouts = {('report.txt', hashlib.sha256(REPORT.encode()).hexdigest()): REPORT_LAYOUT}
+    result = search_frozen_revision(_payload('', documents=[_document('report.txt', REPORT)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace', layouts=layouts)
+
+    positions = {chunk['position']['line']: chunk['position'] for chunk in result['chunks']}
+    assert positions[2]['page'] == 4 and positions[2]['table'] == 2
+    # A line outside every table span cites none; the page still resolves.
+    assert positions[3]['table'] is None and positions[3]['page'] == 4
+
+
+def test_literal_scan_without_layouts_never_guesses_anchors(tmp_path) -> None:
+    """An unknown frozen parse layout cites nothing — never an invented page."""
+    (tmp_path / 'report.txt').write_bytes(REPORT.encode('utf-8'))
+    result = search_frozen_revision(_payload('', documents=[_document('report.txt', REPORT)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace')
+
+    assert result['chunks']
+    assert all(chunk['position']['page'] is None and chunk['position']['table'] is None
+               for chunk in result['chunks'])
+    assert all(chunk['position']['logical_path'].startswith('/workspace/') for chunk in result['chunks'])
+
+
+def test_literal_scan_overflow_marks_truncation_and_incomplete_evidence(tmp_path) -> None:
+    """More matching lines than MAX_MATCHES marks the cut, and the answer
+    seam refuses the complete-evidence claim — dropped hits never read as a
+    full answer."""
+    lines = ''.join(f'alpha line {number}\n' for number in range(1, MAX_MATCHES + 2))
+    (tmp_path / 'report.txt').write_bytes(lines.encode('utf-8'))
+
+    result = search_frozen_revision(_payload('', documents=[_document('report.txt', lines)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace')
+    assert len(result['chunks']) == MAX_MATCHES
+    assert result['truncated'] is True
+
+    class _MissingIndex:
+        def revision_view(self, *args, **kwargs):
+            return {'state': 'missing', 'documents': 0, 'indexedDocuments': 0, 'servableDocuments': 0,
+                    'driftedDocuments': 0, 'builtAt': '', 'error': 'KNOWLEDGE_INDEX_MISSING'}
+
+        def document_layouts(self, *args, **kwargs):
+            raise KnowledgeIndexError('KNOWLEDGE_INDEX_MISSING')
+
+    answer = answer_frozen_revision(_payload('', documents=[_document('report.txt', lines)], query='alpha'),
+                                    files=_store(tmp_path), logical_root='/workspace',
+                                    index=_MissingIndex(), binding={'user_id': 'A', 'device_id': 'D1'},
+                                    library={'kbId': KB, 'revisionNo': 1})
+    assert answer['engine'] == 'literal' and answer['fallbackReason'] == 'index-missing'
+    assert answer['truncated'] is True and answer['evidenceComplete'] is False
+
+
+def test_service_result_carries_library_identity_and_evidence(tmp_path) -> None:
+    """The registered revision's identity rides the result (库/Revision), and
+    evidenceComplete says whether every document contributed (#98)."""
+    work = tmp_path / 'work'
+    work.mkdir()
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (work / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+    config = tmp_path / 'profile' / 'settings.json'
+    config.parent.mkdir(parents=True)
+    service, root, binding = _service(config, work)
+    _register(config, binding)
+
+    complete = service.execute('local.knowledge.search', {'arguments': _payload(root)}).value
+    assert complete['library'] == {'kbId': KB, 'revisionId': REVISION, 'revisionNo': 1,
+                                   'manifestHash': MANIFEST}
+    assert complete['evidenceComplete'] is True
+    assert complete['missing'] == [] and complete['truncated'] is False
+
+    (work / 'notes.txt').write_text('release notes CHANGED\n', encoding='utf-8')
+    partial = service.execute('local.knowledge.search', {'arguments': _payload(root)}).value
+    assert partial['evidenceComplete'] is False
+    assert partial['missing'] == [{'document_id': _document('notes.txt', NOTES)['document_id'],
+                                   'reason': 'content_drift'}]
+    assert partial['documentsMatched'] == 1
+    assert 'CHANGED' not in json.dumps(partial)
+
+
+# --- the user's library search (#98) --------------------------------------------
+
+
+def _indexed_space(tmp_path: Path):
+    """Work files, a registered revision, and a ready BM25 index with table
+    anchors — the library search answers from the same engines."""
+    work = tmp_path / 'work'
+    work.mkdir()
+    (work / 'report.txt').write_bytes(REPORT.encode('utf-8'))
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    config = tmp_path / 'profile' / 'settings.json'
+    config.parent.mkdir(parents=True)
+    settings = _settings(config)
+    selection = WorkspaceSelection(config)
+    root = selection.select(str(work), confirmed=True)['logicalRoot']
+    binding = profile_binding(settings)
+    assert binding is not None
+    documents = [
+        dict(filename='report.txt', sha256=hashlib.sha256(REPORT.encode()).hexdigest(),
+             bytes=len(REPORT), mime='text/plain'),
+        dict(filename='guide.txt', sha256=hashlib.sha256(GUIDE.encode()).hexdigest(),
+             bytes=len(GUIDE), mime='text/plain')]
+    _register(config, binding, documents=documents)
+    index = KnowledgeIndexStore(config.with_name('knowledge-index.db'))
+    entries = [
+        {'filename': 'report.txt', 'sha256': documents[0]['sha256'], 'bytes': len(REPORT), 'mime': 'text/plain',
+         'parse': {'status': 'parsed', 'parser': 'text-utf8', 'parserVersion': '1', 'errorCode': '',
+                   'layout': REPORT_LAYOUT}, '_text': REPORT},
+        {'filename': 'guide.txt', 'sha256': documents[1]['sha256'], 'bytes': len(GUIDE), 'mime': 'text/plain',
+         'parse': {'status': 'parsed', 'parser': 'text-utf8', 'parserVersion': '1', 'errorCode': '',
+                   'layout': [{'kind': 'page', 'page': 1, 'line': 1, 'lines': 2}]}, '_text': GUIDE}]
+    index.index_revision(binding, REVISION, MANIFEST, entries)
+    files = WorkspaceFileStore([RootConfig(root, work, resolve_root=False)])
+    registration = KnowledgeImportRegistry(config.with_name('knowledge-imports.db')).find_registration_by_revision(
+        binding, KB, REVISION)
+    assert registration is not None
+    return registration, index, binding, files, root, work
+
+
+def test_library_search_projects_citations_with_library_identity(tmp_path) -> None:
+    registration, index, binding, files, root, work = _indexed_space(tmp_path)
+    view = search_registered_revision(registration, 'ALPHA', files=files, logical_root=root,
+                                      index=index, binding=binding)
+
+    assert view['kbId'] == KB and view['revisionId'] == REVISION
+    assert view['revisionNo'] == 1 and view['manifestHash'] == MANIFEST
+    assert view['engine'] == 'bm25' and view['fallbackReason'] == ''
+    assert view['documentsMatched'] == 2 and view['documentsTotal'] == 2
+    assert view['truncated'] is False and view['evidenceComplete'] is True and view['missing'] == []
+    report_hits = [chunk for chunk in view['chunks'] if chunk['filename'] == 'report.txt']
+    assert report_hits and all(chunk['contentHash'] == hashlib.sha256(REPORT.encode()).hexdigest()
+                               for chunk in report_hits)
+    by_line = {chunk['position']['line']: chunk['position'] for chunk in report_hits}
+    assert by_line[2]['page'] == 4 and by_line[2]['table'] == 2
+    assert by_line[3]['table'] is None
+    # The retrieval credentials are the binding summary this search ran under.
+    assert view['credentials'] == {'serverOrigin': 'https://test.invalid', 'userId': 'A', 'deviceId': 'D1'}
+    assert str(work) not in json.dumps(view)
+    assert all(set(chunk) == {'filename', 'contentHash', 'content', 'position'} for chunk in view['chunks'])
+    assert all(set(chunk['position']) == {'logicalPath', 'line', 'page', 'table'} for chunk in view['chunks'])
+
+
+def test_library_search_reports_incomplete_evidence_instead_of_faking(tmp_path) -> None:
+    """A drifted document is structured missing with its filename: the answer
+    names 依据不完整 (evidenceComplete false) and never substitutes bytes."""
+    registration, index, binding, files, root, _work = _indexed_space(tmp_path)
+    (tmp_path / 'work' / 'report.txt').write_text('report CHANGED\n', encoding='utf-8')
+
+    view = search_registered_revision(registration, 'ALPHA', files=files, logical_root=root,
+                                      index=index, binding=binding)
+    assert view['evidenceComplete'] is False
+    assert view['missing'] == [{'filename': 'report.txt', 'reason': 'content_drift'}]
+    assert all(chunk['filename'] != 'report.txt' for chunk in view['chunks'])
+    assert view['documentsMatched'] == 1
+    assert 'CHANGED' not in json.dumps(view)
+
+
+def test_library_search_degrades_visibly_without_an_index(tmp_path) -> None:
+    registration, index, binding, files, root, _work = _indexed_space(tmp_path)
+    index_path = index.path
+    os.unlink(index_path)
+    fresh = KnowledgeIndexStore(index_path)
+
+    view = search_registered_revision(registration, 'ALPHA', files=files, logical_root=root,
+                                      index=fresh, binding=binding)
+    assert view['engine'] == 'literal' and view['fallbackReason'] == 'index-missing'
+    # No layout rows either: the scan cites no anchors rather than guessing.
+    assert all(chunk['position']['page'] is None for chunk in view['chunks'])
+    assert view['evidenceComplete'] is True
+
+
+def test_library_search_refuses_unknown_or_malformed_registrations(tmp_path) -> None:
+    registration, index, binding, files, root, _work = _indexed_space(tmp_path)
+
+    with pytest.raises(KnowledgeSearchError) as unknown:
+        search_registered_revision(None, 'ALPHA', files=files, logical_root=root,
+                                   index=index, binding=binding)
+    assert str(unknown.value) == 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED'
+
+    broken = dict(registration, documents=[{'filename': '../escape', 'sha256': 'z' * 64}])
+    with pytest.raises(KnowledgeSearchError) as malformed:
+        search_registered_revision(broken, 'ALPHA', files=files, logical_root=root,
+                                   index=index, binding=binding)
+    assert str(malformed.value) == 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED'
+
+    empty = dict(registration, documents=[])
+    with pytest.raises(KnowledgeSearchError) as empty_docs:
+        search_registered_revision(empty, 'ALPHA', files=files, logical_root=root,
+                                   index=index, binding=binding)
+    assert str(empty_docs.value) == 'KNOWLEDGE_SEARCH_REVISION_UNREGISTERED'
 
 
 # --- registry-bound workspace service -----------------------------------------
@@ -332,3 +544,60 @@ def test_signed_knowledge_search_unknown_revision_fails_without_result(tmp_path)
             assert str(work) not in json.dumps(response)
 
     asyncio.run(scenario())
+
+
+def test_signed_knowledge_search_citations_are_receipt_pinned(tmp_path) -> None:
+    """The citation chain (#98): the result carries the library identity and
+    the page/table citations; the receipt's result_hash pins exactly that
+    cited result; and the durable ledger row binds the retrieval credentials
+    (the profile binding) the search ran under — so a citation is traceable
+    to its receipt and its credentials."""
+    work = tmp_path / 'work'
+    work.mkdir()
+    (work / 'guide.txt').write_bytes(GUIDE.encode('utf-8'))
+    (work / 'notes.txt').write_bytes(NOTES.encode('utf-8'))
+    config = tmp_path / 'profile' / 'settings.json'
+    config.parent.mkdir(parents=True)
+    service, root, binding = _service(config, work)
+    _register(config, binding)
+    ledger_path = tmp_path / 'receipts.db'
+    ledger = ReceiptLedger(str(ledger_path))
+    captured: dict[str, str] = {}
+
+    async def scenario():
+        async with connected_client(file_service=service, capabilities=service.capabilities,
+                                    receipt_ledger=ledger, user_id='A') as (socket, frame):
+            await socket.send(json.dumps(frame({'operation': 'local.knowledge.search', 'run_id': 'run-98',
+                'tool_call_id': 'call-98', 'arguments': _payload(root)}, task_id='task-98')))
+            response = await _outcome(socket)
+            assert response['type'] == 'task_result'
+            result = response['payload']['result']
+            assert result['library'] == {'kbId': KB, 'revisionId': REVISION, 'revisionNo': 1,
+                                         'manifestHash': MANIFEST}
+            assert result['evidenceComplete'] is True
+            assert result['chunks']
+            assert all(set(chunk['position']) == {'logical_path', 'line', 'page', 'table'}
+                       for chunk in result['chunks'])
+            receipt = response['payload']['receipt']
+            assert receipt['task_id'] == 'task-98' and receipt['run_id'] == 'run-98'
+            assert receipt['capability'] == 'local.knowledge.search'
+            assert receipt['result_hash'] == content_hash(result)
+            captured['result_hash'] = receipt['result_hash']
+            assert str(work) not in json.dumps(response)
+
+    asyncio.run(scenario())
+
+    # The durable row keeps the admission identity (task/run/capability), the
+    # receipt with the pinned result hash, and the credential binding.
+    with sqlite3.connect(str(ledger_path)) as db:
+        db.row_factory = sqlite3.Row
+        row = db.execute("SELECT binding, task, receipt, receipt_hash FROM local_receipts").fetchone()
+    assert row is not None
+    credentials = json.loads(row['binding'])
+    assert set(credentials) == set(BINDING_FIELDS) and all(credentials.values())
+    assert credentials['user_id'] == 'A'
+    admitted = json.loads(row['task'])
+    assert admitted['task_id'] == 'task-98' and admitted['run_id'] == 'run-98'
+    assert admitted['capability'] == 'local.knowledge.search'
+    stored = json.loads(row['receipt'])
+    assert stored['result_hash'] == captured['result_hash']

@@ -7,12 +7,16 @@
 // Issue 97: each registered record also shows its revision's device BM25
 // index facts (未建/重建中/已过期), with a background rebuild that can be
 // canceled at the next document — the honest annotation, never a silent gap.
+// Issue 98: each registered revision gains the user's own search — the same
+// engines the broker task rides, answered entirely device-side — and the
+// reply's citations display the library identity, the document, and the
+// page/table anchors, with 依据不完整 shown whenever evidence was partial.
 import { useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Checkbox, Empty, Input, Space, Typography } from 'antd'
 // Issue 101: 删除=库新版本 — document-level delete forms a successor
 // revision; the separate 清理 purges the device index + snapshots and marks
 // 原件已不在. Both are confirmed in the trusted main process.
-import type { KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView } from '../../../../shared/desktop'
+import type { KnowledgeFolderJobView, KnowledgeImportView, KnowledgeIndexJobView, KnowledgeSearchHit, KnowledgeSearchView } from '../../../../shared/desktop'
 import { DocLibraryController, emptyDocLibraryView, explainDocLibraryError, type DocLibraryView } from '../../stores/docLibrary'
 import type { PanelTypeId } from '../types'
 
@@ -61,6 +65,67 @@ export function describeIndexStatus(record: KnowledgeImportView, rebuild: Knowle
   }
 }
 
+/** Issue 98: the honest display name of the engine that answered, and one
+ * sentence per structured missing reason — the degraded path and the gaps
+ * stay visible, never merged into a vague failure. */
+const ENGINE_NAMES: Record<string, string> = { bm25: 'BM25 全文索引', literal: '字面扫描（降级）' }
+const GAP_REASONS: Record<string, string> = {
+  content_drift: '内容已变更（已过期）',
+  not_searchable: '内容无法解析为文本',
+  file_unavailable: '文件当前不可读'
+}
+
+/** One citation's location line: 行 always; 页/表 only when the frozen parse
+ * anchored them — the display never invents a page number. */
+export function describeSearchLocation(position: KnowledgeSearchHit['position']): string {
+  const parts = [`行 ${position.line}`]
+  if (position.page !== null) parts.unshift(`第 ${position.page} 页`)
+  if (position.table !== null) parts.push(`表 ${position.table}`)
+  return parts.join(' · ')
+}
+
+/** Issue 98: one library search's citation card — the library identity, the
+ * engine that answered, every hit with its document/page/table location and
+ * content fingerprint, and the honest 依据不完整 banner plus the structured
+ * missing rows whenever evidence was partial. The retrieval credentials
+ * (origin/user/device) close the chain. */
+export function SearchCitations({ view }: { view: KnowledgeSearchView }): JSX.Element {
+  return (
+    <Card type="inner" size="small" className="mt-2 w-full" data-testid="doc-library-search-result">
+      <Typography.Paragraph className="mb-1">
+        检索“{view.query}” · 知识库 {view.kbId || '—'} · 版本 R{view.revisionNo} ·
+        引擎 {ENGINE_NAMES[view.engine] ?? view.engine}
+        {view.fallbackReason ? ` · 降级原因 ${view.fallbackReason}` : ''}
+        {` · 参与检索 ${view.documentsMatched} / ${view.documentsTotal}`}
+      </Typography.Paragraph>
+      {!view.evidenceComplete && <Alert type="warning" showIcon className="mb-2"
+        message={view.missing.length > 0
+          ? '依据不完整：部分文档未能参与本次检索，以下命中仅来自仍与冻结版本一致的文件。'
+          : '依据不完整：命中数量达到上限，以下仅显示截断前的命中。'} />}
+      {view.missing.map((gap, index) => (
+        <Typography.Paragraph key={`${gap.filename}-${index}`} type="warning" className="mb-1">
+          未参与检索：{gap.filename} · {GAP_REASONS[gap.reason] ?? gap.reason}
+        </Typography.Paragraph>
+      ))}
+      {view.truncated && <Typography.Paragraph type="warning" className="mb-1">命中数量达到上限，已截断显示。</Typography.Paragraph>}
+      {view.chunks.length
+        ? view.chunks.map((chunk, index) => (
+          <Typography.Paragraph key={`${chunk.filename}-${chunk.position.line}-${index}`} className="mb-1"
+            style={{ overflowWrap: 'anywhere' }}>
+            <Typography.Text strong>{chunk.filename}</Typography.Text>
+            <Typography.Text type="secondary"> · {describeSearchLocation(chunk.position)} · 指纹 {chunk.contentHash.slice(0, 12)}…</Typography.Text>
+            <br />{chunk.content || '（该行无可显示文本）'}
+          </Typography.Paragraph>
+        ))
+        : <Typography.Text type="secondary">没有命中的内容。</Typography.Text>}
+      <Typography.Paragraph type="secondary" className="mb-0">
+        检索凭据：{view.credentials.serverOrigin} · 用户 {view.credentials.userId} · 设备 {view.credentials.deviceId}
+        {view.auditTaskId ? ` · 本机审计记录 ${view.auditTaskId.slice(0, 12)}…` : ' · 本机审计记录不可用'}
+      </Typography.Paragraph>
+    </Card>
+  )
+}
+
 function FolderJobCard({ job, busy, onCancel }: { job: KnowledgeFolderJobView; busy: boolean; onCancel: () => void }): JSX.Element {
   return (
     <Card size="small" className="mt-2" title={JOB_STATE[job.state]} data-testid="doc-library-job">
@@ -99,6 +164,10 @@ export default function DocLibraryPane({ instanceId, panelType }: {
   const [view, setView] = useState(emptyDocLibraryView)
   const [kbId, setKbId] = useState('')
   const [selected, setSelected] = useState<string[]>([])
+  // Issue 98: one search input per registered record; the controller keeps a
+  // single in-flight round-trip, and the reply's citations render under the
+  // record that was searched.
+  const [queries, setQueries] = useState<Record<string, string>>({})
   const controller = useRef<DocLibraryController | null>(null)
   useEffect(() => {
     let active = true
@@ -147,6 +216,8 @@ export default function DocLibraryPane({ instanceId, panelType }: {
         {runtime?.process !== 'running' ? '本机 Runtime 未运行，导入与批量操作不可用' : '需要已登录平台账号与已确认的工作目录'}
       </Typography.Paragraph>}
       {view.error && <Alert type="error" showIcon className="mb-2" message={explainDocLibraryError(view.error)} />}
+      {view.searchError && <Alert type="error" showIcon className="mb-2"
+        message={explainDocLibraryError(view.searchError)} data-testid="doc-library-search-error" />}
       {runtime?.knowledgeImportStorageError && <Alert type="error" showIcon className="mb-2"
         message="导入记录存储不可用，状态显示可能不完整" />}
       {runtime?.knowledgeIndexStorageError && <Alert type="error" showIcon className="mb-2"
@@ -240,6 +311,22 @@ export default function DocLibraryPane({ instanceId, panelType }: {
                     </Button>
                   </div>
                 )}
+                {record.status === 'registered' && ready && <Space.Compact className="mt-2 w-full max-w-xl">
+                  <Input aria-label={`检索版本 ${record.revisionId.slice(0, 8)}`}
+                    placeholder="检索该版本内容（关键词）" value={queries[record.id] ?? ''} maxLength={512}
+                    onChange={(event) => setQueries(current => ({ ...current, [record.id]: event.target.value }))}
+                    onPressEnter={() => {
+                      const query = (queries[record.id] ?? '').trim()
+                      if (query && !view.busy) run(() => controller.current!.searchRecord(record, query))
+                    }} />
+                  <Button type="primary" aria-label={`检索 ${record.revisionId.slice(0, 8)}`} loading={view.busy}
+                    disabled={view.busy || !(queries[record.id] ?? '').trim()}
+                    onClick={() => run(() => controller.current!.searchRecord(record, (queries[record.id] ?? '').trim()))}>
+                    检索
+                  </Button>
+                </Space.Compact>}
+                {record.status === 'registered' && view.search?.recordId === record.id &&
+                  <SearchCitations view={view.search.view} />}
               </div>
             </Space>
           </Card>
