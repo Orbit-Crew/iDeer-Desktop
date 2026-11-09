@@ -38,6 +38,7 @@ from cryptography.hazmat.primitives.serialization import (
 
 from .audit import AuditEntry, AuditIntegrity, AuditKind, LocalAuditLog
 from .consent import ConsentStore, PendingConsent
+from .engineering_probe import EngineeringSoftwareProbe
 from .file_service import LocalFileService
 from .files import FileAccessError, LocalFileStore
 from .inline_code import InlineScriptStore
@@ -479,6 +480,10 @@ class TrayController:
             skill_dependency_service=self.skill_dependency_service,
             python_service=python_service,
             terminal_service=terminal_service,
+            # Issue 87: the CATIA/Abaqus discovery surface rides the desktop
+            # shell only; the plain file-assistant mode announces nothing
+            # about those tools.
+            engineering_probe=EngineeringSoftwareProbe() if self.desktop_mode else None,
             mcp_service=self.mcp_service,
             audit=self.audit,
             consent_prompt=self._prompt,

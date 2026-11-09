@@ -138,6 +138,15 @@ class LocalFileStore:
         """Resolve a logical path for an internal executor without exposing it."""
         return self._resolve(logical_path)[1]
 
+    def resolve_with_root(self, logical_path: str) -> tuple[RootConfig, Path]:
+        """The root a logical path lands in, plus its physical path.
+
+        Issue 87 result facts record which authorized root the file was
+        proven to sit in, so the boundary check and the fact share one
+        resolution instead of two diverging prefix matches.
+        """
+        return self._resolve(logical_path)
+
     def list(self, logical_path: str, *, max_entries: int = -1) -> list[str]:
         root, path = self._resolve(logical_path)
         try:

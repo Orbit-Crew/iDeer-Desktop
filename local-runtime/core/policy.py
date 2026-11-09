@@ -45,6 +45,18 @@ class LocalPolicy:
             # Read-only over content the user explicitly imported and froze;
             # the manifest revalidation is what makes any result trustworthy.
             return RiskLevel.LEVEL_0
+        if capability in {
+            "local.catia.probe",
+            "local.abaqus.probe",
+            "local.catia.result",
+            "local.abaqus.result",
+        }:
+            # Issue 87: desktop-side discovery reads installation evidence
+            # and registers job-output facts (hash/size, never bytes or
+            # uploads) — read-only over state the device already owns, like
+            # the reads above; the pair gate still demands a bound broker
+            # key before any local path leaves the device.
+            return RiskLevel.LEVEL_0
         if (
             capability in self.level_two_capabilities
             or capability in self.dangerous_capabilities

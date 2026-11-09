@@ -1,6 +1,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { createHash, createPublicKey } = require('node:crypto')
+const { componentLock } = require('../../component-catalog.cjs')
 const packagedTrust = new Map()
 
 // This input exists only in the build process. The running app always reads
@@ -20,6 +21,15 @@ module.exports = async function afterPack(context) {
   fs.writeFileSync(path.join(resources, 'updates-public-key.pem'), publicKey)
   fs.writeFileSync(path.join(resources, 'trust-anchor.json'), JSON.stringify({ algorithm: 'ed25519', sha256 }, null, 2) + '\n')
   packagedTrust.set(context.packager, { algorithm: 'ed25519', sha256 })
+  // Issue 119: ship the component version lock next to the catalog. The lock
+  // pins the app version plus one SHA-256 per optional artifact file and is
+  // the anchor the offline pack tool verifies top-ups against; a build tree
+  // whose bytes drifted from the archived provenance pins fails the build.
+  const buildResourcesDir = context.packager.info.buildResourcesDir
+  const lock = componentLock(path.dirname(buildResourcesDir), context.packager.appInfo.version)
+  const componentsDir = path.join(context.appOutDir, 'resources', 'components')
+  fs.mkdirSync(componentsDir, { recursive: true })
+  fs.writeFileSync(path.join(componentsDir, 'components-lock.json'), JSON.stringify(lock, null, 2) + '\n')
 }
 module.exports.trustFor = packager => {
   const trust = packagedTrust.get(packager)
