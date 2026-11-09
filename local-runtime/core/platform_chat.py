@@ -512,6 +512,7 @@ def inherited_binding(source_binding):
 class DesktopChat:
     def __init__(self, config: Path, secure: SecretStore, login_status, *, local_consents=lambda: (), decide_consent=None,
                  local_receipts=lambda thread_id, run_ids: [], stop_local=lambda run_id: None, local_results=None,
+                 classify_path=None,
                  compatibility_gate=None, knowledge_imports=None, knowledge_files=None, knowledge_publications=None,
                  skill_imports=None, session_tiers: SessionTierRegistry | None = None,
                  inline_scripts=None, project_bindings=None, knowledge_index=None,
@@ -525,6 +526,10 @@ class DesktopChat:
         self.local_receipts = local_receipts
         self.stop_local = stop_local
         self.local_results = local_results
+        # Issue 117: where does a registered result stand against the CURRENT
+        # workspace grant? The verdict comes from desktop.py's own workspace
+        # classifier so this layer never re-derives authorization itself.
+        self.classify_path = classify_path
         self.compatibility_gate = compatibility_gate
         # Issue 112: explicit local imports reuse this session's transport
         # discipline; the registry keeps device-local display facts and the
@@ -1122,12 +1127,32 @@ class DesktopChat:
         except Exception:
             return tasks, 'CHAT_TASK_HISTORY_UNAVAILABLE', artifacts
 
+    def _workspace_state(self, logical_path):
+        """#117: a registered result's standing against the *current* grant.
+
+        The registry stores history, never a standing permission: the grant
+        can move or vanish after registration, so the verdict is re-derived
+        per snapshot. Fail closed — an unwired classifier, an empty path or
+        any classifier error is ``outside``; the device then never auto-opens
+        the file, it only lists it as a pending local result.
+        """
+        if self.classify_path is None or not isinstance(logical_path, str) or not logical_path:
+            return 'outside'
+        try:
+            state = self.classify_path(logical_path)
+        except Exception:
+            return 'outside'
+        return state if state in ('inside', 'protected', 'outside') else 'outside'
+
     def _merge_local_results(self, thread_id, merged):
         """Attach the device-local result registry view; failures hide nothing else.
 
         Registry rows stay metadata-only and identity-bound: another device (or
         another account on this one) sees the Server's task rows and platform
-        attachments, never this device's registered local results.
+        attachments, never this device's registered local results. #117: each
+        row also carries its verdict against the current workspace grant so
+        the desktop can auto-open an in-authority result without widening any
+        authorization or upload boundary.
         """
         results = {}
         if self.local_results is not None:
@@ -1138,6 +1163,8 @@ class DesktopChat:
                         binding, thread_id, {row['run_id'] for row in merged})}
             except Exception:
                 results = {}
+            for row in results.values():
+                row['workspace_state'] = self._workspace_state(row.get('logical_path', ''))
             for row in merged:
                 row['localResult'] = results.pop(row['task_id'], None)
             merged.extend(dict(task_id=row['task_id'], run_id=row['run_id'], capability=row.get('capability', ''),

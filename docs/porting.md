@@ -202,6 +202,25 @@ T130-01/T130-02 的"旧会话/执行状态不迁、旧数据保留"由本段边�
 （docs/acceptance/issue-118-migration-wizard/）共同承载；原文件重导入按
 向导指路入口人工执行并按 #130 记账。三层验收：入口恢复与业务接线由自动
 化测试覆盖，实际候选人工验收（真实旧版安装、真实平台、安装包）未执行。
+## 2026-11-08 CATIA/Abaqus 桌面侧衔接恢复（iDeer-Desktop #87）
+
+六期·43 恢复桌面侧职责：**只做探测与提示**。Runtime 新增
+`core/engineering_probe.py`——按原版 `mcp/templates.ts` 的探测面恢复
+（CATIA：`CATINSTALLDIR`/`Dassault Systemes\B*` 安装证据、`catia_mcp`
+插件模块、`CATALICENCE_FILE`/DSLS 许可目录；Abaqus：`ABAQUS_HOME`/
+`SIMULIA\Commands\abaqus.bat` 安装证据、`mcp_server.py` 插件脚本、
+`ABAQUSLM_LICENSE_FILE` 许可信号；Python 解释器沿用原 `detectPythonPath`
+的 PATH/常见路径次序），插件目录默认值保持原开发期路径并新增
+`IDEER_CATIA_MCP_DIR`/`IDEER_ABAQUS_MCP_DIR` 覆盖。每部件独立状态
+（present/missing/unknown），缺软件、缺插件、缺许可分别给可操作提示，
+许可无信号时如实 unknown 而不硬凑 ready。能力公告诚实：探测能力
+（`local.catia.probe`/`local.abaqus.probe`）随服务在桌面侧常驻公告，
+`local.<tool>.ready` 仅在全部部件 present 时公告，探测完成后公告即时
+重发；配对门要求绑定 broker key 后才回答（安装路径是本机事实）。
+作业结果回流按显式边界处理：`local.<tool>.result` 只登记授权根内已
+存在文件的哈希/字节事实（复用文件门解析，越界/缺失按固定错误码拒绝），
+字节不出设备、不上传。零软件启动、零 MCP 服务器拉起；外部软件闭环、
+真实作业执行仍归 iDeer #124/#125，catia-smart 分发决定不变。
 
 ## 能力清单
 
@@ -217,7 +236,7 @@ T130-01/T130-02 的"旧会话/执行状态不迁、旧数据保留"由本段边�
 | Python Runtime | 后续专票迁入，当前未安装且不启动 | 固定 Python 依赖、独立进程和稳定本机接口，接续原测试；切换验收后再删 Server 原设备实现 | Desktop Runtime |
 | kb、parsers、database、knowledgeGraph、wiki、sql.js、better-sqlite3 | 暂缓，尚未适配平台身份、Revision 和 Runtime | 知识与技能阶段；原文件重导入，图谱/Wiki 重建，权限/引用/失败及 Win7 native ABI 验证；图片占位不作为 OCR 交付 | Desktop 知识 / Server 治理 |
 | agent-skills、skills、脚本、pandoc、便携 Python | 暂缓，不能直接运行旧技能脚本 | 知识与技能阶段；完整包确认上传 private、固定版本、环境和脚本授权；随包二进制许可证/Win7 验证 | Desktop 技能 / 工具维护者 |
-| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D 已按 #115 恢复（见 2026-11-07 段）；CATIA、Abaqus 暂缓，未纳入当前包 | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
+| step、occt、Viewer3D、Tecplot、CATIA、Abaqus | Tecplot 结构化 IJK ASCII 子集已按 [#116](https://github.com/Orbit-Crew/iDeer-Desktop/issues/116) 恢复（软件画布、零新依赖，见上文决议）；step、occt、Viewer3D 已按 #115 恢复（见 2026-11-07 段）；CATIA、Abaqus 桌面侧探测与提示已按 [#87](https://github.com/Orbit-Crew/iDeer-Desktop/issues/87) 恢复（安装/插件/许可探测、诚实能力公告、缺项可操作提示、结果回流授权边界，见 2026-11-08 段）；外部软件闭环未纳入当前包（归 iDeer #124/#125） | 工程阶段；固定组件、依赖/许可探测、统一文件授权、实际软件和 Win7 专项（Tecplot 数值容差归 iDeer #127） | 工具仓及 Desktop 面板维护者 |
 | catia-smart | 暂缓安装分发 | 先核验 SDK/插件权利、依赖和 Win7，再决定阶段，不自动列入下一期 | 工具维护者 |
 | updater、gen-manifest、gen-patch | 暂缓旧未签名更新，不注册补丁文件关联或 CLI 执行 | 一期安全更新；签名、排空、组合恢复和数据保护专项 | Desktop 构建发布 |
 | 旧会话、配置、密钥、自动迁移、macOS/Linux | 排除当前交付范围；#118 迁移向导提供逐个确认的一次性归属迁移与重导入指路（见 2026-11-08 段），整体搬运与自动迁移仍不存在 | 人工迁移说明见该段与 [iDeer #130](https://github.com/Orbit-Crew/iDeer/issues/130) 演练记账；不得自动读取或删除旧数据 | 迁移维护者 |

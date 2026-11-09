@@ -25,7 +25,7 @@ from .platform_chat import DesktopChat, empty_state
 from .session_tier import SessionTierRegistry
 from .process_job import own_process_tree
 from .settings import load_settings
-from .file_service import WorkspaceSelection, WorkspaceFileStore
+from .file_service import WorkspaceSelection, WorkspaceFileService, WorkspaceFileStore
 from .files import FileAccessError, RootConfig
 from .inline_code import InlineScriptStore
 from .knowledge_import import (KnowledgeFolderImport, KnowledgeImportError, KnowledgeImportRegistry,
@@ -717,6 +717,11 @@ def main() -> int:
         chat = DesktopChat(args.config, login.secure, login.status, local_consents=local_consents,
             decide_consent=decide_consent, local_receipts=local_receipts, stop_local=stop_local,
             local_results=local_results, compatibility_gate=compatibility,
+            # Issue 117: the snapshot labels every registered result with its
+            # standing against the current grant, re-derived through the very
+            # same workspace classifier the write gate uses — never a stored
+            # or separately reasoned permission.
+            classify_path=lambda path: WorkspaceFileService(workspace).classify(path),
             knowledge_imports=knowledge_imports, knowledge_files=knowledge_files,
             knowledge_publications=knowledge_publications, skill_imports=skill_imports,
             session_tiers=session_tiers, inline_scripts=inline_scripts,

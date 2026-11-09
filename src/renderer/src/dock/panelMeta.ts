@@ -2,6 +2,7 @@
 // Unwired capabilities stay listed so their entry position shows an honest
 // status instead of disappearing; `runtime` is the Desktop-specific device
 // pane that carries the existing Runtime/Update/Compatibility surfaces.
+import { CAD_EXTENSIONS } from '../../../shared/desktop'
 import type { PanelRuntime, PanelTypeId } from './types'
 
 export interface PanelMeta {
@@ -69,4 +70,18 @@ export function defaultTitle(id: PanelTypeId, index: number): string {
   if (id === 'browser') return `浏览器 ${index}`
   if (id === 'terminal') return `终端 ${index}`
   return PANEL_META[id].title
+}
+
+// Issue 117: task result kind → pane mapping for the auto-open trigger. The
+// table is the single extension point: add a lowercase-extension row naming a
+// single-instance panel and the trigger picks it up; a result whose extension
+// is unlisted is never auto-opened. The 3D rows derive from the shared
+// CAD_EXTENSIONS whitelist so the pane that may auto-open a model and the
+// trusted channel that may read it can never drift; Tecplot ASCII rides the
+// field pane's structured-IJK subset, where unparseable content is announced,
+// never faked.
+export const RESULT_PANE_TYPES: Record<string, PanelTypeId> = {
+  ...Object.fromEntries(Object.keys(CAD_EXTENSIONS).map((ext) => [ext, 'viewer3d' as const])),
+  '.plt': 'field',
+  '.dat': 'field'
 }

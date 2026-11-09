@@ -10,16 +10,9 @@
 // (STL/OBJ/STP/STEP — the original viewer's real formats) is the whitelist.
 // Geometry editing does not exist on this channel.
 import { closeSync, openSync, readSync, statSync, readFileSync } from 'node:fs'
-import { CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES, type CadMeshFormat, type CadMeshStats, type CadMeshView } from '../shared/desktop'
+import { CAD_EXTENSIONS, CAD_MAX_FILE_BYTES, CAD_MAX_TRIANGLES, type CadMeshFormat, type CadMeshStats, type CadMeshView } from '../shared/desktop'
 import { binaryStlCountFromHeader, CadParseError, parseObj, parseStl } from './cad/meshReaders'
 import { stepToMesh, type OcctLoader } from './cad/stepToMesh'
-
-const CAD_EXTENSIONS: Record<string, CadMeshFormat> = {
-  '.stl': 'stl',
-  '.obj': 'obj',
-  '.stp': 'step',
-  '.step': 'step'
-}
 
 /** The workspace locate seam — the Runtime's own guarded resolution. */
 export type CadLocate = (path: string) => Promise<{ physical: string }>
