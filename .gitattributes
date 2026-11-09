@@ -8,6 +8,7 @@ docs/acceptance/issue-111/evidence/supplement-20261026/** -text whitespace=cr-at
 # (script SHA-256 and fixture SHA-256 values recorded in verify-result.json).
 scripts/verify-issue-43.ps1 -text
 docs/acceptance/issue-43/evidence/** -text
+
 # Issue 119: the OCCT artifacts are hash-pinned twice over (the linz-source.json
 # files map and the shipped components-lock.json). Never eol-normalize them —
 # the committed occt-import-js.js must keep the exact CRLF bytes the pins were
