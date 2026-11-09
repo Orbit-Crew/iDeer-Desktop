@@ -628,6 +628,76 @@ export interface ProjectOperationView {
   unbound?: boolean
 }
 
+/** Issue 118: one per-file evidence stat from the read-only legacy scan —
+ * existence and size only; the databases' bytes are never opened. */
+export interface LegacyWorkspaceEvidenceView { present: boolean; size: number }
+/** Issue 118: one legacy linz workspace as the scan lists it — the roster's
+ * own fields plus the per-file evidence. The scan whitelists exactly these
+ * fields, so the legacy config's 模型密钥/批准记忆/工具策略 and the chat
+ * databases' contents are structurally outside this surface. `folder` is
+ * the old workspace's linz-side bound folder, a suggested default only. */
+export interface LegacyWorkspaceView {
+  id: string
+  name: string
+  folder: string
+  current: boolean
+  orphan: boolean
+  createdAt: string
+  lastOpenedAt: string
+  files: { data: LegacyWorkspaceEvidenceView; kb: LegacyWorkspaceEvidenceView; tables: LegacyWorkspaceEvidenceView }
+}
+/** Issue 118: one read-only scan of the old linz install. `configError` is
+ * '' or the fixed category for an unreadable roster; the on-disk evidence
+ * still lists either way (名册缺失 never silently drops a workspace).
+ * `truncated` is announced when the roster or the on-disk listing exceeded
+ * the display cap — a dropped row is a stated fact, never a silent one. */
+export interface MigrationScanView {
+  root: string
+  workspaces: LegacyWorkspaceView[]
+  configError: string
+  truncated: boolean
+}
+/** Issue 118: this identity's own attempt row — migrated, or failed with a
+ * fixed retryable category. A failed row keeps its created projectId so the
+ * retry finishes the bind without duplicating the platform project. */
+export interface MigrationLedgerView {
+  workspaceId: string
+  workspaceName: string
+  projectId: string
+  projectName: string
+  folder: string
+  status: 'migrated' | 'failed'
+  errorCode: string
+  createdAt: string
+  updatedAt: string
+}
+/** Issue 118: the migrate round-trip's honest outcome plus the post-action
+ * ledger, so the surface re-reads authoritative state in the same round. */
+export interface MigrationOutcomeView {
+  migrated: boolean
+  workspaceId: string
+  projectId: string
+  errorCode: string
+  ledger: MigrationLedgerView[]
+}
+export type MigrationResultView = MigrationScanView | MigrationOutcomeView
+/** Issue 118: 迁移向导. The renderer names the action and, for migrate, the
+ * one confirmed workspace: `workspaceName` is the legacy name for the
+ * confirm dialog's wording (the editable project name travels separately in
+ * `name`), `bind` only asks the trusted main process to run its native
+ * folder dialog, and `folder` is at most the scan's suggestion used to
+ * prefill it — the dialog's chosen path originates in main, and only main's
+ * wire command ever carries a final folder. */
+export type MigrationCommand =
+  | { action: 'scan' }
+  | { action: 'migrate'; workspaceId: string; workspaceName: string; name: string; bind: boolean; folder?: string }
+/**
+ * Main-internal: the migrate wire command with the folder that was chosen
+ * and confirmed in the trusted main process (empty = 不绑定). Never accepted
+ * from the renderer — the bridge type above carries the bind request only.
+ */
+export type MigrationMigrateCommand = { action: 'migrate'; workspaceId: string; name: string; folder: string }
+
 /** Issue 102: one parsed sheet's recorded facts — schema summary, counts and
  * a content fingerprint. Row data never rides this surface. */
 export interface DatasetSheetView {
@@ -967,6 +1037,10 @@ export interface RuntimeStatus {
    * same 0.5 s snapshot the surface reads; empty on any other device. */
   projectBindings?: ProjectBindingView[]
   projectBindingStorageError?: string
+  /** Issue 118: this identity's own migration attempt rows (bounded) plus
+   * the honest storage error, riding the same 0.5 s snapshot. */
+  migrationLedger?: MigrationLedgerView[]
+  migrationStorageError?: string
   /** Issue 111: the Agent terminal's in-flight commands (bounded live tails)
    * and the history store's honest storage state, riding the same snapshot. */
   agentTerminal?: { running: AgentTerminalEntryView[] }
@@ -1114,6 +1188,12 @@ export interface DesktopBridge {
    * re-reads its list; the desktop keeps no second roster and no local
    * state is bound to or cleared by a project operation. */
   projects(command: ProjectCommand): Promise<ProjectOperationView>
+  /** Issue 118: 迁移向导 — the one-time aid that lists the old linz install's
+   * workspaces read-only and, per explicitly confirmed workspace, creates one
+   * platform project and binds one local folder. The confirm dialog and the
+   * folder dialog stay in the trusted main process; the legacy keys, chats,
+   * approvals and execution state are structurally outside the scan. */
+  migration(command: MigrationCommand): Promise<MigrationResultView>
   /** Issue 102: 表格数据集导入 — the device parses XLSX/CSV into a real
    * registered dataset (multi-sheet, inferred column types), dedups by
    * content fingerprint and records the platform project association with

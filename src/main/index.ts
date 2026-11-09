@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, session, shell
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 import { createMainWindow } from './window'
-import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
+import type { BrowserCommand, CadCommand, ConnectorCommand, ConnectorInternalOutcome, ConnectorOutcome, DatasetCommand, DatasetOperationView, DesktopStatus, FilesCommand, InstallOutcome, KnowledgeCleanupOutcome, KnowledgeDeleteOutcome, KnowledgeGraphCommand, KnowledgeImportOutcome, KnowledgePublishOutcome, MigrationCommand, MigrationMigrateCommand, MigrationResultView, ModelCommand, ModelSettingsView, NotificationCenterView, NotificationCommand, OfficialTemplateCommand, OfficialTemplatesView, PreferenceCommand, PreferencesView, ProjectCommand, ProjectOperationView, RuntimeNotifyEvent, ScheduleCommand, SchedulesOutcome, SkillCommand, SkillImportPreview, SkillPreferenceCommand, SkillPreferencesView, SkillScriptCommand, SkillScriptView, TemplateCommand, TemplateView, ThreadCommand, ThreadView, UpdateCheckResult, WikiCommand } from '../shared/desktop'
 import { BROWSER_PARTITION } from '../shared/desktop'
 import { BrowserPaneService } from './browserPane'
 import { CadPaneService } from './cadPane'
@@ -1036,6 +1036,47 @@ if (!app.requestSingleInstanceLock()) {
       })
       if (confirmation.response !== 1) throw new Error('DATASETS_CANCELED')
       return runtime.datasets({ action: 'delete', datasetId: command.datasetId })
+    })
+    // Issue 118: 迁移向导. The scan is the read-only legacy listing, passed
+    // through untouched. The migrate names one workspace the user explicitly
+    // confirmed in the renderer; this trusted process re-validates the
+    // fields, shows the native confirm dialog that names the legacy
+    // workspace and the platform project it becomes and states the
+    // never-migrate list (旧聊天/模型密钥/批准记忆/执行状态一律不迁，旧数据
+    // 原处保留), and only then picks the folder in its own dialog — the
+    // renderer's `folder` field is at most the scan's suggestion that
+    // prefills it, and only this wire command carries the final path.
+    ipcMain.handle('desktop:migration', async (event, command: MigrationCommand): Promise<MigrationResultView> => {
+      requireMainFrame(event)
+      if (!command || typeof command !== 'object' || !['scan', 'migrate'].includes(command.action)) throw new Error('MIGRATION_COMMAND_INVALID')
+      const status = runtime.status()
+      if (status.login?.state !== 'authenticated') throw new Error('MIGRATION_UNAUTHENTICATED')
+      if (command.action === 'scan') return runtime.migration({ action: 'scan' })
+      if (typeof command.workspaceId !== 'string' || !command.workspaceId || command.workspaceId.length > 128 ||
+          typeof command.workspaceName !== 'string' || command.workspaceName.length > 128 ||
+          typeof command.name !== 'string' || !command.name.trim() || command.name.trim().length > 128 ||
+          typeof command.bind !== 'boolean' ||
+          (command.folder !== undefined && (typeof command.folder !== 'string' || command.folder.length > 1024))) {
+        throw new Error('MIGRATION_COMMAND_INVALID')
+      }
+      const name = command.name.trim()
+      const legacyName = command.workspaceName || name
+      const suggestion = typeof command.folder === 'string' ? command.folder : ''
+      const confirmation = await dialog.showMessageBox(mainWindow!, {
+        type: 'question', title: '确认迁移旧版工作区',
+        message: `将旧版工作区「${legacyName}」迁移为平台项目「${name}」？`,
+        detail: `将创建一个名为「${name}」的平台项目${command.bind ? '，并绑定一个本机工作文件夹（下一步选择）。' : '，不绑定文件夹。'}\n\n只做归属迁移：旧聊天记录、模型密钥、批准记忆与执行状态一律不迁移；旧版 linz 的数据原处保留、不做任何修改。文档、表格、技能与模板请迁移后通过各重导入入口自行导入。`,
+        buttons: ['取消', '确认迁移'], defaultId: 0, cancelId: 0, noLink: true
+      })
+      if (confirmation.response !== 1) throw new Error('MIGRATION_CANCELED')
+      let folder = ''
+      if (command.bind) {
+        const chosen = await dialog.showOpenDialog(mainWindow!, {
+          title: '选择要绑定的项目文件夹', defaultPath: suggestion || undefined, properties: ['openDirectory'] })
+        if (chosen.canceled || chosen.filePaths.length !== 1) throw new Error('MIGRATION_CANCELED')
+        folder = chosen.filePaths[0]
+      }
+      return runtime.migration({ action: 'migrate', workspaceId: command.workspaceId, name, folder } satisfies MigrationMigrateCommand)
     })
     // Issue 85: the platform scheduled-tasks management surface. The renderer
     // names the action and the task fields only; the platform owns timing,
