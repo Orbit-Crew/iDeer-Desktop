@@ -1,7 +1,7 @@
 import { createHash, generateKeyPairSync } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -95,7 +95,12 @@ describe('build-time update trust anchor', () => {
     mkdirSync(join(output, 'resources/updates'), { recursive: true })
     process.env.IDEER_UPDATES_PUBLIC_KEY_FILE = keyPath
     const hook = require('../scripts/release/issue-107/after-pack.cjs')
-    await hook({ appOutDir: output })
+    // Issue 119 grows the hook contract: alongside the updates trust anchor it
+    // also emits the component version lock, so the fixture context carries
+    // the packager electron-builder always provides — the same instance the
+    // artifact-completed hook later looks the recorded trust up by.
+    const packager = { appInfo: { version: '0.2.0' }, info: { buildResourcesDir: resolve('resources') } }
+    await hook({ appOutDir: output, packager })
     expect(readFileSync(join(output, 'resources/updates/updates-public-key.pem'), 'utf8')).toBe(publicKey)
     expect(JSON.parse(readFileSync(join(output, 'resources/updates/trust-anchor.json'), 'utf8'))).toMatchObject({
       algorithm: 'ed25519', sha256: createHash('sha256').update(keys.publicKey.export({ type: 'spki', format: 'der' })).digest('hex')
@@ -103,7 +108,7 @@ describe('build-time update trust anchor', () => {
     const artifact = join(output, 'setup.exe')
     writeFileSync(artifact, 'INSTALLER-BYTES')
     const completed = require('../scripts/release/issue-107/artifact-completed.cjs')
-    await completed({ file: artifact })
+    await completed({ file: artifact, packager })
     expect(JSON.parse(readFileSync(artifact + '.updates-trust.json', 'utf8'))).toMatchObject({
       artifact: 'setup.exe', artifactSHA256: 'da0ddc66c4937a5c3abb5b1407732aa599a874f268030094b66498022a806c63'
     })

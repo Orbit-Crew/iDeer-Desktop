@@ -10,6 +10,7 @@ from .artifacts import (
 from .capabilities import CapabilityAnnouncement, CapabilityRegistry
 from .cli import main as runtime_cli
 from .consent import ConsentExchange, ConsentRequest, ConsentStore, request_hash
+from .engineering_probe import EngineeringSoftwareProbe
 from .file_service import FileTaskResult, LocalFileService
 from .files import FileAccessError, LocalFileStore, RootConfig
 from .policy import LocalPolicy, PolicyDecision, RiskLevel
@@ -39,6 +40,7 @@ __all__ = [
     "ConsentExchange",
     "ConsentRequest",
     "ConsentStore",
+    "EngineeringSoftwareProbe",
     "FileAccessError",
     "FileArtifactUploader",
     "FileTaskResult",

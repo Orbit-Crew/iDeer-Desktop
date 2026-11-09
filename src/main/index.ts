@@ -460,9 +460,12 @@ if (!app.requestSingleInstanceLock()) {
     // over-cap model is refused by code instead of silently degraded.
     const cadPane = new CadPaneService({
       locate: (path) => runtime.files('locate', path) as Promise<{ physical: string }>,
-      // Packaged: <install>/resources/occt (extraResources, outside the asar).
-      // Development: the checkout's own resources/occt — the converter is a
-      // pinned repository resource, never an npm-resolved copy.
+      // Packaged: <install>/resources/occt — installed by the installer's
+      // selectable CAD 查看器 section or topped up later from an offline
+      // component pack (#119); when absent, the viewer honestly reports the
+      // engine as unavailable. Development: the checkout's own
+      // resources/occt — the converter is a pinned repository resource, never
+      // an npm-resolved copy.
       loadOcct: () => loadOcctFromDirs([
         join(process.resourcesPath, 'occt'),
         join(app.getAppPath(), 'resources', 'occt')

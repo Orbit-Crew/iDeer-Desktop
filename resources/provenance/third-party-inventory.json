@@ -1,0 +1,2323 @@
+{
+  "version": 1,
+  "issue": "iDeer-Desktop #88（六期·46 第三方资源核验与维护者清单）",
+  "updated": "2026-11-09",
+  "scope": "随包（及明示不随包）第三方资源的逐项清单：来源、许可证、上游维护者与负责维护者。机器可读；scripts/verify-third-party.cjs（npm run verify:third-party）在 CI 与发布前逐项核验。",
+  "consistencyRule": {
+    "statuses": "verified=指纹/声明证据已记录；pending-maintainer-verification=真实人工门（当前仅 linz-license-grant）；not-shipped=有意不随包并附用户可见说明。",
+    "shippedNpmSet": "随包 npm 集合 = package.json dependencies 与 optionalDependencies 经 package-lock.json 依 dependencies+optionalDependencies 边可达且未被 dev 标记的闭包（不含 entry 级 peer 自动安装的类型包）；同名多版本条目按 name@version 逐项登记，不得合并。",
+    "shippedSurface": "随包文件面按 electron-builder.yml extraResources 逐映射枚举：资源目录内每个文件须被某个随包清单项认领（distribution.files 精确指纹或 runtime/派生类的目标路径前缀）；FIRST_PARTY_EXTRA_RESOURCES 白名单（resources/provenance、resources/updates、THIRD_PARTY_NOTICES.md、resources/components）为本方项目数据，免逐文件认领。occt 另接受 NSIS File 指令作为随包机制（PR #162）。",
+    "noticesLedger": "THIRD_PARTY_NOTICES.md 中以「| `id` |」开头的清单行必须与 items 的 id 集合完全一致（双向、各恰一次），且每行的许可证、上游维护者、负责维护者、随包（是/否）、状态列必须与清单字段一致（状态列以状态值开头）；组件/来源两列与正文为自由文本。",
+    "humanGates": "pending-maintainer-verification 项的集合必须恰等于 humanGates[].item，且 humanGates[].id 必须恰等于 verify-third-party.cjs 内编译的 TRACKED_HUMAN_GATES；新增或解决人工门都须同时修订两处并经评审。"
+  },
+  "humanGates": [
+    {
+      "id": "linz-license-grant",
+      "item": "linz-derivation",
+      "owner": "Neowyh（上游仓库所有者）",
+      "reason": "上游 linz 在 package.json 声明 MIT 但无 LICENSE 文本；维护者须在对外分发前取得并核验上游授权文本与声明（含 occt 二进制的 LGPL-2.1 通知义务）。",
+      "userNotice": "公开发布前置条件：上游授权确认完成前，安装包为候选件，不得对外分发。"
+    }
+  ],
+  "items": [
+    {
+      "id": "linz-derivation",
+      "kind": "source-derivation",
+      "description": "整个桌面代码库受管派生自 Neowyh/linz（主进程、渲染层、dock 框架、构建配置，及 resources/compat/node16-banner.cjs 兼容补丁），裁剪适配而非逐行复刻。",
+      "upstream": {
+        "name": "linz",
+        "source": "https://github.com/Neowyh/linz",
+        "commit": "f88141bb3d3450a572fcc52e0f9b48a1e60d3b13",
+        "maintainer": "LINZ Team（Neowyh，上游仓库所有者）"
+      },
+      "license": {
+        "declared": "MIT（仅上游 package.json 声明；上游仓库无 LICENSE 文本）",
+        "evidence": "resources/provenance/linz-source.json（declaredLicense=MIT, rootLicenseFile=null）；存档 resources/provenance/linz-package.json / linz-package-lock.json"
+      },
+      "maintainer": "Neowyh（组织维护者：来源与许可证核验、发布签核）",
+      "status": "pending-maintainer-verification",
+      "distribution": {
+        "ships": true,
+        "path": "src/**（派生代码，构建入 app.asar）+ provenance/linz-package*.json（存档随包）",
+        "mechanism": "应用自身代码；extraResources resources/provenance → provenance"
+      },
+      "evidenceFiles": [
+        "resources/provenance/linz-source.json",
+        "resources/provenance/linz-package.json",
+        "resources/provenance/linz-package-lock.json"
+      ]
+    },
+    {
+      "id": "electron@22.3.27",
+      "kind": "framework",
+      "name": "electron",
+      "version": "22.3.27",
+      "description": "应用容器框架：安装根目录的 Electron 运行时分发（exe、dll、LICENSE、LICENSES.chromium.html）。npm 包本身是构建工具（devDependency），运行时分发由 electron-builder 按 electronVersion 落盘。",
+      "upstream": {
+        "name": "Electron 22.3.27",
+        "source": "https://github.com/electron/electron",
+        "maintainer": "OpenJS Foundation 与 Electron 贡献者"
+      },
+      "license": {
+        "declared": "MIT（Chromium/Node.js 等内嵌组件以随包 LICENSES.chromium.html 为准）",
+        "evidence": "package-lock.json packages[\"node_modules/electron\"]（version 22.3.27）+ electron-builder.yml electronVersion"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "安装根目录（Electron 分发文件）",
+        "mechanism": "electron-builder 按 electronVersion: 22.3.27 打包，构建产物保留 LICENSE 与 LICENSES.chromium.html"
+      }
+    },
+    {
+      "id": "occt-import-js",
+      "kind": "binary",
+      "description": "CAD 查看器的 OpenCASCADE 转换器（glue JS + WASM，asar 外由 glue 用 fs 读取）。逐字节取自 linz 固定提交。注意：上游许可证为 LGPL-2.1（旧版 THIRD_PARTY_NOTICES 误记为 MIT，#88 逐项核验时更正）。",
+      "upstream": {
+        "name": "occt-import-js 0.0.23",
+        "source": "https://github.com/kovacsv/occt-import-js",
+        "version": "0.0.23",
+        "maintainer": "kovacsv（Viktor Kovács）；内嵌 OCCT：Open CASCADE SAS 与 OCCT 贡献者"
+      },
+      "license": {
+        "declared": "LGPL-2.1（glue 与 WASM 均属上游项目；内嵌 OCCT 同为 LGPL-2.1，附 OCCT 开发例外条款）",
+        "evidence": "resources/provenance/linz-package-lock.json node_modules/occt-import-js（version 0.0.23, license LGPL-2.1）；上游仓库 LICENSE.md 为 LGPL-2.1 全文"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "occt/",
+        "mechanism": "extraResources resources/occt → occt（asar 外，glue 用 fs 读取 wasm），或 NSIS 安装节的 File 指令；两种机制均计为随包（PR #162 将 occt 改由 NSIS 装包）。字节指纹见下",
+        "files": {
+          "occt/occt-import-js.js": "3fb44ce11d00611f9b3f3c5775d520ebab48930c1f08279b7b1316f05f0d3379",
+          "occt/occt-import-js.wasm": "33391fc9d94ea5c869a6718488bf0a9a464222bac9bdc764dfe1690cef281952"
+        }
+      },
+      "evidenceFiles": [
+        "resources/provenance/linz-source.json",
+        "resources/provenance/linz-package-lock.json"
+      ],
+      "notes": "LGPL-2.1 分发义务（随附许可证文本、对应源码获取途径）为维护者发布时的人工职责，仅在此记录；verify-third-party 不对其做机器核验。见 THIRD_PARTY_NOTICES.md「发布前置检查」。"
+    },
+    {
+      "id": "ideer-runtime-core",
+      "kind": "runtime-source",
+      "description": "随包 Python Runtime 的 core 代码，源自 Orbit-Crew/iDeer 固定提交，逐文件 blob 固定于 runtime-source.json；修改台账同文件记录。",
+      "upstream": {
+        "name": "iDeer Runtime core（local-runtime/core）",
+        "source": "https://github.com/Orbit-Crew/iDeer",
+        "commit": "ccb251e07e5f5934b851e4c3df00224718f28123",
+        "maintainer": "Orbit-Crew（iDeer 仓库侧）"
+      },
+      "license": {
+        "declared": "MIT（LICENSE.upstream，含 Bytedance Ltd. 与 iDeer Authors 版权行）",
+        "evidence": "local-runtime/LICENSE.upstream → 随包 runtime/LICENSE.ideer-runtime.txt；resources/provenance/runtime-source.json 逐文件 blob 指纹（scripts/verify-runtime-source.py 在 CI 核验）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/core 与 runtime/LICENSE.ideer-runtime.txt",
+        "mechanism": "scripts/prepare-runtime.py 复制 local-runtime/core 并落盘 LICENSE.ideer-runtime.txt"
+      },
+      "evidenceFiles": [
+        "local-runtime/LICENSE.upstream",
+        "resources/provenance/runtime-source.json",
+        "local-runtime/distribution.lock.json"
+      ]
+    },
+    {
+      "id": "runtime-archive:python-3.12.10-embed-amd64.zip",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "CPython 3.12.10（Windows embeddable, win_amd64）",
+        "source": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+        "maintainer": "Python Software Foundation"
+      },
+      "license": {
+        "declared": "PSF-2.0",
+        "evidence": "python.org 官方分发许可（PSF LICENSE；归档内 LICENSE.txt），pin 见 local-runtime/distribution.lock.json"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "python-3.12.10-embed-amd64.zip",
+        "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+        "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3"
+      }
+    },
+    {
+      "id": "runtime-archive:cryptography-43.0.3-cp39-abi3-win_amd64.whl",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "cryptography 43.0.3 wheel",
+        "source": "https://files.pythonhosted.org/packages/87/5c/3dab83cc4aba1f4b0e733e3f0c3e7d4386440d660ba5b1e3ff995feb734d/cryptography-43.0.3-cp39-abi3-win_amd64.whl",
+        "maintainer": "Python Cryptographic Authority（PyCA）"
+      },
+      "license": {
+        "declared": "Apache-2.0 OR BSD-3-Clause",
+        "evidence": "PyPI 发布元数据（license 声明，双许可）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "cryptography-43.0.3-cp39-abi3-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/87/5c/3dab83cc4aba1f4b0e733e3f0c3e7d4386440d660ba5b1e3ff995feb734d/cryptography-43.0.3-cp39-abi3-win_amd64.whl",
+        "sha256": "0c580952eef9bf68c4747774cde7ec1d85a6e61de97281f2dba83c7d2c806362"
+      }
+    },
+    {
+      "id": "runtime-archive:cffi-1.17.1-cp312-cp312-win_amd64.whl",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "cffi 1.17.1 wheel",
+        "source": "https://files.pythonhosted.org/packages/50/b9/db34c4755a7bd1cb2d1603ac3863f22bcecbd1ba29e5ee841a4bc510b294/cffi-1.17.1-cp312-cp312-win_amd64.whl",
+        "maintainer": "PyPy 团队（Armin Rigo、Maciej Fijalkowski 等）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "PyPI 发布元数据（license 声明 MIT）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "cffi-1.17.1-cp312-cp312-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/50/b9/db34c4755a7bd1cb2d1603ac3863f22bcecbd1ba29e5ee841a4bc510b294/cffi-1.17.1-cp312-cp312-win_amd64.whl",
+        "sha256": "51392eae71afec0d0c8fb1a53b204dbb3bcabcb3c9b807eedf3e1e6ccf2de903"
+      }
+    },
+    {
+      "id": "runtime-archive:pycparser-2.22-py3-none-any.whl",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "pycparser 2.22 wheel",
+        "source": "https://files.pythonhosted.org/packages/13/a3/a812df4e2dd5696d1f351d58b8fe16a405b234ad2886a0dab9183fb78109/pycparser-2.22-py3-none-any.whl",
+        "maintainer": "Eli Bendersky"
+      },
+      "license": {
+        "declared": "BSD-3-Clause",
+        "evidence": "PyPI 发布元数据（license 声明 BSD-3-Clause）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "pycparser-2.22-py3-none-any.whl",
+        "url": "https://files.pythonhosted.org/packages/13/a3/a812df4e2dd5696d1f351d58b8fe16a405b234ad2886a0dab9183fb78109/pycparser-2.22-py3-none-any.whl",
+        "sha256": "c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"
+      }
+    },
+    {
+      "id": "runtime-archive:pypdf-5.1.0-py3-none-any.whl",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "pypdf 5.1.0 wheel",
+        "source": "https://files.pythonhosted.org/packages/04/fc/6f52588ac1cb4400a7804ef88d0d4e00cfe57a7ac6793ec3b00de5a8758b/pypdf-5.1.0-py3-none-any.whl",
+        "maintainer": "Martin Thoma（维护者）"
+      },
+      "license": {
+        "declared": "BSD-3-Clause",
+        "evidence": "PyPI 发布元数据（license 声明 BSD-3-Clause）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "pypdf-5.1.0-py3-none-any.whl",
+        "url": "https://files.pythonhosted.org/packages/04/fc/6f52588ac1cb4400a7804ef88d0d4e00cfe57a7ac6793ec3b00de5a8758b/pypdf-5.1.0-py3-none-any.whl",
+        "sha256": "3bd4f503f4ebc58bae40d81e81a9176c400cbbac2ba2d877367595fb524dfdfc"
+      }
+    },
+    {
+      "id": "runtime-archive:websockets-13.1-cp312-cp312-win_amd64.whl",
+      "kind": "runtime-archive",
+      "upstream": {
+        "name": "websockets 13.1 wheel",
+        "source": "https://files.pythonhosted.org/packages/46/93/e19160db48b5581feac8468330aa11b7292880a94a37d7030478596cc14e/websockets-13.1-cp312-cp312-win_amd64.whl",
+        "maintainer": "Aymeric Augustin"
+      },
+      "license": {
+        "declared": "BSD-3-Clause",
+        "evidence": "PyPI 发布元数据（license 声明 BSD-3-Clause）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "runtime/（解包后随包）",
+        "mechanism": "scripts/prepare-runtime.py 依 local-runtime/distribution.lock.json 下载、校验 sha256 并解包到 .runtime → extraResources runtime"
+      },
+      "pin": {
+        "name": "websockets-13.1-cp312-cp312-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/46/93/e19160db48b5581feac8468330aa11b7292880a94a37d7030478596cc14e/websockets-13.1-cp312-cp312-win_amd64.whl",
+        "sha256": "38377f8b0cdeee97c552d20cf1865695fcd56aba155ad1b4ca8779a5b6ef4ac3"
+      }
+    },
+    {
+      "id": "npm:@ant-design/colors@7.2.1",
+      "kind": "npm-dependency",
+      "name": "@ant-design/colors",
+      "version": "7.2.1",
+      "upstream": {
+        "name": "@ant-design/colors",
+        "source": "https://registry.npmjs.org/@ant-design/colors/-/colors-7.2.1.tgz",
+        "maintainer": "afc163 <afc163@gmail.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/colors\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/colors",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-lCHDcEzieu4GA3n8ELeZ5VQ8pKQAWcGGLRTQ50aQM2iqPpq2evTxER84jfdPvsPAtEcZ7m44NI45edFMo8oOYQ=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/cssinjs@1.24.0",
+      "kind": "npm-dependency",
+      "name": "@ant-design/cssinjs",
+      "version": "1.24.0",
+      "upstream": {
+        "name": "@ant-design/cssinjs",
+        "source": "https://registry.npmjs.org/@ant-design/cssinjs/-/cssinjs-1.24.0.tgz",
+        "maintainer": "Ant Group（Ant Design 团队）与社区贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/cssinjs\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/cssinjs",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-K4cYrJBsgvL+IoozUXYjbT6LHHNt+19a9zkvpBPxLjFHas1UpPM2A5MlhROb0BT8N8WoavM5VsP9MeSeNK/3mg=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/cssinjs-utils@1.1.3",
+      "kind": "npm-dependency",
+      "name": "@ant-design/cssinjs-utils",
+      "version": "1.1.3",
+      "upstream": {
+        "name": "@ant-design/cssinjs-utils",
+        "source": "https://registry.npmjs.org/@ant-design/cssinjs-utils/-/cssinjs-utils-1.1.3.tgz",
+        "maintainer": "Ant Group（Ant Design 团队）与社区贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/cssinjs-utils\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/cssinjs-utils",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-nOoQMLW1l+xR1Co8NFVYiP8pZp3VjIIzqV6D6ShYF2ljtdwWJn5WSsH+7kvCktXL/yhEtWURKOfH5Xz/gzlwsg=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/fast-color@2.0.6",
+      "kind": "npm-dependency",
+      "name": "@ant-design/fast-color",
+      "version": "2.0.6",
+      "upstream": {
+        "name": "@ant-design/fast-color",
+        "source": "https://registry.npmjs.org/@ant-design/fast-color/-/fast-color-2.0.6.tgz",
+        "maintainer": "Guo Yunhe (https://guoyunhe.me/)"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/fast-color\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/fast-color",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-y2217gk4NqL35giHl72o6Zzqji9O7vHh9YmhUVkPtAOpoTCH4uWxo/pr4VE8t0+ChEPs0qo4eJRC5Q1eXWo3vA=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/icons@5.6.1",
+      "kind": "npm-dependency",
+      "name": "@ant-design/icons",
+      "version": "5.6.1",
+      "upstream": {
+        "name": "@ant-design/icons",
+        "source": "https://registry.npmjs.org/@ant-design/icons/-/icons-5.6.1.tgz",
+        "maintainer": "Ant Group（Ant Design 团队）与社区贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/icons\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/icons",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-0/xS39c91WjPAZOWsvi1//zjx6kAp4kxWwctR6kuU6p133w8RU0D2dSCvZC19uQyharg/sAvYxGYWl01BbZZfg=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/icons-svg@4.6.0",
+      "kind": "npm-dependency",
+      "name": "@ant-design/icons-svg",
+      "version": "4.6.0",
+      "upstream": {
+        "name": "@ant-design/icons-svg",
+        "source": "https://registry.npmjs.org/@ant-design/icons-svg/-/icons-svg-4.6.0.tgz",
+        "maintainer": "Ant Group（Ant Design 团队）与社区贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/icons-svg\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/icons-svg",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-PRomU725ABMf/lnQp5HiB7my1kjEbFY0D10N4lXYxK6TIB1gKjIVD5MRThpDaezLgw1D774J8eOeeDB0M6wHrQ=="
+      }
+    },
+    {
+      "id": "npm:@ant-design/react-slick@1.1.2",
+      "kind": "npm-dependency",
+      "name": "@ant-design/react-slick",
+      "version": "1.1.2",
+      "upstream": {
+        "name": "@ant-design/react-slick",
+        "source": "https://registry.npmjs.org/@ant-design/react-slick/-/react-slick-1.1.2.tgz",
+        "maintainer": "Kiran Abburi"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@ant-design/react-slick\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@ant-design/react-slick",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-EzlvzE6xQUBrZuuhSAFTdsr4P2bBBHGZwKFemEfq8gIGyIQCxalYfZW/T2ORbtQx5rU69o+WycP3exY/7T1hGA=="
+      }
+    },
+    {
+      "id": "npm:@babel/runtime@7.29.10",
+      "kind": "npm-dependency",
+      "name": "@babel/runtime",
+      "version": "7.29.10",
+      "upstream": {
+        "name": "@babel/runtime",
+        "source": "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.10.tgz",
+        "maintainer": "The Babel Team (https://babel.dev/team)"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@babel/runtime\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@babel/runtime",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA=="
+      }
+    },
+    {
+      "id": "npm:@emotion/hash@0.8.0",
+      "kind": "npm-dependency",
+      "name": "@emotion/hash",
+      "version": "0.8.0",
+      "upstream": {
+        "name": "@emotion/hash",
+        "source": "https://registry.npmjs.org/@emotion/hash/-/hash-0.8.0.tgz",
+        "maintainer": "Emotion 团队与贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@emotion/hash\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@emotion/hash",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-kBJtf7PH6aWwZ6fka3zQ0p6SBYzx4fl1LoZXE2RrnYST9Xljm7WfKJrU4g/Xr3Beg72MLrp1AWNUmuYJTL7Cow=="
+      }
+    },
+    {
+      "id": "npm:@emotion/unitless@0.7.5",
+      "kind": "npm-dependency",
+      "name": "@emotion/unitless",
+      "version": "0.7.5",
+      "upstream": {
+        "name": "@emotion/unitless",
+        "source": "https://registry.npmjs.org/@emotion/unitless/-/unitless-0.7.5.tgz",
+        "maintainer": "Emotion 团队与贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@emotion/unitless\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@emotion/unitless",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-OWORNpfjMsSSUBVrRBVGECkhWcULOAJz9ZW8uK9qgxD+87M7jHRcvh/A96XXNhXTLmKcoYSQtBEX7lHMO7YRwg=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/async-validator@5.1.2",
+      "kind": "npm-dependency",
+      "name": "@rc-component/async-validator",
+      "version": "5.1.2",
+      "upstream": {
+        "name": "@rc-component/async-validator",
+        "source": "https://registry.npmjs.org/@rc-component/async-validator/-/async-validator-5.1.2.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（rc-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/async-validator\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/async-validator",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-WYbrZSjzznU1ekD0qFq2qRxt309VoS61MTG5npnFQlKYcoy9IzU8T+ZCIhq5bGAXRbXysABFWTspicMfmWFwow=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/color-picker@2.0.1",
+      "kind": "npm-dependency",
+      "name": "@rc-component/color-picker",
+      "version": "2.0.1",
+      "upstream": {
+        "name": "@rc-component/color-picker",
+        "source": "https://registry.npmjs.org/@rc-component/color-picker/-/color-picker-2.0.1.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（rc-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/color-picker\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/color-picker",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-WcZYwAThV/b2GISQ8F+7650r5ZZJ043E57aVBFkQ+kSY4C6wdofXgB0hBx+GPGpIU0Z81eETNoDUJMr7oy/P8Q=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/context@1.4.0",
+      "kind": "npm-dependency",
+      "name": "@rc-component/context",
+      "version": "1.4.0",
+      "upstream": {
+        "name": "@rc-component/context",
+        "source": "https://registry.npmjs.org/@rc-component/context/-/context-1.4.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（rc-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/context\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/context",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-kFcNxg9oLRMoL3qki0OMxK+7g5mypjgaaJp/pkOis/6rVxma9nJBF/8kCIuTYHUQNr0ii7MxqE33wirPZLJQ2w=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/mini-decimal@1.1.4",
+      "kind": "npm-dependency",
+      "name": "@rc-component/mini-decimal",
+      "version": "1.1.4",
+      "upstream": {
+        "name": "@rc-component/mini-decimal",
+        "source": "https://registry.npmjs.org/@rc-component/mini-decimal/-/mini-decimal-1.1.4.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/mini-decimal\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/mini-decimal",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-xiuXcaCwyOWpD8a8scdExFl+bntNphAW8XeenL1ig2en0AAZY0Pcp4pC0dI22qJ+NvxKn9RoNIoRdqYU3BLH4w=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/mutate-observer@1.1.0",
+      "kind": "npm-dependency",
+      "name": "@rc-component/mutate-observer",
+      "version": "1.1.0",
+      "upstream": {
+        "name": "@rc-component/mutate-observer",
+        "source": "https://registry.npmjs.org/@rc-component/mutate-observer/-/mutate-observer-1.1.0.tgz",
+        "maintainer": "574980606@qq.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/mutate-observer\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/mutate-observer",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-QjrOsDXQusNwGZPf4/qRQasg7UFEj06XiCJ8iuiq/Io7CrHrgVi6Uuetw60WAMG1799v+aM8kyc+1L/GBbHSlw=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/portal@1.1.2",
+      "kind": "npm-dependency",
+      "name": "@rc-component/portal",
+      "version": "1.1.2",
+      "upstream": {
+        "name": "@rc-component/portal",
+        "source": "https://registry.npmjs.org/@rc-component/portal/-/portal-1.1.2.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/portal\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/portal",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-6f813C0IsasTZms08kfA8kPAGxbbkYToa8ALaiDIGGECU4i9hj8Plgbx0sNJDrey3EtHO30hmdaxtT0138xZcg=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/qrcode@1.1.3",
+      "kind": "npm-dependency",
+      "name": "@rc-component/qrcode",
+      "version": "1.1.3",
+      "upstream": {
+        "name": "@rc-component/qrcode",
+        "source": "https://registry.npmjs.org/@rc-component/qrcode/-/qrcode-1.1.3.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（rc-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/qrcode\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/qrcode",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-aGv6alnn4HbDEsURzKP+jv13rbi1VxmAYfBNZr5GKF1iohMNWy5tAVoJ1E3cOvzMB1kbUPvCXchM6zSFlRGPhA=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/tour@1.15.1",
+      "kind": "npm-dependency",
+      "name": "@rc-component/tour",
+      "version": "1.15.1",
+      "upstream": {
+        "name": "@rc-component/tour",
+        "source": "https://registry.npmjs.org/@rc-component/tour/-/tour-1.15.1.tgz",
+        "maintainer": "wangning4567@163.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/tour\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/tour",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-Tr2t7J1DKZUpfJuDZWHxyxWpfmj8EZrqSgyMZ+BCdvKZ6r1UDsfU46M/iWAAFBy961Ssfom2kv5f3UcjIL2CmQ=="
+      }
+    },
+    {
+      "id": "npm:@rc-component/trigger@2.3.1",
+      "kind": "npm-dependency",
+      "name": "@rc-component/trigger",
+      "version": "2.3.1",
+      "upstream": {
+        "name": "@rc-component/trigger",
+        "source": "https://registry.npmjs.org/@rc-component/trigger/-/trigger-2.3.1.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（rc-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@rc-component/trigger\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@rc-component/trigger",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-ORENF39PeXTzM+gQEshuk460Z8N4+6DkjpxlpE7Q3gYy1iBpLrx0FOJz3h62ryrJZ/3zCAUIkT1Pb/8hHWpb3A=="
+      }
+    },
+    {
+      "id": "npm:@xterm/addon-fit@0.10.0",
+      "kind": "npm-dependency",
+      "name": "@xterm/addon-fit",
+      "version": "0.10.0",
+      "upstream": {
+        "name": "@xterm/addon-fit",
+        "source": "https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.10.0.tgz",
+        "maintainer": "The xterm.js authors (https://xtermjs.org/)"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@xterm/addon-fit\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@xterm/addon-fit",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ=="
+      }
+    },
+    {
+      "id": "npm:@xterm/xterm@5.5.0",
+      "kind": "npm-dependency",
+      "name": "@xterm/xterm",
+      "version": "5.5.0",
+      "upstream": {
+        "name": "@xterm/xterm",
+        "source": "https://registry.npmjs.org/@xterm/xterm/-/xterm-5.5.0.tgz",
+        "maintainer": "xterm.js 贡献者（https://xtermjs.org/）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/@xterm/xterm\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/@xterm/xterm",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A=="
+      }
+    },
+    {
+      "id": "npm:antd@5.29.3",
+      "kind": "npm-dependency",
+      "name": "antd",
+      "version": "5.29.3",
+      "upstream": {
+        "name": "antd",
+        "source": "https://registry.npmjs.org/antd/-/antd-5.29.3.tgz",
+        "maintainer": "Ant Group（Ant Design 团队）与社区贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/antd\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/antd",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-3DdbGCa9tWAJGcCJ6rzR8EJFsv2CtyEbkVabZE14pfgUHfCicWCj0/QzQVLDYg8CPfQk9BH7fHCoTXHTy7MP/A=="
+      }
+    },
+    {
+      "id": "npm:classnames@2.5.1",
+      "kind": "npm-dependency",
+      "name": "classnames",
+      "version": "2.5.1",
+      "upstream": {
+        "name": "classnames",
+        "source": "https://registry.npmjs.org/classnames/-/classnames-2.5.1.tgz",
+        "maintainer": "Jed Watson"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/classnames\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/classnames",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow=="
+      }
+    },
+    {
+      "id": "npm:compute-scroll-into-view@3.1.1",
+      "kind": "npm-dependency",
+      "name": "compute-scroll-into-view",
+      "version": "3.1.1",
+      "upstream": {
+        "name": "compute-scroll-into-view",
+        "source": "https://registry.npmjs.org/compute-scroll-into-view/-/compute-scroll-into-view-3.1.1.tgz",
+        "maintainer": "Cody Olsen"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/compute-scroll-into-view\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/compute-scroll-into-view",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-VRhuHOLoKYOy4UbilLbUzbYg93XLjv2PncJC50EuTWPA3gaja1UjBsUP/D/9/juV3vQFr6XBEzn9KCAHdUvOHw=="
+      }
+    },
+    {
+      "id": "npm:copy-to-clipboard@3.3.3",
+      "kind": "npm-dependency",
+      "name": "copy-to-clipboard",
+      "version": "3.3.3",
+      "upstream": {
+        "name": "copy-to-clipboard",
+        "source": "https://registry.npmjs.org/copy-to-clipboard/-/copy-to-clipboard-3.3.3.tgz",
+        "maintainer": "sudodoki <smd.deluzion@gmail.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/copy-to-clipboard\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/copy-to-clipboard",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA=="
+      }
+    },
+    {
+      "id": "npm:csstype@3.2.3",
+      "kind": "npm-dependency",
+      "name": "csstype",
+      "version": "3.2.3",
+      "upstream": {
+        "name": "csstype",
+        "source": "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz",
+        "maintainer": "Fredrik Nicol <fredrik.nicol@gmail.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/csstype\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/csstype",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="
+      }
+    },
+    {
+      "id": "npm:dayjs@1.11.23",
+      "kind": "npm-dependency",
+      "name": "dayjs",
+      "version": "1.11.23",
+      "upstream": {
+        "name": "dayjs",
+        "source": "https://registry.npmjs.org/dayjs/-/dayjs-1.11.23.tgz",
+        "maintainer": "iamkun"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/dayjs\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/dayjs",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-QDTCU0M0MxR3hQfnlDJfwekQiaanm1ubOD231u73WBckQ/fsamwRLiE2GBz6D3a/xF1NgfiDLJjXBa1hYOYTtQ=="
+      }
+    },
+    {
+      "id": "npm:js-tokens@4.0.0",
+      "kind": "npm-dependency",
+      "name": "js-tokens",
+      "version": "4.0.0",
+      "upstream": {
+        "name": "js-tokens",
+        "source": "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz",
+        "maintainer": "Simon Lydell"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/js-tokens\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/js-tokens",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
+      }
+    },
+    {
+      "id": "npm:json2mq@0.2.0",
+      "kind": "npm-dependency",
+      "name": "json2mq",
+      "version": "0.2.0",
+      "upstream": {
+        "name": "json2mq",
+        "source": "https://registry.npmjs.org/json2mq/-/json2mq-0.2.0.tgz",
+        "maintainer": "Kiran Abburi"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/json2mq\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/json2mq",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-SzoRg7ux5DWTII9J2qkrZrqV1gt+rTaoufMxEzXbS26Uid0NwaJd123HcoB80TgubEppxxIGdNxCx50fEoEWQA=="
+      }
+    },
+    {
+      "id": "npm:loose-envify@1.4.0",
+      "kind": "npm-dependency",
+      "name": "loose-envify",
+      "version": "1.4.0",
+      "upstream": {
+        "name": "loose-envify",
+        "source": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz",
+        "maintainer": "Andres Suarez <zertosh@gmail.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/loose-envify\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/loose-envify",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="
+      }
+    },
+    {
+      "id": "npm:node-pty@1.1.0",
+      "kind": "npm-dependency",
+      "name": "node-pty",
+      "version": "1.1.0",
+      "upstream": {
+        "name": "node-pty",
+        "source": "https://registry.npmjs.org/node-pty/-/node-pty-1.1.0.tgz",
+        "maintainer": "Microsoft Corporation"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/node-pty\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/node-pty",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg=="
+      }
+    },
+    {
+      "id": "npm:node-addon-api@7.1.1",
+      "kind": "npm-dependency",
+      "name": "node-addon-api",
+      "version": "7.1.1",
+      "upstream": {
+        "name": "node-addon-api",
+        "source": "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.1.1.tgz",
+        "maintainer": "Microsoft Corporation 与贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/node-pty/node_modules/node-addon-api\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/node-addon-api",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ=="
+      }
+    },
+    {
+      "id": "npm:rc-cascader@3.34.0",
+      "kind": "npm-dependency",
+      "name": "rc-cascader",
+      "version": "3.34.0",
+      "upstream": {
+        "name": "rc-cascader",
+        "source": "https://registry.npmjs.org/rc-cascader/-/rc-cascader-3.34.0.tgz",
+        "maintainer": "afc163@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-cascader\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-cascader",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-KpXypcvju9ptjW9FaN2NFcA2QH9E9LHKq169Y0eWtH4e/wHQ5Wh5qZakAgvb8EKZ736WZ3B0zLLOBsrsja5Dag=="
+      }
+    },
+    {
+      "id": "npm:rc-checkbox@3.5.0",
+      "kind": "npm-dependency",
+      "name": "rc-checkbox",
+      "version": "3.5.0",
+      "upstream": {
+        "name": "rc-checkbox",
+        "source": "https://registry.npmjs.org/rc-checkbox/-/rc-checkbox-3.5.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-checkbox\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-checkbox",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-aOAQc3E98HteIIsSqm6Xk2FPKIER6+5vyEFMZfo73TqM+VVAIqOkHoPjgKLqSNtVLWScoaM7vY2ZrGEheI79yg=="
+      }
+    },
+    {
+      "id": "npm:rc-collapse@3.9.0",
+      "kind": "npm-dependency",
+      "name": "rc-collapse",
+      "version": "3.9.0",
+      "upstream": {
+        "name": "rc-collapse",
+        "source": "https://registry.npmjs.org/rc-collapse/-/rc-collapse-3.9.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-collapse\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-collapse",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-swDdz4QZ4dFTo4RAUMLL50qP0EY62N2kvmk2We5xYdRwcRn8WcYtuetCJpwpaCbUfUt5+huLpVxhvmnK+PHrkA=="
+      }
+    },
+    {
+      "id": "npm:rc-dialog@9.6.0",
+      "kind": "npm-dependency",
+      "name": "rc-dialog",
+      "version": "9.6.0",
+      "upstream": {
+        "name": "rc-dialog",
+        "source": "https://registry.npmjs.org/rc-dialog/-/rc-dialog-9.6.0.tgz",
+        "maintainer": "yiminghe@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-dialog\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-dialog",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-ApoVi9Z8PaCQg6FsUzS8yvBEQy0ZL2PkuvAgrmohPkN3okps5WZ5WQWPc1RNuiOKaAYv8B97ACdsFU5LizzCqg=="
+      }
+    },
+    {
+      "id": "npm:rc-drawer@7.3.0",
+      "kind": "npm-dependency",
+      "name": "rc-drawer",
+      "version": "7.3.0",
+      "upstream": {
+        "name": "rc-drawer",
+        "source": "https://registry.npmjs.org/rc-drawer/-/rc-drawer-7.3.0.tgz",
+        "maintainer": "155259966@qq.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-drawer\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-drawer",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-DX6CIgiBWNpJIMGFO8BAISFkxiuKitoizooj4BDyee8/SnBn0zwO2FHrNDpqqepj0E/TFTDpmEBCyFuTgC7MOg=="
+      }
+    },
+    {
+      "id": "npm:rc-dropdown@4.2.1",
+      "kind": "npm-dependency",
+      "name": "rc-dropdown",
+      "version": "4.2.1",
+      "upstream": {
+        "name": "rc-dropdown",
+        "source": "https://registry.npmjs.org/rc-dropdown/-/rc-dropdown-4.2.1.tgz",
+        "maintainer": "yiminghe@gmail.com, hualei5280@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-dropdown\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-dropdown",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-YDAlXsPv3I1n42dv1JpdM7wJ+gSUBfeyPK59ZpBD9jQhK9jVuxpjj3NmWQHOBceA1zEPVX84T2wbdb2SD0UjmA=="
+      }
+    },
+    {
+      "id": "npm:rc-field-form@2.7.1",
+      "kind": "npm-dependency",
+      "name": "rc-field-form",
+      "version": "2.7.1",
+      "upstream": {
+        "name": "rc-field-form",
+        "source": "https://registry.npmjs.org/rc-field-form/-/rc-field-form-2.7.1.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-field-form\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-field-form",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-vKeSifSJ6HoLaAB+B8aq/Qgm8a3dyxROzCtKNCsBQgiverpc4kWDQihoUwzUj+zNWJOykwSY4dNX3QrGwtVb9A=="
+      }
+    },
+    {
+      "id": "npm:rc-image@7.12.0",
+      "kind": "npm-dependency",
+      "name": "rc-image",
+      "version": "7.12.0",
+      "upstream": {
+        "name": "rc-image",
+        "source": "https://registry.npmjs.org/rc-image/-/rc-image-7.12.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-image\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-image",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-cZ3HTyyckPnNnUb9/DRqduqzLfrQRyi+CdHjdqgsyDpI3Ln5UX1kXnAhPBSJj9pVRzwRFgqkN7p9b6HBDjmu/Q=="
+      }
+    },
+    {
+      "id": "npm:rc-input@1.8.0",
+      "kind": "npm-dependency",
+      "name": "rc-input",
+      "version": "1.8.0",
+      "upstream": {
+        "name": "rc-input",
+        "source": "https://registry.npmjs.org/rc-input/-/rc-input-1.8.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-input\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-input",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-KXvaTbX+7ha8a/k+eg6SYRVERK0NddX8QX7a7AnRvUa/rEH0CNMlpcBzBkhI0wp2C8C4HlMoYl8TImSN+fuHKA=="
+      }
+    },
+    {
+      "id": "npm:rc-input-number@9.5.0",
+      "kind": "npm-dependency",
+      "name": "rc-input-number",
+      "version": "9.5.0",
+      "upstream": {
+        "name": "rc-input-number",
+        "source": "https://registry.npmjs.org/rc-input-number/-/rc-input-number-9.5.0.tgz",
+        "maintainer": "tsjxyz@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-input-number\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-input-number",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-bKaEvB5tHebUURAEXw35LDcnRZLq3x1k7GxfAqBMzmpHkDGzjAtnUL8y4y5N15rIFIg5IJgwr211jInl3cipag=="
+      }
+    },
+    {
+      "id": "npm:rc-mentions@2.20.0",
+      "kind": "npm-dependency",
+      "name": "rc-mentions",
+      "version": "2.20.0",
+      "upstream": {
+        "name": "rc-mentions",
+        "source": "https://registry.npmjs.org/rc-mentions/-/rc-mentions-2.20.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-mentions\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-mentions",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-w8HCMZEh3f0nR8ZEd466ATqmXFCMGMN5UFCzEUL0bM/nGw/wOS2GgRzKBcm19K++jDyuWCOJOdgcKGXU3fXfbQ=="
+      }
+    },
+    {
+      "id": "npm:rc-menu@9.16.1",
+      "kind": "npm-dependency",
+      "name": "rc-menu",
+      "version": "9.16.1",
+      "upstream": {
+        "name": "rc-menu",
+        "source": "https://registry.npmjs.org/rc-menu/-/rc-menu-9.16.1.tgz",
+        "maintainer": "yiminghe@gmail.com, hualei5280@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-menu\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-menu",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-ghHx6/6Dvp+fw8CJhDUHFHDJ84hJE3BXNCzSgLdmNiFErWSOaZNsihDAsKq9ByTALo/xkNIwtDFGIl6r+RPXBg=="
+      }
+    },
+    {
+      "id": "npm:rc-motion@2.9.5",
+      "kind": "npm-dependency",
+      "name": "rc-motion",
+      "version": "2.9.5",
+      "upstream": {
+        "name": "rc-motion",
+        "source": "https://registry.npmjs.org/rc-motion/-/rc-motion-2.9.5.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-motion\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-motion",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-w+XTUrfh7ArbYEd2582uDrEhmBHwK1ZENJiSJVb7uRxdE7qJSYjbO2eksRXmndqyKqKoYPc9ClpPh5242mV1vA=="
+      }
+    },
+    {
+      "id": "npm:rc-notification@5.6.4",
+      "kind": "npm-dependency",
+      "name": "rc-notification",
+      "version": "5.6.4",
+      "upstream": {
+        "name": "rc-notification",
+        "source": "https://registry.npmjs.org/rc-notification/-/rc-notification-5.6.4.tgz",
+        "maintainer": "yiminghe@gmail.com, skyking_H@hotmail.com, hust2012jiangkai@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-notification\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-notification",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-KcS4O6B4qzM3KH7lkwOB7ooLPZ4b6J+VMmQgT51VZCeEcmghdeR4IrMcFq0LG+RPdnbe/ArT086tGM8Snimgiw=="
+      }
+    },
+    {
+      "id": "npm:rc-overflow@1.5.0",
+      "kind": "npm-dependency",
+      "name": "rc-overflow",
+      "version": "1.5.0",
+      "upstream": {
+        "name": "rc-overflow",
+        "source": "https://registry.npmjs.org/rc-overflow/-/rc-overflow-1.5.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-overflow\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-overflow",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-Lm/v9h0LymeUYJf0x39OveU52InkdRXqnn2aYXfWmo8WdOonIKB2kfau+GF0fWq6jPgtdO9yMqveGcK6aIhJmg=="
+      }
+    },
+    {
+      "id": "npm:rc-pagination@5.1.0",
+      "kind": "npm-dependency",
+      "name": "rc-pagination",
+      "version": "5.1.0",
+      "upstream": {
+        "name": "rc-pagination",
+        "source": "https://registry.npmjs.org/rc-pagination/-/rc-pagination-5.1.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-pagination\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-pagination",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-8416Yip/+eclTFdHXLKTxZvn70duYVGTvUUWbckCCZoIl3jagqke3GLsFrMs0bsQBikiYpZLD9206Ej4SOdOXQ=="
+      }
+    },
+    {
+      "id": "npm:rc-picker@4.11.3",
+      "kind": "npm-dependency",
+      "name": "rc-picker",
+      "version": "4.11.3",
+      "upstream": {
+        "name": "rc-picker",
+        "source": "https://registry.npmjs.org/rc-picker/-/rc-picker-4.11.3.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-picker\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-picker",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-MJ5teb7FlNE0NFHTncxXQ62Y5lytq6sh5nUw0iH8OkHL/TjARSEvSHpr940pWgjGANpjCwyMdvsEV55l5tYNSg=="
+      }
+    },
+    {
+      "id": "npm:rc-progress@4.0.0",
+      "kind": "npm-dependency",
+      "name": "rc-progress",
+      "version": "4.0.0",
+      "upstream": {
+        "name": "rc-progress",
+        "source": "https://registry.npmjs.org/rc-progress/-/rc-progress-4.0.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-progress\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-progress",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-oofVMMafOCokIUIBnZLNcOZFsABaUw8PPrf1/y0ZBvKZNpOiu5h4AO9vv11Sw0p4Hb3D0yGWuEattcQGtNJ/aw=="
+      }
+    },
+    {
+      "id": "npm:rc-rate@2.13.1",
+      "kind": "npm-dependency",
+      "name": "rc-rate",
+      "version": "2.13.1",
+      "upstream": {
+        "name": "rc-rate",
+        "source": "https://registry.npmjs.org/rc-rate/-/rc-rate-2.13.1.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-rate\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-rate",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-QUhQ9ivQ8Gy7mtMZPAjLbxBt5y9GRp65VcUyGUMF3N3fhiftivPHdpuDIaWIMOTEprAjZPC08bls1dQB+I1F2Q=="
+      }
+    },
+    {
+      "id": "npm:rc-resize-observer@1.4.3",
+      "kind": "npm-dependency",
+      "name": "rc-resize-observer",
+      "version": "1.4.3",
+      "upstream": {
+        "name": "rc-resize-observer",
+        "source": "https://registry.npmjs.org/rc-resize-observer/-/rc-resize-observer-1.4.3.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-resize-observer\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-resize-observer",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-YZLjUbyIWox8E9i9C3Tm7ia+W7euPItNWSPX5sCcQTYbnwDb5uNpnLHQCG1f22oZWUhLw4Mv2tFmeWe68CDQRQ=="
+      }
+    },
+    {
+      "id": "npm:rc-segmented@2.7.1",
+      "kind": "npm-dependency",
+      "name": "rc-segmented",
+      "version": "2.7.1",
+      "upstream": {
+        "name": "rc-segmented",
+        "source": "https://registry.npmjs.org/rc-segmented/-/rc-segmented-2.7.1.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-segmented\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-segmented",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-izj1Nw/Dw2Vb7EVr+D/E9lUTkBe+kKC+SAFSU9zqr7WV2W5Ktaa9Gc7cB2jTqgk8GROJayltaec+DBlYKc6d+g=="
+      }
+    },
+    {
+      "id": "npm:rc-select@14.16.8",
+      "kind": "npm-dependency",
+      "name": "rc-select",
+      "version": "14.16.8",
+      "upstream": {
+        "name": "rc-select",
+        "source": "https://registry.npmjs.org/rc-select/-/rc-select-14.16.8.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-select\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-select",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-NOV5BZa1wZrsdkKaiK7LHRuo5ZjZYMDxPP6/1+09+FB4KoNi8jcG1ZqLE3AVCxEsYMBe65OBx71wFoHRTP3LRg=="
+      }
+    },
+    {
+      "id": "npm:rc-slider@11.1.9",
+      "kind": "npm-dependency",
+      "name": "rc-slider",
+      "version": "11.1.9",
+      "upstream": {
+        "name": "rc-slider",
+        "source": "https://registry.npmjs.org/rc-slider/-/rc-slider-11.1.9.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-slider\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-slider",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-h8IknhzSh3FEM9u8ivkskh+Ef4Yo4JRIY2nj7MrH6GQmrwV6mcpJf5/4KgH5JaVI1H3E52yCdpOlVyGZIeph5A=="
+      }
+    },
+    {
+      "id": "npm:rc-steps@6.0.1",
+      "kind": "npm-dependency",
+      "name": "rc-steps",
+      "version": "6.0.1",
+      "upstream": {
+        "name": "rc-steps",
+        "source": "https://registry.npmjs.org/rc-steps/-/rc-steps-6.0.1.tgz",
+        "maintainer": "afc163"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-steps\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-steps",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-lKHL+Sny0SeHkQKKDJlAjV5oZ8DwCdS2hFhAkIjuQt1/pB81M0cA0ErVFdHq9+jmPmFw1vJB2F5NBzFXLJxV+g=="
+      }
+    },
+    {
+      "id": "npm:rc-switch@4.1.0",
+      "kind": "npm-dependency",
+      "name": "rc-switch",
+      "version": "4.1.0",
+      "upstream": {
+        "name": "rc-switch",
+        "source": "https://registry.npmjs.org/rc-switch/-/rc-switch-4.1.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-switch\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-switch",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-TI8ufP2Az9oEbvyCeVE4+90PDSljGyuwix3fV58p7HV2o4wBnVToEyomJRVyTaZeqNPAp+vqeo4Wnj5u0ZZQBg=="
+      }
+    },
+    {
+      "id": "npm:rc-table@7.54.0",
+      "kind": "npm-dependency",
+      "name": "rc-table",
+      "version": "7.54.0",
+      "upstream": {
+        "name": "rc-table",
+        "source": "https://registry.npmjs.org/rc-table/-/rc-table-7.54.0.tgz",
+        "maintainer": "yiminghe@gmail.com, afc163@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-table\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-table",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-/wDTkki6wBTjwylwAGjpLKYklKo9YgjZwAU77+7ME5mBoS32Q4nAwoqhA2lSge6fobLW3Tap6uc5xfwaL2p0Sw=="
+      }
+    },
+    {
+      "id": "npm:rc-tabs@15.7.0",
+      "kind": "npm-dependency",
+      "name": "rc-tabs",
+      "version": "15.7.0",
+      "upstream": {
+        "name": "rc-tabs",
+        "source": "https://registry.npmjs.org/rc-tabs/-/rc-tabs-15.7.0.tgz",
+        "maintainer": "yiminghe@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-tabs\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-tabs",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-ZepiE+6fmozYdWf/9gVp7k56PKHB1YYoDsKeQA1CBlJ/POIhjkcYiv0AGP0w2Jhzftd3AVvZP/K+V+Lpi2ankA=="
+      }
+    },
+    {
+      "id": "npm:rc-textarea@1.10.2",
+      "kind": "npm-dependency",
+      "name": "rc-textarea",
+      "version": "1.10.2",
+      "upstream": {
+        "name": "rc-textarea",
+        "source": "https://registry.npmjs.org/rc-textarea/-/rc-textarea-1.10.2.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-textarea\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-textarea",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-HfaeXiaSlpiSp0I/pvWpecFEHpVysZ9tpDLNkxQbMvMz6gsr7aVZ7FpWP9kt4t7DB+jJXesYS0us1uPZnlRnwQ=="
+      }
+    },
+    {
+      "id": "npm:rc-tooltip@6.4.0",
+      "kind": "npm-dependency",
+      "name": "rc-tooltip",
+      "version": "6.4.0",
+      "upstream": {
+        "name": "rc-tooltip",
+        "source": "https://registry.npmjs.org/rc-tooltip/-/rc-tooltip-6.4.0.tgz",
+        "maintainer": "yiminghe@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-tooltip\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-tooltip",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-kqyivim5cp8I5RkHmpsp1Nn/Wk+1oeloMv9c7LXNgDxUpGm+RbXJGL+OPvDlcRnx9DBeOe4wyOIl4OKUERyH1g=="
+      }
+    },
+    {
+      "id": "npm:rc-tree@5.13.1",
+      "kind": "npm-dependency",
+      "name": "rc-tree",
+      "version": "5.13.1",
+      "upstream": {
+        "name": "rc-tree",
+        "source": "https://registry.npmjs.org/rc-tree/-/rc-tree-5.13.1.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-tree\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-tree",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-FNhIefhftobCdUJshO7M8uZTA9F4OPGVXqGfZkkD/5soDeOhwO06T/aKTrg0WD8gRg/pyfq+ql3aMymLHCTC4A=="
+      }
+    },
+    {
+      "id": "npm:rc-tree-select@5.27.0",
+      "kind": "npm-dependency",
+      "name": "rc-tree-select",
+      "version": "5.27.0",
+      "upstream": {
+        "name": "rc-tree-select",
+        "source": "https://registry.npmjs.org/rc-tree-select/-/rc-tree-select-5.27.0.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-tree-select\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-tree-select",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-2qTBTzwIT7LRI1o7zLyrCzmo5tQanmyGbSaGTIf7sYimCklAToVVfpMC6OAldSKolcnjorBYPNSKQqJmN3TCww=="
+      }
+    },
+    {
+      "id": "npm:rc-upload@4.11.0",
+      "kind": "npm-dependency",
+      "name": "rc-upload",
+      "version": "4.11.0",
+      "upstream": {
+        "name": "rc-upload",
+        "source": "https://registry.npmjs.org/rc-upload/-/rc-upload-4.11.0.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-upload\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-upload",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-ZUyT//2JAehfHzjWowqROcwYJKnZkIUGWaTE/VogVrepSl7AFNbQf4+zGfX4zl9Vrj/Jm8scLO0R6UlPDKK4wA=="
+      }
+    },
+    {
+      "id": "npm:rc-util@5.44.4",
+      "kind": "npm-dependency",
+      "name": "rc-util",
+      "version": "5.44.4",
+      "upstream": {
+        "name": "rc-util",
+        "source": "https://registry.npmjs.org/rc-util/-/rc-util-5.44.4.tgz",
+        "maintainer": "Ant Design 团队与社区贡献者（react-component 组织）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-util\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-util",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-resueRJzmHG9Q6rI/DfK6Kdv9/Lfls05vzMs1Sk3M2P+3cJa+MakaZyWY8IPfehVuhPJFKrIY1IK4GqbiaiY5w=="
+      }
+    },
+    {
+      "id": "npm:rc-virtual-list@3.19.2",
+      "kind": "npm-dependency",
+      "name": "rc-virtual-list",
+      "version": "3.19.2",
+      "upstream": {
+        "name": "rc-virtual-list",
+        "source": "https://registry.npmjs.org/rc-virtual-list/-/rc-virtual-list-3.19.2.tgz",
+        "maintainer": "smith3816@gmail.com"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/rc-virtual-list\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/rc-virtual-list",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-Ys6NcjwGkuwkeaWBDqfI3xWuZ7rDiQXlH1o2zLfFzATfEgXcqpk8CkgMfbJD81McqjcJVez25a3kPxCR807evA=="
+      }
+    },
+    {
+      "id": "npm:react@18.3.1",
+      "kind": "npm-dependency",
+      "name": "react",
+      "version": "18.3.1",
+      "upstream": {
+        "name": "react",
+        "source": "https://registry.npmjs.org/react/-/react-18.3.1.tgz",
+        "maintainer": "Meta Platforms 与 React 贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/react\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/react",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="
+      }
+    },
+    {
+      "id": "npm:react-dom@18.3.1",
+      "kind": "npm-dependency",
+      "name": "react-dom",
+      "version": "18.3.1",
+      "upstream": {
+        "name": "react-dom",
+        "source": "https://registry.npmjs.org/react-dom/-/react-dom-18.3.1.tgz",
+        "maintainer": "Meta Platforms 与 React 贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/react-dom\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/react-dom",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw=="
+      }
+    },
+    {
+      "id": "npm:react-is@18.3.1",
+      "kind": "npm-dependency",
+      "name": "react-is",
+      "version": "18.3.1",
+      "upstream": {
+        "name": "react-is",
+        "source": "https://registry.npmjs.org/react-is/-/react-is-18.3.1.tgz",
+        "maintainer": "Meta Platforms 与 React 贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/react-is\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/react-is",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg=="
+      }
+    },
+    {
+      "id": "npm:resize-observer-polyfill@1.5.1",
+      "kind": "npm-dependency",
+      "name": "resize-observer-polyfill",
+      "version": "1.5.1",
+      "upstream": {
+        "name": "resize-observer-polyfill",
+        "source": "https://registry.npmjs.org/resize-observer-polyfill/-/resize-observer-polyfill-1.5.1.tgz",
+        "maintainer": "Denis Rul <que.etc@gmail.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/resize-observer-polyfill\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/resize-observer-polyfill",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg=="
+      }
+    },
+    {
+      "id": "npm:scheduler@0.23.2",
+      "kind": "npm-dependency",
+      "name": "scheduler",
+      "version": "0.23.2",
+      "upstream": {
+        "name": "scheduler",
+        "source": "https://registry.npmjs.org/scheduler/-/scheduler-0.23.2.tgz",
+        "maintainer": "Meta Platforms 与 React 贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/scheduler\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/scheduler",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ=="
+      }
+    },
+    {
+      "id": "npm:scroll-into-view-if-needed@3.1.0",
+      "kind": "npm-dependency",
+      "name": "scroll-into-view-if-needed",
+      "version": "3.1.0",
+      "upstream": {
+        "name": "scroll-into-view-if-needed",
+        "source": "https://registry.npmjs.org/scroll-into-view-if-needed/-/scroll-into-view-if-needed-3.1.0.tgz",
+        "maintainer": "Cody Olsen"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/scroll-into-view-if-needed\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/scroll-into-view-if-needed",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-49oNpRjWRvnU8NyGVmUaYG4jtTkNonFZI86MmGRDqBphEK2EXT9gdEUoQPZhuBM8yWHxCWbobltqYO5M4XrUvQ=="
+      }
+    },
+    {
+      "id": "npm:string-convert@0.2.1",
+      "kind": "npm-dependency",
+      "name": "string-convert",
+      "version": "0.2.1",
+      "upstream": {
+        "name": "string-convert",
+        "source": "https://registry.npmjs.org/string-convert/-/string-convert-0.2.1.tgz",
+        "maintainer": "未声明（发布者见 npm registry 记录，tarball 由下方 source 固定）"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/string-convert\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/string-convert",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-u/1tdPl4yQnPBjnVrmdLo9gtuLvELKsAoRapekWggdiQNvvvum+jYF329d84NAa660KQw7pB2n36KrIKVoXa3A=="
+      }
+    },
+    {
+      "id": "npm:stylis@4.4.0",
+      "kind": "npm-dependency",
+      "name": "stylis",
+      "version": "4.4.0",
+      "upstream": {
+        "name": "stylis",
+        "source": "https://registry.npmjs.org/stylis/-/stylis-4.4.0.tgz",
+        "maintainer": "Sultan Tarimo <sultantarimo@me.com>"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/stylis\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/stylis",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-5Z9ZpRzfuH6l/UAvCPAPUo3665Nk2wLaZU3x+TLHKVzIz33+sbJqbtrYoC3KD4/uVOr2Zp+L0LySezP9OHV9yA=="
+      }
+    },
+    {
+      "id": "npm:three@0.185.1",
+      "kind": "npm-dependency",
+      "name": "three",
+      "version": "0.185.1",
+      "upstream": {
+        "name": "three",
+        "source": "https://registry.npmjs.org/three/-/three-0.185.1.tgz",
+        "maintainer": "mrdoob"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/three\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/three",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg=="
+      }
+    },
+    {
+      "id": "npm:throttle-debounce@5.0.2",
+      "kind": "npm-dependency",
+      "name": "throttle-debounce",
+      "version": "5.0.2",
+      "upstream": {
+        "name": "throttle-debounce",
+        "source": "https://registry.npmjs.org/throttle-debounce/-/throttle-debounce-5.0.2.tgz",
+        "maintainer": "Ivan Nikolić <niksy5@gmail.com> (http://ivannikolic.com)"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/throttle-debounce\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/throttle-debounce",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A=="
+      }
+    },
+    {
+      "id": "npm:toggle-selection@1.0.6",
+      "kind": "npm-dependency",
+      "name": "toggle-selection",
+      "version": "1.0.6",
+      "upstream": {
+        "name": "toggle-selection",
+        "source": "https://registry.npmjs.org/toggle-selection/-/toggle-selection-1.0.6.tgz",
+        "maintainer": "sudodoki <smd.deluzion@gmail.com> (sudodoki.name)"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/toggle-selection\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/toggle-selection",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-BiZS+C1OS8g/q2RRbJmy59xpyghNBqrr6k5L/uKBGRsTfxmu3ffiRnd8mlGPUVayg8pvfi5urfnu8TU7DVOkLQ=="
+      }
+    },
+    {
+      "id": "npm:use-sync-external-store@1.7.0",
+      "kind": "npm-dependency",
+      "name": "use-sync-external-store",
+      "version": "1.7.0",
+      "upstream": {
+        "name": "use-sync-external-store",
+        "source": "https://registry.npmjs.org/use-sync-external-store/-/use-sync-external-store-1.7.0.tgz",
+        "maintainer": "Meta Platforms 与 React 贡献者"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/use-sync-external-store\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/use-sync-external-store",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A=="
+      }
+    },
+    {
+      "id": "npm:zustand@4.5.7",
+      "kind": "npm-dependency",
+      "name": "zustand",
+      "version": "4.5.7",
+      "upstream": {
+        "name": "zustand",
+        "source": "https://registry.npmjs.org/zustand/-/zustand-4.5.7.tgz",
+        "maintainer": "Paul Henschel"
+      },
+      "license": {
+        "declared": "MIT",
+        "evidence": "package-lock.json packages[\"node_modules/zustand\"]（resolved + integrity + license）"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "verified",
+      "distribution": {
+        "ships": true,
+        "path": "app.asar node_modules/zustand",
+        "mechanism": "electron-builder 按 package.json dependencies（package-lock.json 锁定）随包"
+      },
+      "pin": {
+        "integrity": "sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw=="
+      }
+    },
+    {
+      "id": "not-shipped:linz-skills",
+      "kind": "not-shipped",
+      "upstream": {
+        "name": "linz 第三方技能集",
+        "source": "https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13",
+        "maintainer": "LINZ Team（Neowyh）"
+      },
+      "license": {
+        "declared": "未核验（不随包）",
+        "evidence": "docs/porting.md：不复制 linz 技能与个人配置"
+      },
+      "maintainer": "Neowyh",
+      "status": "not-shipped",
+      "distribution": {
+        "ships": false,
+        "path": null,
+        "mechanism": "不随包"
+      },
+      "reason": "linz 的第三方技能来源与许可未逐项核验，按修复项处理：核验通过前不随包分发。",
+      "userNotice": "需另行安装/替换：本包不含 linz 的第三方技能；如需使用须自行获取并核验相应授权。"
+    },
+    {
+      "id": "not-shipped:linz-fonts-icons",
+      "kind": "not-shipped",
+      "upstream": {
+        "name": "linz 字体与图标资源",
+        "source": "https://github.com/Neowyh/linz/tree/f88141bb3d3450a572fcc52e0f9b48a1e60d3b13",
+        "maintainer": "LINZ Team（Neowyh）"
+      },
+      "license": {
+        "declared": "未核验（不随包）",
+        "evidence": "THIRD_PARTY_NOTICES 基线声明：不分发 linz 的第三方字体或图标"
+      },
+      "maintainer": "Neowyh",
+      "status": "not-shipped",
+      "distribution": {
+        "ships": false,
+        "path": null,
+        "mechanism": "不随包"
+      },
+      "reason": "linz 的字体/图标资源未逐项核验，不随包；界面图标改用随 npm 包分发、已核验的 Ant Design Icons（npm:@ant-design/icons@5.6.1）。",
+      "userNotice": "需另行安装/替换：本包不含 linz 字体/图标；当前界面图标来自随包的 @ant-design/icons npm 包。"
+    },
+    {
+      "id": "not-shipped:npm-dev-dependencies",
+      "kind": "not-shipped",
+      "upstream": {
+        "name": "package.json devDependencies（@types/three 0.185.4、@types/react 等类型包，electron-builder、vite、vitest 等构建工具）",
+        "source": "https://registry.npmjs.org/",
+        "maintainer": "各上游维护者（见 package-lock.json dev 条目）"
+      },
+      "license": {
+        "declared": "各异（示例：@types/three 0.185.4 为 Apache-2.0；electron 构建工具为 MIT）",
+        "evidence": "package-lock.json 中 dev 标记条目"
+      },
+      "maintainer": "Orbit-Crew",
+      "status": "not-shipped",
+      "distribution": {
+        "ships": false,
+        "path": null,
+        "mechanism": "不随包（仅开发/构建/测试期）"
+      },
+      "reason": "开发、构建与测试依赖不进入安装包；Electron 的运行时分发另见 electron@22.3.27 项（框架例外，非 devDependency 误报）。",
+      "userNotice": "不随包：@types/* 等开发依赖仅在开发环境经 npm ci 安装，最终用户无需获取。"
+    }
+  ]
+}

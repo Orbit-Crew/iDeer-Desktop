@@ -14,11 +14,16 @@ extraResources:
   - from: .runtime
     to: runtime
     filter: ['**/*', '!**/__pycache__/**', '!**/*.pyc']
-  # Issue 115: the OpenCASCADE WASM converter (occt-import-js, pinned from the
-  # linz commit via resources/provenance/linz-source.json). It ships outside
-  # the asar so the glue can read its .wasm sibling with fs at runtime.
-  - from: resources/occt
-    to: occt
+  # Issue 119: the OCCT converter is no longer packed here — it is installed
+  # by the installer's selectable CAD 查看器 section (resources/nsis/
+  # components.nsh, generated from resources/components/catalog.json) or
+  # topped up later from an offline component pack, always pinned by the
+  # same provenance hashes.
+  # The component catalog plus the afterPack-written components-lock.json
+  # (app version + per-artifact SHA-256) ship with every install: the lock
+  # is what offline top-ups verify against.
+  - from: resources/components
+    to: components
   - from: resources/provenance
     to: provenance
   - from: resources/updates
@@ -31,7 +36,9 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
-  include: resources/nsis/process-guard.nsh
+  # Issue 119: installer.nsh chains the unchanged process guard with the
+  # generated selectable-component script (tiers + engineering components).
+  include: resources/nsis/installer.nsh
   artifactName: ideer-desktop-${version}-windows-${arch}-setup.${ext}
   shortcutName: iDeer Desktop
   uninstallDisplayName: iDeer Desktop
